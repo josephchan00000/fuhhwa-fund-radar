@@ -305,6 +305,62 @@ def _parse_cal_rows(md: str) -> list[dict]:
     return rows
 
 
+# ── 「待更新」與週末「上週結果」（2026-10-30 使用者：「總經的行事曆有資料沒更新到」）──
+# 行事曆一天只在 06:35 寫一次：日期已過、狀態仍「未公布」的列，網頁原本照樣顯示「未公布」，
+# 讀者分不出「還沒到公布時間」和「已經公布、還沒補上」（10/30 那份有 6 列）。週末版又只寫下一週，
+# 上週五的結果（非農、日本 CPI…）從沒出現過。→ 列的結束日早於今天＝「待更新」；週末版保留上週
+# 還沒有結果的列（日期早於本週一），網頁收合在「上週結果」（使用者：「上週結果放下面收合」）。
+_MD = re.compile(r"(\d{1,2})/(\d{1,2})")
+_MD_RANGE = re.compile(r"(\d{1,2})/(\d{1,2})\s*[–\-~～至到]\s*(?:(\d{1,2})/)?(\d{1,2})")
+
+
+def _md_date(m: int, d: int, ref: date) -> date | None:
+    y = ref.year + (1 if m == 1 and ref.month == 12 else 0) - (1 if m == 12 and ref.month == 1 else 0)
+    try:
+        return date(y, m, d)
+    except ValueError:
+        return None
+
+
+def row_end_date(r: dict, ref: date) -> date | None:
+    """列的結束日：日期欄 MM/DD；區間（「09/17–18」「10/26–10/29」）取後一天；項目文字寫了從同一天
+    開始的區間（「二十屆五中全會（10/26–10/29）」）也取後一天——多日會議開完才有結果。
+    年份照參考日（檔案日期）推：12 月的檔看到 01/xx＝隔年、1 月的檔看到 12/xx＝前一年。"""
+    cell = str(r.get("date") or "")
+    m = _MD_RANGE.search(cell)
+    if m:
+        return _md_date(int(m.group(3) or m.group(1)), int(m.group(4)), ref)
+    m = _MD.search(cell)
+    if not m:
+        return None
+    mo, dd = int(m.group(1)), int(m.group(2))
+    for x in _MD_RANGE.finditer(str(r.get("item") or "")):
+        if (int(x.group(1)), int(x.group(2))) == (mo, dd):
+            return _md_date(int(x.group(3) or x.group(1)), int(x.group(4)), ref)
+    return _md_date(mo, dd, ref)
+
+
+def is_late(r: dict, ref: date, today: date) -> bool:
+    """結束日早於今天、狀態不是「已公布」也不是「休市」＝待更新（公布時間已過、實際值還沒補上）。"""
+    st = r.get("status") or ""
+    if "已公布" in st or "休市" in st:
+        return False
+    end = row_end_date(r, ref)
+    return bool(end and end < today)
+
+
+def week_split(rows: list[dict], week_start: date | None, ref: date) -> tuple[list[dict], list[dict]]:
+    """(本週列, 上週結果列)：日期早於本週一的列＝週末版帶過來的上週結果；讀不到週別＝全部算本週。"""
+    if not week_start:
+        return list(rows), []
+    cur, prev = [], []
+    for r in rows:
+        m = _MD.search(str(r.get("date") or ""))
+        d = _md_date(int(m.group(1)), int(m.group(2)), ref) if m else None
+        (prev if d and d < week_start else cur).append(r)
+    return cur, prev
+
+
 def _cal_note(md: str) -> str:
     """取行事曆檔內 `>` 引言（通常含休市說明）。"""
     for line in usnews.scrub(md or "").splitlines():
@@ -361,6 +417,52 @@ def prior_cal(today: date, week_start: date | None = None, cal_dir: Path | None 
     return None
 
 
+def last_week_cal(today: date, cal_dir: Path | None = None) -> tuple[date, str] | None:
+    """週末版用：上一週（本週＝target_week_start）最後一版行事曆 → (檔案日期, md)；找不到回 None。"""
+    ws = target_week_start(today) - timedelta(days=7)
+    for f in sorted((cal_dir or CAL_DIR).glob("*.md"), reverse=True):
+        m = re.match(r"(\d{4}-\d{2}-\d{2})\.md$", f.name)
+        if not m:
+            continue
+        fdate = date.fromisoformat(m.group(1))
+        if fdate >= today:
+            continue
+        if fdate < ws - timedelta(days=3):
+            break
+        md = f.read_text(encoding="utf-8")
+        if cal_week_start(md, fdate) == ws:
+            return fdate, md
+    return None
+
+
+def lastweek_needed(md: str, fdate: date) -> list[dict]:
+    """週末版必帶的上週列：日期在上週五（週一＋4），或狀態仍「未公布」的列（休市列不帶）。"""
+    ws = cal_week_start(md, fdate)
+    if not ws:
+        return []
+    fri = ws + timedelta(days=4)
+    out = []
+    for r in _parse_cal_rows(md):
+        st = r.get("status") or ""
+        if "休市" in st:
+            continue
+        m = _MD.search(str(r.get("date") or ""))
+        d = _md_date(int(m.group(1)), int(m.group(2)), fdate) if m else None
+        if "已公布" not in st or d == fri:
+            out.append(r)
+    return out
+
+
+CAL_LASTWEEK_RULE = """【週末版：保留上週結果（2026-10-30 起；使用者：「上週結果放下面收合」）】
+週末的行事曆寫下一週；另外把上週還沒有結果的列帶過來，**放在表格最後**（網頁會收合在「上週結果」）：
+  ① 帶哪些：上週最後一版裡**日期在上週五的列**，以及上週**狀態仍「未公布」的列**；日期、項目文字照抄（不要改寫）；
+     上週已公布的其他列不必帶；
+  ② 每一列查證後填實際值、狀態改「已公布」（以官方新聞稿為準；談話、會議、法說填一句要點）；
+     真的查不到才維持「未公布」，並在「註」寫原因（延期／取消／官方沒有數字）；
+  ③ 這些上週列**不算進 30 列上限**，也不算台灣數據 4 列、台股 8 列的上限；內容 QA 會檢查有沒有帶齊。
+"""
+
+
 def cal_key(r: dict) -> str:
     return _CAL_KEY_STRIP.sub("", (r.get("region") or "") + (r.get("item") or ""))
 
@@ -413,6 +515,48 @@ def drift_explained(d: dict, md: str) -> bool:
     tag = _CAL_KEY_STRIP.sub("", d["item"])[:4]
     return any("修正" in ln and tag in _CAL_KEY_STRIP.sub("", ln) for ln in (md or "").splitlines()
                if not ln.lstrip().startswith("|"))
+
+
+# ── 已過公布時間必補（docs/macrocal_fill_plan.md 第四段，2026-10-31 起）──
+# 第一段讓網頁誠實標「待更新」、第二段讓 CI 把抓得到的官方數字當晚補上（arm/calfill.py）；其餘八成
+# （法說、財報、會議、談話、日歐中數據）只能靠早上的 Claude。提示包把底稿裡「已過公布時間、實際值還空白」
+# 的列逐列列出，內容 QA 擋「今天的檔還有這種列、註也沒寫原因」。
+_LATE_NOTE = re.compile(r"待補|延期|延後|取消|改期")
+
+
+def late_rows(md: str, fdate: date, today: date) -> list[dict]:
+    """已過公布時間、狀態還不是已公布／休市的列（is_late；年份照檔案日期推）。"""
+    return [r for r in _parse_cal_rows(md) if is_late(r, fdate, today)]
+
+
+def late_explained(r: dict, md: str) -> bool:
+    """「註」裡有一行寫「待補／延期／延後／取消／改期」且提到該項目（項目正規化後前 4 字）＝有交代。"""
+    tag = _CAL_KEY_STRIP.sub("", r["item"])[:4]
+    return any(_LATE_NOTE.search(ln) and tag in _CAL_KEY_STRIP.sub("", ln)
+               for ln in (md or "").splitlines() if not ln.lstrip().startswith("|"))
+
+
+def late_block(today: date, base: tuple[date, str] | None) -> str:
+    """提示包「已過公布時間、實際值還空白」段：底稿（同週昨日版；週六＝上週最後一版）的這種列逐列列出，
+    加上底稿「註」裡 CI 留下的「官方核對」行。都沒有＝空字串。"""
+    if not base:
+        return ""
+    fdate, md = base
+    rows = late_rows(md, fdate, today)
+    checks = [ln.strip() for ln in md.splitlines() if ln.strip().startswith("-") and "官方核對" in ln]
+    if not rows and not checks:
+        return ""
+    out = []
+    if rows:
+        out += [f"【已過公布時間、實際值還空白（底稿 {fdate:%m/%d} 版算出；2026-10-31 起內容 QA 會擋）】",
+                "下面每一列今天都要處理：查證後填實際值、狀態改「已公布」（數據以官方新聞稿為準；法說、財報、會議、談話填一句要點）；",
+                "真的查不到才維持「未公布」，並在「註」加一行「待補：{項目}——原因（延期／取消／官方沒有數字／查無公開結果）」。"]
+        out += [f"· {r['date']} {r['region'] + '：' if r['region'] else ''}{r['item']}" for r in rows]
+    if checks:
+        out += ["【底稿的「官方核對」】CI 用官方序列核對到表上的數字和官方不同：以官方為準改正表上的數字，",
+                "那一行刪掉、改寫成「修正：{項目}——原 X 改為 Y（官方）」："]
+        out += [f"  {ln}" for ln in checks]
+    return "\n".join(out) + "\n"
 
 
 CAL_CARRY_RULE = """【以昨日版為底稿增修（2026-10-13 起；同一週才適用）】
@@ -497,7 +641,11 @@ def load_calendar() -> dict | None:
     title = next((ln.lstrip("# ").strip() for ln in md.splitlines()
                   if ln.startswith("#")), "本週重點財經行事曆")
     rows = retag_tw(_parse_cal_rows(md), {r["code"] for r in tw_watch()})
-    return {"date": d, "md": md, "rows": rows, "note": _cal_note(md), "title": title}
+    fdate = date.fromisoformat(d)
+    ws = cal_week_start(md, fdate)
+    cur, prev = week_split(rows, ws, fdate)
+    return {"date": d, "md": md, "rows": cur, "prev_rows": prev, "week_start": ws,
+            "note": _cal_note(md), "title": title}
 
 
 def load_latest() -> dict | None:

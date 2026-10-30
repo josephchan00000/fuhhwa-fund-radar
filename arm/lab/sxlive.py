@@ -743,28 +743,17 @@ def plan_state(rec: dict, ctx: dict, names: dict | None = None, trial: list | No
 PICK_TOP = S.TRADE_N8["slots"]        # 選股頁「現在開始的話」列幾檔＝N8 的格數（docs/lab_boom_v2_plan.md 第 8、9 節）
 
 
-def _fail_text(cond, v) -> str:
-    from . import superx as SX
-    k, op, _ = cond
-    if op == "=":
-        return f"不符合「{SX.SHORT.get(k, SX.FNAME.get(k, k))}」"
-    return SX.cond_value_text(tuple(cond), v)
-
-
 def pick_state(ctx: dict, last: str, W: dict, cur: list, cur_d: str, trial: bool, rules: list | None,
-               why: dict | None = None, watch: dict | None = None, names: dict | None = None, hist: dict | None = None) -> dict:
-    """選股頁新飆股卡片（docs/lab_boom_v2_plan.md 第 8、9 節；使用者：「我現在是空手，所以應該要以即刻推薦列出最強的前十名」）：
+               why: dict | None = None, names: dict | None = None, hist: dict | None = None) -> dict:
+    """選股頁新飆股卡片（docs/lab_boom_v2_plan.md 第 8、9 節；docs/lab_pick_arch_plan.md 第一段）：
     cur＝最新的名單（全部，[[代號, 強度]]，強度高到低）：週五收盤後是那一週的正式名單、週中是到 last 收盤為止的試算；
     rows＝全部，照 N8 的順序（新上名單的先、同週數依強度；sxlivespec VER 4）；top＝從現金開始會買的檔數（前 top 列）。
-    每一檔：符合哪一條、參考買點（sepa.plan_today，同原本的飆股名單）、上名單第幾週（連續幾個週末在名單上，試算的這一週也算一週）、收盤。
-    watch＝原本的飆股名單（{代號: 標籤}）：不在 cur 上的寫差在哪幾個條件（那一年規則裡差最少的一條）。
+    每一檔：符合哪一條、上名單第幾週（連續幾個週末在名單上，試算的這一週也算一週）、收盤——只有這條策略自己用的東西；
+    書上的買點（sepa.plan_today）2026-10-30 起不放（新飆股不等買點，放在一起就變成「說要買、又說還沒到」）。
     px＝全部股票 last 的收盤（頁面「我的」用；只存在使用者的瀏覽器）。只描述、不影響任何紀錄。"""
-    from . import sepa as SP
     P = ctx["P"]
-    cal = P.cal
-    i = cal.index(last)
+    i = P.cal.index(last)
     nm = names or {}
-    F = feats_at(ctx, i)
     lists = prior_lists(cur_d, W, load_hist() if hist is None else hist, incl=not trial)
 
     def weeks_on(c: str) -> int:
@@ -774,40 +763,13 @@ def pick_state(ctx: dict, last: str, W: dict, cur: list, cur_d: str, trial: bool
         x = P.s[c]["c"][i] if c in P.s else None
         return float(x) if _ok(x) else None
 
-    def plan(c: str) -> dict:
-        try:
-            px = ctx["pxs"][c]
-            pl = SP.plan_today(px.h, px.l, px.c, px.v, P.s[c]["c"], i)
-        except Exception:                                  # noqa: BLE001 —— 算不出來＝不寫買點
-            return {}
-        r = {"st": pl.get("st"), "piv": pl.get("piv"), "stop": pl.get("stop"), "hi": pl.get("hi52"), "m50": pl.get("ma50")}
-        return {k: (round(float(v), 2) if isinstance(v, float) else v) for k, v in r.items() if v is not None}
-
     def row(c: str, rs) -> dict:
         w = (why or {}).get(c)
-        return {"c": c, "n": nm.get(c, c), "rs": round(float(rs), 1), "why": _why_lines(rules, w), "wk": weeks_on(c),
-                "pl": plan(c), "px": raw(c)}
-    full = {c for c, _ in cur}
+        return {"c": c, "n": nm.get(c, c), "rs": round(float(rs), 1), "why": _why_lines(rules, w), "wk": weeks_on(c), "px": raw(c)}
     order = sorted(cur, key=lambda x: -(float(x[1]) - 1000.0 * (max(1, weeks_on(x[0])) - 1)))   # N8 的順序（Book 同一套，穩定排序）
     rows = [row(c, rs) for c, rs in order]
-    old = []
-    for c, tags in sorted((watch or {}).items(), key=lambda x: -((F.get(x[0]) or {}).get("rs") or 0)):
-        f = F.get(c) or {}
-        o = {"c": c, "n": nm.get(c, c), "tags": list(tags or []), "rs": f.get("rs"), "px": raw(c), "on": c in full, "pl": plan(c)}
-        if c not in full:
-            if not f.get("el"):
-                o["miss"] = ["不在新飆股挑的範圍（月底市值不到 40 億，或 20 日均成交值不到 1,000 萬）"]
-            elif rules:
-                fails = min(([cond for cond in r if not _cond_pred(cond)(f)] for r in rules), key=len)
-                o["miss"] = [_fail_text(cond, f.get(cond[0])) for cond in fails]
-        old.append(o)
     pxs = {c: round(float(P.s[c]["c"][i]), 2) for c in P.codes if _ok(P.s[c]["c"][i])}
-    return {"d": cur_d, "last": last, "trial": bool(trial), "n": len(cur), "top": PICK_TOP, "rows": rows, "old": old, "px": pxs}
-
-
-def _cond_pred(cond):
-    from . import superx as SX
-    return SX.rule_pred([tuple(cond)])
+    return {"d": cur_d, "last": last, "trial": bool(trial), "n": len(cur), "top": PICK_TOP, "rows": rows, "px": pxs}
 
 
 def trial_list(ctx: dict, d: str, R: dict | None = None, why: dict | None = None) -> list:
@@ -918,9 +880,8 @@ def missing_year(last: str | None, R: dict | None = None) -> int | None:
     return y if rules_for(y, S.RULE_BOOKS[0], R) is None else None
 
 
-def update(DL, ctx: dict | None = None, now=None, write_file: bool | None = None, watch: dict | None = None) -> dict:
-    """補記新的訊號週、重算成績；只有 CI 寫回。→ 紀錄（含 nav、trades、open、stats）。
-    watch＝原本的飆股名單（{代號: 標籤}；company.market_table 的 watch），選股頁寫差在哪幾個條件。"""
+def update(DL, ctx: dict | None = None, now=None, write_file: bool | None = None) -> dict:
+    """補記新的訊號週、重算成績；只有 CI 寫回。→ 紀錄（含 nav、trades、open、stats）。"""
     from .. import clock
     from . import superx as SX
     now = now or clock.now_tw()
@@ -976,7 +937,7 @@ def update(DL, ctx: dict | None = None, now=None, write_file: bool | None = None
         r2 = dict(rec, last=last)
         plan = plan_state(r2, ctx, nm, tr, R, seed, book=S.TAKE_BOOK, hist=hist)   # START 之前（資料停在 START 前一天）也要算下一次看名單的日子
         n8 = plan_state(r2, ctx, nm, tr, R, seed, book=S.PLAN_BOOK, hist=hist)
-        try:                                               # 選股頁的新飆股卡片：最新的名單（週中＝試算）照 N8 會買的、新上名單、原本的飆股名單差在哪
+        try:                                               # 選股頁的新飆股卡片：最新的名單（週中＝試算）照 N8 會買的、新上名單
             W = {**seed_weeks(seed), **(rec.get("weeks") or {})}
             if tfull:
                 cur, cur_d, cw = tfull, last, tw
@@ -986,7 +947,7 @@ def update(DL, ctx: dict | None = None, now=None, write_file: bool | None = None
                 cw = ((W.get(wd) or {}).get("why") or {}).get(S.LIST_BOOK) or {} if wd else {}
             if cur_d:
                 n8["pick"] = pick_state(ctx, last, W, cur, cur_d, bool(tfull), rules_for(int(cur_d[:4]), S.LIST_BOOK, R),
-                                        cw, watch, nm, hist)
+                                        cw, nm, hist)
         except Exception as e:                             # noqa: BLE001
             print(f"[sxlive] ⚠ 選股頁的新飆股名單算不出來：{type(e).__name__}: {e}")
         yp = ytd_part(rec, ctx, last)                      # 今年逐月、逐筆表（ytdspec VER 2）：接手以後 N8B 那本帳的錢

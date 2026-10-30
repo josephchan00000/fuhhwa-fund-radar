@@ -160,7 +160,7 @@ def render(SV: dict | None = None, BV: dict | None = None) -> str:
     host = {"sig": SPG.research_body(SV), "bub": BPG.research_body(BV), "eq": eq_body(), "cand": cand_body(), "rare": rare_body(),
             "fut": fut_body()}
     css = HCSS + appnav.CSS + SPG.research_css() + BPG.research_css() + CP.CSS + RPG.CSS + FPG.CSS + eqsite.CSS + CSS
-    js = (SPG.JS if has_sig else "") + BPG.JS + IP.JS + OPEN_JS
+    js = (SPG.JS if has_sig else "") + BPG.JS + IP.JS + BPG.BW_JS + OPEN_JS
     return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("r")).replace("{{CSS}}", css)
                          .replace("{{BODY}}", body(host)).replace("{{PANEL}}", SPG.PANEL if has_sig else "")
                          .replace("{{SGD}}", f'<script type="application/json" id="sgd">{SPG.page_json(SV)}</script>' if has_sig else "")

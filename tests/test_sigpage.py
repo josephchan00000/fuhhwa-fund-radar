@@ -462,7 +462,7 @@ def test_scenarios_are_their_own_indicators():
     assert sigpage.scen_values(items) == {"tw": {"fund": 94.0, "chip": 88.0, "liq": 31.0, "tech": 33.0},
                                           "spx": {"fund": 65.0, "chip": 41.0, "liq": 38.0, "tech": None}}
     js = sigpage.JS
-    assert "const PXC = ['tech', 'crash', 'dim', 'scen', 'inst', 'bub', 'buy'];" in js and "function scenNow(x)" in js
+    assert "const PXC = ['tech', 'crash', 'dim', 'scen', 'inst', 'bub', 'buy', 'bd'];" in js and "function scenNow(x)" in js   # VER 25 寬度與深度同法人
     assert "if (c === 'scen')" in js and "mkHref(mk, 'o=scen')" in js and "'x9m.html' + (extra ? '#' + extra : '')" in js
     assert "data-open=\"out:out\" data-to=\"scen\"" in js                     # 市場頁：情境在同一頁的「之後怎麼走？」
 

@@ -273,12 +273,7 @@ def f12m_eps(cons: dict, mo: list[dict], qs: list[dict], asof: str) -> dict:
     if n >= S.CONS_MIN and ey is not None and ey1 is not None:
         return {"eps": round(S.f12m(asof, ey, ey1), 2), "src": "cons", "w": round(S.year_weight(asof), 4),
                 "eps_y": ey, "eps_y1": ey1, "y": y, "n": n}
-    e4 = next((q.get("eps4") for q in reversed(qs) if q.get("eps4") is not None), None)
-    last = next((o for o in reversed(mo) if o.get("rev3") is not None), None)
-    k = S.mom_factor(last["rev3"], last["rev3_ly"]) if last else None
-    if e4 is None or k is None:
-        return {"eps": None, "src": "none"}
-    return {"eps": round(e4 * k, 2), "src": "rule", "eps4": e4, "mom": round(k, 4), "ym": last["ym"]}
+    return {"eps": None, "src": "none"}                   # eqspec VER 2：沒有共識不自己推估（改用近四季法）
 
 
 # ── 同業 ───────────────────────────────────────────────────────────────────
@@ -450,7 +445,8 @@ def _json_obj(text: str, key: str):
 
 
 def pick_info(code: str, html_path: Path | None = None) -> dict:
-    """選股頁新飆股名單（dashboard/x9.html 的 D.pick.tw.bx）裡這一檔的那一列：符合哪一條、名次、位置、參考價位。"""
+    """選股頁新飆股名單（dashboard/x9.html 的 D.pick.tw.bx）裡這一檔的那一列：符合哪一條、名次、上名單幾週、照規則會不會買。
+    列的最後一欄＝現況（b 會買、h 拿著、w 等空位）。書上的買點 2026-10-30 起不放（新飆股不等買點；docs/lab_pick_arch_plan.md）。"""
     p = html_path or DASH / "x9.html"
     try:
         text = p.read_text(encoding="utf-8")
@@ -460,7 +456,7 @@ def pick_info(code: str, html_path: Path | None = None) -> dict:
     for i, r in enumerate(bx.get("rows") or []):
         if r and r[0] == code:
             return {"list": "新飆股", "d": bx.get("d"), "fix": bx.get("fix"), "buyd": bx.get("buyd"), "rank": i + 1,
-                    "rs": r[2], "weeks": r[3], "why": r[4], "spot": r[5], "plan": r[6], "will_buy": r[8] == "b"}
+                    "rs": r[2], "weeks": r[3], "why": r[4], "will_buy": r[-1] == "b", "hold": r[-1] == "h"}
     return {}
 
 
@@ -540,27 +536,8 @@ def tw_pack(code: str, D=None, pos=None, asof: str | None = None, peers: list[st
     me = peer_row(code, rows, cols, nm_all, fx, px1y, asof)
     me["n"] = co.get("n")
     keys = ("cap", "px", "pe", "fpe", "pb", "yld", "ry3", "gm", "om", "roe", "r1y")
-    med = {k: _r(_med([p[k] for p in prow]), 2) for k in keys}
-    peer_pe = S.band([p["pe"] for p in prow if p["pe"] is not None and 0 < p["pe"] <= S.BAND_PE_MAX])
-    peer_pb = S.band([p["pb"] for p in prow if p["pb"] is not None and 0 < p["pb"] <= S.BAND_PB_MAX])
-    bvps = next((q["bvps"] for q in reversed(qs) if q.get("bvps")), None)
-    meth = S.method(f12.get("eps"), px, bvps, co.get("ind"))
-    val: dict = {"px": px, "pe_ttm": my.get("pe"), "pb": my.get("pb"), "yld": my.get("yld"), "bvps": bvps,
-                 "f12m": f12, "method": meth, "band": bd,
-                 "peer_pe": {k: _r(v, 2) for k, v in peer_pe.items()} if peer_pe else None,
-                 "peer_pb": {k: _r(v, 2) for k, v in peer_pb.items()} if peer_pb else None}
-    if meth in ("pe", "pb"):
-        own = {k: bd[meth].get(k) for k in ("p25", "p50", "p75", "n")} if bd[meth].get("n") else None
-        rng = S.mult_range(own, val[f"peer_{meth}"])
-        base = f12["eps"] if meth == "pe" else bvps
-        if rng:
-            tp = S.round_tp(base * rng["dflt"])
-            val.update({"base": base, "range": {k: _r(v, 2) for k, v in rng.items()},
-                        "fpe_now": _r(px / base, 1) if meth == "pe" and base and px else None,
-                        "fpb_now": _r(px / base, 2) if meth == "pb" and base and px else None,
-                        "tp_dflt": tp, "up_dflt": _pc(tp, px), "rating_dflt": S.rating(tp, px),
-                        "scen_dflt": S.scenarios(base, rng, tp, "tw", pe=meth == "pe"),
-                        "tp_lo": S.round_tp(base * rng["lo"]), "tp_hi": S.round_tp(base * rng["hi"])})
+    med = {k: _r(_med([p[k] for p in prow if k not in ("pe", "fpe") or _pe_ok(p[k])]), 2) for k in keys}   # 本益比中位數和倍數範圍同一個排除規則
+    val = valuation(f12, qs, bd, prow, px, my, co.get("ind"), "tw")
     nq = None
     if qs:
         nxt = next_quarter(qs[-1]["q"])
@@ -583,6 +560,61 @@ def tw_pack(code: str, D=None, pos=None, asof: str | None = None, peers: list[st
             "next": {"quarter": nq, "month_rev": _next_month10(asof)}}
 
 
+def _b2(b: dict | None) -> dict | None:
+    return {k: _r(v, 2) for k, v in b.items()} if b else None
+
+
+def valuation(f12: dict, qs: list[dict], bd: dict, prow: list[dict], px: float | None, my: dict, industry: str | None,
+              mk: str = "tw") -> dict:
+    """eqspec VER 2：倍數和它乘的 EPS 同一把尺。共識法＝未來 12 個月 EPS × 同業未來本益比；近四季法＝近四季 EPS × 本公司與同業的近四季本益比；
+    淨值比法＝每股淨值 × 淨值比。base_label／range_how／dflt_how 是頁面上「目標價怎麼算」的說明（照實寫是哪一把尺）。"""
+    peer_pe = S.band([p["pe"] for p in prow if p.get("pe") is not None and 0 < p["pe"] <= S.BAND_PE_MAX])
+    peer_fpe = S.band([p["fpe"] for p in prow if p.get("fpe") is not None and 0 < p["fpe"] <= S.BAND_PE_MAX])
+    peer_pb = S.band([p["pb"] for p in prow if p.get("pb") is not None and 0 < p["pb"] <= S.BAND_PB_MAX])
+    bvps = next((q["bvps"] for q in reversed(qs) if q.get("bvps")), None)
+    lastq = next((q for q in reversed(qs) if q.get("eps4") is not None), None)
+    eps4 = lastq["eps4"] if lastq else None
+    bas = S.basis(f12.get("src") == "cons", (peer_fpe or {}).get("n", 0))
+    eps_base = f12.get("eps") if bas == "fwd" else eps4
+    meth = S.method(eps_base, px, bvps, industry)
+    f12e = f12.get("eps")
+    val: dict = {"px": px, "pe_ttm": my.get("pe"), "pb": my.get("pb"), "yld": my.get("yld"), "bvps": bvps, "eps4": eps4,
+                 "eps4_q": lastq["q"] if lastq else None, "f12m": f12, "basis": bas, "method": meth, "band": bd,
+                 "peer_pe": _b2(peer_pe), "peer_fpe": _b2(peer_fpe), "peer_pb": _b2(peer_pb),
+                 "fpe_now": _r(px / f12e, 1) if f12e and f12e > 0 and px else None,
+                 "pe4_now": _r(px / eps4, 1) if eps4 and eps4 > 0 and px else None}
+    own = {k: bd[meth].get(k) for k in ("p25", "p50", "p75", "n")} if meth in ("pe", "pb") and bd[meth].get("n") else None
+    if meth == "pe" and bas == "fwd":
+        rng, base = S.fwd_range(peer_fpe), f12e
+        val.update(base_label="未來 12 個月 EPS",
+                   range_how=f"同業未來 12 個月本益比（收盤 ÷ 法人共識）的第 25～75 百分位（{peer_fpe['n']} 家）",
+                   dflt_how="同業未來 12 個月本益比的中位數")
+    elif meth == "pe":
+        rng, base = S.mult_range(own, peer_pe), eps4
+        val.update(base_label="近四季 EPS",
+                   range_how=f"本公司近 {S.BAND_YEARS} 年每月本益比與同業現在本益比（都是近四季 EPS），第 25～75 百分位取最寬",
+                   dflt_how="本公司中位數與同業中位數的平均" if peer_pe and peer_pe["n"] >= S.PEER_MIN else "本公司中位數")
+    elif meth == "pb":
+        rng, base = S.mult_range(own, peer_pb), bvps
+        val.update(base_label="每股淨值（最近一季）",
+                   range_how=f"本公司近 {S.BAND_YEARS} 年每月淨值比與同業現在淨值比，第 25～75 百分位取最寬",
+                   dflt_how="本公司中位數與同業中位數的平均" if peer_pb and peer_pb["n"] >= S.PEER_MIN else "本公司中位數")
+    else:
+        rng, base = None, None
+    if rng and base:
+        tp = S.round_tp(base * rng["dflt"], mk)
+        val.update({"base": base, "range": {k: _r(v, 2) for k, v in rng.items()},
+                    "tp_dflt": tp, "up_dflt": _pc(tp, px), "rating_dflt": S.rating(tp, px),
+                    "scen_dflt": S.scenarios(base, rng, tp, mk, pe=meth == "pe"),
+                    "tp_lo": S.round_tp(base * rng["lo"], mk), "tp_hi": S.round_tp(base * rng["hi"], mk)})
+    return val
+
+
+def _pe_ok(v) -> bool:
+    """本益比可以放進分布（倍數範圍、同業中位數）：有值、賺錢、不超過 BAND_PE_MAX 倍。"""
+    return v is not None and 0 < v <= S.BAND_PE_MAX
+
+
 def numbers(pack: dict) -> set[float]:
     """資料包裡出現的所有數字（給檢查用；含常見的換算：億 ↔ 百萬不換，只收原值）。"""
     out: set[float] = set()
@@ -601,6 +633,16 @@ def numbers(pack: dict) -> set[float]:
         elif isinstance(x, str) and re.fullmatch(r"-?\d+(\.\d+)?", x):
             out.add(float(x))
     walk(pack)
+    uc = pack.get("us_chips") or {}               # 美股籌碼存的是比率（0.0639），頁面與報告寫成 %
+    sh, mh = uc.get("sh") or [], uc.get("mh") or []
+    for v in sh[:1] + mh[:2]:
+        if isinstance(v, (int, float)):
+            out.add(round(v * 100, 4))
+    if len(sh) > 3 and sh[2] and sh[3]:
+        out.add(round((sh[2] / sh[3] - 1) * 100, 4))
+    for t in uc.get("tx") or []:                  # 內部人交易的價格寫在說明文字裡（"Sale at price 237.00 - 240.07 per share."）
+        for x in re.findall(r"\d+(?:\.\d+)?", str(t[3]) if len(t) > 3 else ""):
+            out.add(float(x))
     return out
 
 

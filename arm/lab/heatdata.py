@@ -24,6 +24,19 @@ def load(name: str) -> dict:
     return (store.read(KIND, name) or {}).get("d") or {}
 
 
+def waiting(name: str, now, day: int, hour: int, j: int | None = None) -> bool:
+    """公布日重抓（docs/macrocal_fill_plan.md 第二段）：上個月的數字照時程該出來了（本月第 day 天起、台北 hour 點以後）
+    而序列還沒有（j＝看第幾欄）＝還在等。月資料本來一天成功抓一次，早上抓到舊月份就要等到隔天；
+    在等的那幾天晚上的班次不受一天一次的限制，行事曆補值當晚就拿得到。"""
+    if now.day < day or now.hour < hour:
+        return False
+    y, m = (now.year, now.month - 1) if now.month > 1 else (now.year - 1, 12)
+    v = load(name).get(f"{y:04d}-{m:02d}")
+    if j is not None:
+        v = v[j] if isinstance(v, (list, tuple)) and len(v) > j else None
+    return v is None
+
+
 def breadth(P, cap_min: float = CAP_MIN) -> dict[str, list]:
     """→ {"cal", "adv", "dec", "above", "n60", "hi", "lo", "n250"}（逐日家數）。P＝bt3d.Panel。
     上漲／下跌：還原收盤比前一天高／低；站上 60 日線：還原收盤 > 近 60 日平均（60 天都要有價）；

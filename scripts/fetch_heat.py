@@ -3,6 +3,7 @@
 
   每天（afterhours 每班、daily 06:35）：TZ=Asia/Taipei python3 scripts/fetch_heat.py
       日資料只抓最近一段；月資料每個來源一天成功抓一次（主計總處 15MB 的 XML 只在新月份該出來時才抓）；
+      國發會燈號、外銷訂單、台美 CPI 照時程該出來了還沒有＝晚上的班次再抓（WATCH，行事曆官方自動補值當晚就拿得到）；
       官方分片有新的交易日才重算廣度。
   回補（`.ping/lab` 第一行寫 heatfill）：python3 scripts/fetch_heat.py --backfill --budget-min 45
       各來源從頭抓；期交所 P/C、證交所成交金額每月一請求，時間到就停、下一輪續補（已有整月的跳過）。
@@ -26,12 +27,16 @@ from arm.lab import heat as H  # noqa: E402
 from arm.lab import heatdata as HD  # noqa: E402
 from arm.lab import heatfetch as F  # noqa: E402
 from arm.lab import crashfetch as CF  # noqa: E402
+from arm.clock import now_tw  # noqa: E402
 
 NAMES = ["margin", "inst", "futi", "opti", "mtxoi", "pcr", "vixtw", "taiex", "vix", "hyg", "ief", "turnover",
          "usdtwd", "money", "ndc", "ndc_first", "exports", "pmi", "orders", "twcpi", "effr", "fedtgt", "uscpi", "ust",
          "breadth", "mmf", "spx", "qfii", "cbcbank", "sitca", "sfbflow", "taiexm", "twcap", "twmgn", "mratio"]
 # 月資料「新的一個月該出來了」的最早日子（第 m＋1 個月的第幾天）：只用來決定要不要抓，不影響驗證（驗證用 heatspec.RELEASE）
 DUE = {"twcpi": (1, 5)}
+# 公布日重抓（行事曆官方自動補值要當晚拿到，docs/macrocal_fill_plan.md 第二段）：{檔名: (下個月第幾天起, 台北幾點以後, 看第幾欄)}；
+# 上個月的數字照時程該出來了而還沒有＝那幾天晚上的班次不受「一天成功一次」限制（heatdata.waiting）
+WATCH = {"ndc": (22, 16, 6), "orders": (18, 16, None), "twcpi": (5, 16, 1), "uscpi": (10, 21, None)}
 
 
 def log(msg: str) -> None:
@@ -75,8 +80,10 @@ def daily() -> None:
     st = HD.load("_state")
     ok = dict(st)
 
-    def monthly(key: str, fn, *a) -> None:                   # 一天成功一次
-        if st.get(key) == today.isoformat():
+    now = now_tw()
+
+    def monthly(key: str, fn, *a) -> None:                   # 一天成功一次；在等新月份的晚上班次例外（WATCH）
+        if st.get(key) == today.isoformat() and not (key in WATCH and HD.waiting(key, now, *WATCH[key])):
             return
         t0 = time.time()
         try:
@@ -135,6 +142,7 @@ def daily() -> None:
     run("融資維持率", MR.update_series)
     if ok != st:
         HD.save("_state", "fetch_heat", ok)
+    run("寬度與深度", F.bdepth_update)                            # 訊號總覽第 4.15 節（sigspec VER 25；放最後、狀態存完之後：約 1 分鐘，逾時也只少這一項）
 
 
 def _indtw(force: bool = False) -> int:
@@ -175,6 +183,7 @@ def backfill(budget_min: float, only: set[str] | None) -> None:
         ("effr", "聯邦基金利率（紐約聯準銀行）", F.nyfed_effr, (F.NYFED_START,)),
         ("vixtw", "台指 VIX", F.taifex_vix, (4,)),
         ("breadth", "廣度", F.breadth_update, (True,)),
+        ("bdepth", "寬度與深度（台股）", F.bdepth_update, (True,)),
         ("indtw", "台股產業指數", _indtw, (True,)),
         ("mmf", "美國貨幣基金", F.ofr_mmf, ()),
         ("spx", "S&P 500", F.yahoo, ("spx", "^GSPC", "2010-01-01")),

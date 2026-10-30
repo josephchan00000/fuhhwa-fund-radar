@@ -29,6 +29,8 @@
   · 市況台股欄 vs 證交所官方休市表（2026-10-13 起）：本週官方休市日沒寫、或寫了官方表沒有的休市日 → 🔴
   · 行事曆精簡（2026-10-13 起）：「台：」台灣經濟數據列（≤4）或註明「台：本週無台灣重點經濟數據」；
     總列數 ≤30（休市列不計）；引言 ≤220 字（只留更新／市況／本週焦點）
+  · 週末版帶上週結果（2026-10-31 起，週末才查）：上週五的列、上週還沒公布的列要帶到週末版（上週列不算進列數上限）
+  · 已過公布時間必補（2026-10-31 起）：日期已過、狀態不是已公布／休市的列，「註」沒有「待補／延期／取消／改期」交代 → 🔴
 
 用法：TZ=Asia/Taipei python3 scripts/check_reports.py [YYYY-MM-DD]（預設今日台北）
 """
@@ -281,9 +283,13 @@ def _check_calendar(path: Path, date: str) -> list[str]:
     if f"更新：{d_slash}" not in md and f"更新：{date}" not in md:
         errs.append(f"{rel}：表頭「更新：」非今日（{d_slash}）")
     if date >= TWCAL_SINCE:
-        errs += _check_calendar_tw(md, rel)
+        errs += _check_calendar_tw(md, rel, date)
     if date >= CALSLIM_SINCE:
-        errs += _check_calendar_slim(md, rel)
+        errs += _check_calendar_slim(md, rel, date)
+    if date >= LASTWEEK_SINCE:
+        errs += _check_calendar_lastweek(md, rel, date)
+    if date >= LATE_SINCE:
+        errs += _check_calendar_late(md, rel, date)
     if date >= HOLIDAY_SINCE:
         errs += _check_calendar_holidays(md, rel, date)
     if date >= DRIFT_SINCE:
@@ -407,9 +413,20 @@ def _check_calendar_holidays(md: str, rel: str, date_iso: str) -> list[str]:
 TWCAL_SINCE = "2026-10-13"
 
 
-def _check_calendar_tw(md: str, rel: str) -> list[str]:
+def _this_week_rows(md: str, date_iso: str | None) -> list[dict]:
+    """本週的列（週末版帶過來的上週結果不算進各種列數上限；2026-10-30 起）。"""
+    import datetime as _dt
     from arm import macronews
-    rows = macronews.retag_tw(macronews._parse_cal_rows(md), {r["code"] for r in macronews.tw_watch()})
+    rows = macronews._parse_cal_rows(md)
+    if not date_iso:
+        return rows
+    ref = _dt.date.fromisoformat(date_iso)
+    return macronews.week_split(rows, macronews.cal_week_start(md, ref), ref)[0]
+
+
+def _check_calendar_tw(md: str, rel: str, date_iso: str | None = None) -> list[str]:
+    from arm import macronews
+    rows = macronews.retag_tw(_this_week_rows(md, date_iso), {r["code"] for r in macronews.tw_watch()})
     tw = [r for r in rows if r["region"] == "台股"]
     errs = []
     if not tw and not re.search(r"台股[：:]\s*本週無", md):
@@ -430,9 +447,9 @@ def _check_calendar_tw(md: str, rel: str) -> list[str]:
 CALSLIM_SINCE = "2026-10-13"
 
 
-def _check_calendar_slim(md: str, rel: str) -> list[str]:
+def _check_calendar_slim(md: str, rel: str, date_iso: str | None = None) -> list[str]:
     from arm import macronews
-    rows = macronews._parse_cal_rows(md)
+    rows = _this_week_rows(md, date_iso)
     errs = []
     tw_data = [r for r in rows if r["region"] == "台"]
     if not tw_data and not re.search(r"(?<!股)台[：:]\s*本週無", md):
@@ -449,6 +466,43 @@ def _check_calendar_slim(md: str, rel: str) -> list[str]:
         errs.append(f"{rel}：引言 {len(note)} 字超過 {macronews.CAL_NOTE_MAX}——只寫「更新／市況／本週焦點」，"
                     "昨夜重點不寫（同頁政策總覽已有），來源說明放表下「註」")
     return errs
+
+
+# ── 週末版要帶上週結果（2026-10-30 使用者：「總經的行事曆有資料沒更新到」「上週結果放下面收合」）──
+# 週末版原本只寫下一週，上週五的結果（非農、日本 CPI…）從沒上過網頁（10/17、10/24 兩份都沒有）。
+# 擋「上週五的列、上週還沒公布的列，沒帶到週末版」；查不到實際值可以，但要帶上、在註寫原因。
+LASTWEEK_SINCE = "2026-10-31"
+
+
+def _check_calendar_lastweek(md: str, rel: str, date_iso: str) -> list[str]:
+    import datetime as _dt
+    from arm import macronews
+    today = _dt.date.fromisoformat(date_iso)
+    if today.weekday() < 5:
+        return []
+    last = macronews.last_week_cal(today, cal_dir=ROOT / "reports" / "macrocal")
+    if not last:
+        return []
+    have = {macronews.cal_key(r) for r in macronews._parse_cal_rows(md)}
+    return [f"{rel}：上週「{r['item'][:20]}」（{r['date']}）沒帶到週末版——上週五的列與上週還沒公布的列要放在表格最後、"
+            "填實際值（查不到就維持未公布並在註寫原因）"
+            for r in macronews.lastweek_needed(last[1], last[0]) if macronews.cal_key(r) not in have]
+
+
+# ── 已過公布時間必補（docs/macrocal_fill_plan.md 第四段，2026-10-31 起）──
+# 行事曆一天只寫一次；10/28～10/30 三份都有 6 列以上「日期已過、還寫未公布」，網頁只能標「待更新」。
+# CI 會把抓得到的官方數字補上（arm/calfill.py），其餘（法說、財報、會議、談話、日歐中數據）只能靠早上的 Claude：
+# 今天的行事曆還有已過公布時間、狀態不是已公布／休市的列，而「註」沒有一行「待補／延期／取消／改期」提到它 → 🔴。
+LATE_SINCE = "2026-10-31"
+
+
+def _check_calendar_late(md: str, rel: str, date_iso: str) -> list[str]:
+    import datetime as _dt
+    from arm import macronews
+    today = _dt.date.fromisoformat(date_iso)
+    return [f"{rel}：「{r['item'][:24]}」（{r['date']}）已過公布時間還沒有實際值——查證後填上、狀態改已公布；"
+            f"真的查不到在「註」加一行「待補：{r['item'][:24]}——原因（延期／取消／官方沒有數字／查無公開結果）」"
+            for r in macronews.late_rows(md, today, today) if not macronews.late_explained(r, md)]
 
 
 def run(date: str) -> int:

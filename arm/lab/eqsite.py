@@ -47,10 +47,22 @@ def industries(src: Path = SRC) -> dict:
 
 
 def live_prices() -> dict:
+    """最新收盤：台股讀 dashboard/x9t.json；美股讀 data/lab/ussx_card.json（選股頁美股那幾檔，每天收盤後更新）。"""
     t = json.loads((ROOT / "dashboard" / "x9t.json").read_text(encoding="utf-8")) if (ROOT / "dashboard" / "x9t.json").exists() else {}
     cols = t.get("cols") or []
     i = cols.index("px") if "px" in cols else None
-    return {("tw", c): {"px": r[i], "d": t.get("d")} for c, r in (t.get("rows") or {}).items() if i is not None and r and r[i]}
+    out = {("tw", c): {"px": r[i], "d": t.get("d")} for c, r in (t.get("rows") or {}).items() if i is not None and r and r[i]}
+    cp = ROOT / "data" / "lab" / "ussx_card.json"
+    try:
+        card = json.loads(cp.read_text(encoding="utf-8")) if cp.exists() else {}
+    except ValueError:
+        card = {}
+    cal = card.get("cal") or []
+    for c, s in (card.get("s") or {}).items():
+        cs = s.get("c") or []
+        if cs and cal and cs[-1]:
+            out[("us", c)] = {"px": cs[-1], "d": cal[len(cs) - 1] if len(cs) <= len(cal) else cal[-1]}
+    return out
 
 
 def _load(md: Path, fp: Path) -> tuple[str, dict]:
@@ -78,19 +90,40 @@ def links(src: Path = SRC) -> dict:
     return out
 
 
-def research_body(src: Path = SRC) -> str:
-    """研究紀錄頁「個股報告」段：每家最新一版一列（新到舊）＋產業報告清單。網址相對於 dashboard/（x9r.html 所在）。"""
+def requests_map(path: Path | None = None) -> dict:
+    """個股卡「已申請」那一行、選股頁「這週要做的事」的小標記：{"tw:代號": [單號, 申請日]}（data/eq_requests.json，
+    docs/lab_eq_request_plan.md 第 3.1 節）。"""
+    from . import eqinbox as I
+    return {f'{x["mk"]}:{x["code"]}': [x["issue"], x["at"]] for x in I.pending(path or I.FILE)}
+
+
+def requests_block(path: Path | None = None) -> str:
+    """研究紀錄頁「個股報告」段的「申請中」：公司、申請日、第幾位（排程照這個順序做）；沒有就空字串。"""
+    from . import eqinbox as I
+    items = I.pending(path or I.FILE)
+    if not items:
+        return ""
+    e = P.escape
+    li = "".join(f'<li><b>{i}</b> {e(x.get("name") or x["code"])} <span class="eqc">{e(x["code"])}</span>'
+                 f'<span>{e(x["at"])} 申請</span></li>' for i, x in enumerate(items, 1))
+    return f'<div class="eqrq"><h4>申請中（排程照這個順序做，每天晚上最多 3 家）</h4><ol>{li}</ol></div>'
+
+
+def research_body(src: Path = SRC, req: Path | None = None) -> str:
+    """研究紀錄頁「個股報告」段：申請中（requests_block；req＝申請檔，測試用）＋每家最新一版一列（新到舊）＋產業報告清單。
+    網址相對於 dashboard/（x9r.html 所在）。"""
     live = live_prices()
     rows = sorted((summary(mk, c, v, live) for (mk, c), v in companies(src).items()), key=lambda r: (r["made"], r["code"]), reverse=True)
     inds = []
     for key, vers in industries(src).items():
         ip = json.loads(vers[-1][2].read_text(encoding="utf-8"))
         inds.append({"key": key, "name": ip.get("name") or key, "made": vers[-1][0], "n": ip.get("n_members")})
+    req = requests_block(req)
     if not rows and not inds:
-        return '<p class="rnote">還沒有報告。</p>'
+        return req + '<p class="rnote">還沒有報告。</p>'
     iname = {i["key"]: i["name"] for i in inds}
     e = P.escape
-    out = []
+    out = [req] if req else []
     if rows:
         body = []
         for r in rows:
@@ -114,6 +147,8 @@ def research_body(src: Path = SRC) -> str:
 
 
 CSS = """
+.eqrq{margin:4px 0 12px;font-size:13.5px}.eqrq h4{font-size:13.5px;margin:0 0 4px}.eqrq ol{list-style:none;margin:0;padding:0}
+.eqrq li{display:flex;gap:8px;align-items:baseline;padding:4px 0;border-bottom:1px solid var(--line)}.eqrq li span{color:var(--mut);font-size:12.5px}
 .eqlw{overflow-x:auto;margin:4px 0 12px}
 .eqlt{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
 .eqlt th,.eqlt td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right}
@@ -147,7 +182,7 @@ def build(out: Path = OUT, src: Path = SRC) -> dict:
         for made, md, fp in vers:
             t2, p2 = _load(md, fp)
             v2 = R.valuation(p2, R.parse(t2)["fm"])
-            hist.append({"made": made, "rating": v2.get("rating"), "tp": v2.get("tp"), "px": v2.get("px"),
+            hist.append({"made": made, "rating": v2.get("rating"), "tp": v2.get("tp"), "px": v2.get("px"), "spec": p2.get("spec"),
                          "since": round((lp / v2["px"] - 1) * 100, 1) if lp and v2.get("px") else None})
         fm = R.parse(text)["fm"]
         ctx = {"live": live.get((mk, code)), "hist": hist, "ind": ind_meta.get(str(fm.get("ind")))}

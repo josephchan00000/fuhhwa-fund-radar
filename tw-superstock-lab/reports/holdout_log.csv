@@ -61,3 +61,8 @@
 2026-10-29 10:58,W10_s8-new-off-renew,{"data": "lab-A8", "spec": "sxfixspec VER 1", "start": "2019-01-02", "w10": "s8-new-off-renew"}
 2026-10-29 10:58,W10_s8-new-on-h60,{"data": "lab-A8", "spec": "sxfixspec VER 1", "start": "2019-01-02", "w10": "s8-new-on-h60"}
 2026-10-29 10:58,W10_s8-new-on-renew,{"data": "lab-A8", "spec": "sxfixspec VER 1", "start": "2019-01-02", "w10": "s8-new-on-renew"}
+2026-10-30 16:07,W11_E1,{"base": "s8-new-off-h60", "data": "lab-A8", "spec": "sxentryspec VER 1", "start": "2019-01-02", "w11": "E1"}
+2026-10-30 16:07,W11_E2,{"base": "s8-new-off-h60", "data": "lab-A8", "spec": "sxentryspec VER 1", "start": "2019-01-02", "w11": "E2"}
+2026-10-30 16:07,W11_E3,{"base": "s8-new-off-h60", "data": "lab-A8", "spec": "sxentryspec VER 1", "start": "2019-01-02", "w11": "E3"}
+2026-10-30 16:07,W11_E4,{"base": "s8-new-off-h60", "data": "lab-A8", "spec": "sxentryspec VER 1", "start": "2019-01-02", "w11": "E4"}
+2026-10-30 16:07,W11_E0r,{"base": "s8-new-off-h60", "data": "lab-A8", "spec": "sxentryspec VER 1", "start": "2019-01-02", "w11": "E0r"}

@@ -3,7 +3,7 @@
 
   每天（afterhours 每班、daily 06:35）：TZ=Asia/Taipei python3 scripts/fetch_heat_us.py
       指數與日資料：資料已經到最近一個收盤的美股交易日就不再打 Yahoo；
-      週資料、月資料、季資料：每個來源一天成功抓一次（_state_us 記日期）；台灣季 GDP 只在新的一季該出來時才抓；
+      週資料、月資料、季資料：每個來源一天成功抓一次（_state_us 記日期；勞工統計局失業率／CPI 照時程該出來了還沒有＝晚上的班次再抓）；台灣季 GDP 只在新的一季該出來時才抓；
       LPPLS：有新的一週才算（要 numpy；沒裝就跳過、印原因）。
   回補（`.ping/lab` 第一行寫 usfill）：python3 scripts/fetch_heat_us.py --backfill
       全部來源從頭抓（Yahoo、DBnomics、CFTC、BLS 1947 起分 8 次、Shiller、WSTS…）；
@@ -26,8 +26,9 @@ from arm.lab import heat as H  # noqa: E402
 from arm.lab import heatdata as HD  # noqa: E402
 from arm.lab import heatfetch_us as U  # noqa: E402
 from arm.lab import bubindfetch as BF  # noqa: E402
+from arm.clock import now_tw  # noqa: E402
 
-NAMES = ["us_px_spx", "us_px_ixic", "us_px_ndx", "us_px_sox", "us_vxn", "us_vix3m", "us_dxy", "us_rsp", "us_spy",
+NAMES = ["us_px_spx", "us_px_ixic", "us_px_ndx", "us_px_sox", "us_vxn", "us_vix3m", "us_dxy", "us_rsp", "us_spy", "us_qqq", "us_qqew",
          "us_h15", "us_h41", "us_m2", "us_z1", "us_gdp", "us_cp", "us_spf", "us_tech_q", "us_tech_a", "fwd_agg",
          "us_cftc_am", "us_cftc_vix", "us_cftc_big", "us_cftc_mini", "us_cftc_am_nq", "us_cftc_big_nq", "us_cftc_mini_nq",
          "us_philly", "us_ads", "us_cli", "us_claims", "us_bls", "us_umich", "us_ebp", "us_shiller", "us_wsts",
@@ -38,7 +39,8 @@ NAMES = ["us_px_spx", "us_px_ixic", "us_px_ndx", "us_px_sox", "us_vxn", "us_vix3
 YAHOO = [("us_px_spx", "^GSPC", "1927-01-01"), ("us_px_ixic", "^IXIC", "1971-01-01"),
          ("us_px_ndx", "^NDX", "1985-01-01"), ("us_px_sox", "^SOX", "1994-01-01"),
          ("us_vxn", "^VXN", "2001-01-01"), ("us_vix3m", "^VIX3M", "2006-01-01"), ("us_dxy", "DX-Y.NYB", "1971-01-01")]
-ADJ = [("us_rsp", "RSP", "2003-01-01"), ("us_spy", "SPY", "1993-01-01")]
+ADJ = [("us_rsp", "RSP", "2003-01-01"), ("us_spy", "SPY", "1993-01-01"),
+       ("us_qqq", "QQQ", "1999-03-01"), ("us_qqew", "QQEW", "2006-04-01")]   # 後兩檔：寬度與深度的大型股撐盤（breadthspec）
 
 
 def log(msg: str) -> None:
@@ -74,8 +76,8 @@ def daily() -> None:
     st = HD.load("_state_us")
     ok = dict(st)
 
-    def once(key: str, fn, *a) -> None:                      # 一天成功一次
-        if st.get(key) == today:
+    def once(key: str, fn, *a, force: bool = False) -> None:  # 一天成功一次（force＝在等新月份的晚上班次）
+        if st.get(key) == today and not force:
             return
         if run(key, fn, *a):
             ok[key] = today
@@ -123,7 +125,11 @@ def daily() -> None:
                     ("us_umich", U.umich), ("us_ebp", U.ebp), ("us_m2", U.m2), ("us_z1", U.z1), ("us_gdp", U.gdp), ("us_cp", U.cp),
                     ("us_shiller", U.shiller), ("us_wsts", U.wsts)):
         once(key, fn)
-    once("us_bls", U.bls, date.today().year - 1)
+    # 公布日重抓（行事曆官方自動補值，docs/macrocal_fill_plan.md 第二段）：失業率每月第一個週五、CPI 10～15 日，
+    # 都是台北 20:30／21:30 公布——上個月的還沒有就讓 21 點以後的班次再抓（heatdata.waiting）
+    now = now_tw()
+    once("us_bls", U.bls, date.today().year - 1,
+         force=HD.waiting("us_bls", now, 1, 21, 0) or HD.waiting("us_bls", now, 10, 21, 1))
     fwd_daily(once)
     from arm.lab import usbreadth as UB                      # 美股漲跌家數（S&P 500 成分股；大神策略第三段）
     if HD.load(UB.NAME):
@@ -161,6 +167,7 @@ def backfill(only: set | None = None) -> None:
             jobs.update({"us_spf": F.spf, "us_tech": F.tech, "fwd_us": lambda: F.update_us(budget_s=900),
                          "fwd_tw": F.update_tw_agg})
         jobs.update({"ind_ff": BF.ff49, "ind_etf": BF.etf})            # 產業泡沫
+        jobs["ewetf"] = lambda: sum(U.yahoo_us(n, s, a, True) for n, s, a in ADJ)   # 含息還原 ETF（RSP、SPY、QQQ、QQEW）
         if "cftc_nq" in only:                                  # 美股各指數籌碼（heatspec_us VER 3）：那斯達克 100 期貨
             for name in ("us_cftc_am_nq", "us_cftc_big_nq", "us_cftc_mini_nq"):
                 run(name, U.cftc, name)

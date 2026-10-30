@@ -62,6 +62,7 @@ TZ=Asia/Taipei timeout 420 python3 scripts/fetch_heat.py || true  # 景氣溫度
 TZ=Asia/Taipei timeout 420 python3 scripts/fetch_heat_us.py || true  # 美股景氣頁（docs/lab_heat_us_plan.md）：一天抓一次、抓不到沿用
 TZ=Asia/Taipei timeout 120 python3 scripts/run_rare.py || true  # 少見但勝率高的策略（docs/lab_rare_plan.md）：成績重算（約 1 秒；新的一次走完才會變）
 TZ=Asia/Taipei timeout 300 python3 scripts/fetch_ussx_watch.py || true  # 美股三成：持股跌破 50 日線的提醒（docs/lab_us_sleeve_plan.md 第 13.3 節；最多 8 檔）＋美股個股卡的資料（docs/lab_cfg_v2_plan.md 第 4 節）
+TZ=Asia/Taipei timeout 300 python3 scripts/run_calfill.py || true   # 行事曆官方自動補值（上面抓好的官方序列＋有列在等才抓的來源；docs/macrocal_fill_plan.md 第二、三段）
 
 echo "[4/4] 產儀表板（今日重點 + 新聞 + 總經政策 + 總覽 + 持股介紹）→ dashboard/index.html …"
 python3 scripts/gen_fund_dashboard.py || echo "  ⚠ 儀表板產製失敗"

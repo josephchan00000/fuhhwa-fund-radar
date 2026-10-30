@@ -25,7 +25,7 @@ from . import thermocal as TC
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "data" / "lab" / "sigoos_research.json"
-MARKET_CATS = ("heat", "multi", "scen", "inst", "tech", "deriv", "crash", "bub")   # 第 4.14 節的範圍（＋大跌後買點）
+MARKET_CATS = ("heat", "multi", "scen", "inst", "tech", "deriv", "crash", "bub", "bd")   # 第 4.14 節的範圍（＋大跌後買點；VER 25 加寬度與深度）
 NB_NAMES = ("5～14 次", "15～39 次", "40 次以上")
 EB_NAMES = ("比平常低", "高 0～5 點", "高 5～10 點", "高 10～20 點", "高 20 點以上")
 SIGN_NAMES = {"n": "比平常低", "p": "不比平常低"}

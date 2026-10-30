@@ -67,3 +67,57 @@
 ## [2026-10-29] 收錄 | 個股報告接上網站
 - [個股深度報告與產業報告](lab/equity-report.md)：網站入口（研究紀錄頁清單、三種卡片的連結）、建頁、`daily.yml` 併檔通道、VER 2 待決定。
 - [內容鐵則](ops/content-rules.md) 第三個例外的位置多了研究紀錄頁的報告清單；路徑規則 `.claude/rules/equity.md` 加回 `reports/eq/**`。
+
+## [2026-10-30] 收錄 | 個股報告評等規格第 2 版（不混口徑）
+- [個股深度報告與產業報告](lab/equity-report.md)：使用者「我不要失真的數據」→ eqspec VER 2（倍數和 EPS 同一把尺、不自己預估）；臻鼎-KY 新一版減碼 410 元，舊版留作評等歷史。
+
+
+## [2026-10-30] 收錄 | 個股報告美股版（規格第 3 版）與每週名單
+- [個股深度報告與產業報告](lab/equity-report.md)：美股資料包與頁面、近四季淨利 ÷ 最新股數、每週名單 eq_queue；同業中位數與倍數範圍同一個排除規則、估值圖只畫實際用的那把尺。
+
+## [2026-10-30] 收錄 | 行事曆「待更新」與週末上週結果（補值規劃第一段）
+- [行事曆與資料可信度](main/calendar.md)：結束日已過仍未公布＝待更新（網頁、列印、首頁章）；週末版保留上週五與上週未公布的列、網頁收合在最下面；`_check_calendar_lastweek`；規劃 `docs/macrocal_fill_plan.md`。
+
+## [2026-10-30] 收錄 | 行事曆官方自動補值（補值規劃第二段）
+- [行事曆與資料可信度](main/calendar.md)：`arm/calfill.py`（六種列、只補空白、不同只加「官方核對」）、CI 兩支接上、公布日重抓（`heatdata.waiting`）。
+
+## [2026-10-30] 收錄 | 資安檢查的低風險修補
+- [「全部更新」每日 SOP](ops/daily-update.md)：daily.yml 新聞併檔只收一般檔（擋符號連結把 runner 的檔印上網頁）；網頁外部連結（即將登場、基金月報、基金新聞、社群）一律過 `_safe_url`。高、中風險兩項待使用者決定（舊歷史經 PR 參照仍公開；`claude/**` 分支的程式能帶著密鑰執行）。
+
+## [2026-10-30] 收錄 | 行事曆已過公布時間必補（補值規劃第四段）
+- [行事曆與資料可信度](main/calendar.md)：提示包逐列列出已過公布時間還空白的列（`macronews.late_block`）、`_check_calendar_late`（10/31 起）、景氣燈號前值核對（`calfill._ndc_prev`）；每日 SOP 步驟 2、3 補一句（[每日 SOP](ops/daily-update.md)、[新聞規則](ops/news-rules.md)）。
+
+## [2026-10-30] 收錄 | 行事曆官方補值第三段（多接官方來源）
+- [行事曆與資料可信度](main/calendar.md)：勞工統計局非農、時薪、季調 CPI、PPI、JOLTS、ECI，歐洲央行決議，主計總處 GDP 年增（`arm/calsrc.py`，有列在等才抓）；初領失業金、台灣出口、零售銷售不接（原因寫在頁上）。
+
+## [2026-10-30] 收錄 | 台股推薦架構第一段（買不買只看策略自己的規則）
+- [選股頁](lab/pick-page.md)：新飆股名單拿掉書上的位置與參考買點、加「為什麼不等買點」、位置圖改成上名單週數×強度、原本的飆股名單移到研究紀錄、台股頁最上面「這週要做的事」；推薦架構寫進「不能改的規則」。
+- [飆股修正與新飆股前瞻記錄](lab/boom-live.md)：`sxlive.pick_state` 不再算書上的買點與原本的名單。
+
+## [2026-10-30] 收錄 | 新飆股到條件才買（W11）規格 VER 1
+- `arm/lab/sxentryspec.py`（`tests/test_sxentryspec.py` 鎖住）、規劃 `docs/lab_pick_arch_plan.md` 第 7 節：E0 現在、E1 開低、E2 拉回 10 日線下、E3 創 20 日新高、E4 一半一半；算報酬之前 commit。
+
+## [2026-10-30] 收錄 | 新飆股到條件才買（W11）結果：不換
+- [飆股修正與新飆股前瞻記錄](lab/boom-live.md) 歷史一行；規劃 `docs/lab_pick_arch_plan.md` 第 8 節；`tw-superstock-lab/reports/W11_results.*`。
+
+## [2026-10-30] 收錄 | 個股報告每週名單讀錯新飆股的欄位（已修）
+- [個股深度報告與產業報告](lab/equity-report.md) 踩過的坑一行：`eqqueue.candidates` 改讀列的最後一欄；測試改用 `pickpage.boom_box` 產的列。
+
+## [2026-10-30] 收錄 | 個股報告申請收件匣（第一段）
+- [個股深度報告與產業報告](lab/equity-report.md) 現在怎麼運作、不能改的規則各一條；路徑提醒 `.claude/rules/equity.md` 加兩個檔；規劃 `docs/lab_eq_request_plan.md` 第 7 節。
+
+## [2026-10-30] 收錄 | 個股報告申請第二、三段：網頁按鈕、每天晚上的名單、⑦ 改每天 20:47
+- [個股深度報告與產業報告](lab/equity-report.md) 每天晚上的名單、網頁上的申請；[排程](ops/routines.md) ⑦ 名稱、cron、原文；[時點地圖](ops/schedule.md) 20:47 一行。
+
+## [2026-10-30] 收錄 | 寬度與深度規格 VER 1（第一段）
+- `arm/lab/breadthspec.py`（`tests/test_breadthspec.py` 鎖住）、規劃 `docs/lab_breadth_plan.md` 第 9 節：股票層級只當訊號、產業層級當泡沫參考讀數＋美國 48 產業 1931 起驗證；算之前 commit。
+
+## [2026-10-30] 收錄 | 寬度與深度第二段結果
+- 規劃 `docs/lab_breadth_plan.md` 第 10 節（`arm/lab/breadth.py`、`scripts/run_breadth.py` → `data/lab/breadth_research.json`）：股票層級警示 0／78 過、偏多 ★ 10 ◆ 10（多半只比平常多 1～2 個百分點）；美國 48 細產業泡沫寬度、深度 ①② 都沒過 → 只當參考讀數；頁面與訊號總覽還沒動。
+
+## [2026-10-30] 收錄 | 寬度與深度第三段：接進訊號總覽（sigspec VER 25）＋市場頁泡沫一行＋研究紀錄圖表
+- sigspec VER 25 第 4.15 節（`bd` 只當訊號、進溫度計與預估之後；RES_VER 不改、FWD_VER／CAL_VER 25）；台股讀數 CI 存 `data/lab/heat/bdepth`（`heatfetch.bdepth_update`）；三個研究檔重跑，原本 1,920 列整列一樣（同一份資料比對）。
+- 市場頁泡沫那一塊「產業過熱有多廣（參考）」、研究紀錄頁「產業過熱有多廣」四張歷史圖與驗證表；改了 `lab/signals.md`、`lab/signals-versions.md`、`lab/bubble-industry.md`、`lab/market-page.md`。
+
+## [2026-10-30] 收錄 | 新飆股名單位置圖拿掉，改成 8 格＋照規則排隊
+- 使用者：「你那個圖超爛我完全看不懂 重新設計詳細規劃後執行」。規劃 `docs/lab_pick_arch_plan.md` 第 9 節；`pickpage.boom_box` 多帶 hold、JS `pkSlots`／`pkBxDraw` 改寫、`pkSpot` 與三個篩選鈕拿掉；不改規則、不重算。改了 `lab/pick-page.md`。

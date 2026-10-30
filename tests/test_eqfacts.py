@@ -2,7 +2,7 @@
 import pytest
 
 from arm.lab import eqfacts as E
-from arm.lab import eqspec as S
+from arm.lab import eqpage
 
 QK = ["rev", "gp", "opex", "op", "nonop", "pti", "nip", "eps", "ca", "ta", "cl", "tl", "eqp", "bvps", "ocf", "icf", "cash"]
 
@@ -64,15 +64,12 @@ def test_bands_only_use_reported_quarters():
     assert b["pe"]["n"] == len([v for v in ser.values() if v is not None])
 
 
-def test_f12m_consensus_and_rule():
+def test_f12m_consensus_only():
     cons = {"n": 5, "eps": {"2026": {"med": 10.0}, "2027": {"med": 16.0}}}
     f = E.f12m_eps(cons, [], [], "2026-10-29")
     assert f["src"] == "cons" and f["eps"] == round(2 / 12 * 10 + 10 / 12 * 16, 2)
     co = _co()
-    f2 = E.f12m_eps({"n": 2, "eps": {}}, E.months(co), E.quarters(co), "2026-01-05")
-    last = E.months(co)[-1]
-    assert f2["src"] == "rule" and f2["mom"] == round(S.mom_factor(last["rev3"], last["rev3_ly"]), 4)
-    assert f2["eps"] == round(E.quarters(co)[-1]["eps4"] * f2["mom"], 2)
+    assert E.f12m_eps({"n": 2, "eps": {}}, E.months(co), E.quarters(co), "2026-01-05") == {"eps": None, "src": "none"}   # 不自己推估
 
 
 def test_pick_peers_leaders_then_shared_then_size():
@@ -104,3 +101,40 @@ def test_implied_rest_of_year():
     assert imp["eps_rest_ly"] == round(5.0 - yd["q_eps_ly"], 2)
     assert imp["rev_rest"] == round(80.0 - yd["m_rev"], 2)
     assert E.implied({}, yd, yrs, qs, mo) == {}
+
+
+def test_valuation_uses_one_yardstick():
+    """eqspec VER 2：共識法＝未來 12 個月 EPS × 同業未來本益比；同業有共識的不到 3 家或本公司沒有共識＝近四季 EPS × 近四季本益比。"""
+    qs = [{"q": "2026-06-30", "eps4": 8.0, "bvps": 60.0}]
+    bd = {"pe": {"p25": 10.0, "p50": 12.0, "p75": 14.0, "n": 60}, "pb": {"p25": 1.0, "p50": 1.2, "p75": 1.4, "n": 60}, "rows": []}
+    peers = [{"pe": pe, "fpe": fpe, "pb": 3.0} for pe, fpe in ((30, 18), (40, 20), (50, 22), (60, None))]
+    cons = {"eps": 10.0, "src": "cons"}
+    v = E.valuation(cons, qs, bd, peers, 200.0, {}, "半導體業")
+    assert v["basis"] == "fwd" and v["base"] == 10.0 and v["range"] == {"lo": 19.0, "hi": 21.0, "dflt": 20.0}
+    assert v["tp_dflt"] == 200.0 and "同業未來 12 個月本益比" in v["range_how"]
+    v2 = E.valuation({"eps": None, "src": "none"}, qs, bd, peers, 200.0, {}, "半導體業")
+    assert v2["basis"] == "ttm" and v2["base"] == 8.0 and v2["range"] == {"lo": 10.0, "hi": 52.5, "dflt": (12 + 45) / 2}
+    v3 = E.valuation(cons, qs, bd, peers[:2] + [{"pe": 50, "fpe": None, "pb": 3.0}], 200.0, {}, "半導體業")
+    assert v3["basis"] == "ttm" and v3["base"] == 8.0                      # 同業有共識的只有 2 家 → 近四季法
+    v4 = E.valuation(cons, qs, bd, peers, 200.0, {}, "金融保險")
+    assert v4["method"] == "pb" and v4["base"] == 60.0
+
+
+def test_pick_info_and_why_box_follow_the_strategy_only(tmp_path):
+    """選股頁新飆股名單那一列（最後一欄＝現況）→ 報告的「為什麼在名單上」只寫這條策略自己的買法，
+    不寫書上的位置與參考價位（docs/lab_pick_arch_plan.md；2026-10-30 前的報告說「照規則會買」又說「突破 659 才算」）。"""
+    h = tmp_path / "x9.html"
+    h.write_text('const D={"pick":{"tw":{"bx":{"d":"2026-10-29","fix":"2026-10-30","buyd":"2026-11-02","rows":'
+                 '[["6870","騰雲",93,1,"符合：強度 93",397,"b"],["4958","臻鼎-KY",94,3,"符合：月營收創歷史新高",520,"w"]]}}}};',
+                 encoding="utf-8")
+    p = E.pick_info("4958", h)
+    assert p["rank"] == 2 and p["weeks"] == 3 and not p["will_buy"] and not p["hold"] and "spot" not in p and "plan" not in p
+    assert E.pick_info("6870", h)["will_buy"] and E.pick_info("0000", h) == {}
+    w = eqpage.why_box({"pick": E.pick_info("6870", h), "mk": "tw"})
+    assert "照規則 11/02 開盤買" in w and "不等買點" in w and "收盤試算" in w
+    assert "格子滿了等空位" in eqpage.why_box({"pick": p, "mk": "tw"})
+    old = {"list": "新飆股", "d": "2026-10-29", "fix": "2026-10-30", "buyd": "2026-11-02", "rank": 8, "rs": 94, "weeks": 3,
+           "why": "符合：近 20 日漲停 1 次", "spot": "打底中", "plan": ["突破 659 才算", "52 週高點，還差 26.7%"], "will_buy": True}
+    for x in (w, eqpage.why_box({"pick": old, "mk": "tw"})):                              # 舊的資料包重建也不再寫書上的買點
+        for bad in ("突破", "才算", "等拉回", "還差", "位置：", "打底中"):
+            assert bad not in x, bad

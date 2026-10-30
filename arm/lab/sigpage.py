@@ -35,7 +35,7 @@ TODAY_MK = ("tw", "spx", "ixic", "ndx", "sox")
 H_TXT = {20: "1 個月", 60: "3 個月", 250: "12 個月"}
 # 依指標整理（docs/lab_sigview_plan.md）：指標的類別、走勢圖的資料檔（景氣頁對照圖同一份）、指數名稱
 IND_CATS = {"heat": "景氣項目", "dim": "景氣面向", "scen": "情境", "inst": "法人買賣超", "crash": "大跌風險", "tech": "技術事件", "bub": "泡沫", "ind": "產業泡沫",
-            "buy": "大跌後買點", "xs": "總經策略", "stock": "個股訊號", "strat": "個股策略"}
+            "buy": "大跌後買點", "xs": "總經策略", "stock": "個股訊號", "strat": "個股策略", "bd": "寬度與深度"}
 # 篩選用的分類（2026-10-21 起，docs/lab_nav_plan.md 第 2.2 節）：第一層照景氣頁的面向分（景氣頁看到哪個面向熱，就點哪一類），
 # 籌碼、技術、策略再分第二層。IND_CATS（資料從哪裡來）照留，搜尋時用得到。
 FACETS = {"fund": "基本面", "chip": "籌碼", "liq": "資金", "tech": "技術", "scen": "情境", "bub": "泡沫", "buy": "大跌後買點",
@@ -64,6 +64,8 @@ def ind_of(r: dict) -> tuple[str, str, str, str | None]:
         return f"{mk}:{var}", "crash", r["vn"], var
     if cat == "inst":                                     # 法人買賣超：一個期間一個指標（單日極端與連續同一個）
         return f"{mk}:inst:{var}", "inst", r["vn"], var
+    if cat == "bd":                                       # 寬度與深度（sigspec VER 25 第 4.15 節）：一個變數一個指標
+        return f"{mk}:bd:{var}", "bd", r["vn"], var
     if cat == "tech":
         return f"{mk}:tech:{var}", "tech", r["vn"], None
     if cat == "bub":
@@ -88,6 +90,8 @@ def facet_of(cat: str, grp: str | None, item: str | None) -> tuple[str, str | No
         return ("chip", "margin") if item in ("W1", "W2", "W3") else ("liq", None)
     if cat == "inst":
         return "chip", "inst"
+    if cat == "bd":                                        # 寬度與深度：技術面的指標（台股的上漲家數、站上 60 日線也在這裡）
+        return "tech", "ind"
     if cat == "tech":
         return "tech", "ev"
     if cat in ("bub", "ind"):
@@ -1188,7 +1192,7 @@ function nowShort(r){ const n = ON[r[I.id]]; if (!n) return '';   // 「現在�
   if (n.live != null) return '今天 ' + n.live + ' 檔';
   return mdy(n.since) + (n.left != null || n.event ? ' 出現' : ' 起成立'); }
 function label(r){ const nm = r[I.name];
-  if (['heat','deriv','crash','buy','ind','inst'].includes(r[I.cat])) { const i = nm.lastIndexOf('・'); return i >= 0 ? nm.slice(i + 1) : nm; }
+  if (['heat','deriv','crash','buy','ind','inst','bd'].includes(r[I.cat])) { const i = nm.lastIndexOf('・'); return i >= 0 ? nm.slice(i + 1) : nm; }
   return nm; }
 function what(r, d){ const c = r[I.cat];
   if (c === 'strat') return '每筆賺錢';
@@ -1415,7 +1419,7 @@ function itrig(x){ const m = /^(sell|buy)_run(\d+)$/.exec(x.sig || '');
   if (m) return '連續 ' + m[2] + ' 個交易日' + (m[1] === 'sell' ? '賣超' : '買超') + '的第 ' + m[2] + ' 天（當天沒有資料或剛好 0 算中斷；同一段連續只算 1 次）';
   return ITRIG[x.sig] || ''; }
 function trig(r){ const c = r[I.cat], x = r[I.x] || {}, nm = r[I.name];
-  if (c === 'heat' || c === 'crash') return x.vn + '：' + TRIG[x.sig];
+  if (c === 'heat' || c === 'crash' || c === 'bd') return x.vn + '：' + TRIG[x.sig];
   if (c === 'inst') return x.vn + '：' + itrig(x);
   if (c === 'scen') { const q = SG.scen[x.var] || []; return '在「' + (q[0] || nm) + '」情境裡的每一天：' + (q[1] || '') + (r[I.mk] === 'tw' ? '（資金＝全球資金與台灣資金的平均）' : '') + '；同一段算 1 次'; }
   if (c === 'multi') return x.sig === 'hot' ? '景氣頁的面向裡，同時 2 個以上在 80 以上的每一天（至少 3 個面向有值；同一段算 1 次）' : '從不到 2 個面向過熱，變成 2 個以上那一天';
@@ -1466,7 +1470,7 @@ const PV = document.getElementById('sgpv'), PB = document.getElementById('sgp');
 let CUR = null, SEL = null, PUSHED = false;
 const VIEW = {span: '1y', raw: true, rawSet: false};   // 走勢圖預設原始值（2026-10-28 使用者）；自己切過就照自己選的
 function ckOf(x){ return !x.ik || !SG.chart[x.mk] ? null : x.cat === 'dim' ? x.ik.slice(1) : x.ik; }
-const PXC = ['tech', 'crash', 'dim', 'scen', 'inst', 'bub', 'buy'];                     // 沒有自己的 0～100 走勢的，畫指數＋打點
+const PXC = ['tech', 'crash', 'dim', 'scen', 'inst', 'bub', 'buy', 'bd'];               // 沒有自己的 0～100 走勢的，畫指數＋打點
 function chartable(x){ return !!SG.chart[x.mk] && (!!x.ik || PXC.includes(x.cat)); }
 function sck(x){ const J = CJ[x.mk], ck = ckOf(x); return ck && J && J.s && J.s[ck] ? ck : null; }
 function cell(k, v, sub){ return '<div class="sgnc"><span class="k">' + k + '</span><span class="v">' + v + '</span>' + (sub ? '<span class="s">' + sub + '</span>' : '') + '</div>'; }

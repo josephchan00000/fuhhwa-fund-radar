@@ -712,9 +712,9 @@ def research_body(V: dict) -> str:
     pre = RES_PRE
     nav = "".join(f'<a href="#{pre}{mk}">{_e(BS.NAMES[mk])}</a>' for mk in BS.MARKETS if mk in V["M"])
     return (tiles(V, pre) + f'<nav class="snav bnav" aria-label="段落">{nav}<a href="#{pre}ind">產業</a>'
-            f'<a href="#{pre}types">條件說明</a><a href="#{pre}mth">方法</a></nav>'
+            f'<a href="#{pre}ibw">產業過熱有多廣</a><a href="#{pre}types">條件說明</a><a href="#{pre}mth">方法</a></nav>'
             + "".join(market_card(mk, V["M"][mk], V["R"], pre) for mk in BS.MARKETS if mk in V["M"])
-            + IP.section(I, V.get("IR") or {}, ikeys, pre) + types_sec(V, pre) + METHOD.replace('id="mth"', f'id="{pre}mth"'))
+            + IP.section(I, V.get("IR") or {}, ikeys, pre) + breadth_sec(pre) + types_sec(V, pre) + METHOD.replace('id="mth"', f'id="{pre}mth"'))
 
 
 def research_data(V: dict) -> str:
@@ -726,7 +726,7 @@ def research_data(V: dict) -> str:
 
 def research_css() -> str:
     from . import bubindpage as IP
-    return CSS + IP.CSS
+    return CSS + IP.CSS + BW_CSS
 
 
 # ── 市場頁最下面的泡沫那一塊（docs/lab_ia_v5_plan.md 第 3 節③、第 13 節其他細項 2、第 15.1 節）────────────────
@@ -890,7 +890,7 @@ def block_html(mk: str) -> str:
                  f'aria-pressed="{"true" if y == BLOCK_RANGE else "false"}">{"全部" if y == 0 else f"近 {y} 年"}</button>' for y in (0, 30, 10))
     return (f'<section class="cd mbub" id="bub"><div class="ch"><h2>泡沫</h2>'
             f'<div class="sv"><b class="sc bl{lv}">{lv}</b><span class="bn bl{lv}">{_e(BS.LEVELS[lv])}</span></div></div>'
-            f'<div class="bcs mbc">{"".join(chip(c) for c in COND_ORDER)}</div>'
+            f'<div class="bcs mbc">{"".join(chip(c) for c in COND_ORDER)}</div>' + breadth_line(mk) +
             f'<div class="seg brg" role="group" aria-label="期間">{rg}</div>'
             f'<div class="bhw"><div class="bh" id="h-{mk}"><p class="note">歷史等級載入中…</p></div><div class="tip" id="t-{mk}" hidden></div></div>'
             + _legend(False) + '</section>' + ind_card(mk))
@@ -905,6 +905,321 @@ def block_data(mks) -> str:
     return page_json({"M": M, "R": {}}, {k: v for k, v in data.items() if k.startswith(pre)})
 
 
+
+# ── 產業過熱有多廣（breadthspec VER 1 第二段；docs/lab_breadth_plan.md 第 9～11 節）──────────────────────────
+# 市場頁泡沫那一塊等級下面一行（參考）：現在的個數同產業泡沫卡（industries()），歷史最多與驗證的一句讀 data/lab/breadth_research.json；
+# 研究紀錄頁：四組每月的歷史圖（ff、tw 另一條線＝占市值）、驗證表、過熱很廣的時段。算不出來就不顯示，不擋泡沫等級。
+
+BW_SIDE = {"tw": (("tw", "台股", "個產業"), ("tg", "細分族群", "個")), "us": (("ff", "美股", "個細產業"), ("us", "美股", "個類股"))}
+BW_GROUPS = (("ff", "美國 48 細產業"), ("tw", "台股產業"), ("tg", "台股細分族群"), ("us", "美股類股"))
+BW_W, BW_H = 360, 150                                  # 圖的 viewBox：手機大約一比一，電腦兩欄放大
+BW_PAD = (34, 8, 8, 20)                                # 左、右、上、下
+
+
+def _bw_caps(grp: str) -> dict | None:
+    from . import breadth as BD
+    try:
+        return BD.caps_tw() if grp == "tw" else BD.caps_ff() if grp == "ff" else None
+    except Exception:                                  # noqa: BLE001 —— 沒有市值就不寫占市值
+        return None
+
+
+def _bw_verdict(R: dict | None) -> str:
+    """驗證那一句（美國 48 細產業 1931 年起，寬度 ≥ 20%）；研究檔沒有就空字串。"""
+    from . import breadthspec as BS2
+    t = (((R or {}).get("ind") or {}).get("ff_tests") or {}).get("IB") or {}
+    one = t.get("one") or {}
+    if one.get("p_ev") is None or one.get("p_all") is None:
+        return ""
+    y0 = str(one.get("a") or "")[:4]
+    num = f'（美國 {y0} 年以來 {100 * one["p_ev"]:.0f}%，任一個月 {100 * one["p_all"]:.0f}%）'
+    if t.get("verdict") == BS2.verdict(False, False):
+        return "過熱很廣的時候，之後一年大跌的比例沒有明顯比較高" + num + "。"
+    return "過熱很廣的時候，之後一年大跌的比例比較高" + num + "。"
+
+
+def breadth_line(mk: str) -> str:
+    """市場頁泡沫那一塊等級下面一行「產業過熱有多廣（參考）」（mk＝tw／spx／ixic／ndx／sox）。"""
+    from . import breadth as BD
+    side = "tw" if mk == "tw" else "us"
+    try:
+        I = industries()
+        R = BD.load_research()
+        G = ((R or {}).get("ind") or {}).get("groups") or {}
+        got = [(j, g, lab, unit, BD.ind_now(I, g, _bw_caps(g) if j == 0 else None)) for j, (g, lab, unit) in enumerate(BW_SIDE[side])]
+        got = [x for x in got if x[4]]
+        if not got:
+            return ""
+        late = len({x[4]["d"][:7] for x in got}) > 1           # 美股細產業是月資料、晚一個多月：寫出到哪個月
+        parts, tip = [], []
+        for j, g, lab, unit, n in got:
+            when = f'（到 {_ymd(n["d"])}）' if late and len(n["d"]) == 7 else ""
+            s = f'{lab} {n["n"]} {unit}{when}有 {n["n_hot"]} 個過熱'
+            if j == 0:
+                ser = (G.get(g) or {}).get("series") or {}
+                y0 = min(ser)[:4] if ser else ""
+                mx = BD.prev_max(ser, 0, n["d"]) if ser else None
+                if mx and n["n_hot"] >= mx[0] > 0:
+                    s += f'（{y0} 年以來最多）'
+                elif mx:
+                    s += f'（{y0} 年以來最多 {mx[0]} 個）'
+                if n.get("id") is not None:
+                    s += f'，占市值 {100 * n["id"]:.0f}%'
+                    dm = BD.prev_max(ser, 3, n["d"]) if ser else None
+                    if dm and n["id"] >= dm[0]:
+                        s += f'（{y0} 年以來最高）'
+                    tip.append(f'市值用 {_ymd(n["cap_m"])} ' + ("月底" if g == "tw" else "月初"))
+            parts.append(s)
+        v = _bw_verdict(R)
+        t = f' title="{_e("；".join(tip))}"' if tip else ""
+        return (f'<p class="bbw"{t}><b>產業過熱有多廣（參考）</b>：{_e("；".join(parts))}。'
+                + (f'<span class="bbwv">{_e(v)}</span>' if v else "") + '</p>')
+    except Exception as e:                             # noqa: BLE001 —— 讀數算不出來只少這一行
+        print(f"[泡沫] 產業過熱有多廣算不出來：{type(e).__name__}: {e}", flush=True)
+        return ""
+
+
+def _bw_ticks(ms: list[str]) -> list[tuple[int, str]]:
+    """x 軸的年份（1 月）：跨 10 年以內每年、40 年以內每 5 年、其他每 10 年。"""
+    span = int(ms[-1][:4]) - int(ms[0][:4])
+    step = 1 if span <= 10 else 5 if span <= 40 else 10
+    return [(i, m[:4]) for i, m in enumerate(ms) if m[5:7] == "01" and int(m[:4]) % step == 0]
+
+
+def _bw_pc(v) -> float | int | None:
+    """0～1 → 百分比一位小數（整數就寫整數，嵌在頁面裡的資料小一點）。"""
+    if v is None:
+        return None
+    r = round(100 * v, 1)
+    return int(r) if r == int(r) else r
+
+
+def _bw_path(xs: list[float], ys: list) -> str:
+    out, pen = [], False
+    for x, y in zip(xs, ys):
+        if y is None:
+            pen = False
+            continue
+        out.append(f'{"L" if pen else "M"}{x:.1f} {y:.1f}')
+        pen = True
+    return "".join(out)
+
+
+def _bw_chart(grp: str, title: str, ser: dict, depth: bool) -> str:
+    """一組的歷史圖（每月：過熱產業占幾成；depth＝另一條線占市值幾成）。y 軸 0～100%，一條橫線標寬度門檻；滑過看那個月的數字。"""
+    from . import breadthspec as BS2
+    ms = sorted(ser)
+    n = len(ms)
+    if n < 2:
+        return ""
+    L, R, T, B = BW_PAD
+    xs = [L + (BW_W - L - R) * i / (n - 1) for i in range(n)]
+    y = lambda v: T + (BW_H - T - B) * (1 - v)                      # noqa: E731
+    ib = [ser[m][2] for m in ms]
+    dp = [ser[m][3] if len(ser[m]) > 3 else None for m in ms]
+    depth = depth and any(v is not None for v in dp)
+    g = "".join(f'<line class="bwg" x1="{L}" x2="{BW_W - R}" y1="{y(v):.1f}" y2="{y(v):.1f}"/>'
+                f'<text class="bwa" x="{L - 4}" y="{y(v) + 3.5:.1f}" text-anchor="end">{int(v * 100)}%</text>' for v in (0, .5, 1))
+    th = (f'<line class="bwt" x1="{L}" x2="{BW_W - R}" y1="{y(BS2.IB_TH):.1f}" y2="{y(BS2.IB_TH):.1f}"/>'
+          f'<text class="bwa" x="{L - 4}" y="{y(BS2.IB_TH) + 3.5:.1f}" text-anchor="end">{int(BS2.IB_TH * 100)}%</text>')
+    tk = "".join(f'<text class="bwa" x="{xs[i]:.1f}" y="{BW_H - 6}" text-anchor="middle">{yy}</text>' for i, yy in _bw_ticks(ms))
+    lines = f'<path class="bwl1" d="{_bw_path(xs, [None if v is None else y(v) for v in ib])}"/>'
+    if depth:
+        lines += f'<path class="bwl2" d="{_bw_path(xs, [None if v is None else y(v) for v in dp])}"/>'
+    cross = f'<line class="bwx" x1="0" x2="0" y1="{T}" y2="{BW_H - B}" visibility="hidden"/>'
+    data = {"a": ms[0], "b": [_bw_pc(v) for v in ib], "h": [ser[m][0] for m in ms],
+            "t": [ser[m][1] for m in ms], "x0": round(xs[0], 1), "x1": round(xs[-1], 1), "w": BW_W}
+    if depth:
+        data["d"] = [_bw_pc(v) for v in dp]
+    last = ser[ms[-1]]
+    dl = next(((m, ser[m][3]) for m in reversed(ms) if len(ser[m]) > 3 and ser[m][3] is not None), None) if depth else None
+    dtxt = "—" if not dl else f"{100 * dl[1]:.0f}%" + ("" if dl[0] == ms[-1] else f"（{_ymd(dl[0])}）")   # 台股月底市值要等月底：寫是哪個月的
+    key = (f'<span class="bwk"><i class="bwk1"></i>過熱產業占幾成 {100 * last[2]:.0f}%</span>'
+           + (f'<span class="bwk"><i class="bwk2"></i>占市值幾成 {dtxt}</span>' if depth else ""))
+    lab = f'{title}：每月過熱產業占幾成' + ("、占市值幾成" if depth else "") + f'（{_ymd(ms[0])}～{_ymd(ms[-1])}）'
+    return (f'<figure class="bwc" tabindex="0" aria-label="{_e(lab)}" data-v="{_e(json.dumps(data, separators=(",", ":")))}">'
+            f'<figcaption><b>{_e(title)}</b><span class="bwr">{_e(_ymd(ms[0]))}～{_e(_ymd(ms[-1]))}・最新 {_e(_ymd(ms[-1]))}</span>'
+            f'<span class="bwks">{key}</span></figcaption>'
+            f'<svg viewBox="0 0 {BW_W} {BW_H}" role="img" aria-label="{_e(lab)}">{g}{th}{tk}{lines}{cross}</svg>'
+            '<div class="bwtip" hidden></div></figure>')
+
+
+def _bwp(x, sign=False) -> str:
+    return "—" if x is None else (f"{100 * x:+.1f}" if sign else f"{100 * x:.1f}%")
+
+
+def _bw_valid(R: dict) -> str:
+    """驗證表（只用美國 48 細產業）＋其他門檻只描述＋其他三組只描述。"""
+    from . import breadthspec as BS2
+    I = R.get("ind") or {}
+    T = I.get("ff_tests") or {}
+    rows = []
+    for kind, nm in (("IB", "泡沫寬度"), ("ID", "泡沫深度")):
+        t = T.get(kind) or {}
+        one, two = t.get("one") or {}, t.get("two") or {}
+        th = int(round(100 * (t.get("th") or 0)))
+        for w, x, base, epi in (("① 單看", one, f'全部月份 {_bwp(one.get("p_all"))}', one.get("epi", "—")),
+                                ((f'② S&amp;P 500 泡沫等級 ≥ 2 的 {two.get("n_g", "—")} 個月裡'), two,
+                                 f'未達門檻的月份 {_bwp(two.get("p_non"))}', f'{two.get("epi_ev", "—")}／{two.get("epi_non", "—")}')):
+            n_ev = x.get("n_ev", "—") if x is one else f'{x.get("n_ev", "—")}（對照 {x.get("n_non", "—")}）'
+            rows.append(f'<tr><td class="l" data-h="讀數">{nm} ≥ {th}%</td><td class="l" data-h="看法">{w}</td><td data-h="事件月">{n_ev}</td>'
+                        f'<td data-h="之後一年跌兩成以上">{_bwp(x.get("p_ev"))}</td><td data-h="對照">{base}</td>'
+                        f'<td data-h="差（百分點）">{_bwp(x.get("diff"), True)}</td>'
+                        f'<td data-h="重抽 95% 區間">{_bwp(x.get("lo"), True)}～{_bwp(x.get("hi"), True)}</td><td data-h="段數">{epi}</td>'
+                        f'<td data-h="結果">{"過" if x.get("pass") else "沒過"}</td></tr>')
+    vd = "；".join(f'{nm}：{_e((T.get(k) or {}).get("verdict") or "—")}' for k, nm in (("IB", "寬度"), ("ID", "深度")))
+    one = (T.get("IB") or {}).get("one") or {}
+    head = ('<div class="tw"><table class="stk bval bwv"><tr><th class="l">讀數</th><th class="l">看法</th><th>事件月</th>'
+            '<th>之後一年跌兩成以上</th><th>對照</th><th>差（百分點）</th><th>重抽 95% 區間</th><th>段數</th><th>結果</th></tr>')
+    D = I.get("describe") or {}
+    drow = []
+    for th in BS2.DESCRIBE_TH[:1] + (BS2.IB_TH,) + BS2.DESCRIBE_TH[1:]:
+        k = int(round(th * 100))
+        c = []
+        for kind in ("IB", "ID"):
+            e = D.get(f"{kind}{k}") or ({"one": (T.get(kind) or {}).get("one"), "two": (T.get(kind) or {}).get("two")} if th == BS2.IB_TH else {})
+            for w in ("one", "two"):
+                x = e.get(w) or {}
+                c.append(f'{_bwp(x.get("diff"), True)}（{_bwp(x.get("lo"), True)}～{_bwp(x.get("hi"), True)}）' if x else "—")
+        drow.append(f'<tr><td class="l" data-h="門檻">{k}%{"（判定用）" if th == BS2.IB_TH else ""}</td>'
+                    + "".join(f'<td data-h="{h}">{_e(v)}</td>' for h, v in zip(("寬度 ①", "寬度 ②", "深度 ①", "深度 ②"), c)) + '</tr>')
+    O = I.get("other") or {}
+    orow = []
+    for g, nm in (("tw", "台股產業"), ("tg", "台股細分族群"), ("us", "美股類股")):
+        o = O.get(g) or {}
+        if o:
+            orow.append(f'<tr><td class="l" data-h="組">{nm}</td><td data-h="走完的月份">{o.get("n", "—")}</td>'
+                        f'<td data-h="事件月">{o.get("n_ev", "—")}（{o.get("epi", "—")} 段）</td>'
+                        f'<td data-h="之後一年跌兩成以上">{_bwp(o.get("p_ev"))}</td><td data-h="全部月份">{_bwp(o.get("p_all"))}</td></tr>')
+    return (f'<details class="bvd" id="{RES_PRE}ibwv"><summary><b>驗證：產業過熱很廣之後比較容易大跌嗎？</b>'
+            f'<span class="bvh">{_e(vd)}（breadthspec VER {BS2.VER}）</span></summary>'
+            f'<p class="note">美國 48 細產業 {_e(_ymd(one.get("a")))}～{_e(_ymd(one.get("z")))}（之後 {BS2.FWD_M} 個月走完的 {one.get("n", "—")} 個月）：'
+            f'那個月底之後 {BS2.FWD_M} 個月內，美國大盤（市值加權、不含股利）從那個月底起最多跌 {int(BS2.DD * 100)}% 以上的比例。'
+            f'① 單看：差 ≥ {int(BS2.EDGE * 100)} 個百分點、{BS2.BLOCK} 個月一塊重抽 {BS2.BOOT:,} 次的 95% 區間下緣 > 0、至少 {BS2.MIN_EPI} 段；'
+            f'② 加值：S&amp;P 500 泡沫等級 ≥ {BS2.LEVEL_MIN} 的月份裡，同樣的條件、兩組各至少 {BS2.MIN_EPI2} 段。'
+            f'①② 都過＝泡沫等級改版的候選；只過 ①＝參考讀數旁邊加一句過去的比例；都沒過＝只當參考讀數。</p>'
+            + head + "".join(rows) + '</table></div>'
+            '<h4>其他門檻（只描述，不判定；差與 95% 區間，百分點）</h4>'
+            '<div class="tw"><table class="stk bval"><tr><th class="l">門檻</th><th>寬度 ①</th><th>寬度 ②</th><th>深度 ①</th><th>深度 ②</th></tr>'
+            + "".join(drow) + '</table></div>'
+            + ('<h4>其他三組（寬度 ≥ 20%；各自的大盤；太短，只描述）</h4><div class="tw"><table class="stk bval"><tr><th class="l">組</th>'
+               '<th>走完的月份</th><th>事件月</th><th>之後一年跌兩成以上</th><th>全部月份</th></tr>' + "".join(orow) + '</table></div>' if orow else "")
+            + '<p class="note">門檻拉到 30% 差比較大，但每個區間都跨過 0；這是看過結果才知道的，不拿來改門檻（要用就是新版本、標明看過結果才改）。'
+              '細分族群用現在的成員往回算，有存活者偏誤。</p></details>')
+
+
+def _bw_spells(G: dict) -> str:
+    """表格版：每一組泡沫寬度 ≥ 20% 的時段（相隔 12 個月以上算新的一段）。"""
+    from . import breadth as BD
+    tr = []
+    for g, nm in BW_GROUPS:
+        ser = (G.get(g) or {}).get("series") or {}
+        for e in BD.wide_spells(ser):
+            dep = "—" if e["id"] is None else f'{100 * e["id"]:.0f}%'
+            tr.append(f'<tr><td class="l" data-h="組">{_e(nm)}</td><td class="l" data-h="期間">{_e(_ymd(e["a"]))}～{_e(_ymd(e["z"]))}</td>'
+                      f'<td data-h="月數">{e["n"]}</td><td data-h="最多幾個過熱">{e["hot"]}／{e["of"]}</td>'
+                      f'<td data-h="最高占幾成">{100 * e["ib"]:.0f}%</td><td data-h="最高占市值">{dep}</td></tr>')
+    if not tr:
+        return ""
+    return ('<details class="bvd"><summary><b>過熱很廣的時段（過熱產業 ≥ 兩成的月份）</b><span class="bvh">上面四張圖的數字表</span></summary>'
+            '<div class="tw"><table class="stk bval"><tr><th class="l">組</th><th class="l">期間</th><th>月數</th><th>最多幾個過熱</th>'
+            '<th>最高占幾成</th><th>最高占市值</th></tr>' + "".join(tr) + '</table></div>'
+            '<p class="note">一段裡相鄰兩個事件月相隔不到 12 個月；中間沒到兩成的月份不算進月數。</p></details>')
+
+
+def breadth_sec(pre: str = RES_PRE) -> str:
+    """研究紀錄頁泡沫那一頁的「產業過熱有多廣」：一句話、四張歷史圖、驗證、表格版。"""
+    from . import breadth as BD
+    from . import breadthspec as BS2
+    R = BD.load_research()
+    if not R:
+        return (f'<section class="sec cd" id="{pre}ibw"><div class="ch"><h2>產業過熱有多廣</h2></div>'
+                '<p class="warn">研究檔還沒產生（scripts/run_breadth.py）。</p></section>')
+    G = (R.get("ind") or {}).get("groups") or {}
+    charts = "".join(_bw_chart(g, nm, (G.get(g) or {}).get("series") or {}, g in BS2.DEPTH_GROUPS) for g, nm in BW_GROUPS)
+    t = ((R.get("ind") or {}).get("ff_tests") or {}).get("IB") or {}
+    one = t.get("one") or {}
+    summ = (f'美國 48 細產業 {_ymd(one.get("a"))} 起：兩成以上產業同時過熱的月份，之後一年美股跌兩成以上的比例 {_bwp(one.get("p_ev"))}，'
+            f'全部月份 {_bwp(one.get("p_all"))}（差 {_bwp(one.get("diff"), True)} 個百分點、{one.get("epi", "—")} 段）——'
+            f'寬度與深度都「{(t.get("verdict") or "—")}」，所以只放在市場頁泡沫那一塊當參考讀數，不改泡沫等級。') if one else ""
+    return (f'<section class="sec cd" id="{pre}ibw"><div class="ch"><h2>產業過熱有多廣<span class="sub">泡沫寬度與深度・breadthspec VER {BS2.VER}</span></h2></div>'
+            f'<p class="bsum">{_e(summ)}</p>'
+            '<p class="note">寬度＝等級 2 以上（漲勢過熱以上）的產業 ÷ 那個月有等級的產業；深度＝這些產業的市值 ÷ 有等級產業的市值'
+            '（美國 48 細產業用家數 × 平均規模、台股用產業指數的成分市值；細分族群、美股類股不算深度）。虛線＝判定用的門檻 20%。</p>'
+            f'<div class="bwgr">{charts}</div>' + _bw_valid(R) + _bw_spells(G) + '</section>')
+
+
+BW_LINE_CSS = """
+.bbw{margin:2px 0 8px;font-size:13px;line-height:1.7;color:var(--ink2)}.bbw b{color:var(--ink);font-weight:700}
+.bbwv{display:block;color:var(--mut);font-size:12.5px}
+"""
+
+BW_CSS = """
+:root{--bwc1:#2f6fb5;--bwc2:#b25f10}
+@media (prefers-color-scheme:dark){:root{--bwc1:#3d82e0;--bwc2:#d9782f}}
+.bwgr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 18px;margin:10px 0 6px}
+.bwc{position:relative;margin:0;outline:none}.bwc:focus-visible{outline:2px solid var(--acc);outline-offset:3px;border-radius:6px}
+.bwc figcaption{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;font-size:13px;margin-bottom:2px}
+.bwc figcaption b{font-size:14px}.bwr{color:var(--mut);font-size:12px}.bwks{flex:0 0 100%;display:flex;flex-wrap:wrap;gap:2px 14px;font-size:12.5px;color:var(--ink2)}
+.bwk i{display:inline-block;width:14px;height:0;border-top:2px solid;vertical-align:middle;margin-right:5px;border-radius:2px}
+.bwc .bwk1{border-top-color:var(--bwc1)}.bwc .bwk2{border-top-color:var(--bwc2)}
+.bwc svg{display:block;width:100%;height:auto;overflow:visible;touch-action:pan-y}
+.bwc .bwg{stroke:var(--line);stroke-width:1;vector-effect:non-scaling-stroke}
+.bwc .bwt{stroke:var(--mut);stroke-width:1;stroke-dasharray:3 3;vector-effect:non-scaling-stroke}
+.bwc .bwa{font-size:10px;fill:var(--mut);font-variant-numeric:tabular-nums}
+.bwc .bwl1,.bwc .bwl2{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.bwc .bwl1{stroke:var(--bwc1)}.bwc .bwl2{stroke:var(--bwc2)}
+.bwc .bwx{stroke:var(--ink2);stroke-width:1;vector-effect:non-scaling-stroke}
+.bwtip{position:absolute;top:0;z-index:3;pointer-events:none;background:var(--tipbg);color:var(--ink);border:1px solid var(--line2);
+ border-radius:8px;box-shadow:var(--shadow);padding:5px 9px;font-size:12px;line-height:1.55;white-space:nowrap}
+.bwtip b{font-weight:700}.bwtip i{display:inline-block;width:12px;height:0;border-top:2px solid;vertical-align:middle;margin-right:5px}
+table.bwv td{white-space:normal}
+@media (max-width:640px){.bwgr{grid-template-columns:1fr}}
+"""
+
+BW_JS = r"""
+(function(){
+const ws = document.querySelectorAll('.bwc[data-v]');
+if (!ws.length) return;
+function mon(a, i){ const m = (+a.slice(0, 4)) * 12 + (+a.slice(5, 7)) - 1 + i; return Math.floor(m / 12) + '/' + (m % 12 + 1); }
+ws.forEach(function(w){
+  let V; try { V = JSON.parse(w.dataset.v); } catch (e) { return; }
+  const svg = w.querySelector('svg'), tip = w.querySelector('.bwtip'), cr = svg.querySelector('.bwx'), n = V.b.length;
+  let cur = n - 1;
+  function row(cls, val, lab){ const p = document.createElement('div'); const k = document.createElement('i'); k.className = cls; p.appendChild(k);
+    const b = document.createElement('b'); b.textContent = val; p.appendChild(b); p.appendChild(document.createTextNode(' ' + lab)); return p; }
+  function show(i){
+    cur = Math.max(0, Math.min(n - 1, i));
+    const x = V.x0 + (V.x1 - V.x0) * cur / Math.max(1, n - 1);
+    cr.setAttribute('x1', x); cr.setAttribute('x2', x); cr.removeAttribute('visibility');
+    tip.textContent = '';
+    const h = document.createElement('div'); h.textContent = mon(V.a, cur) + '・' + V.h[cur] + '／' + V.t[cur] + ' 個過熱'; tip.appendChild(h);
+    tip.appendChild(row('bwk1', V.b[cur] == null ? '—' : V.b[cur] + '%', '過熱產業占幾成'));
+    if (V.d) tip.appendChild(row('bwk2', V.d[cur] == null ? '—' : V.d[cur] + '%', '占市值幾成'));
+    tip.hidden = false;
+    const r = svg.getBoundingClientRect(), wr = w.getBoundingClientRect(), W = wr.width, px = (x / V.w) * r.width, tw = tip.offsetWidth;
+    tip.style.left = Math.max(0, Math.min(W - tw, px + (px > W / 2 ? -tw - 10 : 10))) + 'px';
+    tip.style.top = (r.top - wr.top + 6) + 'px';                      // 圖的上緣，不蓋住圖例（svg 沒有 offsetTop）
+  }
+  function hide(){ tip.hidden = true; cr.setAttribute('visibility', 'hidden'); }
+  function at(ev){ const r = svg.getBoundingClientRect(); const px = (ev.clientX - r.left) / r.width * V.w;
+    return Math.round((px - V.x0) / Math.max(1e-9, V.x1 - V.x0) * (n - 1)); }
+  svg.addEventListener('pointermove', function(ev){ show(at(ev)); });
+  svg.addEventListener('pointerdown', function(ev){ show(at(ev)); });
+  svg.addEventListener('pointerleave', hide);
+  w.addEventListener('focus', function(){ show(cur); });
+  w.addEventListener('blur', hide);
+  w.addEventListener('keydown', function(ev){
+    const st = ev.shiftKey ? 12 : 1;
+    if (ev.key === 'ArrowLeft') { show(cur - st); ev.preventDefault(); }
+    else if (ev.key === 'ArrowRight') { show(cur + st); ev.preventDefault(); }
+    else if (ev.key === 'Home') { show(0); ev.preventDefault(); }
+    else if (ev.key === 'End') { show(n - 1); ev.preventDefault(); }
+    else if (ev.key === 'Escape') hide();
+  });
+});
+})();
+"""
 
 # 歷史等級圖、條件小章、等級色塊與圖例（泡沫頁、市場頁的泡沫那一塊共用；docs/lab_ia_v5_plan.md 第 3 節③）
 CHART_CSS = """
@@ -979,7 +1294,7 @@ button.mbn em{font-style:normal;font-size:12px;color:var(--mut);margin-left:4px}
 button.mbo2{font:inherit;font-size:13px;color:var(--mut);background:none;border:0;border-top:1px solid var(--line);width:100%;text-align:left;padding:9px 0 0;cursor:pointer}
 table.bind tr.mbhl td{background:color-mix(in srgb,var(--acc) 14%,var(--panel))}
 @media (max-width:640px){.mbtl{display:none}.mbls{display:block}}
-"""
+""" + BW_LINE_CSS
 
 JS = r"""
 (function(){

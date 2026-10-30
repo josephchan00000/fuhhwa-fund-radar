@@ -2,7 +2,7 @@
 
 > 使用者打「全部更新」就照這頁跑：容器只產新聞報告，抓資料、建表、部署交給 CI；步驟 1～9（含 9⑤～9⑨）怎麼做、怎麼驗。
 > 原始資料：CLAUDE.md「指令：「全部更新」／「資料更新」」段（步驟 2 在 [新聞報告規則](news-rules.md)，部署在 [部署](deploy.md)）；程式：`scripts/check_reports.py`、`.github/workflows/daily.yml`。
-> 最後更新：2026-10-29
+> 最後更新：2026-10-30
 > CLAUDE.md 仍留著對應的指令段落（排程照它執行）：那一段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）；其他內容以這一頁為準。
 
 ## 現在怎麼運作
@@ -32,7 +32,9 @@
    （「摘要／影響分析皆空」2026-07-31 新增，🔴 會直接指出標籤沒加 `**粗體**`：把 `N. 標籤：` 改成 `N. **標籤**：`，勿改渲染端，根因見 [新聞卡](../main/news-cards.md)）；
    2026-08-20 起：每卡漲跌分析欄＋影響分析≥2條＋分析合計≥120字（【深度】卡豁免）、大變動提及（官方序列旗標的資產，對應報告全文須提及；序列過期或落檔讀不到＝跳過）；
    2026-10-13 起：頭段總覽／速覽抽得到（美股 v1／總經「…總覽」、台股「盤前／盤後速覽」，[列印版](../main/print.md) 踩坑⑤）、
-   行事曆台灣區與精簡上限（台／台股列或「本週無」註記、總列數 ≤30、引言 ≤220 字，[行事曆](../main/calendar.md)）。
+   行事曆台灣區與精簡上限（台／台股列或「本週無」註記、總列數 ≤30、引言 ≤220 字，[行事曆](../main/calendar.md)）；
+   2026-10-31 起：週末版帶齊上週結果列（上週五與上週仍未公布的列）、
+   已過公布時間的列要填實際值或在註寫「待補：項目——原因」。
 3. `TZ=Asia/Taipei python3 scripts/check_holdings_intro.py`（🔴＝有持股缺簡介）：立即 WebSearch 查證，補進 `config/holding_profiles.json`
    （`{name: {intro, ticker, country, verified}}`、純事實非投資建議、避開禁用詞）到 🟢 為止；固定防呆、不可略（2026-07-23 使用者：前十大簡介一再漏掉）。
    隨步驟 6 push 即自動落地（daily.yml 併檔自動通道，不需 PR，見 9⑤）。
@@ -52,7 +54,7 @@
 - 6：推到本次會話指定分支，**只帶「新聞報告」**（`reports/*.md`＋提示包；不帶 `dashboard/index.html`；`data/*` 被擋未更新、不會有 diff），訊息 `chore: 每日新聞更新 {日期}`；
   不必開 PR、不必 merge 進 main。
 - 7：push 動到 `reports/**` 就自動觸發 `daily.yml`（`on: push branches claude/** paths reports/**`，2026-07-18 起），以被推分支為 `news_ref`——
-  不必再手動呼叫 GitHub API/MCP（排程 Routine 的新會話沒有 MCP 工具，靠這條就夠）。CI：①checkout main、併入該分支今日 `reports/*.md` → ②抓**真實** NAV／持股／ETF／基金新聞
+  不必再手動呼叫 GitHub API/MCP（排程 Routine 的新會話沒有 MCP 工具，靠這條就夠）。CI：①checkout main、併入該分支今日 `reports/*.md`（只收一般檔、用 `git show` 複製，符號連結不收——2026-10-30 資安檢查） → ②抓**真實** NAV／持股／ETF／基金新聞
   → ③重建儀表板 → ④擁有者身分**一次 commit 進 main（新聞＋真實資料＋建表同一筆）** → ⑤打 Deploy Hook（[部署](deploy.md)）。main 每天只有**一筆權威 commit**。
   push 觸發用**被推分支**上的 workflow 檔，分支太舊時新通道與金鑰不生效（[排程](routines.md)「生效條件」）。
   備援：push 沒觸發（如只改程式碼未動 reports）→ `mcp__github__actions_run_trigger` 帶 `inputs={"news_ref":"<分支>"}`；留空 `news_ref`＝排程 cron 行為：只用 main 現有新聞重刷資料。

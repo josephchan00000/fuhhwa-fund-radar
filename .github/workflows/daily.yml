@@ -90,7 +90,12 @@ jobs:
                    "reports/macrocal/${TODAY}.md" \
                    "reports/usnews/prompts/${TODAY}.md" "reports/twnews/prompts/${TODAY}.md" \
                    "reports/macronews/prompts/${TODAY}.md" "reports/macrocal/prompts/${TODAY}.md"; do
-            git checkout "$REF" -- "$f" 2>/dev/null && echo "  併入 $f" || true
+            # 只收一般檔（mode 100644）：git checkout 會把分支上的符號連結原樣變成 runner 上的連結，
+            # 建頁讀它就把 runner 的檔（環境變數、.git/config）印上網頁（2026-10-30 資安檢查 L1）
+            if [ "$(git ls-tree "$REF" -- "$f" | awk '{print $1}')" = "100644" ]; then
+              # 先寫暫存檔、成功才換上：讀不到也不會把 main 現有的報告寫成空檔
+              mkdir -p "$(dirname "$f")" && git show "$REF:$f" > "$f.tmp" && mv "$f.tmp" "$f" && echo "  併入 $f" || rm -f "$f.tmp"
+            fi
           done
           # 「即將登場」條目檔（2026-08-10 起由每週「ETF 募集週掃」Routine 維護）：
           # 驗證通過且 as_of 不舊於 main 現有版才併入——壞 JSON、舊分支倒灌都擋下（fail-open 保 main 版）。
@@ -148,7 +153,7 @@ jobs:
           # 沒過就不併（main 還沒有檢查程式＝全部不併）。只帶 .md 與 .facts.json 兩種資料檔，程式碼一律不從這裡進 main。
           if [ -f scripts/check_eq.py ]; then
             for md in $(git ls-tree -r --name-only "$REF" -- reports/eq 2>/dev/null \
-                        | grep -E '^reports/eq/((tw|us)/[A-Za-z0-9.-]{1,12}|ind/[A-Za-z0-9-]{1,24})/20[0-9]{2}-[0-9]{2}-[0-9]{2}\.md$'); do
+                        | grep -E '^reports/eq/((tw|us)/[A-Za-z0-9.-]{1,12}|ind/[A-Za-z0-9-]{1,48})/20[0-9]{2}-[0-9]{2}-[0-9]{2}\.md$'); do
               [ -e "$md" ] && continue
               fj="${md%.md}.facts.json"
               if ! git cat-file -e "$REF:$fj" 2>/dev/null; then echo "  · $md 沒有資料包——不併"; continue; fi

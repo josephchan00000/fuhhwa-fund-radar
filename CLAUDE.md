@@ -77,6 +77,8 @@
      **台灣區另用「台：」（官方經濟數據）與「台股：」（公司法說・財報，代號必填）前綴**；
      **精簡上限：總列數 ≤30、同指標口徑併一列、只收排定事件、引言只寫更新／市況／本週焦點**
      （2026-10-13 起，見 wiki/main/calendar.md「行事曆台灣區與精簡規則」）；
+     **週末版另帶上週結果**（上週五與上週仍未公布的列，填實際值、放表格最後，不算進 30 列；2026-10-30 起）；
+     **已過公布時間、實際值還空白的列必補**（提示包逐列列出；查不到在「註」寫「待補：項目——原因」；2026-10-31 起）；
      引言須含**「市況」段**（2026-07-22 使用者需求）：`市況：台股 …｜美股 …｜日股 …｜韓股 …｜陸股 …｜港股 …`
      六市場依序、全形「｜」分隔，各填「正常交易」或「M/D 因〇〇休市」——儀表板今日重點據此
      產雙視圖 chip（台股頁＝台股本身、全球頁＝美＋日韓陸港），格式勿改）
@@ -275,6 +277,8 @@
    **2026-08-20 起：大變動提及**（官方序列旗標的資產，對應報告全文須提及；序列過期或落檔讀不到＝跳過）／
    **2026-10-13 起：頭段總覽／速覽抽得到**（美股 v1／總經「…總覽」、台股「盤前／盤後速覽」；見 wiki/main/print.md 踩坑⑤）／
    **2026-10-13 起：行事曆台灣區與精簡上限**（台／台股列或「本週無」註記、總列數 ≤30、引言 ≤220 字）／
+   **2026-10-31 起：週末版帶齊上週結果列**（上週五與上週仍未公布的列）／
+   **2026-10-31 起：已過公布時間的列要填實際值或在註寫「待補：項目——原因」**／
    行事曆為今日）——「摘要／影響分析皆空」該項是 2026-07-31 新增的防呆，
    🔴 訊息會直接指出是標籤沒加 `**粗體**`（見步驟 2 與 wiki/main/news-cards.md），照著把該報告的 `N. 標籤：` 改成
    `N. **標籤**：` 即可，勿改渲染端；
@@ -498,31 +502,32 @@
 路徑規則 `.claude/rules/*.md`＝讀到某些檔時自動載入的提醒（開頭 `paths:` 列檔案樣式，內容＝該先讀哪一頁＋幾條不能改的規則）；
 頁改名或拆頁時要一起改規則（體檢會擋）。
 
-## 指令：「排程搬家」（2026-07-24 建立；2026-08-03 擴為三個；2026-08-07 四個；2026-08-10 五個；2026-10-24 起**六個 Routine 一起搬**）
+## 指令：「排程搬家」（2026-07-24 建立；2026-08-03 擴為三個；2026-08-07 四個；2026-08-10 五個；2026-10-24 六個；2026-10-30 起**七個 Routine 一起搬**）
 
-使用者在**任何**對話窗打**「排程搬家」**（或「搬排程」）＝把**全部六個** Routine（每日：06:35 全部更新、
-15:33 盤後籌碼、18:58 晚間 NAV·PCF、05:08 美股收盤序列；每週：週一 08:05 ETF 募集週掃、週日 19:47 策略探勘週報）改綁到**當前**
-對話窗。**不要詢問、不要查證其他東西、不改任何檔案、不 commit**——固定「list → 建六個 → 刪舊的」收工（最省 token）：
+使用者在**任何**對話窗打**「排程搬家」**（或「搬排程」）＝把**全部七個** Routine（每日：06:35 全部更新、
+15:33 盤後籌碼、18:58 晚間 NAV·PCF、05:08 美股收盤序列、20:47 個股報告；每週：週一 08:05 ETF 募集週掃、週日 19:47 策略探勘週報）改綁到**當前**
+對話窗。**不要詢問、不要查證其他東西、不改任何檔案、不 commit**——固定「list → 建七個 → 刪舊的」收工（最省 token）：
 
 1. `list_triggers`（先用預設 limit；找不到再用 cursor 翻頁）→ 找**名稱以「復華基金雷達」開頭且
-   `enabled:true`** 的 Routine（正常應有 6 個；歷史上只有 1／3／4／5 個＝尚未擴編，照樣往下走）。
+   `enabled:true`** 的 Routine（正常應有 7 個；歷史上只有 1／3／4／5／6 個＝尚未擴編，照樣往下走）。
    全部的 `persistent_session_id` 都已是本會話 → 回一句「排程已綁本視窗」結束。
    · **⚠ 輸出會超過工具上限**（2026-08-07 實測 70KB／一行）：帳號裡累積數十個 `send_later` 一次性
      trigger，`list_triggers` 回應會被截斷並存成檔案。**別開子代理讀全文**——直接
      `python3 -c` 讀那支檔 `json.loads` 後只印 `id｜name｜cron_expression｜enabled｜persistent_session_id`
      一行一個，秒級收斂。要看某支的 prompt 原文則印
      `job_config.ccr.events[*].data.message.content`（**頂層沒有 `prompt` 欄位**，只有這裡有）。
-2. `create_trigger` ×6（預設自綁本會話，**不帶** `persistent_session_id`／`create_new_session_on_fire`；
+2. `create_trigger` ×7（預設自綁本會話，**不帶** `persistent_session_id`／`create_new_session_on_fire`；
    prompt 用下方各自的原文照抄、一字不改）：
    - `復華基金雷達 每日全部更新(台北 06:35・07:03 前完成)`｜cron `35 22 * * *`
    - `復華基金雷達 盤後籌碼即時更新(台北 15:33)`｜cron `33 7 * * 1-5`
    - `復華基金雷達 晚間NAV·PCF即時更新(台北 18:58)`｜cron `58 10 * * 1-5`
    - `復華基金雷達 美股收盤序列更新(台北 05:08)`｜cron `8 21 * * 1-5`
    - `復華基金雷達 ETF募集週掃(台北週一 08:05)`｜cron `5 0 * * 1`
+   - `復華基金雷達 個股報告(台北每天 20:47)`｜cron `47 12 * * *`
    - `復華基金雷達 策略探勘週報(台北週日 19:47)`｜cron `47 11 * * 0`
 3. `delete_trigger` 逐一刪掉步驟 1 找到的舊 Routine（機制備忘：`update_trigger` 改不了綁定會話、跨會話
    update 也被組織政策擋，但**跨會話 delete 可行**——2026-07-24 實證；所以搬家＝建新＋刪舊，不是改舊）。
-4. 一句話回報：六個新 trigger id＋各自下次觸發時間。create_trigger 若警告「no MCP connectors」**可忽略**
+4. 一句話回報：七個新 trigger id＋各自下次觸發時間。create_trigger 若警告「no MCP connectors」**可忽略**
    （SOP 第 7 步走 push 自動觸發、驗證用 git，不依賴 MCP）。
    · **步驟 1 若查到「本檔沒記載」的復華 Routine**（2026-08-07 就是這樣發現 05:08 那支）：照樣搬，
      prompt 從舊 trigger 的 `job_config` 原文照抄，並在回報時提一句「本檔要補記」。
@@ -562,6 +567,10 @@ Routine prompt 原文⑤——ETF 募集週掃（週一 08:05，2026-08-10 建�
 Routine prompt 原文⑥——策略探勘週報（週日 19:47，2026-10-24 建立）：
 
 > （排程自動觸發）策略探勘週報——依 repo CLAUDE.md「指令：策略探勘週報」SOP 執行；全程不跑資料抓取腳本、不動 reports/**。① git fetch origin main 後把 origin/main 合併進本會話指定分支（候選的程式與檢查要是最新的）；讀 config/strategy_candidates.json 與 config/strategy_board.json 的 cand：還沒決定的已有 10 條 → 不找，PushNotification 一句「策略候選已有 N 條還沒決定，請回試用／納入／不納入」後結束。② WebSearch 找新策略：來源限學術（SSRN、arXiv q-fin、期刊）、AQR／Alpha Architect／Quantpedia／Research Affiliates 等量化研究、台灣投信券商研究報告；挑最多 2 條「規則寫得清楚、有公開成績、現有資料做得出來」、和已有的候選與頁面上的策略不重複的；找不到就安靜結束、不推播。③ 每條寫規格一筆（config/strategy_candidates.json 的 items；欄位照 arm/lab/candspec.py：id 接續編號、found＝今天、name、mk、engine、kind、how 一句白話規則、src 至少一條 https 原文連結、why、p、grid、各型態要的 H／b／pick／ex、sha）＋程式一支 arm/lab/cands/{編號}.py（照 arm/lab/cands/__init__.py 的範本；參數從 p 讀、只用那一天收盤以前的資料、台股財報與月營收一律經過 cands.Fin）；sha 用 python3 -c "from arm.lab import candrun as R; print(R.sha_file(R.PROG/'c00X.py'))" 填；資料不夠的只寫規格、need＝「需要資料：…」、不寫程式。④ TZ=Asia/Taipei python3 scripts/run_cands.py --check 與 python3 -m pytest -q tests/test_cands.py tests/test_candspec.py 全綠 → git add config/strategy_candidates.json arm/lab/cands → commit「chore: 策略候選 {編號} {名稱}」→ push 本會話指定分支（push 自動觸發 strategy_cands.yml：用 main 的檢查、回測、乾淨算完才併進 main、重建頁面）。⑤ 等結果：Bash run_in_background 的 until 迴圈（每 2 分鐘 git fetch origin main，最多 45 分鐘）等 origin/main 的 data/lab/cands_research.json 出現這幾個編號：出現＝安靜結束（星期一 06:35 推播會帶「策略候選」一行）；45 分鐘沒出現＝讀 strategy_cands.yml 那一輪的日誌（mcp__github__actions_list／get_job_logs）：程式出錯或用到未來的資料就修程式（還沒進 main 的候選可以改；修的是程式錯誤，不是看了成績調參數）、重填 sha、再推一次；第二次還是不行 → PushNotification 一句卡在哪裡。
+
+Routine prompt 原文⑦——個股報告（每天 20:47；2026-10-30 建立時是週六 14:17 週更，同日改成每天）：
+
+> （排程自動觸發）個股報告——依 repo 技能 `.claude/skills/equity-report/SKILL.md` 執行（規劃 docs/lab_equity_report_plan.md 第 12 節、docs/lab_eq_request_plan.md 第 3.3 節）；全程不跑資料抓取腳本、只新增 reports/eq/** 的檔。① git fetch origin main 後把 origin/main 合併進本會話指定分支；跑 TZ=Asia/Taipei python3 scripts/eq_queue.py（今天要做的最多 3 家：先做網頁申請的、再補接下來 2 個交易日要買還沒有報告的、週六另加季更新；每家標來源）：「今天做 0 家」→ 安靜結束、不推播。② 先列出要做的公司需要的產業報告（reports/eq/ind/ 31 天內沒有的），每個產業派一個子代理照技能 references/industry.md 做、check_eq.py 🟢；產業報告都好了，再每家公司各派一個子代理照技能六個步驟做（資料包 scripts/eq_facts.py → 網路查證 → 估值 → 寫報告 → scripts/check_eq.py 全 🟢），子代理只回三行。③ 主會話再跑一次 TZ=Asia/Taipei python3 scripts/check_eq.py 全 🟢 → git add 這次新增的 .md 與 .facts.json（寫明路徑）→ commit「chore: 個股報告 {日期}」→ push 本會話指定分支（push 動到 reports/eq/** 會觸發 daily.yml：用 main 的檢查、過了才併進 main 並建頁；報告進 main 之後 eq_inbox.yml 會在申請單回連結並關單）。④ 等結果：Bash run_in_background 的 until 迴圈（每 2 分鐘 git fetch origin main，最多 45 分鐘）等 origin/main 出現這幾份報告：出現 → PushNotification 一句「個股報告：{公司 評等（來源）}…（研究紀錄頁可看）」；45 分鐘沒出現 → 讀那一輪 daily.yml 的日誌找原因、修報告再推一次，第二次還是不行 → 推播卡在哪一步。推播不寫目標價；評等不影響任何策略、交易計畫或選股名單。
 
 ## 已知環境限制與防呆（曾踩過的坑，不要再犯）
 
