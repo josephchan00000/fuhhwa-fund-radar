@@ -2,6 +2,8 @@
 paths:
   - "arm/twholidays.py"
   - "arm/calendar.py"
+  - "arm/calfill.py"
+  - "scripts/run_calfill.py"
   - "scripts/fetch_tw_holidays.py"
   - "scripts/check_afterhours_fresh.py"
   - "config/official_schedule.json"

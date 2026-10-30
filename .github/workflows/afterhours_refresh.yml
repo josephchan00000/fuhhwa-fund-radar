@@ -120,6 +120,9 @@ jobs:
       - name: 美股三成：持股有沒有跌破 50 日線＋美股個股卡的一年日線與分析師資料（Yahoo；docs/lab_us_sleeve_plan.md 第 13.3 節、docs/lab_cfg_v2_plan.md 第 4 節，失敗不擋）
         run: TZ=Asia/Taipei timeout 300 python3 scripts/fetch_ussx_watch.py || echo "  ⚠ 美股三成檢查失敗，沿用既有落檔"
 
+      - name: 行事曆官方自動補值（只讀上面抓好的官方序列、不連網；docs/macrocal_fill_plan.md 第二段，失敗不擋）
+        run: TZ=Asia/Taipei timeout 60 python3 scripts/run_calfill.py || true
+
       - name: 當日完整性看門狗（寫/清 data/afterhours_alert.json——儀表板紅章資料源）
         run: python3 scripts/check_afterhours_fresh.py --write
 
@@ -128,12 +131,12 @@ jobs:
         run: |
           # 抓取腳本的鐵則是「抓不到就沿用既有落檔」——休市日跑完 data/ 會一個位元組都沒動。
           # 此時早退，避免只因產表時戳變動就多一筆空 commit＋一次空部署。
-          if [ -z "$(git status --porcelain data/)" ]; then
+          if [ -z "$(git status --porcelain data/ reports/macrocal/)" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "data/ 無任何變更（休市日或來源尚未更新）——本場次早退"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
-            git status --porcelain data/
+            git status --porcelain data/ reports/macrocal/
           fi
 
       - name: 高風險數字事實核對（在籌碼刷新「之後」跑，factcheck 才對得上新值；🔴 不擋發佈）
@@ -161,6 +164,7 @@ jobs:
           git add -f data/cnyes_fund_map.json 2>/dev/null || true   # 鉅亨 cnyesId 對映
           git add -f data/holdings_intro_gap.json 2>/dev/null || true  # 前十大簡介缺口警示
           git add -f data/afterhours_alert.json 2>/dev/null || true    # 盤後完整性警示（看門狗產）
+          git add -f reports/macrocal/*.md 2>/dev/null || true         # 行事曆官方自動補值（run_calfill.py）
           git add dashboard/index.html 2>/dev/null || true
           git add -f data/lab dashboard/x9.html 2>/dev/null || true   # 籌碼雷達（分片＋隱藏頁，2026-10-14）
           git add -f dashboard/x9s.json 2>/dev/null || true             # 籌碼雷達個股走勢序列（開個股卡才載入；分開 add：缺檔時不連累上一行的分片）
@@ -188,6 +192,9 @@ jobs:
             git push && exit 0
             echo "push 被拒（第 $i 次），rebase 後重建儀表板再重試…"
             git pull --rebase -X theirs origin main || git rebase --abort || true
+            git checkout origin/main -- reports/macrocal 2>/dev/null || true   # 行事曆以 main 最新版為準、補值重算（不讓本班的舊底稿蓋掉剛推的新版）
+            TZ=Asia/Taipei python3 scripts/run_calfill.py || true
+            git add -f reports/macrocal/*.md 2>/dev/null || true
             TZ=Asia/Taipei python3 scripts/gen_fund_dashboard.py || true
             git add dashboard/index.html 2>/dev/null || true
             git add -f data/lab dashboard/x9.html 2>/dev/null || true   # 籌碼雷達（分片＋隱藏頁，2026-10-14）
