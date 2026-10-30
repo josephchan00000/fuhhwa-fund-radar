@@ -83,3 +83,6 @@
 
 ## [2026-10-30] 收錄 | 資安檢查的低風險修補
 - [「全部更新」每日 SOP](ops/daily-update.md)：daily.yml 新聞併檔只收一般檔（擋符號連結把 runner 的檔印上網頁）；網頁外部連結（即將登場、基金月報、基金新聞、社群）一律過 `_safe_url`。高、中風險兩項待使用者決定（舊歷史經 PR 參照仍公開；`claude/**` 分支的程式能帶著密鑰執行）。
+
+## [2026-10-30] 收錄 | 行事曆已過公布時間必補（補值規劃第四段）
+- [行事曆與資料可信度](main/calendar.md)：提示包逐列列出已過公布時間還空白的列（`macronews.late_block`）、`_check_calendar_late`（10/31 起）、景氣燈號前值核對（`calfill._ndc_prev`）；每日 SOP 步驟 2、3 補一句（[每日 SOP](ops/daily-update.md)、[新聞規則](ops/news-rules.md)）。

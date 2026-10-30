@@ -35,9 +35,10 @@ def main() -> int:
     if not r["acts"]:
         print(f"[calfill] {name}：沒有可補的列")
     for x in r["acts"]:
-        tag = "補值" if x["kind"] == "fill" else "⚠ 和官方不同（不覆寫）"
-        old = f"；表中「{x['actual']}」" if x["kind"] == "mismatch" else ""
-        print(f"[calfill] {name} {tag}：{x['item']} → {x['value']}（{x['src']}）{old}")
+        tag = {"fill": "補值", "mismatch": "⚠ 和官方不同（不覆寫）", "prev": "⚠ 前值已被官方修正（不覆寫）"}[x["kind"]]
+        old = f"；表中「{x['actual']}」" if x["kind"] != "fill" else ""
+        seen = "" if x.get("new", True) else "（註裡已有）"
+        print(f"[calfill] {name} {tag}：{x['item']} → {x['value']}（{x['src']}）{old}{seen}")
     if r.get("wrote"):
         print(f"[calfill] 已寫入 {name}")
     return 0

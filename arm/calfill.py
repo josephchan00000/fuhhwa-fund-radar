@@ -11,6 +11,7 @@
   · 項目要的東西有一部分抓不到（還要月增、非農、核心而序列沒有）→ 整列不補，留給早上的 Claude。
   · 已經填了而且和官方不同 → 不覆寫，「註」加一行「官方核對」（同一行不重複加），CI 日誌印出來。
   · 國發會會修正上個月的分數：表上寫的是第一次公布的分數（ndc_first）也算對。
+  · 景氣燈號列的前值（上個月）是國發會修正前的分數 →「註」加一行「官方核對」（2026-10-30 第四段）。
 """
 from __future__ import annotations
 
@@ -204,6 +205,22 @@ def official(r: dict, rel: date, S=HD.load) -> tuple | None:
     return (got[0], got[1], rule["src"]) if got else None
 
 
+def _ndc_prev(r: dict, rel: date, cell: str, S) -> tuple | None:
+    """景氣燈號列的前值（上個月）：國發會公布新月份時會修正上個月，表上還是第一次公布的分數 → (官方最新寫法, 月份)。"""
+    hit = match(r, rel)
+    if not hit or hit[0]["key"] != "ndc" or cell in BLANK or not MN._nums(cell):
+        return None
+    pym = _ym_back(hit[1], 1)
+    v = S("ndc").get(pym)
+    if not v or len(v) < 8 or v[6] is None or not v[7]:
+        return None
+    sc = f"{v[6]:.0f}" if float(v[6]).is_integer() else f"{v[6]}"
+    if _consistent(cell, [[sc]]):
+        return None
+    light = str(v[7]).strip()
+    return f"{sc}分（{light if light.endswith('燈') else light + '燈'}）", int(pym[5:])
+
+
 def _short(r: dict) -> str:
     return f"{r.get('region')}：{_PAREN.sub('', r.get('item') or '').strip()}"
 
@@ -240,6 +257,10 @@ def fill(md: str, file_date: date, today: date, now: datetime, S=HD.load) -> tup
         rel = MN.row_end_date(r, file_date)
         if not rel or rel > today or re.search(r"休市|延|取消|改期", c[5]):
             continue
+        pv = _ndc_prev(r, rel, c[4], S) if (today - rel).days <= 10 else None
+        if pv:                                                  # 國發會公布新月份時修正了上個月（前值）
+            acts.append({"kind": "prev", "item": _short(r), "value": pv[0], "actual": c[4], "src": "國發會",
+                         "note": f"- 官方核對：{_short(r)}的前值（{pv[1]}月）國發會已修正為 {pv[0]}，表中寫「{c[4]}」，以官方為準。"})
         got = official(r, rel, S)
         if not got:
             continue

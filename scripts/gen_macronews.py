@@ -28,10 +28,12 @@ def build_cal_prompt(today: date) -> str:
     anchors = macronews.schedule_block(macronews.target_week_start(today))   # 核心排程錨（Phase 3）
     carry = (f"{macronews.CAL_CARRY_RULE}\n【同週昨日版（{prior[0]:%Y/%m/%d}）】\n{prior[1].strip()}\n"
              if prior else "")
+    last = None
     if today.weekday() >= 5:                              # 週末版：保留上週結果（2026-10-30 起）
         last = macronews.last_week_cal(today) if not prior else None   # 週日的底稿（週六版）已帶上週列
         carry += (f"{macronews.CAL_LASTWEEK_RULE}"
                   + (f"【上週最後一版（{last[0]:%Y/%m/%d}）——從這裡帶上週列】\n{last[1].strip()}\n" if last else ""))
+    carry += macronews.late_block(today, prior or last)   # 已過公布時間還空白的列逐列列出（2026-10-31 起必補）
     return f"""你是「台灣投信公司政策面速寫編輯」。請以繁體中文、用 WebSearch/WebFetch 實際查證，
 產出【本週重點財經行事曆】，存成：reports/macrocal/{today:%Y-%m-%d}.md
 （台北今日 {today:%Y/%m/%d}；以今日所在整週週一~週五為範圍）。
