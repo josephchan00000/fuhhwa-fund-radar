@@ -218,3 +218,60 @@ def test_checker_runs_without_third_party_packages():
     code = ("import sys; sys.path.insert(0, %r); import arm.lab.eqreport, arm.lab.eqfacts; "
             "bad=[m for m in ('numpy','pandas','yaml','requests') if m in sys.modules]; print(bad); sys.exit(1 if bad else 0)") % str(ROOT)
     subprocess.run([sys.executable, "-I", "-c", code], check=True)
+
+
+def test_us_page_uses_us_units_sources_and_sections():
+    """美股報告頁：美元、SEC 與 Yahoo 的來源、財報和法人預估分兩列、分析師與做空段；不出現台股的張、加權指數、月營收。"""
+    pk = _pack()
+    for q in pk["q"]:
+        q.update(ocf=None, icf=None, fcf=None, sh=50.0, ni4=8.0)
+    pk.update(mk="us", code="ME", name="Test Inc", fy_end=12, mo=[], ind="Application Software", sector="Information Technology",
+              index="500", peer_n=8, shares=50.0,
+              y=[dict(pk["y"][0], ocf=None, icf=None, fcf=None)],
+              ser={"d": ["2026-10-28", "2026-10-29"], "c": [199.0, 200.0], "ix": [7700.0, 7720.0], "ix_name": "S&P 500"},
+              us_chips={"rc": [1, 5, 10, 1, 0], "rm": 2.4, "sh": [0.05, 3.2, 1e6, 9e5, "2026-10-15"], "mh": [0.02, 0.9, 800], "ns": ["6m", 3, 1, 5, 2, -1000, -0.01]},
+              pick={"list": "美股強勢品質股", "d": "2026-10-23", "rank": 3, "n": 50, "rs": 97, "d52h": -1.0, "om": 30, "roe": 40, "cap": 120,
+                    "rule": {"rs": 80, "d52h": -25, "om": 10, "roe": 15, "cap": 20}, "buy": True, "buyd": "2026-10-26", "slots": 8, "exit_ma": 50})
+    pk["cons"].update(src="Yahoo Finance", stat="平均", tp={"v": 250.0, "med": 245.0, "hi": 300.0, "lo": 200.0, "n": 17},
+                      ev=[{"d": "2026-10-27", "firm": "X", "from": "Hold", "to": "Buy", "tp_from": 200.0, "tp_to": 260.0}])
+    html = P.render(_md(code='"ME"', mk="us"), pk, {})
+    assert "240 美元" in html and "S&amp;P 500" in html and "SEC 財報" in html
+    assert "EPS（財報，美元）" in html and "EPS（法人預估，美元）" in html            # 財報和預估分兩列
+    assert "分析師評等與目標價" in html and "做空股數占流通股" in html and "強度 97" in html
+    assert "淨值比 × 每股淨值" not in html and "淨值比區間" not in html          # 本益比法只畫本益比那把尺
+    assert "加權指數" not in html and "張" not in html.split("<body>", 1)[1].split("免責")[0] and "每月營收" not in html
+
+
+def test_us_industry_sections():
+    ip = {"kind": "ind", "mk": "us", "key": "us-x", "name": "X", "members": [], "n_members": 0}
+    md = "---\nkey: us-x\nname: X\nmk: us\nmade: 2026-10-30\nasof: 2026-10-30\ntitle: t\n---\n" + "".join(
+        f"## {s}\n" + ("■ 一\n■ 二\n■ 三\n" if s == "重點" else "文字\n") for s in R.IND_SECTIONS_US)
+    errs = R.check_ind(md, ip)
+    assert not any("段落缺" in e or "不認得" in e for e in errs)
+    assert any("台灣成員營收與估值" in e for e in R.check_ind(md.replace("美股成員與估值", "台灣成員營收與估值"), ip))
+
+
+def test_us_industry_page_renders_members_without_tw_fields():
+    from arm.lab import eqpage as P
+    ip = {"kind": "ind", "mk": "us", "key": "us-x", "name": "X", "n_members": 2, "asof": "2026-10-30",
+          "pe": {"p25": 20.0, "p50": 25.0, "p75": 30.0, "n": 2}, "fpe": {},
+          "members": [{"c": "ADP", "n": "Automatic Data Processing", "ix": "500", "cap": 1128.8, "cap_src": "fwd", "fpe": 22.4,
+                       "pe": None, "rq": None, "om": None, "roe": None, "r1y": None},
+                      {"c": "PAYX", "n": "Paychex", "ix": "500", "cap": 422.9, "cap_src": "fin", "fpe": 17.7, "pe": 23.4,
+                       "rq": 5.9, "om": 39.2, "roe": 47.1, "r1y": -5.0}]}
+    md = "---\nkey: us-x\nname: X\nmk: us\nmade: 2026-10-30\nasof: 2026-10-30\ntitle: t\n---\n" + "".join(
+        f"## {s}\n文字\n" for s in R.IND_SECTIONS_US)
+    html = P.ind_render(md, ip, {"cos": []})
+    assert "S&amp;P 1500 的同細產業成員" in html and "&amp;amp;" not in html and "1,129＊" in html and "台灣成員" not in html
+
+
+def test_page_escapes_pack_strings_and_blocks_non_http_links():
+    """資料包經 daily.yml 併檔通道進 main，檢查只看 .md；頁面要自己防：日期欄跳脫、連結只放行 http(s)（2026-10-30 資安檢查）。"""
+    pk = _pack()
+    bad = "<img src=x onerror=alert(1)>"
+    pk["cons"]["ev"] = [{"d": bad, "k": "EPS", "y": 2026, "from": 1.0, "to": 2.0, "url": "javascript:alert(1)"},
+                        {"d": "2026-10-01", "k": "TP", "from": 10.0, "to": 12.0, "url": "https://example.com/a"}]
+    html = P.render(_md(), pk, {})
+    assert bad not in html and "&lt;img src=x onerror=alert(1)&gt;" in html
+    assert "javascript:" not in html and 'href="https://example.com/a"' in html
+    assert P._safe_url("data:text/html,x") == "" and P._safe_url(" HTTPS://a.b ") == "HTTPS://a.b"

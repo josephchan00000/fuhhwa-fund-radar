@@ -16,6 +16,11 @@ SECTIONS = ("重點", "投資論點", "風險", "公司概況", "產業與競爭
             "為什麼被選上", "資料來源")
 IND_SECTIONS = ("重點", "產業定義與產業鏈", "市場規模與成長", "供需與價格", "主要廠商", "台灣成員營收與估值",
                 "接下來要看的", "風險", "資料來源")
+IND_SECTIONS_US = tuple("美股成員與估值" if s == "台灣成員營收與估值" else s for s in IND_SECTIONS)
+
+
+def ind_sections(mk: str | None) -> tuple:
+    return IND_SECTIONS_US if mk == "us" else IND_SECTIONS
 FM_REQ = ("code", "name", "mk", "made", "asof", "title", "rating", "tp", "method", "mult", "peers", "ind")
 IND_FM_REQ = ("key", "name", "mk", "made", "asof", "title")
 PROSE_MIN, PROSE_MAX = 6000, 14000
@@ -136,7 +141,7 @@ def derived_numbers(pack: dict, fm: dict) -> set[float]:
             for y in x:
                 walk(y)
     walk(val)
-    out |= {S.PE_MAX, S.BUY_UP * 100, abs(S.SELL_DN) * 100, S.SCEN_EPS * 100, float(S.HORIZON_M), float(S.BAND_YEARS)}   # 規則本身的門檻
+    out |= {S.PE_MAX, S.BAND_PE_MAX, S.BUY_UP * 100, abs(S.SELL_DN) * 100, S.SCEN_EPS * 100, float(S.HORIZON_M), float(S.BAND_YEARS)}   # 規則本身的門檻
     for k in ("mult",):
         if fm.get(k) is not None:
             out.add(float(fm[k]))
@@ -309,12 +314,12 @@ def check(text: str, pack: dict) -> list[str]:
 
 def check_ind(text: str, ipack: dict) -> list[str]:
     p = parse(text)
-    errs = _common(p, IND_SECTIONS, IND_FM_REQ, IND_SRC_MIN, IND_PROSE_MIN, IND_PROSE_MAX)
+    errs = _common(p, ind_sections(ipack.get("mk")), IND_FM_REQ, IND_SRC_MIN, IND_PROSE_MIN, IND_PROSE_MAX)
     if p["fm"].get("key") != ipack.get("key"):
         errs.append(f"產業代號和資料包不同：{p['fm'].get('key')} vs {ipack.get('key')}")
     hl = [ln for ln in p["sec"].get("重點", "").splitlines() if ln.strip().startswith("■")]
     if not 3 <= len(hl) <= 4:
         errs.append(f"重點要 3～4 條（■ 開頭），現在 {len(hl)} 條")
     from .eqfacts import numbers
-    errs += number_issues(p, numbers(ipack))
+    errs += number_issues(p, numbers(ipack) | {S.BAND_PE_MAX})     # 本益比超過 100 倍不算進分布（規則本身的門檻）
     return errs

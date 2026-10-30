@@ -175,8 +175,8 @@ def _svg(h: float, body: str, label: str) -> str:
 
 # ── 圖 ─────────────────────────────────────────────────────────────────────
 
-def price_chart(dates: list[str], px: list, ix: list, tp=None, hi52=None, label="股價") -> str:
-    """股價（元）＋加權指數換算成同一起點（一條軸）＋目標價虛線。每週取一點。"""
+def price_chart(dates: list[str], px: list, ix: list, tp=None, hi52=None, label="股價", unit="元", ix_name="加權指數") -> str:
+    """股價＋大盤指數換算成同一起點（一條軸）＋目標價虛線。每週取一點。"""
     keep = [i for i in range(len(dates)) if px[i]]
     if len(keep) < 2:
         return ""
@@ -194,13 +194,13 @@ def price_chart(dates: list[str], px: list, ix: list, tp=None, hi52=None, label=
     b = [ix[i] / i0 * p0 if ix[i] and i0 else None for i in wk]
     names = [dates[i] for i in wk]
     lo, hi = _yr(a + b + ([tp] if tp else []))
-    p = Panel(len(wk), lo, hi, PT, 190, unit="元")
-    body = p.grid() + p.line(b, "mu", names=names, label="加權指數（換算）", width=1.6) + p.line(a, "k1", names=names, label="收盤")
+    p = Panel(len(wk), lo, hi, PT, 190, unit=unit)
+    body = p.grid() + p.line(b, "mu", names=names, label=f"{ix_name}（換算）", width=1.6) + p.line(a, "k1", names=names, label="收盤")
     if tp:
         body += p.hline(tp, "k2", f"目標價 {fmt(tp)}")
     labs = [d[2:7].replace("-", "/") for d in names]
     body += _xlabels(p, labs, PT + 190 + 16)
-    return _svg(PT + 190 + PB, body, label) + legend([("k1", "收盤", "line"), ("mu", "加權指數（換算成同一起點）", "line")]
+    return _svg(PT + 190 + PB, body, label) + legend([("k1", "收盤", "line"), ("mu", f"{ix_name}（換算成同一起點）", "line")]
                                                     + ([("k2", "目標價", "dash")] if tp else []))
 
 

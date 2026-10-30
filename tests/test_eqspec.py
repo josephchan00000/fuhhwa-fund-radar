@@ -1,11 +1,11 @@
-"""個股報告評等與目標價的規格鎖定（arm/lab/eqspec.py、docs/lab_equity_report_plan.md 第 6 節）。VER 2：2026-10-30，倍數與 EPS 同一把尺、不自己預估。"""
+"""個股報告評等與目標價的規格鎖定（arm/lab/eqspec.py、docs/lab_equity_report_plan.md 第 6 節）。VER 2：倍數與 EPS 同一把尺、不自己預估；VER 3：會計年度與美股口徑。"""
 import pytest
 
 from arm.lab import eqspec as S
 
 
-def test_spec_v2_is_locked():
-    assert S.VER == 2 and S.SPEC_DATE == "2026-10-30"
+def test_spec_v3_is_locked():
+    assert S.VER == 3 and S.SPEC_DATE == "2026-10-30"
     assert S.HORIZON_M == 12 and S.CONS_MIN == 3 and not hasattr(S, "MOM_CLIP") and not hasattr(S, "mom_factor")   # 不自己預估
     assert S.PE_MAX == 80.0 and S.BAND_YEARS == 5 and S.BAND_PE_MAX == 100.0 and S.BAND_PB_MAX == 20.0
     assert S.PEER_MIN == 3 and S.PB_INDUSTRIES == ("金融保險",)
@@ -32,8 +32,10 @@ def test_round_tp():
 def test_f12m_and_fiscal_year():
     assert S.year_weight("2026-10-29") == pytest.approx(2 / 12)
     assert S.year_weight("2026-12-31") == 0 and S.year_weight("2026-01-05") == pytest.approx(11 / 12)
-    assert S.year_weight("2026-10-30", fy_end=1) == pytest.approx(3 / 12)          # 美股會計年度到 1 月：11、12、1 月
-    assert S.year_weight("2026-06-15", fy_end=6) == 0
+    assert S.year_weight("2026-10-30", "2027-01-31") == pytest.approx(3 / 12)       # 美股會計年度到 1 月：11、12、1 月
+    assert S.year_weight("2026-10-30", "2026-09-30") == 0                            # 今年已結束還沒公布 → F12M＝明年
+    assert S.year_weight("2026-10-30", "2028-06-30") == 1                            # 夾在 12 個月
+    assert S.f12m("2026-10-30", 8.8, 9.6, "2026-09-30") == pytest.approx(9.6)
     assert S.f12m("2026-10-29", 14.23, 25.7) == pytest.approx(2 / 12 * 14.23 + 10 / 12 * 25.7)
     assert S.f12m("2026-10-29", None, 25.7) is None
 
