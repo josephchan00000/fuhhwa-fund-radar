@@ -88,6 +88,35 @@ def dol_form():
             print(f"POST {ft} ✗", str(ex)[:150])
 
 
+def dol_arch():
+    s = _get("https://oui.doleta.gov/unemploy/claims_arch.asp", timeout=60).decode("utf-8", "replace")
+    links = re.findall(r'href="([^"]+)"', s, re.I)
+    pdfs = [urllib.parse.urljoin("https://oui.doleta.gov/unemploy/claims_arch.asp", u) for u in links if re.search(r"\.pdf|press|claims", u, re.I)]
+    print("claims_arch.asp", len(s), "bytes;", len(pdfs), "links")
+    for u in pdfs[:12]:
+        print("  ", u)
+    for u in [x for x in pdfs if x.lower().endswith(".pdf")][:2]:
+        try:
+            from pypdf import PdfReader
+            b = _get(u, timeout=90)
+            t = re.sub(r"\s+", " ", PdfReader(io.BytesIO(b)).pages[0].extract_text() or "")
+            print("  PDF", u, len(b), "bytes:", t[:500])
+        except Exception as ex:                               # noqa: BLE001
+            print("  PDF ✗", u, str(ex)[:150])
+
+
+def ecb_text():
+    s = _get("https://www.ecb.europa.eu/rss/press.html", timeout=60).decode("utf-8", "replace")
+    for it in re.findall(r"<item>(.*?)</item>", s, re.S):
+        if re.search(r"monetary policy decision", it, re.I):
+            u = re.search(r"<link>(.*?)</link>", it, re.S).group(1).strip().replace("//press", "/press")
+            t = text(_get(u, timeout=60), 10 ** 6)
+            i = t.find("Key ECB interest rates")
+            print("ECB", u)
+            print("  ", t[max(0, i - 600):i + 700])
+            break
+
+
 # ── 歐洲央行：存款利率 ─────────────────────────────────────────────────────────────
 
 def ecb():
@@ -212,10 +241,7 @@ if __name__ == "__main__":
     out = Path(__file__).resolve().parent.parent / "data" / "lab" / "_calprobe.txt"
     with open(out, "w", encoding="utf-8") as fh:
         sys.stdout = fh
-        run("勞工統計局（BLS v1）", bls)
-        run("勞工部 claims.asp 表單", dol_form)
-        run("歐洲央行", ecb)
-        run("財政部 出口（data.gov.tw）", mof)
-        run("主計總處 GDP XML", dgbas)
+        run("勞工部 週報存檔", dol_arch)
+        run("歐洲央行 決議全文", ecb_text)
     sys.stdout = sys.__stdout__
     print("寫入", out, sum(1 for _ in open(out, encoding="utf-8")), "行")
