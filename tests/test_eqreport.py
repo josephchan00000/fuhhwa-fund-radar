@@ -263,3 +263,15 @@ def test_us_industry_page_renders_members_without_tw_fields():
         f"## {s}\n文字\n" for s in R.IND_SECTIONS_US)
     html = P.ind_render(md, ip, {"cos": []})
     assert "S&amp;P 1500 的同細產業成員" in html and "&amp;amp;" not in html and "1,129＊" in html and "台灣成員" not in html
+
+
+def test_page_escapes_pack_strings_and_blocks_non_http_links():
+    """資料包經 daily.yml 併檔通道進 main，檢查只看 .md；頁面要自己防：日期欄跳脫、連結只放行 http(s)（2026-10-30 資安檢查）。"""
+    pk = _pack()
+    bad = "<img src=x onerror=alert(1)>"
+    pk["cons"]["ev"] = [{"d": bad, "k": "EPS", "y": 2026, "from": 1.0, "to": 2.0, "url": "javascript:alert(1)"},
+                        {"d": "2026-10-01", "k": "TP", "from": 10.0, "to": 12.0, "url": "https://example.com/a"}]
+    html = P.render(_md(), pk, {})
+    assert bad not in html and "&lt;img src=x onerror=alert(1)&gt;" in html
+    assert "javascript:" not in html and 'href="https://example.com/a"' in html
+    assert P._safe_url("data:text/html,x") == "" and P._safe_url(" HTTPS://a.b ") == "HTTPS://a.b"

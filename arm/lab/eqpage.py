@@ -94,6 +94,12 @@ def _ql(q: str) -> str:
     return f"{q[2:4]}Q{(int(q[5:7]) - 1) // 3 + 1}"
 
 
+def _safe_url(u) -> str:
+    """只放行 http(s) 網址（資料包的連結來自外部，javascript:／data: 一律不當連結；2026-10-30 資安檢查）。"""
+    u = str(u or "").strip()
+    return u if re.match(r"https?://", u, re.I) else ""
+
+
 def _table(head: list[str], rows: list[list[str]], cls: str = "") -> str:
     h = "".join(f"<th>{escape(x)}</th>" for x in head)
     b = "".join("<tr>" + "".join(f"<td>{c}</td>" for c in r) + "</tr>" for r in rows)
@@ -446,7 +452,7 @@ def cat_section_us(pack: dict, F: Figs) -> str:
         out.append(F.tab("分析師評等與目標價", _table(["項目", "數字"], rows, "rc"), f"Yahoo Finance（{escape(cons.get('d') or '')}）"))
     ev = cons.get("ev") or []
     if ev:
-        rr = [[x["d"], escape(x["firm"] or ""), escape(f"{x['from'] or ''} → {x['to'] or ''}"),
+        rr = [[escape(str(x["d"] or "")), escape(x["firm"] or ""), escape(f"{x['from'] or ''} → {x['to'] or ''}"),
                f"{f(x['tp_from'])} → {f(x['tp_to'])}" if x.get("tp_to") else "—"] for x in ev[:10]]
         out.append(F.tab("最近的評等與目標價變動", _table(["日期", "券商", "評等", "目標價（美元）"], rr, "rev"), "Yahoo Finance"))
     rows = []
@@ -508,7 +514,9 @@ def cat_section(pack: dict, F: Figs) -> str:
                 what = f"{x['y']} 年 EPS 從 {f(x['from'], 2)} 元改為 {f(x['to'], 2)} 元"
             else:
                 what = f"目標價中位數從 {f(x['from'])} 元改為 {f(x['to'])} 元"
-            rr.append([x["d"], f'<a href="{escape(x["url"])}" target="_blank" rel="noopener">{escape(what)}</a>'])
+            u = _safe_url(x.get("url"))
+            rr.append([escape(str(x["d"] or "")),
+                       f'<a href="{escape(u)}" target="_blank" rel="noopener">{escape(what)}</a>' if u else escape(what)])
         out.append(F.tab("法人共識最近的修正", _table(["日期", "修正"], rr, "rev"), "FactSet（鉅亨網台股預估）"))
     return "".join(out)
 
