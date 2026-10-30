@@ -92,8 +92,11 @@ def note_parts(note: str) -> tuple[list[tuple[str, str]], str]:
     return stat, "；".join(focus)
 
 
-def calendar_block(cal: dict | None, held: dict | None = None) -> str:
-    """held＝復華持股 {代碼: 清單列}（macronews.tw_held）：台股列項目內代碼命中即加印「持股」小章。"""
+def calendar_block(cal: dict | None, held: dict | None = None, today: date | None = None) -> str:
+    """held＝復華持股 {代碼: 清單列}（macronews.tw_held）：台股列項目內代碼命中即加印「持股」小章。
+    today 給了才標「待更新」（結束日早於今天、還不是已公布；macronews.is_late）。列印只印本週，
+    週末版帶過來的上週結果（cal["prev_rows"]）網頁收合呈現、列印不印。"""
+    ref = fd._cal_ref(cal)
     title = "① 本週重點財經行事曆"
     if not cal or not cal.get("rows"):
         return _section("p-cal", title, "", '<div class="pr-empty">尚無本週行事曆</div>')
@@ -106,7 +109,9 @@ def calendar_block(cal: dict | None, held: dict | None = None) -> str:
     for r in cal["rows"]:
         st = r.get("status") or ""
         cls = "done" if "已公布" in st else ("halt" if "休市" in st else "wait")
-        label = {"done": "已公布", "halt": "休市", "wait": "未公布"}[cls]
+        if cls == "wait" and ref and today and macronews.is_late(r, ref, today):
+            cls = "late"
+        label = {"done": "已公布", "halt": "休市", "wait": "未公布", "late": "待更新"}[cls]
         d = str(r.get("date") or "")
         wd = weekday_of(d, cal.get("date"))
         # 同一天多列只在首列印日期（掃讀時日期即分組線）
@@ -452,7 +457,7 @@ def render(ctx: dict) -> str:
             f'持股基準 {_esc(ctx.get("as_of") or "—")}</div></header>')
     picked, _allc = pick_cards(ctx.get("lanes") or [])
     return (f'<div id="print" class="pr">{head}'
-            f'{calendar_block(ctx.get("cal"), ctx.get("tw_held"))}{market_block(ctx.get("mc"))}'
+            f'{calendar_block(ctx.get("cal"), ctx.get("tw_held"), today)}{market_block(ctx.get("mc"))}'
             f'{overview_block(ctx.get("overviews") or [])}{news_block(picked)}'
             f'{returns_block(ctx.get("rows_tw") or [], ctx.get("rows_gl") or [], ctx.get("marks") or {}, ctx.get("etf_doc"), ctx.get("nav_date"))}'
             f'<footer class="pr-foot">{_FOOT}</footer></div>')
@@ -513,7 +518,7 @@ CSS = """
 .pr .pr-hold{display:inline-block;font-size:6pt;font-weight:800;padding:0 3px;margin-left:3px;border-radius:3px;
   color:#8a5a00;border:.5pt solid #d6a02e}
 .pr-st{font-size:6.8pt;font-weight:700;white-space:nowrap}
-.pr-st.done{color:#1d6b3a}.pr-st.wait{color:#1d4f9c}.pr-st.halt{color:#8a5410}
+.pr-st.done{color:#1d6b3a}.pr-st.wait{color:#1d4f9c}.pr-st.halt{color:#8a5410}.pr-st.late{color:#a35b00}
 /* ② 市場數據 */
 .pr-md2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px;align-items:start}
 .pr-md td.v{font-weight:700;color:#111}

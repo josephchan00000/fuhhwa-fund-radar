@@ -134,8 +134,11 @@ def test_tw_closed_days_reads_calendar_without_marking_the_preview_day(tmp_path,
         fd._tw_closed_days.cache_clear()
 
 
-def test_freshness_view_all_fresh_no_warning():
+def test_freshness_view_all_fresh_no_warning(monkeypatch):
     from arm import fund_dashboard as fd
+    # 只驗傳進來的來源；讀落檔的警示章（簡介缺口、新 ETF、數字核對…）跟著當天資料變，不在這裡驗
+    for name in ("_factcheck_chip", "_intro_gap_chip", "_afterhours_chip", "_yt_watch_chip", "_new_etf_chip"):
+        monkeypatch.setattr(fd, name, lambda *a, **k: "")
     t = date(2026, 7, 4)
     html_out = fd._freshness_view("2026/07/04 11:12", [("NAV 日", "2026/07/03", 6),
                                                        ("台股新聞", "2026-07-04", 3)], today=t)

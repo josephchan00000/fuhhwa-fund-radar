@@ -281,9 +281,11 @@ def _check_calendar(path: Path, date: str) -> list[str]:
     if f"更新：{d_slash}" not in md and f"更新：{date}" not in md:
         errs.append(f"{rel}：表頭「更新：」非今日（{d_slash}）")
     if date >= TWCAL_SINCE:
-        errs += _check_calendar_tw(md, rel)
+        errs += _check_calendar_tw(md, rel, date)
     if date >= CALSLIM_SINCE:
-        errs += _check_calendar_slim(md, rel)
+        errs += _check_calendar_slim(md, rel, date)
+    if date >= LASTWEEK_SINCE:
+        errs += _check_calendar_lastweek(md, rel, date)
     if date >= HOLIDAY_SINCE:
         errs += _check_calendar_holidays(md, rel, date)
     if date >= DRIFT_SINCE:
@@ -407,9 +409,20 @@ def _check_calendar_holidays(md: str, rel: str, date_iso: str) -> list[str]:
 TWCAL_SINCE = "2026-10-13"
 
 
-def _check_calendar_tw(md: str, rel: str) -> list[str]:
+def _this_week_rows(md: str, date_iso: str | None) -> list[dict]:
+    """本週的列（週末版帶過來的上週結果不算進各種列數上限；2026-10-30 起）。"""
+    import datetime as _dt
     from arm import macronews
-    rows = macronews.retag_tw(macronews._parse_cal_rows(md), {r["code"] for r in macronews.tw_watch()})
+    rows = macronews._parse_cal_rows(md)
+    if not date_iso:
+        return rows
+    ref = _dt.date.fromisoformat(date_iso)
+    return macronews.week_split(rows, macronews.cal_week_start(md, ref), ref)[0]
+
+
+def _check_calendar_tw(md: str, rel: str, date_iso: str | None = None) -> list[str]:
+    from arm import macronews
+    rows = macronews.retag_tw(_this_week_rows(md, date_iso), {r["code"] for r in macronews.tw_watch()})
     tw = [r for r in rows if r["region"] == "台股"]
     errs = []
     if not tw and not re.search(r"台股[：:]\s*本週無", md):
@@ -430,9 +443,9 @@ def _check_calendar_tw(md: str, rel: str) -> list[str]:
 CALSLIM_SINCE = "2026-10-13"
 
 
-def _check_calendar_slim(md: str, rel: str) -> list[str]:
+def _check_calendar_slim(md: str, rel: str, date_iso: str | None = None) -> list[str]:
     from arm import macronews
-    rows = macronews._parse_cal_rows(md)
+    rows = _this_week_rows(md, date_iso)
     errs = []
     tw_data = [r for r in rows if r["region"] == "台"]
     if not tw_data and not re.search(r"(?<!股)台[：:]\s*本週無", md):
@@ -449,6 +462,27 @@ def _check_calendar_slim(md: str, rel: str) -> list[str]:
         errs.append(f"{rel}：引言 {len(note)} 字超過 {macronews.CAL_NOTE_MAX}——只寫「更新／市況／本週焦點」，"
                     "昨夜重點不寫（同頁政策總覽已有），來源說明放表下「註」")
     return errs
+
+
+# ── 週末版要帶上週結果（2026-10-30 使用者：「總經的行事曆有資料沒更新到」「上週結果放下面收合」）──
+# 週末版原本只寫下一週，上週五的結果（非農、日本 CPI…）從沒上過網頁（10/17、10/24 兩份都沒有）。
+# 擋「上週五的列、上週還沒公布的列，沒帶到週末版」；查不到實際值可以，但要帶上、在註寫原因。
+LASTWEEK_SINCE = "2026-10-31"
+
+
+def _check_calendar_lastweek(md: str, rel: str, date_iso: str) -> list[str]:
+    import datetime as _dt
+    from arm import macronews
+    today = _dt.date.fromisoformat(date_iso)
+    if today.weekday() < 5:
+        return []
+    last = macronews.last_week_cal(today, cal_dir=ROOT / "reports" / "macrocal")
+    if not last:
+        return []
+    have = {macronews.cal_key(r) for r in macronews._parse_cal_rows(md)}
+    return [f"{rel}：上週「{r['item'][:20]}」（{r['date']}）沒帶到週末版——上週五的列與上週還沒公布的列要放在表格最後、"
+            "填實際值（查不到就維持未公布並在註寫原因）"
+            for r in macronews.lastweek_needed(last[1], last[0]) if macronews.cal_key(r) not in have]
 
 
 def run(date: str) -> int:
