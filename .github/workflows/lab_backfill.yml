@@ -164,6 +164,9 @@ jobs:
           elif [ "${MODE#secprobe}" != "$MODE" ]; then
             # 美股財報「一次性利得／損失」項目的探針（美股三成營益率的研究，2026-10-24）：只印不寫
             timeout 1800 python3 scripts/probe_secgain.py
+          elif [ "${MODE#calprobe}" != "$MODE" ]; then
+            # 行事曆官方來源探針（docs/macrocal_fill_plan.md 第三段）：只印不寫
+            timeout 900 python3 scripts/probe_calsrc.py
           elif [ "${MODE#s3probe}" != "$MODE" ]; then
             # 大神策略第三段的資料探針（FinMind 逐檔融資與收盤、終止上市櫃名單、美股漲跌家數來源）：只印不寫
             timeout 1500 python3 scripts/probe_s3.py
