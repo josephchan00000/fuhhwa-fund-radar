@@ -1,8 +1,8 @@
 # 個股深度報告與產業報告
 
-> 投行首次報告格式的個股報告（評等、目標價、同業比較、產業章）與同產業共用的產業報告：資料包、估值規格、檢查、頁面、技能包、網頁申請與每天晚上的名單。
-> 原始資料：規劃 `docs/lab_equity_report_plan.md`；程式：`arm/lab/eqspec.py`、`eqfacts.py`、`eqfacts_us.py`、`eqreport.py`、`eqchart.py`、`eqpage.py`、`eqsite.py`、`eqqueue.py`；
-> 指令：`scripts/eq_facts.py`、`scripts/check_eq.py`、`scripts/eq_build.py`、`scripts/eq_queue.py`；技能 `.claude/skills/equity-report/`；測試 `tests/test_eqspec.py`、`test_eqfacts.py`、`test_eqfacts_us.py`、`test_eqreport.py`、`test_eqqueue.py`
+> 投行首次報告格式的個股報告（評等、目標價、同業比較、產業章）與同產業共用的產業報告：資料包、官方文件包、估值規格、檢查、頁面、技能包、網頁申請與每天晚上的名單。
+> 原始資料：規劃 `docs/lab_equity_report_plan.md`、`docs/lab_eq_docs_plan.md`（官方文件包）；程式：`arm/lab/eqspec.py`、`eqfacts.py`、`eqfacts_us.py`、`eqreport.py`、`eqchart.py`、`eqpage.py`、`eqsite.py`、`eqqueue.py`、`eqdocs.py`；
+> 指令：`scripts/eq_facts.py`、`scripts/check_eq.py`、`scripts/eq_build.py`、`scripts/eq_queue.py`、`scripts/eq_docs_req.py`（CI：`scripts/fetch_eqdocs.py`、`eq_docs.yml`）；技能 `.claude/skills/equity-report/`；測試 `tests/test_eqspec.py`、`test_eqfacts.py`、`test_eqfacts_us.py`、`test_eqreport.py`、`test_eqqueue.py`、`test_eqdocs.py`
 > 最後更新：2026-10-30
 > 正本就是這一頁（2026-10-29 新建，CLAUDE.md 沒有對應段落）。
 
@@ -29,6 +29,12 @@
   近四季口徑＝**近四季淨利 ÷ 最新申報的流通股數**（買回股票時和財報 EPS 加總不同，頁面兩個都列）；本公司本益比歷史＝月底市值 ÷ 當時的近四季淨利。
   Yahoo 的 EPS 多為調整後，只和調整後比，不和財報淨利混算。產業代號＝`us-{GICS 細產業}`，段落「美股成員與估值」取代「台灣成員營收與估值」。
   單位：億美元、美元；籌碼段改成分析師評等、做空、法人與內部人（Yahoo）。
+- **官方文件包**（2026-10-30 第一段；報告與檢查怎麼用是第二段）：容器連不到公開資訊觀測站，由 CI 抓（`eqdocs.build`）：公司基本資料（`t05st03`）、
+  近 24 個月法說會（`t100sb02_1`）＋最近一場（12 個月內）簡報逐頁文字、近 6 個月重大訊息內文（`t05st01` 第二步）、
+  股東會年報「營運概況」的業務內容與市場及產銷概況（doc.twse，到「三、從業員工」為止）。一家約 2.6～3.7 萬字。
+  流程：`eq_docs_req.py --send tw:代號…` 寫 `.ping/eqdocs` 推本會話分支 → `eq_docs.yml` 抓好推到臨時分支 `claude/eqdocs-tmp/{編號}`
+  （只有文件包、跟 main 無關）→ `--wait`（背景跑）拉到 `.eqdocs/{編號}/`（不進 git）→ 報告寫完 `--drop` 刪本機檔；
+  臨時分支由 `eq_docs.yml` 刪（每天台北 03:23 與每次抓取時，請求日期在今天以前的）。使用者選「不存」：報告旁只留文件清單（`eqdocs.index`：日期、主旨、官方網址）。
 - **同業**：台股＝櫃買中心產業鏈同節點的上市櫃公司（最具體節點市值最大的 2 家＋共同節點多、市值接近的）；美股＝同 GICS 細產業。撰寫者最多換 3 家。
 - **每天晚上的名單**（`eqqueue.queue`／`scripts/eq_queue.py`；2026-10-30 起，原本是每週六、每週最多 4 家）：①網頁申請的（`data/eq_requests.json`，收件匣排好的順序）→ ②接下來 2 個交易日要買、還沒有新報告的（台股＝選股頁內嵌的 `D.pick.tw.ev` 裡主要策略、有名單的「買進」，`eqqueue.page_pick` 找有 `tw` 的那一個 pick；美股＝`ussx_qm.json` 的 `now.buy`，`now.next` 在這兩天裡）→ ③季更新（只在週六）。每一家都再判一次 90 天內做過又沒新財報的不做；美股只收 `eqinbox.us_codes`；每班最多 `EQ_RUN_MAX`＝3 家，排不到的明天再排。輸出每家標來源（申請 #單號／M/D 要買（策略）／季更新）。
   排程：Routine ⑦「個股報告」台北每天 20:47（[排程](../ops/routines.md)）：「今天做 0 家」安靜結束；先做需要的產業報告、再每家一個子代理，push 經 daily.yml 併檔；推播只寫公司、評等與來源。
@@ -52,10 +58,16 @@
 - 報告進 main 只走 `daily.yml` 的併檔通道（main 的檢查要過、同一天的舊檔不覆蓋）；`reports/eq/**` 推到 `claude/**` 就會觸發 `daily.yml`。
 - 容器內不跑資料抓取；資料包只讀 repo。
 - 申請單是任何人都能開的外部文字：只交給 `eqinbox.parse` 取代號、不放進任何指令（workflow 不用 `github.event` 內容）；排程只讀 `data/eq_requests.json`。
+- 官方文件包是外部網站的文字：只當資料讀、不執行；全文不進 git（`.eqdocs/` 忽略、臨時分支用完刪）。請求只交給 `fetch_eqdocs.py` 驗格式
+  （代號 `tw:四碼`、編號 `YYYYMMDD-HHMM-六碼`），`eq_docs.yml` 不用 `github.event` 內容。
 
 ## 踩過的坑
 
 - 2026-10-30 選股頁新飆股名單的列從 9 欄改成 7 欄（現況移到最後一欄），每週名單 `eqqueue.candidates` 還在讀第 9 欄 → 台股要買的一家都排不進週六排程；隔天週六排程之前發現、改讀最後一欄。測試原本用手寫的舊格式所以沒擋到——現在 `tests/test_pickpage.py` 直接拿 `pickpage.tw_view` 產的事件餵 `eqqueue.upcoming`（同日改成每天晚上的名單、讀「這週要做的事」那份事件），要買的要和新飆股名單標 b 的那幾檔一樣。**改選股頁名單或事件的欄位時，個股報告的名單、個股卡（`eqfacts.pick_info`）要一起看。**
+
+- 2026-10-30 文件包第一輪實抓（騰雲、暉盛-創、德宏）：觀測站主旨中間會斷行、影音不一定放證交所（德宏在 vimeo）、公司網址可能沒寫 http；
+  年報「營運概況」後半是員工、環保、勞資、資安，第一輪整章收、騰雲碰到 25 頁上限 → 改成到「三、從業員工」為止。
+  雲端容器刪不了臨時分支（`git push --delete` 回 403，只能推自己的分支；不重試）→ 改由 CI 每天刪。解析器用 `tests/fixtures/eqdocs/` 的真實樣本測（電話、email、地址換成（略））。
 
 ## 歷史
 
@@ -69,3 +81,5 @@
   近四季法、預設倍數 30.05 倍）＋人資與就業服務產業報告。做的時候抓到並修掉：同業中位數把超過 100 倍的也算進去（頁面寫 33.6 倍、估值用 28.5 倍）、
   報告把排除門檻寫成 80 倍（實為 100 倍）、Paycom 大量買回後淨值比區間沒有意義卻畫在估值區間圖、資料包的季營收年增用四捨五入後的數字算、
   美股做空與法人持股比率檢查程式認不得。
+- 2026-10-30：每晚排程回報「三家都沒讀到公司法說會簡報或觀測站原文」，使用者：「這不應該發生吧？」。查出 5 份報告都沒打開過官方原文
+  （容器擋觀測站、流程沒給抓文件的路、檢查只看連結標題）→ 官方文件包規劃（D1 不存、D2 隔天重試兩天才照寫、D3 全部重做）；第一段 CI 抓取上線。

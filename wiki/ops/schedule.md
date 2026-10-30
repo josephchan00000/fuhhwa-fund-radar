@@ -9,6 +9,7 @@
 
 ### 時點地圖（台北時間；2026-08-03 起，2026-08-07 補入 05:08）
 
+- 03:23 cron：`eq_docs.yml` 刪掉前一天以前的個股報告文件包臨時分支（`claude/eqdocs-tmp/`；只清不抓，見 [個股報告](../lab/equity-report.md)）。
 - 05:08 Routine：費半 ^SOX／台積電 ADR 昨夜收盤入檔（美東收盤後，供 06:35 晨報引用）。06:15 etf_holdings cron：被動式隔夜 PCF。
 - 06:35 Routine：新聞（push 觸發 daily.yml 全量；07:15 cron 兜底）。
 - 08:58～09:00:15 台指期盤前取樣（`fut_preopen.yml` 凌晨 03:47～07:17 五班 cron，最早的那班等到 08:58；docs/lab_fut_plan.md 第 10 節）。

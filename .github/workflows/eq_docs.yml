@@ -1,0 +1,94 @@
+name: 個股報告官方文件包
+
+# docs/lab_eq_docs_plan.md：容器擋公開資訊觀測站，個股報告要讀的官方文件（公司基本資料、法說會簡報、近 6 個月重大訊息、
+# 年報營運概況）由這裡抓（scripts/fetch_eqdocs.py）。全文推到臨時分支 claude/eqdocs-tmp/{請求編號}（只有文件包、沒有程式），
+# 排程讀完就刪本機檔（scripts/eq_docs_req.py --drop；使用者 2026-10-30 選「不存」）。容器刪不了別的分支（git push --delete 回 403），
+# 所以臨時分支由這裡刪：每天台北 03:23（schedule）與每次抓取時，刪掉請求日期在今天以前的。
+# 觸發：claude/** 分支 push 動到 .ping/eqdocs（eq_docs_req.py --send 寫的 JSON：{"id", "codes"}）、手動、每天清臨時分支。
+# 請求內容只交給 fetch_eqdocs.py 驗格式（代號 tw:四碼、編號 YYYYMMDD-HHMM-六碼），不放進任何指令。
+
+on:
+  push:
+    branches: ['claude/**']
+    paths: ['.ping/eqdocs']
+  schedule:
+    - cron: '23 19 * * *'                 # 台北 03:23：只刪臨時分支
+  workflow_dispatch:
+    inputs:
+      codes:
+        description: "代號（空白分隔，例 tw:6870 tw:7730）"
+        required: true
+
+concurrency:
+  group: eq-docs-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      TZ: Asia/Taipei
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        if: github.event_name != 'schedule'
+        with:
+          python-version: "3.12"
+
+      - name: 安裝相依
+        if: github.event_name != 'schedule'
+        run: pip install --quiet certifi pypdf
+
+      - name: 抓文件包
+        if: github.event_name != 'schedule'
+        env:
+          CODES: ${{ inputs.codes }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          OUT="$RUNNER_TEMP/eqdocs"
+          if [ "$EVENT" = "push" ]; then
+            # 哨兵檔被刪也會觸發 push → 沒有檔就什麼都不做
+            if [ ! -f .ping/eqdocs ]; then echo "無 .ping/eqdocs，略過"; exit 0; fi
+            python3 scripts/fetch_eqdocs.py --ping .ping/eqdocs --out "$OUT"
+          else
+            python3 scripts/fetch_eqdocs.py --codes "$CODES" --out "$OUT"
+          fi
+
+      - name: 推到臨時分支
+        if: github.event_name != 'schedule'
+        run: |
+          OUT="$RUNNER_TEMP/eqdocs"
+          [ -f "$OUT/id.txt" ] || { echo "沒有文件包，略過"; exit 0; }
+          ID=$(head -1 "$OUT/id.txt")
+          echo "$ID" | grep -Eq '^[0-9]{8}-[0-9]{4}-[0-9a-f]{6}$' || { echo "請求編號不對：$ID"; exit 1; }
+          git config user.name "josephchan00000"
+          git config user.email "51159474+josephchan00000@users.noreply.github.com"
+          rm -rf eqdocs && mkdir eqdocs && cp -r "$OUT"/. eqdocs/
+          # 只放文件包、沒有上一個 commit（臨時分支跟 main 無關）：另開一個空的 index，只加 eqdocs/
+          export GIT_INDEX_FILE="$RUNNER_TEMP/eqdocs.idx"
+          rm -f "$GIT_INDEX_FILE"
+          git add -f eqdocs
+          TREE=$(git write-tree)
+          COMMIT=$(git commit-tree "$TREE" -m "個股報告官方文件包 $ID")
+          unset GIT_INDEX_FILE
+          for i in 1 2 3; do
+            git push -q origin "$COMMIT:refs/heads/claude/eqdocs-tmp/$ID" && { echo "已推 claude/eqdocs-tmp/$ID"; break; }
+            sleep $((i * 5))
+          done
+
+      - name: 刪掉今天以前的臨時分支
+        if: always()
+        run: |
+          CUT=$(date +%Y%m%d)                 # 台北日期（job 的 TZ）；請求編號開頭就是請求日期
+          git ls-remote --heads origin 'claude/eqdocs-tmp/*' | while read -r SHA REF; do
+            B="${REF#refs/heads/}"
+            D="${B#claude/eqdocs-tmp/}"
+            D="${D%%-*}"
+            case "$D" in ''|*[!0-9]*) continue ;; esac
+            if [ "$D" -lt "$CUT" ]; then git push -q origin --delete "$B" && echo "刪 $B" || true; fi
+          done
