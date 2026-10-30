@@ -1,6 +1,6 @@
 # 個股深度報告與產業報告
 
-> 投行首次報告格式的個股報告（評等、目標價、同業比較、產業章）與同產業共用的產業報告：資料包、估值規格、檢查、頁面、技能包。
+> 投行首次報告格式的個股報告（評等、目標價、同業比較、產業章）與同產業共用的產業報告：資料包、估值規格、檢查、頁面、技能包、網頁申請與每天晚上的名單。
 > 原始資料：規劃 `docs/lab_equity_report_plan.md`；程式：`arm/lab/eqspec.py`、`eqfacts.py`、`eqfacts_us.py`、`eqreport.py`、`eqchart.py`、`eqpage.py`、`eqsite.py`、`eqqueue.py`；
 > 指令：`scripts/eq_facts.py`、`scripts/check_eq.py`、`scripts/eq_build.py`、`scripts/eq_queue.py`；技能 `.claude/skills/equity-report/`；測試 `tests/test_eqspec.py`、`test_eqfacts.py`、`test_eqfacts_us.py`、`test_eqreport.py`、`test_eqqueue.py`
 > 最後更新：2026-10-30
@@ -30,10 +30,10 @@
   Yahoo 的 EPS 多為調整後，只和調整後比，不和財報淨利混算。產業代號＝`us-{GICS 細產業}`，段落「美股成員與估值」取代「台灣成員營收與估值」。
   單位：億美元、美元；籌碼段改成分析師評等、做空、法人與內部人（Yahoo）。
 - **同業**：台股＝櫃買中心產業鏈同節點的上市櫃公司（最具體節點市值最大的 2 家＋共同節點多、市值接近的）；美股＝同 GICS 細產業。撰寫者最多換 3 家。
-- **每週名單**（`eqqueue.queue`／`scripts/eq_queue.py`，每週六排程用）：①美股強勢品質股下週一要買的、②新飆股名單標 b 的（照名次）、③已有報告且出了新一季財報的；
-  扣掉 90 天內做過又沒有新財報的，每週最多 4 家（`EQ_WEEKLY_MAX`）。
-  排程：Routine ⑦「個股報告週更」台北週六 14:17（[排程](../ops/routines.md)）：先做需要的產業報告、再每家一個子代理，push 經 daily.yml 併檔；推播只寫公司與評等。
+- **每天晚上的名單**（`eqqueue.queue`／`scripts/eq_queue.py`；2026-10-30 起，原本是每週六、每週最多 4 家）：①網頁申請的（`data/eq_requests.json`，收件匣排好的順序）→ ②接下來 2 個交易日要買、還沒有新報告的（台股＝選股頁內嵌的 `D.pick.tw.ev` 裡主要策略、有名單的「買進」，`eqqueue.page_pick` 找有 `tw` 的那一個 pick；美股＝`ussx_qm.json` 的 `now.buy`，`now.next` 在這兩天裡）→ ③季更新（只在週六）。每一家都再判一次 90 天內做過又沒新財報的不做；美股只收 `eqinbox.us_codes`；每班最多 `EQ_RUN_MAX`＝3 家，排不到的明天再排。輸出每家標來源（申請 #單號／M/D 要買（策略）／季更新）。
+  排程：Routine ⑦「個股報告」台北每天 20:47（[排程](../ops/routines.md)）：「今天做 0 家」安靜結束；先做需要的產業報告、再每家一個子代理，push 經 daily.yml 併檔；推播只寫公司、評等與來源。
 - **申請收件匣**（2026-10-30 第一段，`docs/lab_eq_request_plan.md`）：GitHub 申請單 `.github/ISSUE_TEMPLATE/eq-report.yml`（只有「代號」一欄）→ `.github/workflows/eq_inbox.yml`（開單／改單／重開單、`daily.yml` 跑完、每天台北 22:23 兜底、手動）跑 `scripts/eq_inbox.py`＋`arm/lab/eqinbox.py`：每次從 API 重讀開著的單對帳、不用事件內容；看網站的人都能申請（使用者選），站長的單排前面、其餘照先後，每個帳號同時 2 件、佇列 30 件；同一家已在佇列、90 天內做過又沒有新財報（`eqqueue.need`）、資料庫沒有這家（台股 `dashboard/co`；美股要 `ussx_fin`＋`ussx_card` 都有，約 13 檔）→ 回一句並關單；報告日 ≥ 申請日 → 回報告連結並關單。結果 `data/eq_requests.json`（`items` 照做的順序、`done` 留 30 天；不存帳號名稱）。網頁按鈕與每天晚上的排程是第二、三段。
+- **網頁上的申請**（第二段）：個股卡、公司卡、美股個股卡最上面那一行（`page.py` 的 `eqRepLine(k, 名稱)`）：有報告＝連結；已申請＝「已申請（M/D），排程照順序做」（`D.eqreq`＝`eqsite.requests_map()`）；都沒有＝「要個股報告」，打開申請單、代號已填好（`eqReqUrl`＝`eqinbox.form_url` 同一個格式；美股只有 `D.equs` 裡的）；按過的這台裝置記 7 天（localStorage `eq.sent`），先寫「已送出，等排程」。選股頁「這週要做的事」買的那幾檔旁邊一個小標記（`pickpage.eq_mark`：報告／已申請／要報告）；研究紀錄頁「個股報告」段上面多「申請中」（`eqsite.requests_block`）。
 - **存放**：`reports/eq/{tw|us}/{代號}/{報告日}.md`＋同名 `.facts.json`，不覆蓋舊版（舊版＝評等歷史）；產業 `reports/eq/ind/{產業代號}/`。
 - **頁面**：`eqsite.build` → `dashboard/rp/{tw|us}-{代號}.html`、`dashboard/rp/ind-{產業代號}.html`（`<base href="../">`，錨點要寫 `rp/…html#id`）。
   圖是伺服器端畫的 SVG（一條縱軸、兩個單位就上下兩格），列印 A4。頁首「最新收盤」每次建頁讀 `dashboard/x9t.json`，報告本文不動。
@@ -55,7 +55,7 @@
 
 ## 踩過的坑
 
-- 2026-10-30 選股頁新飆股名單的列從 9 欄改成 7 欄（現況移到最後一欄），每週名單 `eqqueue.candidates` 還在讀第 9 欄 → 台股要買的一家都排不進週六排程；隔天週六排程之前發現、改讀最後一欄。測試原本用手寫的舊格式所以沒擋到——現在 `tests/test_pickpage.py` 直接拿 `pickpage.boom_box` 產的列餵 `eqqueue.candidates`。**改選股頁名單的欄位時，個股報告的名單、個股卡（`eqfacts.pick_info`）要一起看。**
+- 2026-10-30 選股頁新飆股名單的列從 9 欄改成 7 欄（現況移到最後一欄），每週名單 `eqqueue.candidates` 還在讀第 9 欄 → 台股要買的一家都排不進週六排程；隔天週六排程之前發現、改讀最後一欄。測試原本用手寫的舊格式所以沒擋到——現在 `tests/test_pickpage.py` 直接拿 `pickpage.tw_view` 產的事件餵 `eqqueue.upcoming`（同日改成每天晚上的名單、讀「這週要做的事」那份事件），要買的要和新飆股名單標 b 的那幾檔一樣。**改選股頁名單或事件的欄位時，個股報告的名單、個股卡（`eqfacts.pick_info`）要一起看。**
 
 ## 歷史
 

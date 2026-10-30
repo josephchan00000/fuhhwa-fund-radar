@@ -139,7 +139,7 @@ def test_links_and_research_list(tmp_path):
     h = eqsite.research_body(src)
     assert 'href="rp/tw-9999.html"' in h and "目標價" in h and 'href="rp/ind-tw-L000.html">印刷電路板</a>' in h
     assert "台灣上市櫃成員 77 家" in h
-    assert eqsite.research_body(tmp_path / "none") == '<p class="rnote">還沒有報告。</p>'
+    assert eqsite.research_body(tmp_path / "none", tmp_path / "none.json") == '<p class="rnote">還沒有報告。</p>'   # 申請檔另外給（不讀 repo 裡的）
     assert "目標價" not in inspect.getsource(eqsite.links).split('"""', 2)[2]          # 函式本體不寫目標價
 
 
@@ -149,9 +149,10 @@ def test_cards_research_page_and_build_are_wired():
     J = lab_page._JS
     fn = J[J.index("function eqRepLine("):J.index("function renderStock(")]
     assert "目標價" not in fn and 'href="rp/${' in fn                                    # 卡片只寫「個股報告」＋日期＋評等
-    assert "h+=eqRepLine('tw:'+c)+stCardSec(c);" in J
-    assert "eqRepLine('tw:'+c)+stCardSec(c)+coSec(" in copage.JS
-    assert "eqRepLine('us:'+c)+`<section" in uscardpage.JS
+    assert "h+=eqRepLine('tw:'+c,r.n)+stCardSec(c);" in J
+    assert "eqRepLine('tw:'+c,nm)+stCardSec(c)+coSec(" in copage.JS
+    assert "eqRepLine('us:'+c,S.nm)+`<section" in uscardpage.JS
+    assert "D.eqreq" in fn and "D.equs" in fn and "要個股報告" in fn and "eqReqUrl(" in fn      # 已申請、美股範圍、申請按鈕（第二段）
     assert 'data["eq"] = eqsite.links()' in (ROOT / "arm" / "lab" / "page.py").read_text(encoding="utf-8")
     assert [g[0] for g in research_page.GROUPS].index("eq") == 1
     gen = (ROOT / "scripts" / "gen_fund_dashboard.py").read_text(encoding="utf-8")

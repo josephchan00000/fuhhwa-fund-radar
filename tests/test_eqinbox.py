@@ -100,3 +100,40 @@ def test_queue_file_is_not_git_ignored():
     import subprocess
     r = subprocess.run(["git", "check-ignore", "-q", "data/eq_requests.json"], cwd=ROOT)
     assert r.returncode == 1                                                   # 1＝沒有被忽略
+
+
+def test_page_marks_card_url_and_requests_block(tmp_path):
+    """第二段：選股頁「這週要做的事」的小標記、個股卡的申請網址（JS 與 Python 同一個格式）、研究紀錄頁「申請中」。"""
+    import shutil
+    import subprocess
+    from arm.lab import eqsite
+    from arm.lab import page as lab_page
+    from arm.lab import pickpage as PP
+    eq = {"rep": {"tw:4958": ["2026-10-30", "減碼"]}, "req": {"tw:6669": [12, "2026-10-30"]}}
+    assert PP.eq_mark("4958", "臻鼎-KY", eq) == '<a class="pkeq" href="rp/tw-4958.html">報告</a>'
+    assert PP.eq_mark("6669", "緯穎", eq) == '<span class="pkeq">已申請</span>'
+    m = PP.eq_mark("6870", "騰雲", eq)
+    assert 'class="pkeq eqreq"' in m and 'data-eqk="tw:6870"' in m and "code=6870" in m and "要報告" in m
+    assert PP.eq_mark("6870", "騰雲", None) == ""
+    W = {"a": "2026-11-02", "b": "2026-11-06", "fix": [], "rows": [
+        {"d": "2026-11-02", "at": "開盤", "k": "boom", "act": "買進", "items": [["4958", "臻鼎-KY"], ["6870", "騰雲"]], "note": "", "cond": "", "exit": ""},
+        {"d": "2026-11-03", "at": "收盤", "k": "boom", "act": "賣出", "items": [["3008", "大立光"]], "note": "", "cond": "", "exit": ""}]}
+    h = PP.week_box(W, {"boom": 1}, eq)
+    assert h.count('class="pkeq') == 2 and "大立光</a><" not in h.replace("大立光</a></td>", "")   # 賣的那一檔不放
+    url = I.form_url("4958", "臻鼎-KY")
+    assert url.startswith(I.REPO_URL + "/issues/new?template=eq-report.yml&title=") and url.endswith("&code=4958")
+    node = shutil.which("node")
+    if node:                                                                            # JS 的 eqReqUrl 和 Python 產一樣的網址
+        J = lab_page._JS
+        src = J[J.index("const EQ_FORM="):J.index("function eqSent(")]
+        out = subprocess.run([node, "-e", src + "process.stdout.write(eqReqUrl('4958','臻鼎-KY'))"], capture_output=True, text=True, timeout=30)
+        assert out.stdout == url, out.stderr
+    f = tmp_path / "eq_requests.json"
+    f.write_text(json.dumps({"items": [{"mk": "tw", "code": "6669", "name": "緯穎", "issue": 12, "at": "2026-10-30", "owner": False},
+                                       {"mk": "us", "code": "PAYC", "name": "Paycom", "issue": 13, "at": "2026-10-31", "owner": False}]}),
+                 encoding="utf-8")
+    assert eqsite.requests_map(f) == {"tw:6669": [12, "2026-10-30"], "us:PAYC": [13, "2026-10-31"]}
+    b = eqsite.requests_block(f)
+    assert "申請中" in b and b.index("緯穎") < b.index("Paycom") and "2026-10-31 申請" in b
+    assert eqsite.requests_block(tmp_path / "none.json") == ""
+

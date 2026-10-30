@@ -26,6 +26,7 @@ MAX_QUEUE = 30
 DONE_DAYS = 30
 OWNER_ROLES = ("OWNER", "MEMBER", "COLLABORATOR")
 SITE = "https://fuhhwa-fund-radar.vercel.app"
+REPO_URL = "https://github.com/josephchan00000/fuhhwa-fund-radar"
 TW_RE = re.compile(r"^\d{4}$")
 US_RE = re.compile(r"^[A-Z]{1,5}(?:[.-][A-Z]{1,2})?$")
 TPE = timezone(timedelta(hours=8))
@@ -63,11 +64,24 @@ def known(mk: str, code: str, root: Path = ROOT) -> str | None:
     if mk == "tw":
         co = _read(root / "dashboard" / "co" / f"{code}.json", None)
         return (co.get("n") or code) if isinstance(co, dict) else None
-    fin = _read(root / "data" / "lab" / "ussx_fin.json", {}) or {}
-    card = _read(root / "data" / "lab" / "ussx_card.json", {}) or {}
-    if code in (fin.get("s") or {}) and code in (card.get("s") or {}):
+    if code in us_codes(root):
+        fin = _read(root / "data" / "lab" / "ussx_fin.json", {}) or {}
         return (fin.get("names") or {}).get(code) or code
     return None
+
+
+def us_codes(root: Path = ROOT) -> list[str]:
+    """美股收得了的代號：個股報告的美股資料包要 SEC 財報（ussx_fin）與個股卡（ussx_card）兩份都有。"""
+    fin = _read(root / "data" / "lab" / "ussx_fin.json", {}) or {}
+    card = _read(root / "data" / "lab" / "ussx_card.json", {}) or {}
+    return sorted(set(fin.get("s") or {}) & set(card.get("s") or {}))
+
+
+def form_url(code: str, name: str | None = None) -> str:
+    """網頁「要個股報告」打開的申請單（.github/ISSUE_TEMPLATE/eq-report.yml，代號已填好；page.py 的 eqReqUrl 同一個格式）。"""
+    from urllib.parse import quote
+    title = f"個股報告：{name}（{code}）" if name and name != code else f"個股報告：{code}"
+    return f"{REPO_URL}/issues/new?template=eq-report.yml&title={quote(title, safe='')}&code={quote(code, safe='')}"
 
 
 def link(mk: str, code: str) -> str:
