@@ -70,3 +70,6 @@ dashboard/etf.html
 
 # OS
 .DS_Store
+
+# 個股報告官方文件包（scripts/eq_docs_req.py --wait 拉下來的全文；用完就刪，不進 git）
+/.eqdocs/
