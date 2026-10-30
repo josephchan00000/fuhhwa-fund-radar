@@ -33,12 +33,19 @@ _TR = re.compile(r"<tr[^>]*>(.*?)</tr>", re.S | re.I)
 _TD = re.compile(r"<t[dh][^>]*>(.*?)</t[dh]>", re.S | re.I)
 _ROC = re.compile(r"(\d{2,3})/(\d{1,2})/(\d{1,2})")
 _CHAP = re.compile(r"[壹貳參肆伍陸柒捌玖拾]\s*、")
+_EMP = re.compile(r"三\s*、\s*(?:最近二年度)?[^、。]{0,24}?從業員工")
 
 
 def clean(s: str) -> str:
     s = re.sub(r"<br\s*/?>", "\n", s or "", flags=re.I)
     s = H.unescape(_TAG.sub(" ", s)).replace("\xa0", " ")
     return re.sub(r"[ \t\r\f\v]+", " ", re.sub(r"\n\s*\n+", "\n", s)).strip()
+
+
+def one_line(s: str) -> str:
+    """觀測站主旨會在中文中間斷行（「…辦理 \n變更登記完成」）：中文兩邊直接接起來，英文之間留一個空白。"""
+    s = re.sub(r"(?<=[^\x00-\x7f])[ \t]*\n\s*|[ \t]*\n\s*(?=[^\x00-\x7f])", "", s or "")
+    return re.sub(r"\s+", " ", s).strip()
 
 
 def roc_date(s: str) -> str | None:
@@ -85,9 +92,9 @@ def parse_basic(html: str) -> dict:
     m = re.search(r"本資料由\s*\((上市|上櫃|興櫃|公開發行)公司\)", clean(html))
     if m:
         out["board"] = m.group(1)
-    if out.get("site"):
-        m = re.search(r"https?://[^\s<>\"']+", out["site"])
-        out["site"] = m.group(0) if m else None
+    if out.get("site"):                                   # 有的公司只填「www.xxx.com.tw」→ 補 http://
+        m = re.search(r"https?://[^\s<>\"']+", out["site"]) or re.search(r"\b[\w-]+(?:\.[\w-]+)+(?:/[^\s<>\"']*)?", out["site"])
+        out["site"] = (m.group(0) if m.group(0).startswith("http") else "http://" + m.group(0)) if m else None
     return out
 
 
@@ -103,11 +110,13 @@ def parse_confs(html: str, code: str) -> list[dict]:
             continue
         zh = re.findall(rf"({code}\d{{8}}M\d{{3}}\.pdf)", tr)
         en = re.findall(rf"({code}\d{{8}}E\d{{3}}\.pdf)", tr)
-        vid = re.findall(r"https?://irconference\.twse\.com\.tw/[^\s<>\"']+", tr, re.I)
+        tds = _TD.findall(tr)                             # 第 10 格＝影音連結資訊（證交所或公司自己的影音站）
+        vid = re.findall(r"https?://[^\s<>\"']+", tds[9] if len(tds) > 9 else "") or \
+            re.findall(r"https?://irconference\.twse\.com\.tw/[^\s<>\"']+", tr, re.I)
         t = next((c for c in cs if re.fullmatch(r"\d{1,2}:\d{2}", c)), "")
         ix = cs.index(t) if t else 3
-        out.append({"d": d, "t": t, "where": cs[ix + 1] if ix + 1 < len(cs) else "",
-                    "note": cs[ix + 2] if ix + 2 < len(cs) else "",
+        out.append({"d": d, "t": t, "where": one_line(cs[ix + 1]) if ix + 1 < len(cs) else "",
+                    "note": one_line(cs[ix + 2]) if ix + 2 < len(cs) else "",
                     "pdf": f"{OV}/nas/STR/{zh[0]}" if zh else None, "pdf_en": f"{OV}/nas/STR/{en[0]}" if en else None,
                     "video": vid[0] if vid else None})
     seen, uniq = set(), []
@@ -135,8 +144,8 @@ def parse_news_list(html: str, code: str) -> list[dict]:
         if not d:
             continue
         t = next((c for c in cs if re.fullmatch(r"\d{1,2}:\d{2}(:\d{2})?", c)), "")
-        subj = max((c for c in cs if c not in (code, t) and not _ROC.fullmatch(c.strip()) and c != "詳細資料"),
-                   key=len, default="")
+        subj = one_line(max((c for c in cs if c not in (code, t) and not _ROC.fullmatch(c.strip()) and c != "詳細資料"),
+                            key=len, default=""))
         form = {}
         for m in _ONCLICK.finditer(tr):
             js = H.unescape(m.group(1) or m.group(2) or "")
@@ -198,8 +207,9 @@ def drop_template(pages: list[list[str]]) -> list[str]:
 
 
 def annual_section(pages: list[str]) -> list[tuple[int, str]]:
-    """年報 → 「營運概況」整章 [(頁碼, 文字)]（從標題那頁到下一章「財務概況」前一頁，最多 ANNUAL_MAX 頁）。
-    目錄頁（一頁出現好幾個「X、」章名）跳過；找不到標題就用有「營業比重」的那頁前後。"""
+    """年報 → 「營運概況」的「一、業務內容」「二、市場及產銷概況」[(頁碼, 文字)]：從章名那頁到「三、（最近二年度）從業員工」
+    之前（後面的員工、環保、勞資、資安、重要契約不收）；沒有那個小標就到下一章「財務概況」前一頁。最多 ANNUAL_MAX 頁。
+    目錄頁（一頁出現好幾個「X、」章名）跳過；找不到章名就用有「營業比重」的那頁前後。"""
     def chap_page(i, word):
         t = pages[i]
         return (re.search(rf"[壹貳參肆伍陸柒捌玖拾]\s*、\s*{word}", t) and len(_CHAP.findall(t)) <= 2)
@@ -208,11 +218,15 @@ def annual_section(pages: list[str]) -> list[tuple[int, str]]:
         hit = next((i for i in range(3, len(pages)) if "營業比重" in pages[i]), None)
         if hit is None:
             return []
-        start, end = max(0, hit - 1), min(len(pages), hit + 6)
-    else:
-        end = next((j for j in range(start + 1, len(pages)) if chap_page(j, "財務(概況|狀況)")), len(pages))
-        end = min(end, start + ANNUAL_MAX)
-    return [(i + 1, pages[i]) for i in range(start, end) if pages[i]]
+        return [(i + 1, pages[i]) for i in range(max(0, hit - 1), min(len(pages), hit + 6)) if pages[i]]
+    end = next((j for j in range(start + 1, len(pages)) if chap_page(j, "財務(概況|狀況)")), len(pages))
+    out = [(i + 1, pages[i]) for i in range(start, min(end, start + ANNUAL_MAX)) if pages[i]]
+    for k, (pg, t) in enumerate(out):
+        m = _EMP.search(t)
+        if m:
+            head = t[:m.start()].strip()
+            return out[:k] + ([(pg, head)] if head else [])
+    return out
 
 
 # ── 組裝 ───────────────────────────────────────────────────────────────────
@@ -325,7 +339,7 @@ def index(pk: dict) -> dict:
     """給 .facts.json 的文件清單（不含全文）：每份文件的日期、標題、官方網址，與抓取狀態。"""
     d = pk.get("deck") or {}
     a = pk.get("annual") or {}
-    return {"v": pk.get("v"), "made": pk.get("made"), "ok": pk.get("ok"), "st": pk.get("st"),
+    return {"v": pk.get("v"), "made": pk.get("made"), "ok": pk.get("ok"), "st": pk.get("st"), "name": pk.get("name"),
             "site": (pk.get("basic") or {}).get("site"),
             "confs": [{k: c.get(k) for k in ("d", "pdf", "video")} for c in pk.get("confs") or []],
             "deck": {"d": d.get("d"), "url": d.get("url"), "n": len(d.get("pages") or [])} if d else None,
@@ -342,10 +356,10 @@ def render_md(pk: dict) -> str:
     for k, lab in (("biz", "主要經營業務"), ("ind", "產業類別"), ("board", "市場"), ("listed", "上市日期"), ("otc", "上櫃日期"),
                    ("chair", "董事長"), ("ceo", "總經理"), ("spoke", "發言人"), ("site", "公司網址")):
         if b.get(k):
-            L.append(f"- {lab}：{b[k]}")
+            L.append(f"- {lab}：{b[k]}".replace("\n", "；"))
     L += ["", "## 法說會（近 24 個月，公開資訊觀測站）", ""]
     for c in pk.get("confs") or []:
-        L.append(f"- {c['d']} {c.get('t') or ''}：{c.get('note') or ''}" + (f"；簡報 {c['pdf']}" if c.get("pdf") else "")
+        L.append(f"- {c['d']} {c.get('t') or ''}：{(c.get('note') or '').rstrip('。')}" + (f"；簡報 {c['pdf']}" if c.get("pdf") else "")
                  + (f"；影音 {c['video']}" if c.get("video") else ""))
     if not pk.get("confs"):
         L.append("- 近 24 個月沒有法說會紀錄。")
@@ -365,7 +379,7 @@ def render_md(pk: dict) -> str:
         L.append("- 近 6 個月沒有重大訊息。")
     a = pk.get("annual")
     if a:
-        L += ["", f"## 股東會年報 {a.get('fy')} 年度「營運概況」（共 {a.get('pp')} 頁；{a.get('url')}）", ""]
+        L += ["", f"## 股東會年報 {a.get('fy')} 年度「營運概況」的業務內容與市場及產銷概況（全本 {a.get('pp')} 頁；{a.get('url')}）", ""]
         for p, t in a.get("pages") or []:
             L.append(f"### 年報第 {p} 頁")
             L.append(t)
