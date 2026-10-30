@@ -108,3 +108,6 @@
 
 ## [2026-10-30] 收錄 | 寬度與深度規格 VER 1（第一段）
 - `arm/lab/breadthspec.py`（`tests/test_breadthspec.py` 鎖住）、規劃 `docs/lab_breadth_plan.md` 第 9 節：股票層級只當訊號、產業層級當泡沫參考讀數＋美國 48 產業 1931 起驗證；算之前 commit。
+
+## [2026-10-30] 收錄 | 寬度與深度第二段結果
+- 規劃 `docs/lab_breadth_plan.md` 第 10 節（`arm/lab/breadth.py`、`scripts/run_breadth.py` → `data/lab/breadth_research.json`）：股票層級警示 0／78 過、偏多 ★ 10 ◆ 10（多半只比平常多 1～2 個百分點）；美國 48 細產業泡沫寬度、深度 ①② 都沒過 → 只當參考讀數；頁面與訊號總覽還沒動。
