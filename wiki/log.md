@@ -93,3 +93,9 @@
 ## [2026-10-30] 收錄 | 台股推薦架構第一段（買不買只看策略自己的規則）
 - [選股頁](lab/pick-page.md)：新飆股名單拿掉書上的位置與參考買點、加「為什麼不等買點」、位置圖改成上名單週數×強度、原本的飆股名單移到研究紀錄、台股頁最上面「這週要做的事」；推薦架構寫進「不能改的規則」。
 - [飆股修正與新飆股前瞻記錄](lab/boom-live.md)：`sxlive.pick_state` 不再算書上的買點與原本的名單。
+
+## [2026-10-30] 收錄 | 新飆股到條件才買（W11）規格 VER 1
+- `arm/lab/sxentryspec.py`（`tests/test_sxentryspec.py` 鎖住）、規劃 `docs/lab_pick_arch_plan.md` 第 7 節：E0 現在、E1 開低、E2 拉回 10 日線下、E3 創 20 日新高、E4 一半一半；算報酬之前 commit。
+
+## [2026-10-30] 收錄 | 新飆股到條件才買（W11）結果：不換
+- [飆股修正與新飆股前瞻記錄](lab/boom-live.md) 歷史一行；規劃 `docs/lab_pick_arch_plan.md` 第 8 節；`tw-superstock-lab/reports/W11_results.*`。
