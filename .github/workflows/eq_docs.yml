@@ -2,14 +2,17 @@ name: 個股報告官方文件包
 
 # docs/lab_eq_docs_plan.md：容器擋公開資訊觀測站，個股報告要讀的官方文件（公司基本資料、法說會簡報、近 6 個月重大訊息、
 # 年報營運概況）由這裡抓（scripts/fetch_eqdocs.py）。全文推到臨時分支 claude/eqdocs-tmp/{請求編號}（只有文件包、沒有程式），
-# 排程讀完就刪（scripts/eq_docs_req.py --drop；使用者 2026-10-30 選「不存」）；每次跑也刪掉超過 2 天的臨時分支。
-# 觸發：claude/** 分支 push 動到 .ping/eqdocs（eq_docs_req.py --send 寫的 JSON：{"id", "codes"}）、手動。
+# 排程讀完就刪本機檔（scripts/eq_docs_req.py --drop；使用者 2026-10-30 選「不存」）。容器刪不了別的分支（git push --delete 回 403），
+# 所以臨時分支由這裡刪：每天台北 03:23（schedule）與每次抓取時，刪掉請求日期在今天以前的。
+# 觸發：claude/** 分支 push 動到 .ping/eqdocs（eq_docs_req.py --send 寫的 JSON：{"id", "codes"}）、手動、每天清臨時分支。
 # 請求內容只交給 fetch_eqdocs.py 驗格式（代號 tw:四碼、編號 YYYYMMDD-HHMM-六碼），不放進任何指令。
 
 on:
   push:
     branches: ['claude/**']
     paths: ['.ping/eqdocs']
+  schedule:
+    - cron: '23 19 * * *'                 # 台北 03:23：只刪臨時分支
   workflow_dispatch:
     inputs:
       codes:
@@ -33,13 +36,16 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
+        if: github.event_name != 'schedule'
         with:
           python-version: "3.12"
 
       - name: 安裝相依
+        if: github.event_name != 'schedule'
         run: pip install --quiet certifi pypdf
 
       - name: 抓文件包
+        if: github.event_name != 'schedule'
         env:
           CODES: ${{ inputs.codes }}
           EVENT: ${{ github.event_name }}
@@ -54,6 +60,7 @@ jobs:
           fi
 
       - name: 推到臨時分支
+        if: github.event_name != 'schedule'
         run: |
           OUT="$RUNNER_TEMP/eqdocs"
           [ -f "$OUT/id.txt" ] || { echo "沒有文件包，略過"; exit 0; }
@@ -74,10 +81,10 @@ jobs:
             sleep $((i * 5))
           done
 
-      - name: 刪掉超過 2 天的臨時分支
+      - name: 刪掉今天以前的臨時分支
         if: always()
         run: |
-          CUT=$(date -d '2 days ago' +%Y%m%d)
+          CUT=$(date +%Y%m%d)                 # 台北日期（job 的 TZ）；請求編號開頭就是請求日期
           git ls-remote --heads origin 'claude/eqdocs-tmp/*' | while read -r SHA REF; do
             B="${REF#refs/heads/}"
             D="${B#claude/eqdocs-tmp/}"

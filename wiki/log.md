@@ -124,3 +124,6 @@
 
 ## [2026-10-30] 收錄 | 個股報告官方文件包第一段（CI 抓觀測站文件）
 - 使用者看到排程回報「三家都沒讀到公司法說會簡報或觀測站原文」：「這不應該發生吧？」。規劃 `docs/lab_eq_docs_plan.md`（D1 不存、D2 隔天重試、D3 全部重做）；`arm/lab/eqdocs.py`、`scripts/fetch_eqdocs.py`、`scripts/eq_docs_req.py`、`eq_docs.yml`（臨時分支 `claude/eqdocs-tmp/`）；騰雲、暉盛-創、德宏實抓全成功（第 11 節）。報告與檢查怎麼用是第二段。改了 `lab/equity-report.md`。
+
+## [2026-10-30] 收錄 | 文件包臨時分支改由 CI 每天刪
+- 容器刪不了別的分支（`git push --delete` 回 403）→ `eq_docs.yml` 加每天台北 03:23 的 schedule，只刪請求日期在今天以前的臨時分支；`eq_docs_req.py --drop` 只試一次。改了 `lab/equity-report.md`、`ops/schedule.md`。
