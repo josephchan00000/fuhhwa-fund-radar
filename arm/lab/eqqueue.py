@@ -70,7 +70,7 @@ def candidates(x9_html: str | None = None, qm: dict | None = None) -> list[dict]
                                                 if (ROOT / "dashboard" / "x9.html").exists() else "")
     bx = E._json_obj(text, "bx") or {}
     for i, r in enumerate(bx.get("rows") or []):
-        if r and len(r) > 8 and r[8] == "b":
+        if r and r[-1] == "b":                             # 列的最後一欄＝現況（b 會買／h 拿著／w 等空位；pickpage.boom_box）
             out.append({"mk": "tw", "code": r[0], "name": r[1], "why": f"新飆股名單第 {i + 1} 名，{bx.get('buyd') or ''} 開盤買進"})
     return out
 

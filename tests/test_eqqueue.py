@@ -26,7 +26,7 @@ def test_queue_order_cap_and_skips(tmp_path, monkeypatch):
 
 
 def test_candidates_reads_pick_rows():
-    html = 'const D={"bx":{"buyd":"2026-11-02","rows":[["6870","騰雲",93,1,"w","打底中",[],0,"b"],["3008","大立光",93,3,"w","打底中",[],0,"w"]]}};'
+    html = 'const D={"bx":{"buyd":"2026-11-02","rows":[["6870","騰雲",93,1,"符合：強度 93",385,"b"],["3008","大立光",93,3,"符合：強度 93",2300,"w"]]}};'
     qm = {"now": {"buy": ["PAYC"], "next": "2026-10-26"}}
     c = Q.candidates(html, qm)
     assert [(x["mk"], x["code"]) for x in c] == [("us", "PAYC"), ("tw", "6870")]

@@ -99,3 +99,6 @@
 
 ## [2026-10-30] 收錄 | 新飆股到條件才買（W11）結果：不換
 - [飆股修正與新飆股前瞻記錄](lab/boom-live.md) 歷史一行；規劃 `docs/lab_pick_arch_plan.md` 第 8 節；`tw-superstock-lab/reports/W11_results.*`。
+
+## [2026-10-30] 收錄 | 個股報告每週名單讀錯新飆股的欄位（已修）
+- [個股深度報告與產業報告](lab/equity-report.md) 踩過的坑一行：`eqqueue.candidates` 改讀列的最後一欄；測試改用 `pickpage.boom_box` 產的列。
