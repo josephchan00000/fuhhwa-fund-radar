@@ -517,6 +517,48 @@ def drift_explained(d: dict, md: str) -> bool:
                if not ln.lstrip().startswith("|"))
 
 
+# ── 已過公布時間必補（docs/macrocal_fill_plan.md 第四段，2026-10-31 起）──
+# 第一段讓網頁誠實標「待更新」、第二段讓 CI 把抓得到的官方數字當晚補上（arm/calfill.py）；其餘八成
+# （法說、財報、會議、談話、日歐中數據）只能靠早上的 Claude。提示包把底稿裡「已過公布時間、實際值還空白」
+# 的列逐列列出，內容 QA 擋「今天的檔還有這種列、註也沒寫原因」。
+_LATE_NOTE = re.compile(r"待補|延期|延後|取消|改期")
+
+
+def late_rows(md: str, fdate: date, today: date) -> list[dict]:
+    """已過公布時間、狀態還不是已公布／休市的列（is_late；年份照檔案日期推）。"""
+    return [r for r in _parse_cal_rows(md) if is_late(r, fdate, today)]
+
+
+def late_explained(r: dict, md: str) -> bool:
+    """「註」裡有一行寫「待補／延期／延後／取消／改期」且提到該項目（項目正規化後前 4 字）＝有交代。"""
+    tag = _CAL_KEY_STRIP.sub("", r["item"])[:4]
+    return any(_LATE_NOTE.search(ln) and tag in _CAL_KEY_STRIP.sub("", ln)
+               for ln in (md or "").splitlines() if not ln.lstrip().startswith("|"))
+
+
+def late_block(today: date, base: tuple[date, str] | None) -> str:
+    """提示包「已過公布時間、實際值還空白」段：底稿（同週昨日版；週六＝上週最後一版）的這種列逐列列出，
+    加上底稿「註」裡 CI 留下的「官方核對」行。都沒有＝空字串。"""
+    if not base:
+        return ""
+    fdate, md = base
+    rows = late_rows(md, fdate, today)
+    checks = [ln.strip() for ln in md.splitlines() if ln.strip().startswith("-") and "官方核對" in ln]
+    if not rows and not checks:
+        return ""
+    out = []
+    if rows:
+        out += [f"【已過公布時間、實際值還空白（底稿 {fdate:%m/%d} 版算出；2026-10-31 起內容 QA 會擋）】",
+                "下面每一列今天都要處理：查證後填實際值、狀態改「已公布」（數據以官方新聞稿為準；法說、財報、會議、談話填一句要點）；",
+                "真的查不到才維持「未公布」，並在「註」加一行「待補：{項目}——原因（延期／取消／官方沒有數字／查無公開結果）」。"]
+        out += [f"· {r['date']} {r['region'] + '：' if r['region'] else ''}{r['item']}" for r in rows]
+    if checks:
+        out += ["【底稿的「官方核對」】CI 用官方序列核對到表上的數字和官方不同：以官方為準改正表上的數字，",
+                "那一行刪掉、改寫成「修正：{項目}——原 X 改為 Y（官方）」："]
+        out += [f"  {ln}" for ln in checks]
+    return "\n".join(out) + "\n"
+
+
 CAL_CARRY_RULE = """【以昨日版為底稿增修（2026-10-13 起；同一週才適用）】
 下方附「同週昨日版」行事曆——**在它上面增修，不要整份重寫**：
   ① 已列的事件保留原寫法（項目文字不要換說法），除非事件取消或改期；

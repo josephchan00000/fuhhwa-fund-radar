@@ -135,3 +135,55 @@ def test_weekend_prompt_brings_last_week(monkeypatch):
     p = gen_macronews.build_cal_prompt(date(2026, 11, 1))
     assert "週末版：保留上週結果" in p and "LASTWEEK" not in p
     assert "週末版：保留上週結果" not in gen_macronews.build_cal_prompt(date(2026, 10, 30))
+
+
+# ── 第四段：已過公布時間必補（2026-10-31 起；docs/macrocal_fill_plan.md）──
+
+def _late_md(extra_notes: str = "") -> str:
+    return _cal("10/26–10/30", "2026/10/30", [
+        _ROW.format(d="10/26", item="中：二十屆五中全會（10/26–10/29）", a="—", st="未公布"),
+        _ROW.format(d="10/29", item="台股：台達電（2308）Q3法說會（15:00）", a="—", st="未公布"),
+        _ROW.format(d="10/29", item="美：第三季GDP初估", a="+3.4%", st="已公布"),
+        _ROW.format(d="10/30", item="美：第三季就業成本指數ECI", a="—", st="未公布"),     # 今天的：還不判
+        _ROW.format(d="10/26", item="台股光復節補假休市", a="—", st="休市"),
+    ], "- 前值依官方。\n" + extra_notes)
+
+
+def test_late_block_lists_rows_to_fill_and_official_checks():
+    md = _late_md("- 官方核對：台：9月景氣對策信號的前值（8月）國發會已修正為 40分（紅燈），表中寫「41分（紅燈）」，以官方為準。\n")
+    b = macronews.late_block(date(2026, 10, 30), (date(2026, 10, 29), md))
+    assert "底稿 10/29 版" in b and "待補：{項目}——原因" in b
+    assert "· 10/26 中：二十屆五中全會（10/26–10/29）" in b and "· 10/29 台股：台達電（2308）Q3法說會（15:00）" in b
+    assert "GDP初估" not in b and "ECI" not in b and "休市" not in b.split("】", 1)[1].split("·", 1)[1]
+    assert "官方核對：台：9月景氣對策信號的前值" in b and "改寫成「修正：" in b
+    assert macronews.late_block(date(2026, 10, 30), None) == ""
+    done = _cal("10/26–10/30", "2026/10/30", [_ROW.format(d="10/29", item="美：GDP", a="+3.4%", st="已公布")])
+    assert macronews.late_block(date(2026, 10, 30), (date(2026, 10, 29), done)) == ""
+
+
+def test_late_gate_needs_value_or_reason():
+    check = importlib.import_module("check_reports")
+    errs = check._check_calendar_late(_late_md(), "c.md", "2026-10-31")
+    assert len(errs) == 3 and any("二十屆五中全會" in e for e in errs) and any("台達電" in e for e in errs)
+    assert any("就業成本指數" in e for e in errs)                       # 10/31 看：10/30 的也過了
+    ok = _late_md("- 待補：二十屆五中全會——公報全文尚未發布。\n- 台股：台達電（2308）法說延期至 11/5（公司重大訊息）。\n"
+                  "- 待補：第三季就業成本指數ECI——美國政府停擺，勞工統計局未發布。\n")
+    assert check._check_calendar_late(ok, "c.md", "2026-10-31") == []
+    assert check._check_calendar_late(_late_md(), "c.md", "2026-10-30")[0].count("「") >= 2   # 平日也查（今天的列除外）
+    assert len(check._check_calendar_late(_late_md(), "c.md", "2026-10-30")) == 2
+
+
+def test_late_gate_starts_2026_10_31(tmp_path, monkeypatch):
+    check = importlib.import_module("check_reports")
+    assert check.LATE_SINCE == "2026-10-31"
+    p = tmp_path / "2026-10-30.md"
+    p.write_text(_late_md(), encoding="utf-8")
+    monkeypatch.setattr(check, "ROOT", tmp_path)
+    assert not any("已過公布時間" in e for e in check._check_calendar(p, "2026-10-30"))
+
+
+def test_prompt_carries_late_block(monkeypatch):
+    import gen_macronews
+    monkeypatch.setattr(macronews, "prior_cal", lambda *a, **k: (date(2026, 10, 29), _late_md()))
+    p = gen_macronews.build_cal_prompt(date(2026, 10, 30))
+    assert "【已過公布時間、實際值還空白（底稿 10/29 版" in p and "· 10/26 中：二十屆五中全會" in p

@@ -128,3 +128,15 @@ def test_ci_runs_fill_after_fetch_and_commits_calendar():
     assert "git checkout origin/main -- reports/macrocal" in y               # 重試時以 main 最新版為底稿重算
     d = (root / ".github" / "workflows" / "daily.yml").read_text(encoding="utf-8")
     assert "git checkout origin/main -- reports/macrocal" not in d           # 每日那支帶著今天的新聞，絕不能拿 main 的舊版蓋掉
+
+
+def test_ndc_previous_value_revised_is_flagged_once():
+    row = "| 10/28 | 台：9月景氣對策信號（16:00） | — | — | 41分（紅燈） | 未公布 |"     # 前值寫 8 月第一次公布的 41
+    new, acts = CF.fill(_md([row]), T, T, NOW, S)
+    assert [a["kind"] for a in acts] == ["prev", "fill"]
+    assert "官方核對：台：9月景氣對策信號的前值（8月）國發會已修正為 40分（紅燈），表中寫「41分（紅燈）」" in new
+    assert "| 41分（紅燈） | 41分（紅燈） | 已公布 |" in new                     # 前值不覆寫，只加註
+    again, acts2 = CF.fill(new, T, T, NOW, S)
+    assert again == new and [a["new"] for a in acts2] == [False]             # 同一行不重複加
+    fixed = row.replace("| 41分（紅燈） |", "| 40分（紅燈）（原41分） |")
+    assert [a["kind"] for a in CF.fill(_md([fixed]), T, T, NOW, S)[1]] == ["fill"]

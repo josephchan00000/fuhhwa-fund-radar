@@ -29,6 +29,8 @@
   · 市況台股欄 vs 證交所官方休市表（2026-10-13 起）：本週官方休市日沒寫、或寫了官方表沒有的休市日 → 🔴
   · 行事曆精簡（2026-10-13 起）：「台：」台灣經濟數據列（≤4）或註明「台：本週無台灣重點經濟數據」；
     總列數 ≤30（休市列不計）；引言 ≤220 字（只留更新／市況／本週焦點）
+  · 週末版帶上週結果（2026-10-31 起，週末才查）：上週五的列、上週還沒公布的列要帶到週末版（上週列不算進列數上限）
+  · 已過公布時間必補（2026-10-31 起）：日期已過、狀態不是已公布／休市的列，「註」沒有「待補／延期／取消／改期」交代 → 🔴
 
 用法：TZ=Asia/Taipei python3 scripts/check_reports.py [YYYY-MM-DD]（預設今日台北）
 """
@@ -286,6 +288,8 @@ def _check_calendar(path: Path, date: str) -> list[str]:
         errs += _check_calendar_slim(md, rel, date)
     if date >= LASTWEEK_SINCE:
         errs += _check_calendar_lastweek(md, rel, date)
+    if date >= LATE_SINCE:
+        errs += _check_calendar_late(md, rel, date)
     if date >= HOLIDAY_SINCE:
         errs += _check_calendar_holidays(md, rel, date)
     if date >= DRIFT_SINCE:
@@ -483,6 +487,22 @@ def _check_calendar_lastweek(md: str, rel: str, date_iso: str) -> list[str]:
     return [f"{rel}：上週「{r['item'][:20]}」（{r['date']}）沒帶到週末版——上週五的列與上週還沒公布的列要放在表格最後、"
             "填實際值（查不到就維持未公布並在註寫原因）"
             for r in macronews.lastweek_needed(last[1], last[0]) if macronews.cal_key(r) not in have]
+
+
+# ── 已過公布時間必補（docs/macrocal_fill_plan.md 第四段，2026-10-31 起）──
+# 行事曆一天只寫一次；10/28～10/30 三份都有 6 列以上「日期已過、還寫未公布」，網頁只能標「待更新」。
+# CI 會把抓得到的官方數字補上（arm/calfill.py），其餘（法說、財報、會議、談話、日歐中數據）只能靠早上的 Claude：
+# 今天的行事曆還有已過公布時間、狀態不是已公布／休市的列，而「註」沒有一行「待補／延期／取消／改期」提到它 → 🔴。
+LATE_SINCE = "2026-10-31"
+
+
+def _check_calendar_late(md: str, rel: str, date_iso: str) -> list[str]:
+    import datetime as _dt
+    from arm import macronews
+    today = _dt.date.fromisoformat(date_iso)
+    return [f"{rel}：「{r['item'][:24]}」（{r['date']}）已過公布時間還沒有實際值——查證後填上、狀態改已公布；"
+            f"真的查不到在「註」加一行「待補：{r['item'][:24]}——原因（延期／取消／官方沒有數字／查無公開結果）」"
+            for r in macronews.late_rows(md, today, today) if not macronews.late_explained(r, md)]
 
 
 def run(date: str) -> int:
