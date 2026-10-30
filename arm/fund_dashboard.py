@@ -1725,9 +1725,9 @@ def _upcoming_etf_card(it: dict) -> str:
     freq = it.get("freq")
     if freq and freq != "—":
         tags.append(f'<span class="uptag">{_esc(freq)}</span>')
-    url = it.get("url")
+    url = _safe_url(it.get("url")) if it.get("url") else ""     # 併檔通道進來的資料：只放行 http(s)（2026-10-30 資安檢查）
     link = (f'<a class="uplink" href="{_esc(url)}" target="_blank" rel="noopener">'
-            f'活動介紹 ↗</a>' if url else "")
+            f'活動介紹 ↗</a>' if url and url != "#" else "")
     return (f'<div class="upcard">'
             f'<div class="uptop"><span class="upcode">{code}</span>'
             f'<span class="upname">{name}</span>'
@@ -1747,9 +1747,9 @@ def _upcoming_hint_row(it: dict) -> str:
     name = _esc(it.get("name") or "").replace("復華", '<span class="fh">復華</span>')
     issuer = _esc(it.get("issuer") or "")
     hint = _esc(it.get("raise_hint") or "時程未公告")
-    url = it.get("url")
+    url = _safe_url(it.get("url")) if it.get("url") else ""
     link = (f'<a class="uprlink" href="{_esc(url)}" target="_blank" rel="noopener">介紹 ↗</a>'
-            if url else "")
+            if url and url != "#" else "")
     return (f'<div class="uprow">{code_html}<span class="upname">{name}</span>'
             f'<span class="upissuer">{issuer}</span>'
             f'<span class="uphintt">{hint}</span>{link}</div>')
@@ -2034,7 +2034,7 @@ def _fund_card(doc: dict, gavg: dict, linked_names: set[str]) -> str:
                      f'<div class="rv">{_esc(disp)}{est}{beat}</div>{sub}</div>')
     size = doc.get("size_twd")
     size_s = f"{size / 1e8:.1f} 億元" if size else "—"
-    mr = (f'<a class="mrpt" href="{_esc(doc["monthly_report"])}" target="_blank" rel="noopener">📄 基金月報</a>'
+    mr = (f'<a class="mrpt" href="{_esc(_safe_url(doc["monthly_report"]))}" target="_blank" rel="noopener">📄 基金月報</a>'
           if doc.get("monthly_report") else "")
     strat = doc.get("strategy") or ""
     chg = fund_insights.parse_pct(doc.get("nav_change_pct"))
@@ -2130,7 +2130,7 @@ def _fundnews_item(i: dict, tags: str = "", cats: str = "") -> str:
     cats＝data-ncat 分組鍵（空白分隔，同稿可屬多組：brand/fund/etf），供新聞篩選列用。"""
     summ = f'<div class="fnsum">{_esc(i["summary"])}</div>' if i.get("summary") else ""
     return (f'<div class="fnit fnnews" data-ncat="{_esc(cats or "other")}">'
-            f'<a class="fnt" href="{_esc(i.get("url") or "#")}" target="_blank" rel="noopener">'
+            f'<a class="fnt" href="{_esc(_safe_url(i.get("url")))}" target="_blank" rel="noopener">'
             f'{_esc(i.get("title"))}</a>{summ}'
             f'<div class="fnmeta"><span class="fnd">{_esc((i.get("date") or "")[:10])}</span>'
             f'<span class="fnsrc">{_esc(i.get("source") or "—")}</span>{tags}</div></div>')
@@ -2260,7 +2260,7 @@ def _fundnews_view(doc: dict | None) -> str:
                 when = "首見 " + s["first_seen"][5:].replace("-", "/")
             rows.append(
                 f'<div class="fnit fnsoc" data-fcat="{grp}">{badge}'
-                f'<div class="fnsocb"><a class="fnt" href="{_esc(s.get("url") or "#")}" '
+                f'<div class="fnsocb"><a class="fnt" href="{_esc(_safe_url(s.get("url")))}" '
                 f'target="_blank" rel="noopener">{_esc(s.get("title"))}</a>'
                 f'<div class="fnmeta"><span class="fnd">{_esc(when)}</span>'
                 f'<span class="fnsrc">{src}</span>{pill}</div></div></div>')
