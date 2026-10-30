@@ -588,11 +588,26 @@ def parse_dgbas_gdp(txt: str) -> dict:
     return out
 
 
-def twgdp() -> int:
+def parse_dgbas_real_yoy(txt: str) -> dict:
+    """同一支 XML 的實質 GDP 年增率（經濟成長率；行事曆補值用，arm/calsrc.py）→ {季末月: 年增率}。參考年改了照樣認得。"""
+    out = {}
+    for blk in re.findall(r"<Obs>(.*?)</Obs>", txt, re.S):
+        it = re.search(r"<Item>(.*?)</Item>", blk)
+        if not it or not re.match(r"國內生產毛額_連鎖實質值.*、GDP$", it.group(1).strip()) or "<TYPE>年增率" not in blk:
+            continue
+        tp = re.search(r"<TIME_PERIOD>(\d{4})Q([1-4])</TIME_PERIOD>", blk)
+        v = re.search(r"<Item_VALUE>(.*?)</Item_VALUE>", blk)
+        x = _num(v.group(1)) if v else None
+        if tp and x is not None:
+            out[f"{tp.group(1)}-{int(tp.group(2)) * 3:02d}"] = x
+    return out
+
+
+def twgdp(timeout: int = 180) -> int:
     req = urllib.request.Request(DGBAS_GDP, headers=BROWSER)
-    with urllib.request.urlopen(req, timeout=180, context=_twca_ctx()) as r:
+    with urllib.request.urlopen(req, timeout=timeout, context=_twca_ctx()) as r:
         txt = r.read().decode("utf-8", "replace")
-    return _merge("twgdp", "dgbas", parse_dgbas_gdp(txt))
+    return _merge("twgdp", "dgbas", parse_dgbas_gdp(txt)) + _merge("twgdp_yoy", "dgbas", parse_dgbas_real_yoy(txt))
 
 
 def latest_us_close_day(now: datetime | None = None) -> str:
