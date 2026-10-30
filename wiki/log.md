@@ -121,3 +121,6 @@
 
 ## [2026-10-30] 收錄 | 新飆股名單位置圖拿掉，改成 8 格＋照規則排隊
 - 使用者：「你那個圖超爛我完全看不懂 重新設計詳細規劃後執行」。規劃 `docs/lab_pick_arch_plan.md` 第 9 節；`pickpage.boom_box` 多帶 hold、JS `pkSlots`／`pkBxDraw` 改寫、`pkSpot` 與三個篩選鈕拿掉；不改規則、不重算。改了 `lab/pick-page.md`。
+
+## [2026-10-30] 收錄 | 個股報告官方文件包第一段（CI 抓觀測站文件）
+- 使用者看到排程回報「三家都沒讀到公司法說會簡報或觀測站原文」：「這不應該發生吧？」。規劃 `docs/lab_eq_docs_plan.md`（D1 不存、D2 隔天重試、D3 全部重做）；`arm/lab/eqdocs.py`、`scripts/fetch_eqdocs.py`、`scripts/eq_docs_req.py`、`eq_docs.yml`（臨時分支 `claude/eqdocs-tmp/`）；騰雲、暉盛-創、德宏實抓全成功（第 11 節）。報告與檢查怎麼用是第二段。改了 `lab/equity-report.md`。
