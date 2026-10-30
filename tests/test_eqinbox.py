@@ -93,3 +93,10 @@ def test_workflow_and_template_never_feed_issue_text_to_a_shell():
     assert "git add data/eq_requests.json" in wf and "git add -A" not in wf
     tpl = (ROOT / ".github" / "ISSUE_TEMPLATE" / "eq-report.yml").read_text("utf-8")
     assert "id: code" in tpl and "label: 代號" in tpl and I.LABEL in tpl and I.HEADING == "### 代號"
+
+
+def test_queue_file_is_not_git_ignored():
+    """data/ 預設整個忽略（.gitignore 白名單）：佇列檔沒列進白名單，workflow 的 git add 會靜靜失敗（2026-10-30 第一次跑就是這樣）。"""
+    import subprocess
+    r = subprocess.run(["git", "check-ignore", "-q", "data/eq_requests.json"], cwd=ROOT)
+    assert r.returncode == 1                                                   # 1＝沒有被忽略
