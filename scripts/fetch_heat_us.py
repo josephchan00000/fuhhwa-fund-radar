@@ -28,7 +28,7 @@ from arm.lab import heatfetch_us as U  # noqa: E402
 from arm.lab import bubindfetch as BF  # noqa: E402
 from arm.clock import now_tw  # noqa: E402
 
-NAMES = ["us_px_spx", "us_px_ixic", "us_px_ndx", "us_px_sox", "us_vxn", "us_vix3m", "us_dxy", "us_rsp", "us_spy",
+NAMES = ["us_px_spx", "us_px_ixic", "us_px_ndx", "us_px_sox", "us_vxn", "us_vix3m", "us_dxy", "us_rsp", "us_spy", "us_qqq", "us_qqew",
          "us_h15", "us_h41", "us_m2", "us_z1", "us_gdp", "us_cp", "us_spf", "us_tech_q", "us_tech_a", "fwd_agg",
          "us_cftc_am", "us_cftc_vix", "us_cftc_big", "us_cftc_mini", "us_cftc_am_nq", "us_cftc_big_nq", "us_cftc_mini_nq",
          "us_philly", "us_ads", "us_cli", "us_claims", "us_bls", "us_umich", "us_ebp", "us_shiller", "us_wsts",
@@ -39,7 +39,8 @@ NAMES = ["us_px_spx", "us_px_ixic", "us_px_ndx", "us_px_sox", "us_vxn", "us_vix3
 YAHOO = [("us_px_spx", "^GSPC", "1927-01-01"), ("us_px_ixic", "^IXIC", "1971-01-01"),
          ("us_px_ndx", "^NDX", "1985-01-01"), ("us_px_sox", "^SOX", "1994-01-01"),
          ("us_vxn", "^VXN", "2001-01-01"), ("us_vix3m", "^VIX3M", "2006-01-01"), ("us_dxy", "DX-Y.NYB", "1971-01-01")]
-ADJ = [("us_rsp", "RSP", "2003-01-01"), ("us_spy", "SPY", "1993-01-01")]
+ADJ = [("us_rsp", "RSP", "2003-01-01"), ("us_spy", "SPY", "1993-01-01"),
+       ("us_qqq", "QQQ", "1999-03-01"), ("us_qqew", "QQEW", "2006-04-01")]   # 後兩檔：寬度與深度的大型股撐盤（breadthspec）
 
 
 def log(msg: str) -> None:
@@ -166,6 +167,7 @@ def backfill(only: set | None = None) -> None:
             jobs.update({"us_spf": F.spf, "us_tech": F.tech, "fwd_us": lambda: F.update_us(budget_s=900),
                          "fwd_tw": F.update_tw_agg})
         jobs.update({"ind_ff": BF.ff49, "ind_etf": BF.etf})            # 產業泡沫
+        jobs["ewetf"] = lambda: sum(U.yahoo_us(n, s, a, True) for n, s, a in ADJ)   # 含息還原 ETF（RSP、SPY、QQQ、QQEW）
         if "cftc_nq" in only:                                  # 美股各指數籌碼（heatspec_us VER 3）：那斯達克 100 期貨
             for name in ("us_cftc_am_nq", "us_cftc_big_nq", "us_cftc_mini_nq"):
                 run(name, U.cftc, name)
