@@ -1,10 +1,12 @@
-"""寬度與深度（規格 arm/lab/breadthspec.py VER 1；docs/lab_breadth_plan.md 第 9、10 節）。只研究：不進頁面、不進訊號總覽。
+"""寬度與深度（規格 arm/lab/breadthspec.py VER 1；docs/lab_breadth_plan.md 第 9～11 節）。
 
 一、股票層級：台股大型股撐盤、一般股票離 200 日線（bt3d 面板＋官方分片，範圍同 T5～T7）；美股上漲家數與上漲成交金額占比
    （us_breadth）、大型股撐盤（含息 ETF：SPY − RSP、QQQ − QQEW）。0～100 照景氣項目（heat.pct_series），訊號與判定用
    sigcat 的 _var_signals／evaluate（sigspec VER 24 的規則原樣）。
 二、產業層級：bubind 四組的泡沫寬度（等級 ≥ 2 的產業占幾成）與深度（市值占幾成；ff、tw），美國 48 細產業 1931 起驗證 ①②。
 研究：scripts/run_breadth.py → data/lab/breadth_research.json。
+第三段（sigspec VER 25 第 4.15 節）：股票層級接進訊號總覽——tw_bdepth 由 CI 每天算好存 data/lab/heat/bdepth（heatfetch.bdepth_update），
+market_vars 讀落檔給 sigcat.frame（研究與每天建頁同一份）；產業層級的讀數放市場頁泡沫那一塊（bubpage）。
 """
 from __future__ import annotations
 
@@ -96,19 +98,71 @@ def heat100(cal: list, raw: dict) -> np.ndarray:
     return np.array([np.nan if v is None else float(H.to_heat(v, 1)) for v in p], dtype=float)
 
 
+def tw_bdepth(P) -> dict:
+    """bt3d 面板（已接上官方分片）→ {日期: [大型股撐盤, 一般股票離 200 日線]}（沒有值＝None）。
+    研究（raw_vars）與 CI 每天的落檔（heatfetch.bdepth_update → data/lab/heat/bdepth）同一支。"""
+    from . import store
+    cal, C, E = tw_matrix(P)
+    tr = (store.read_json("v3_tr.json", {}) or {}).get("q") or {}
+    ew, ma = ewgap_tw(cal, C, E, tr), ma200_tw(cal, C, E)
+    return {d: [ew.get(d), ma.get(d)] for d in sorted(set(ew) | set(ma))}
+
+
+def _split_tw(bd: dict) -> dict:
+    """{日期: [大型股撐盤, 離 200 日線]} → {"TW_EWGAP": {日期: 值}, "TW_MA200": {日期: 值}}（沒有值的日子不列）。"""
+    return {key: {d: v[j] for d, v in bd.items() if v and len(v) > j and v[j] is not None}
+            for j, key in enumerate(("TW_EWGAP", "TW_MA200"))}
+
+
 def raw_vars() -> dict:
     """{變數: {市場: {日期: 原始讀數}}}（台股兩個要讀個股面板，約一兩分鐘）。"""
-    from . import bt3d, store
+    from . import bt3d
     from . import heatdata as HD
     P = bt3d.Panel()
     HD.extend(P, HD.ShardPanel())
-    cal, C, E = tw_matrix(P)
-    tr = (store.read_json("v3_tr.json", {}) or {}).get("q") or {}
+    tw = _split_tw(tw_bdepth(P))
     adv, upv = us_adv(HD.load("us_breadth") or {})
     etf = {s: HD.load(f"us_{s.lower()}") or {} for s in ("SPY", "RSP", "QQQ", "QQEW")}
-    out = {"TW_EWGAP": {"tw": ewgap_tw(cal, C, E, tr)}, "TW_MA200": {"tw": ma200_tw(cal, C, E)},
+    out = {"TW_EWGAP": {"tw": tw["TW_EWGAP"]}, "TW_MA200": {"tw": tw["TW_MA200"]},
            "US_ADV": {mk: adv for mk in S.VAR_MKT["US_ADV"]}, "US_UPV": {mk: upv for mk in S.VAR_MKT["US_UPV"]},
            "US_EWGAP": {mk: ewgap_us(etf[a], etf[b]) for mk, (a, b) in S.EW_PAIRS.items()}}
+    return out
+
+
+# ── 一、股票層級：每天（sigspec VER 25 第 4.15 節） ─────────────────────────
+
+FMT = {"TW_EWGAP": "{:+.1f} 個百分點", "TW_MA200": "{:+.1f}%", "US_ADV": "{:.1f}%", "US_UPV": "{:.1f}%", "US_EWGAP": "{:+.1f} 個百分點"}
+
+
+def stored_raw(mk: str) -> dict:
+    """落檔 → 這個市場用得到的 {變數: {日期: 原始讀數}}：台股讀 bdepth（CI 每天算好），美股讀 us_breadth 與 SPY／RSP／QQQ／QQEW。"""
+    from . import heatdata as HD
+    if mk == "tw":
+        return _split_tw(HD.load("bdepth") or {})
+    out = {}
+    if mk in S.VAR_MKT["US_ADV"] or mk in S.VAR_MKT["US_UPV"]:
+        br = HD.load("us_breadth") or {}
+        if br:
+            out["US_ADV"], out["US_UPV"] = us_adv(br)
+    if mk in S.EW_PAIRS:
+        a, b = S.EW_PAIRS[mk]
+        cw, ew = HD.load(f"us_{a.lower()}") or {}, HD.load(f"us_{b.lower()}") or {}
+        if cw and ew:
+            out["US_EWGAP"] = ewgap_us(cw, ew)
+    return out
+
+
+def market_vars(mk: str, cal: list, raw: dict | None = None) -> list[dict]:
+    """sigcat.frame 用：這個市場的寬度與深度變數 → [{"key", "name", "grp", "H", "x"（cal 上的 0～100）, "raw"（cal 上的原始讀數）, "fmt"}]。
+    落檔沒有的變數不列（那一個沒有訊號，不擋其他）。raw＝{變數: {日期: 值}}（測試用；沒給就讀落檔）。"""
+    raw = stored_raw(mk) if raw is None else raw
+    out = []
+    for key in S.MKT_VARS:
+        ser = raw.get(key) or {}
+        if mk not in S.VAR_MKT[key] or not ser:
+            continue
+        out.append({"key": key, "name": S.VAR_NAMES[key], "grp": "bd", "H": S.H, "x": heat100(cal, ser),
+                    "raw": np.array([np.nan if ser.get(d) is None else float(ser[d]) for d in cal], dtype=float), "fmt": FMT[key]})
     return out
 
 
@@ -397,3 +451,74 @@ def research(F: dict, BX: dict | None = None) -> dict:
 
 def save(R: dict) -> None:
     RESEARCH.write_text(json.dumps(R, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
+
+
+# ── 二、產業層級：市場頁與研究紀錄頁的讀數（第三段；docs/lab_breadth_plan.md 第 11 節） ─────────────
+
+def load_research() -> dict | None:
+    """研究檔（scripts/run_breadth.py）；沒有、壞掉或版本不是這一版就回 None（頁面只少歷史與驗證那一句）。"""
+    try:
+        R = json.loads(RESEARCH.read_text(encoding="utf-8"))
+    except Exception:                                     # noqa: BLE001
+        return None
+    return R if R.get("ver") == S.VER else None
+
+
+def _has_level(n: dict) -> bool:
+    """產業現在有沒有等級：同 levels（P1、P2 都算得出來的月份才算有等級；例 台股玻璃陶瓷的指數太短，P1 一直算不出來）。"""
+    return n.get("L") is not None and n.get("P1") is not None and n.get("P2") is not None
+
+
+def ind_now(I: dict, grp: str, caps: dict | None = None) -> dict | None:
+    """產業泡沫卡同一份資料（bubpage.industries()＝bubind.compute 的 now）→ 這一組現在的寬度與深度：
+    {"n_hot", "n", "ib", "d"（資料日或月）, "hot", "id"（DEPTH_GROUPS 才有）, "cap_m"（市值用哪個月）}。
+    深度＝過熱產業的市值 ÷ 有等級產業的市值；市值用 caps 裡不晚於資料月的最近一個月（台股＝月底、美國 48 細產業＝月初）。"""
+    G = I.get(grp) or {}
+    have = [k for k, v in G.items() if _has_level((v or {}).get("now") or {})]
+    if not have:
+        return None
+    hot = sorted(k for k in have if G[k]["now"]["L"] >= S.LEVEL_MIN)
+    d = max(str(G[k]["now"].get("d") or "") for k in have)
+    out = {"n_hot": len(hot), "n": len(have), "ib": len(hot) / len(have), "d": d, "hot": hot, "id": None, "cap_m": None}
+    if caps and grp in S.DEPTH_GROUPS:
+        ms = sorted({m for k in have for m in (caps.get(k) or {}) if m <= d[:7]})
+        if ms:
+            m = ms[-1]
+            tot = sum((caps.get(k) or {}).get(m) or 0.0 for k in have)
+            if tot > 0:
+                out["id"] = sum((caps.get(k) or {}).get(m) or 0.0 for k in hot) / tot
+                out["cap_m"] = m
+    return out
+
+
+def prev_max(series: dict, j: int, before: str) -> tuple | None:
+    """研究檔的每月讀數 {月: [過熱產業數, 有等級產業數, 寬度, 深度]} 裡，before 那個月以前第 j 欄的最大值與月份（同值取最近一次）。"""
+    best = None
+    for m in sorted(series):
+        v = series[m][j] if len(series[m]) > j else None
+        if m >= before[:7] or v is None:
+            continue
+        if best is None or v >= best[0]:
+            best = (v, m)
+    return best
+
+
+def wide_spells(series: dict, th: float = S.IB_TH) -> list[dict]:
+    """泡沫寬度 ≥ th 的月份，照 breadthspec.episodes 的規則分段（相隔 ≥ EPI_GAP 個月算新的一段）→ 每一段的起訖、月數、最多幾個、最高寬度與深度。"""
+    out: list[dict] = []
+    prev = None
+    for m in sorted(series):
+        v = series[m]
+        if v[2] is None or v[2] < th:
+            continue
+        if prev is None or _mno(m) - _mno(prev) >= S.EPI_GAP:
+            out.append({"a": m, "z": m, "n": 0, "hot": 0, "of": 0, "ib": 0.0, "id": None})
+        e = out[-1]
+        e["z"], e["n"] = m, e["n"] + 1
+        if v[0] > e["hot"]:
+            e["hot"], e["of"] = v[0], v[1]
+        e["ib"] = max(e["ib"], v[2])
+        if v[3] is not None:
+            e["id"] = v[3] if e["id"] is None else max(e["id"], v[3])
+        prev = m
+    return out

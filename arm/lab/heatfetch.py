@@ -800,3 +800,21 @@ def breadth_update(force: bool = False) -> int:
     new = {d: [b[k][i] for k in ("adv", "dec", "above", "n60", "hi", "lo", "n250")] for i, d in enumerate(b["cal"])}
     new = {d: v for d, v in new.items() if v[0] + v[1] > 0}
     return _replace("breadth", "v3px+mkt", new)
+
+
+def bdepth_update(force: bool = False) -> int:
+    """寬度與深度（sigspec VER 25 第 4.15 節、breadthspec VER 1）：台股大型股撐盤、一般股票離 200 日線 → data/lab/heat/bdepth
+    （{日期: [大型股撐盤, 離 200 日線]}，breadth.tw_bdepth：v3px 面板＋分片接續＋加權報酬指數，約 1 分鐘）。
+    官方分片有更新的交易日、或最新一天的大型股撐盤還在等報酬指數，才重算；force＝整段重算。"""
+    from . import breadth as BDP
+    from . import bt3d, store
+    old = HD.load("bdepth")
+    if not force and old:
+        z = max(old)
+        tr = (store.read_json("v3_tr.json", {}) or {}).get("q") or {}
+        if z >= max(store.dates("mkt") or [""]) and ((old[z] or [None])[0] is not None or z not in tr):
+            return 0                                      # 最新的分片已算過，報酬指數也沒有新的
+    SP = HD.ShardPanel()
+    P = bt3d.Panel()
+    HD.extend(P, SP)
+    return _replace("bdepth", "v3px+mkt+v3_tr", BDP.tw_bdepth(P))

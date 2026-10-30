@@ -22,7 +22,8 @@ ROOT = Path(__file__).resolve().parents[2]
 RESEARCH = ROOT / "data" / "lab" / "sig_research.json"
 
 CAT_NAMES = {"heat": "景氣項目", "multi": "景氣面向", "scen": "情境", "inst": "法人買賣超", "tech": "技術事件", "deriv": "邊際變化",
-             "crash": "大跌風險", "bub": "泡沫", "ind": "產業泡沫", "buy": "大跌後買點", "stock": "個股訊號", "strat": "個股策略"}
+             "crash": "大跌風險", "bub": "泡沫", "ind": "產業泡沫", "buy": "大跌後買點", "stock": "個股訊號", "strat": "個股策略",
+             "bd": "寬度與深度"}
 TIER_ORDER = {t: i for i, t in enumerate(S.TIERS)}
 
 
@@ -518,7 +519,7 @@ def frame(mk: str, B: dict, I: dict, IB: dict | None = None, BX: dict | None = N
         DV.append({"key": k, "name": nm[k], "kind": HS.DERIV[k]["kind"], "x": x, "have": ~np.isnan(flat)})
     rows = ((BX or {}).get(mk) or {}).get("_C", {}).get("rows") or []
     return {"mk": mk, "cal": cal, "px": px, "we": P.week_ends(cal), "vars": V, "cvars": CV, "comp": comp, "dims": dims,
-            "ivars": inst_vars(cal, B) if mk == "tw" else [],
+            "ivars": inst_vars(cal, B) if mk == "tw" else [], "bvars": bd_vars(mk, cal),
             "deriv": DV, "deriv_words": dict(HS.DERIV_WORDS), "bub": rows, "IB": IB, "r0": recent_from(cal),
             "stale": sorted((B.get("stale") or {}).keys())}
 
@@ -639,6 +640,19 @@ def inst_vars(cal: list, B: dict) -> list[dict]:
             out.append({"key": f"{who}{w}", "who": who, "w": w, "name": name, "H": S.INST_H[w],
                         "x": CR.align(cal, B["cal"], hb), "amt": amt})
     return out
+
+
+# ── 寬度與深度（sigspec VER 25 第 4.15 節；breadthspec VER 1） ───────────────────────
+
+def bd_vars(mk: str, cal: list) -> list[dict]:
+    """這個市場的寬度與深度變數（breadth.market_vars：落檔 → 0～100，同景氣項目；只當訊號、不算進任何面向）。
+    哪一個落檔讀不到就少那一個；整段出錯也只是沒有這一類，不擋其他訊號與頁面。"""
+    try:
+        from . import breadth as BDP
+        return BDP.market_vars(mk, cal)
+    except Exception as e:                            # noqa: BLE001
+        print(f"[訊號總覽] 寬度與深度（{mk}）算不出來：{type(e).__name__}: {e}", flush=True)
+        return []
 
 
 def cold_exits(x: list, we: list[int], n: int) -> list[int]:
@@ -785,6 +799,9 @@ def signals(F: dict) -> list[dict]:
     out += scen_signals(F)
     # 法人買賣超（VER 6）
     out += inst_signals(F)
+    # 寬度與深度（VER 25）：6 種同第 4.1 節
+    for v in F.get("bvars") or []:
+        out += _var_signals(F, v, S.BD_CAT)
     # 技術事件
     ev = TT.all_events([None if _nan(p) else float(p) for p in px])
     samp = np.arange(S.EV_START, T)
@@ -1643,6 +1660,16 @@ def crash_now(F: dict) -> dict:
         seg = np.asarray(v["amt"], dtype=float)[max(0, i - v["w"] + 1):i + 1]
         txt = f"{seg.sum() / 1e8:+,.1f} 億" if len(seg) == v["w"] and not np.isnan(seg).any() else ""
         out[v["key"]] = {"h": round(float(x[i]), 1), "band": HS.band(float(x[i])), "d": F["cal"][i], "v": txt, "hot": -1,
+                         "sp": [None if np.isnan(x[j]) else int(math.floor(x[j] + 0.5)) for j in we]}
+    for v in F.get("bvars") or []:                     # 寬度與深度（VER 25；景氣頁沒有這幾項）
+        x = np.asarray(v["x"], dtype=float)
+        ok = np.nonzero(~np.isnan(x))[0]
+        if not len(ok):
+            continue
+        i = int(ok[-1])
+        rv = float(v["raw"][i]) if "raw" in v and not np.isnan(v["raw"][i]) else None
+        out[v["key"]] = {"h": round(float(x[i]), 1), "band": HS.band(float(x[i])), "d": F["cal"][i], "hot": 1,
+                         "v": v["fmt"].format(rv) if rv is not None and v.get("fmt") else "",
                          "sp": [None if np.isnan(x[j]) else int(math.floor(x[j] + 0.5)) for j in we]}
     return out
 

@@ -1,8 +1,8 @@
 # 產業泡沫
 
-> 台股產業與細分族群、美股類股與細產業的泡沫等級。
+> 台股產業與細分族群、美股類股與細產業的泡沫等級；產業過熱有多廣（泡沫寬度與深度）的參考讀數與驗證。
 > 原始資料：CLAUDE.md「泡沫頁」段的產業泡沫；規劃 `docs/lab_risk_plan.md` 第 12 節、`docs/lab_crash_plan.md` 第 21 節；程式：`arm/lab/bubind.py`、`arm/lab/bubindpage.py`
-> 最後更新：2026-10-29
+> 最後更新：2026-10-30
 > 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
@@ -23,6 +23,12 @@
   `.ping/lab` 第一行 `icfill`，每天 `fetch_heat.py` 30 天內抓過就跳過）。17 個族群在 `bubindspec.TG_GROUPS`（產業鏈代碼、節點名稱、IC 設計分頁），
   成員只留現在上市櫃、≥ 5 家；指數與條件同台股產業（`bubind.tw_build(groups=…)`，一家公司可以在好幾個族群）→ `data/lab/indtg`（每檔帶名單日期 `src`，名單換了整段重算）。
   族群表在台股產業表下面（class `bgrp`，點一列看成員）；研究檔 `tg` 只描述、不判定、不進訊號總覽。
+- **產業過熱有多廣**（`arm/lab/breadthspec.py` VER 1 第二部分；規劃 `docs/lab_breadth_plan.md` 第 9～11 節）：泡沫寬度＝等級 ≥ 2 的產業 ÷ 那個月有等級的產業（P1、P2 都算得出來才算有等級）；
+  泡沫深度＝這些產業的市值 ÷ 有等級產業的市值（美國 48 細產業＝家數 × 平均規模、台股＝產業指數成分市值；細分族群、美股類股不算）。
+  驗證只用美國 48 細產業 1931 起（寬度、深度 ≥ 20% 之後 12 個月美股跌 20% 以上的比例，① 單看、② S&P 500 泡沫等級 ≥ 2 的月份裡）：**都沒過＝只當參考讀數**
+  （寬度 ① 20.8% vs 15.7%、95% 區間 −8.9～+23.5、9 段）。研究檔 `data/lab/breadth_research.json`＝`scripts/run_breadth.py`（`breadth.ind_research`）。
+  頁面：市場頁泡沫那一塊等級下面一行（`bubpage.breadth_line`；現在的個數用 `industries()` 同一份、歷史最多與那一句讀研究檔，算不出來只少這一行）；
+  研究紀錄頁泡沫段「產業過熱有多廣」（`bubpage.breadth_sec`：四組每月歷史圖、驗證表、時段表，`id="bub-ibw"`）。
 
 ## 不能改的規則
 

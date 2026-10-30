@@ -54,7 +54,7 @@ def test_buckets_and_chain_are_locked():
     assert O.chain("warn", 250, 7, -0.02) == ["warn|250|0|0", "warn|250|*|0", "warn|250|*|n"]
     assert O.chain("buy", 60, 9, 0.07) == ["buy|60|0|2", "buy|60|*|2", "buy|60|*|p", "up|60|0|2", "up|60|*|2", "up|60|*|p"]
     assert O._neg("up|60|*|0") and O._neg("up|60|*|n") and not O._neg("up|60|1|1") and not O._neg("up|60|*|p")
-    assert len(O.LEVEL_NAMES) == 6 and O.MARKET_CATS == ("heat", "multi", "scen", "inst", "tech", "deriv", "crash", "bub")
+    assert len(O.LEVEL_NAMES) == 6 and O.MARKET_CATS == ("heat", "multi", "scen", "inst", "tech", "deriv", "crash", "bub", "bd")   # sigspec VER 25 加寬度與深度
 
 
 def test_train_event_matches_direct_and_does_not_look_ahead():

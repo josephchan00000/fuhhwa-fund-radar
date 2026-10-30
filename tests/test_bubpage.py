@@ -304,3 +304,81 @@ def test_market_card_has_overview_judgement_line(monkeypatch):
     assert BP.sig_line("ndx", {"L": 2}) == ""
     monkeypatch.setattr(sigcat, "research_rows", lambda: (_ for _ in ()).throw(OSError("x")))
     assert BP.sig_line("spx", {"L": 2}) == ""
+
+
+# ── 產業過熱有多廣（breadthspec VER 1 第二段；docs/lab_breadth_plan.md 第 11 節） ─────────────────────
+
+def _bw_R():
+    return {"ver": 1, "ind": {"groups": {"tw": {"series": {"2018-03": [1, 3, 1 / 3, 0.5], "2021-08": [2, 3, 2 / 3, 0.9]}},
+                                         "ff": {"series": {"1931-08": [1, 2, 0.5, 0.4], "1931-09": [0, 2, 0.0, 0.0], "1998-05": [2, 2, 1.0, 1.0]}},
+                                         "tg": {"series": {"2018-03": [1, 1, 1.0, None], "2018-04": [0, 1, 0.0, None]}}, "us": {"series": {}}},
+                              "ff_tests": {"IB": {"verdict": "只當參考讀數（看不出）", "th": 0.2,
+                                                  "one": {"a": "1931-08", "z": "2025-09", "n": 1130, "n_ev": 130, "p_ev": 0.2077, "p_all": 0.1566,
+                                                          "diff": 0.0511, "lo": -0.089, "hi": 0.235, "epi": 9, "pass": False},
+                                                  "two": {"n_g": 179, "n_ev": 85, "n_non": 94, "p_ev": 0.235, "p_non": 0.16, "diff": 0.076,
+                                                          "lo": -0.2, "hi": 0.35, "epi_ev": 7, "epi_non": 8, "pass": False}},
+                                           "ID": {"verdict": "只當參考讀數（看不出）", "th": 0.2, "one": {}, "two": {}}},
+                              "describe": {}, "other": {"tw": {"n": 92, "n_ev": 1, "epi": 1, "p_ev": 0.0, "p_all": 0.076}}}}
+
+
+def _bw_I():
+    now = lambda d, L, p2=True: {"now": {"d": d, "L": L, "P1": True, "P2": p2}}            # noqa: E731
+    return {"tw": {"A": now("2026-10-30", 2), "B": now("2026-10-30", 0), "C": now("2026-10-30", 3)},
+            "tg": {"x": now("2026-10-30", 2, False)},
+            "ff": {"Chips": now("2026-09", 2), "Food": now("2026-09", 0)},
+            "us": {"XLK": now("2026-10-29", 2)}}
+
+
+def test_market_block_breadth_line(blk, monkeypatch):
+    """泡沫那一塊等級下面一行（參考）：個數同產業泡沫卡、歷史最多與驗證那一句讀研究檔；研究檔或產業算不出來只少那一部分、不擋泡沫等級。"""
+    from arm.lab import breadth as BD
+    monkeypatch.setattr(BP, "industries", _bw_I)
+    monkeypatch.setattr(BP, "_bw_caps", lambda g: {"A": {"2026-09": 60.0}, "B": {"2026-09": 20.0}, "C": {"2026-09": 20.0}} if g == "tw"
+                        else {"Chips": {"2026-09": 1.0}, "Food": {"2026-09": 3.0}})
+    monkeypatch.setattr(BD, "load_research", _bw_R)
+    h = BP.block_html("tw")
+    assert h.index('class="bcs mbc"') < h.index('<p class="bbw"') < h.index('class="seg brg"')   # 等級與條件下面、期間按鈕上面
+    line = h[h.index('<p class="bbw"'):h.index('</p>', h.index('<p class="bbw"'))]
+    assert ('<b>產業過熱有多廣（參考）</b>：台股 3 個產業有 2 個過熱（2018 年以來最多），占市值 80%；細分族群 1 個有 1 個過熱。' in line
+            and 'title="市值用 2026/9 月底"' in line)
+    assert '<span class="bbwv">過熱很廣的時候，之後一年大跌的比例沒有明顯比較高（美國 1931 年以來 21%，任一個月 16%）。</span>' in line
+    u = BP.block_html("spx")
+    line = u[u.index('<p class="bbw"'):u.index('</p>', u.index('<p class="bbw"'))]
+    assert "美股 2 個細產業（到 2026/9）有 1 個過熱（1931 年以來最多 2 個），占市值 25%；美股 1 個類股有 1 個過熱。" in line
+    import tests.test_plain as TP
+    assert TP.bad(line) == []                                                       # 主頁面用字
+    monkeypatch.setattr(BD, "load_research", lambda: None)                          # 研究檔沒有：只少比較與那一句
+    t = BP.breadth_line("tw")
+    assert "台股 3 個產業有 2 個過熱，占市值 80%" in t and "以來" not in t and "bbwv" not in t
+    monkeypatch.setattr(BD, "ind_now", lambda *a: (_ for _ in ()).throw(RuntimeError("x")))
+    assert BP.breadth_line("tw") == "" and '<b class="sc bl3">3</b>' in BP.block_html("tw")   # 算不出來只少這一行
+    monkeypatch.setattr(BP, "industries", lambda: {"tw_err": "x"})                  # 產業算不出來（industries 的寫法）：沒有這一行
+    assert BP.breadth_line("tw") == "" and BP.breadth_line("spx") == ""
+
+
+def test_research_breadth_section(monkeypatch):
+    from arm.lab import breadth as BD
+    monkeypatch.setattr(BD, "load_research", _bw_R)
+    s = BP.breadth_sec()
+    assert s.startswith('<section class="sec cd" id="bub-ibw">') and "<h2>產業過熱有多廣" in s
+    figs = re.findall(r'<figure class="bwc" tabindex="0" aria-label="([^"]+)" data-v="([^"]+)">', s)
+    assert [f[0].split("：")[0] for f in figs] == ["美國 48 細產業", "台股產業", "台股細分族群"]   # 沒有月份的組不畫
+    import html as H
+    v = json.loads(H.unescape(figs[0][1]))
+    assert v["a"] == "1931-08" and v["b"] == [50.0, 0.0, 100.0] and v["d"] == [40.0, 0.0, 100.0] and v["h"] == [1, 0, 2]
+    assert "d" not in json.loads(H.unescape(figs[2][1]))                           # 細分族群不算深度：只有一條線
+    assert s.count('class="bwl2"') == 2 and s.count('class="bwl1"') == 3 and s.count('class="bwt"') == 3
+    assert "驗證：產業過熱很廣之後比較容易大跌嗎？" in s and "寬度：只當參考讀數（看不出）" in s and "+5.1" in s
+    assert "過熱很廣的時段" in s and "1998/5～1998/5" in s                            # 表格版（寬度 ≥ 20% 的時段）
+    monkeypatch.setattr(BD, "load_research", lambda: None)
+    assert "研究檔還沒產生" in BP.breadth_sec()
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="沒有 node")
+def test_breadth_chart_script_parses_and_is_on_the_research_page():
+    r = subprocess.run(["node", "--check", "-"], input=BP.BW_JS, capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stderr[-1500:]
+    assert BP.BW_JS.strip().startswith("(function(){") and BP.BW_JS.strip().endswith("})();")   # 包起來：和同一個 <script> 的其他程式不撞名
+    import inspect
+    from arm.lab import research_page as RP
+    assert "BPG.BW_JS" in inspect.getsource(RP.render) and "BW_CSS" in inspect.getsource(BP.research_css)

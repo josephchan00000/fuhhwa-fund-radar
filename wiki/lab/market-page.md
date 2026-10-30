@@ -2,7 +2,7 @@
 
 > 四塊版面、全部指標、泡沫與產業泡沫、轉址、美股點到才下載。
 > 原始資料：CLAUDE.md「市場頁」段；規劃 `docs/lab_ia_v5_plan.md` 第 15.1、18.1、20、25 節；程式：`heatviz`、`heatpage_us`、`sigpage`、`bubpage`
-> 最後更新：2026-10-29
+> 最後更新：2026-10-30
 > 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
@@ -12,6 +12,7 @@
 - 研究畫面留在市場頁：`#v=research／phase／terrain`（資料在 x9mh.json／x9muh-*.json），最上面一列 `research_bar`（‹ 研究紀錄｜三個畫面｜回到市場頁）；研究紀錄頁列入口。
 - 全部指標（JS `window.sgInit()` 可重跑：AbortController 拿掉上一次的事件；`SG.emb`＝固定市場、清單預設收起〔點分類、搜尋、「列出全部」才展開〕）：頁面層一份 `#sgd`（`heatpage.page_parts`→`sigpage.block_data(市場)`；美股頁四個指數＋美股產業共用，`SG.usx`；目前市場讀 `#ixc` 的 data-ix），面板 `sigpage.PANEL` 在模板外面；每一次的清單 `x9oh-{市場}.json`（`detail_name`，點開才下載；三支 workflow 各兩行 `git add -f dashboard/x9oh-*.json`）。`#sgd` 只放這一頁的市場名稱（`page_json` 的 emb 分支：mk／pxn／總經策略的 mkn 與 spec）。網址：`#i=指標`、`#s=訊號`（`hsWith` 保留 `#ix=`、`#v=`）。面板裡的 `<a data-sg="訊號">` 由 sigpage 攔下、在同一頁開指標面板。
 - 泡沫（`bubpage.block_html(mk)`：`bubble.last(mk)`＝景氣頁同一個程序算好的等級；`industries()`＝`bubind.compute` 一個程序只算一次）：`#bubd`＝`block_data`（不含 1990 年以前的延伸樣本）；圖的預設期間＝按下去的那顆（`defRg`，市場頁近 30 年、研究紀錄全部）；美股頁四個指數各一塊、產業表四塊相同（換指數時 `SWITCH_JS` 呼叫 `bubDraw(ix)`、`sgInit()`）。CSS 拆成 `CHART_CSS`（共用）＋頁面專用。
+- 泡沫那一塊等級與七個條件下面一行「產業過熱有多廣（參考）」（2026-10-30，`bubpage.breadth_line`，`.bbw`；`docs/lab_breadth_plan.md` 第 11 節）：台股＝產業幾個過熱、占市值、細分族群；美股＝48 細產業（月資料，寫「到 幾月」）、占市值、11 類股；比過去最多、最後一句驗證的結果。驗證沒過所以只是參考讀數，不改等級。
 - 產業泡沫單獨一張卡（2026-10-29；`bubpage.ind_card(mk)`，接在市場泡沫卡後面、`id="bubi"`；規劃 `docs/lab_us_chip_plan.md` 第 3、6 節）：使用者：「產業泡沫我覺得蠻重要的，可以規劃放到首頁泡沫那邊 排版想一下要乾淨」，選電腦熱度格、手機分級清單。電腦（≥640px，`.mbtl`）＝等級 2 以上一個產業一格（底色淡化的等級色、左邊色條、等級與成立的條件），每組最後一格「其他 N 個・沒有過熱」；手機（`.mbls`）＝一個等級一列（4／3／2，列裡再分組，等級 3 以上寫條件），最後一行「其他 N 個沒有過熱」。兩種都由 CSS 切換、內容同一份。點一格／一個名稱＝打開「全部產業」表、展開那一列並捲過去（`data-bn`＝`組:代號`，表上每一列 `data-n` 同一個值；美股細產業沒有歷史圖，只捲過去標亮）。美股各指數相關產業排最前面（`IND_REL`：費半＝半導體與電子零件、電腦硬體、資訊科技；那斯達克兩檔＝資訊科技、通訊服務、軟體、電腦硬體、半導體與電子零件；就算等級 0 也列，其他組不重複）。面向標題列多一格「產業泡沫 N ＋產業名」（`ind_chip`：最高等級、同等級時相關產業優先，點了捲到 `#bubi`；沒有等級 2 以上寫「沒有過熱」）。
 - 跳段：`#at=段落`（例 `x9m.html#at=bub`、`x9mu.html#ix=sox&at=bub`）在整頁 load 之後才捲（全部指標、泡沫的程式在後面，先捲位置會跑掉）；捲完拿掉參數。
 - 轉址：`x9o.html`（`sigpage.REDIRECT`：`#s=`／`#i=` 是市場的 → 那個市場頁；其他 → `x9r.html`＋原 hash；沒有 → x9m）、`x9b.html`（`bubpage.REDIRECT`：`#tw`… → `#at=bub`；`#lv／ind／indv／types／mth` → `x9r.html#bub-…`）。頂欄拿掉這兩格。

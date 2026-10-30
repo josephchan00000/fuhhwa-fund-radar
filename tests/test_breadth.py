@@ -72,3 +72,94 @@ def test_tests_one_and_two_use_spec_rules():
     lv = {m: (2 if i % 2 == 0 else 0) for i, m in enumerate(ms)}
     two = BR.test_two(ev, lv, dd, random.Random(S.SEED))
     assert two["n_g"] == 120 and two["p_ev"] == 1.0 and two["epi_ev"] >= 3 and two["diff"] > 0
+
+
+# ── 第三段：接進訊號總覽（sigspec VER 25 第 4.15 節）與市場頁的讀數 ─────────────────────
+
+def test_market_vars_follow_var_mkt_and_skip_missing(monkeypatch):
+    from arm.lab import heatspec as HS
+    monkeypatch.setitem(HS.PCT_WIN, "d", 10)
+    monkeypatch.setitem(HS.PCT_MIN, "d", 3)
+    cal = [f"2020-01-{d:02d}" for d in range(1, 21)]
+    raw = {"TW_EWGAP": {d: float(i) for i, d in enumerate(cal)}, "US_ADV": {d: 50.0 for d in cal}}
+    tw = BR.market_vars("tw", cal, raw)
+    assert [v["key"] for v in tw] == ["TW_EWGAP"]                       # 台股只收台股的變數；落檔沒有的（TW_MA200）不列
+    v = tw[0]
+    assert v["grp"] == "bd" and v["H"] == S.H and v["name"] == S.VAR_NAMES["TW_EWGAP"] and len(v["x"]) == len(cal)
+    assert v["raw"][5] == 5.0 and v["fmt"].format(-3.8) == "-3.8 個百分點"
+    assert [v["key"] for v in BR.market_vars("sox", cal, raw)] == ["US_ADV"]   # 費半沒有等權 ETF
+    assert BR.market_vars("spx", cal, {}) == []
+
+
+def test_bd_vars_fail_open(monkeypatch):
+    from arm.lab import sigcat as G
+
+    def boom(mk, cal):
+        raise RuntimeError("落檔壞了")
+    monkeypatch.setattr(BR, "market_vars", boom)
+    assert G.bd_vars("tw", ["2020-01-01"]) == []                         # 算不出來就沒有這一類，不擋其他訊號
+
+
+def test_bd_signals_use_the_six_heat_variants():
+    from arm.lab import sigcat as G
+    from arm.lab import sigspec as X
+    T = 60
+    cal = [f"d{i:03d}" for i in range(T)]
+    x = np.array([np.nan] * 5 + [90.0] * 20 + [50.0] * 20 + [10.0] * 15)
+    F = {"mk": "spx", "cal": cal, "we": list(range(4, T, 5))}
+    sds = G._var_signals(F, {"key": "US_ADV", "name": "上漲家數占比", "grp": "bd", "H": S.H, "x": x}, X.BD_CAT)
+    assert [sd["sig"] for sd in sds] == list(X.VARIANTS)
+    assert all(sd["id"].startswith("spx:bd:US_ADV:") and sd["cat"] == "bd" for sd in sds)
+    assert "brk" in next(sd for sd in sds if sd["sig"] == "hot") and "exp" in next(sd for sd in sds if sd["sig"] == "hot_in")
+
+
+def test_sigpage_puts_bd_under_tech_indicators():
+    from arm.lab import sigpage as SP
+    r = {"cat": "bd", "mk": "spx", "var": "US_EWGAP", "vn": S.VAR_NAMES["US_EWGAP"], "name": "x", "id": "spx:bd:US_EWGAP:cold"}
+    assert SP.ind_of(r) == ("spx:bd:US_EWGAP", "bd", S.VAR_NAMES["US_EWGAP"], "US_EWGAP")
+    assert SP.facet_of("bd", None, "US_EWGAP") == ("tech", "ind") and "bd" in SP.IND_CATS
+
+
+def test_ind_now_counts_levels_and_cap_share():
+    I = {"tw": {"A": {"now": {"d": "2026-10-30", "L": 2, "P1": True, "P2": False}},
+                "B": {"now": {"d": "2026-10-30", "L": 0, "P1": False, "P2": False}},
+                "C": {"now": {"d": "2026-10-30", "L": 3, "P1": True, "P2": True}},
+                "D": {"now": {"d": "2026-10-30", "L": 0, "P1": None, "P2": False}}}}    # P1 算不出來＝沒有等級（同 levels）
+    caps = {"A": {"2026-08": 1.0, "2026-09": 30.0}, "B": {"2026-09": 50.0}, "C": {"2026-09": 20.0, "2026-11": 99.0}, "D": {"2026-09": 900.0}}
+    n = BR.ind_now(I, "tw", caps)
+    assert (n["n_hot"], n["n"], n["hot"], n["cap_m"]) == (2, 3, ["A", "C"], "2026-09")
+    assert abs(n["id"] - 0.5) < 1e-12                                     # (30＋20) ÷ (30＋50＋20)；D 沒有等級不算、11 月的市值還不能用
+    assert BR.ind_now(I, "tg") is None and BR.ind_now(I, "tw")["id"] is None
+
+
+def test_prev_max_and_wide_spells():
+    ser = {"2020-01": [1, 10, 0.1, 0.2], "2020-02": [3, 10, 0.3, None], "2020-03": [3, 10, 0.3, 0.9],
+           "2021-06": [2, 10, 0.2, 0.5], "2021-07": [0, 10, 0.0, 0.0]}
+    assert BR.prev_max(ser, 0, "2021-07") == (3, "2020-03") and BR.prev_max(ser, 3, "2020-03") == (0.2, "2020-01")
+    sp = BR.wide_spells(ser)
+    assert [(e["a"], e["z"], e["n"], e["hot"], e["id"]) for e in sp] == [("2020-02", "2020-03", 2, 3, 0.9), ("2021-06", "2021-06", 1, 2, 0.5)]
+
+
+def test_bdepth_update_recomputes_only_when_needed(monkeypatch):
+    """CI 每班（fetch_heat.py 最後一項）：官方分片有新的一天、或最新一天的大型股撐盤還在等報酬指數，才重讀個股面板重算。"""
+    from arm.lab import bt3d, store
+    from arm.lab import heatdata as HD
+    from arm.lab import heatfetch as F
+    state = {"bdepth": {"2026-10-29": [1.0, 2.0], "2026-10-30": [None, 2.5]}}
+    calls = []
+    monkeypatch.setattr(HD, "load", lambda name: state.get(name, {}))
+    monkeypatch.setattr(store, "dates", lambda kind: ["2026-10-29", "2026-10-30"])
+    tr = {"q": {"2026-10-29": 1.0}}
+    monkeypatch.setattr(store, "read_json", lambda name, default=None: tr)
+    monkeypatch.setattr(HD, "ShardPanel", lambda: object())
+    monkeypatch.setattr(bt3d, "Panel", lambda: object())
+    monkeypatch.setattr(HD, "extend", lambda P, SP: None)
+    monkeypatch.setattr(BR, "tw_bdepth", lambda P: {"2026-10-30": [3.0, 2.5]})
+    monkeypatch.setattr(F, "_replace", lambda name, src, new: calls.append((name, src, new)) or 1)
+    assert F.bdepth_update() == 0 and calls == []                       # 報酬指數還沒有 10/30：重算也一樣，不重讀
+    tr["q"]["2026-10-30"] = 2.0
+    assert F.bdepth_update() == 1 and calls[-1] == ("bdepth", "v3px+mkt+v3_tr", {"2026-10-30": [3.0, 2.5]})
+    state["bdepth"]["2026-10-30"] = [3.0, 2.5]
+    n = len(calls)
+    assert F.bdepth_update() == 0 and len(calls) == n                   # 都算過了
+    assert F.bdepth_update(True) == 1 and len(calls) == n + 1          # 回補：整段重算

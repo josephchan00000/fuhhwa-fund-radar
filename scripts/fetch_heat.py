@@ -142,6 +142,7 @@ def daily() -> None:
     run("融資維持率", MR.update_series)
     if ok != st:
         HD.save("_state", "fetch_heat", ok)
+    run("寬度與深度", F.bdepth_update)                            # 訊號總覽第 4.15 節（sigspec VER 25；放最後、狀態存完之後：約 1 分鐘，逾時也只少這一項）
 
 
 def _indtw(force: bool = False) -> int:
@@ -182,6 +183,7 @@ def backfill(budget_min: float, only: set[str] | None) -> None:
         ("effr", "聯邦基金利率（紐約聯準銀行）", F.nyfed_effr, (F.NYFED_START,)),
         ("vixtw", "台指 VIX", F.taifex_vix, (4,)),
         ("breadth", "廣度", F.breadth_update, (True,)),
+        ("bdepth", "寬度與深度（台股）", F.bdepth_update, (True,)),
         ("indtw", "台股產業指數", _indtw, (True,)),
         ("mmf", "美國貨幣基金", F.ofr_mmf, ()),
         ("spx", "S&P 500", F.yahoo, ("spx", "^GSPC", "2010-01-01")),
