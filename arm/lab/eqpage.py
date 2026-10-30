@@ -534,10 +534,11 @@ def why_box(pack: dict) -> str:
         return (f'<div class="why"><b>{escape(pk.get("list") or "")}名單（{escape((pk.get("d") or "")[5:].replace("-", "/"))} 收盤）</b>'
                 f'：第 {pk.get("rank")} 名（共 {pk.get("n") or "—"} 檔），{escape(act)}。五個條件：{escape(conds)}。'
                 f'最多拿 {pk.get("slots") or "—"} 檔，收盤跌破 {pk.get("exit_ma") or "—"} 日線賣出。</div>')
-    plan = "，".join(pk.get("plan") or [])
-    return (f'<div class="why"><b>{escape(pk.get("list") or "")}名單（{escape((pk.get("d") or "")[5:].replace("-", "/"))} 收盤試算）</b>'
-            f'：第 {pk.get("rank")} 名，強度 {pk.get("rs")}，連續 {pk.get("weeks")} 週在名單上。{escape(pk.get("why") or "")}。'
-            f'位置：{escape(pk.get("spot") or "")}（{escape(plan)}）。</div>')
+    act = (f'照規則 {(pk.get("buyd") or "")[5:].replace("-", "/")} 開盤買' if pk.get("will_buy")
+           else "拿著" if pk.get("hold") else "在名單上、格子滿了等空位")      # 新飆股自己的規則；書上的買點不放（docs/lab_pick_arch_plan.md）
+    return (f'<div class="why"><b>{escape(pk.get("list") or "")}名單（{escape((pk.get("d") or "")[5:].replace("-", "/"))} 收盤'
+            f'{"試算" if pk.get("fix") else ""}）</b>：第 {pk.get("rank")} 名，強度 {pk.get("rs")}，連續 {pk.get("weeks")} 週在名單上，'
+            f'{escape(act)}。{escape(pk.get("why") or "")}。新飆股不等買點：名單出來，下一個交易日開盤就買，抱 60 個交易日。</div>')
 
 
 def co_box(pack: dict) -> str:

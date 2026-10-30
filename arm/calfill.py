@@ -340,8 +340,10 @@ def match(r: dict, rel: date) -> tuple[dict, str | None] | None:
     return None
 
 
-def official(r: dict, rel: date, S=HD.load) -> tuple | None:
-    """列 → (實際值文字, 核對用數字, 來源)；對不上規則或序列還沒有＝None。rel＝列的結束日（公布日）。"""
+def official(r: dict, rel: date, S=None) -> tuple | None:
+    """列 → (實際值文字, 核對用數字, 來源)；對不上規則或序列還沒有＝None。rel＝列的結束日（公布日）。
+    S＝讀序列的函式（預設 heatdata.load，呼叫時才取，測試換掉才有效）。"""
+    S = S or HD.load
     hit = match(r, rel)
     if not hit:
         return None
@@ -364,9 +366,10 @@ def _rows(md: str, file_date: date):
         yield i, c, r, MN.row_end_date(r, file_date)
 
 
-def wanted(md: str, file_date: date, today: date, S=HD.load) -> set[str]:
+def wanted(md: str, file_date: date, today: date, S=None) -> set[str]:
     """公布後 3 天內、對得上第三段規則、本機又算不出來的列 → 要叫 arm/calsrc.py 抓的來源（例 {"bls_cal"}）。
     公布當天在數字出來之前每一班都會抓一次（抓不到就下一班），抓到那一期就不再抓；超過 3 天留給早上的 Claude。"""
+    S = S or HD.load
     need: set[str] = set()
     for _, c, r, rel in _rows(md, file_date):
         if not rel or not 0 <= (today - rel).days <= 3 or re.search(r"休市|延|取消|改期", c[5]):
@@ -415,8 +418,9 @@ def _cells(line: str) -> list[str] | None:
     return c
 
 
-def fill(md: str, file_date: date, today: date, now: datetime, S=HD.load) -> tuple[str, list[dict]]:
+def fill(md: str, file_date: date, today: date, now: datetime, S=None) -> tuple[str, list[dict]]:
     """→ (新的 md, 動作清單 [{kind: fill|mismatch, item, value, actual, src}])；沒有可補的回原文。"""
+    S = S or HD.load
     lines = md.split("\n")
     acts: list[dict] = []
     stamp = f"{now:%m/%d %H:%M}"
@@ -479,8 +483,9 @@ def latest(cal_dir: Path, today: date) -> tuple[Path, date] | None:
     return best
 
 
-def run(today: date, now: datetime, cal_dir: Path | None = None, S=HD.load, write: bool = True) -> dict:
+def run(today: date, now: datetime, cal_dir: Path | None = None, S=None, write: bool = True) -> dict:
     """CI 用：補最新一份行事曆。寫檔前確認表格列數沒變、內容沒變短；任何一步不對就不寫。"""
+    S = S or HD.load
     got = latest(cal_dir or MN.CAL_DIR, today)
     if not got:
         return {"file": None, "acts": []}
