@@ -80,6 +80,8 @@ def test_mismatch_is_flagged_not_overwritten():
     assert CF.fill(new, date(2026, 9, 6), date(2026, 9, 6), NOW, S)[0] == new   # 同一行不重複加
     old = CF.fill(md, date(2026, 9, 30), date(2026, 9, 30), NOW, S)            # 超過 10 天的不核對（可能是修正值）
     assert old == (md, [])
+    later = _md([R.format(d="10/02", i="美：9月失業率", a="延後至11/5公布", s="未公布")])  # 不是結果：不核對、也不補
+    assert CF.fill(later, T, T, NOW, S) == (later, [])
 
 
 def test_month_year_and_rounding_edges():

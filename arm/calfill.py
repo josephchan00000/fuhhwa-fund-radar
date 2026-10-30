@@ -249,7 +249,8 @@ def fill(md: str, file_date: date, today: date, now: datetime, S=HD.load) -> tup
             lines[i] = "| " + " | ".join(c) + " |"
             acts.append({"kind": "fill", "item": _short(r), "value": val, "src": src,
                          "note": f"- 官方自動補值（{stamp}）：{_short(r)} {val}（{src}）。"})
-        elif c[3] not in BLANK and (today - rel).days <= 10 and not _consistent(c[3], ok_nums):
+        elif ("已公布" in c[5] and c[3] not in BLANK and (today - rel).days <= 10
+              and not _consistent(c[3], ok_nums)):              # 只核對已公布的（「延後至 11/5」這類不是結果）
             acts.append({"kind": "mismatch", "item": _short(r), "value": val, "actual": c[3], "src": src,
                          "note": f"- 官方核對：{_short(r)}官方公布 {val}（{src}），表中寫「{c[3]}」，以官方為準。"})
     if not acts:
