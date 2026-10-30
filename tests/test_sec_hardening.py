@@ -13,7 +13,9 @@ ROOT = Path(__file__).resolve().parent.parent
 def test_daily_news_merge_copies_regular_files_only():
     y = (ROOT / ".github" / "workflows" / "daily.yml").read_text(encoding="utf-8")
     assert 'git checkout "$REF" -- "$f"' not in y
-    assert 'git ls-tree "$REF" -- "$f"' in y and '= "100644" ]' in y and 'git show "$REF:$f" > "$f"' in y
+    assert 'git ls-tree "$REF" -- "$f"' in y and '= "100644" ]' in y
+    # 先寫暫存檔、成功才換上：讀不到也不會把 main 現有的報告寫成空檔（鐵則：不把非空的落檔覆寫成空）
+    assert 'git show "$REF:$f" > "$f.tmp" && mv "$f.tmp" "$f"' in y and 'git show "$REF:$f" > "$f" ' not in y
 
 
 def test_external_links_only_http():
