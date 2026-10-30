@@ -189,7 +189,97 @@ def site(url):
     p(f"  {url}：{len(b)}B、投資人相關連結 {sorted(set(ir))[:8]}")
 
 
+def round2():
+    """第二輪：簡報 PDF（/nas/STR/ 正確路徑）抽字、重大訊息內文按鈕的原始 HTML、年報（doc.twse step 9）下載與抽字。"""
+    for code, nm in CODES[:3] + CODES[4:]:
+        p(f"\n################ {code} {nm}（第二輪）################")
+        fs = []
+        for y in (115, 114):
+            try:
+                h = mops("t100sb02_1", {"encodeURIComponent": 1, "step": 1, "firstin": 1, "off": 1, "TYPEK": "all",
+                                        "co_id": code, "year": y})
+                fs += [f for f in pdfs(h) if f.rsplit("/", 1)[-1].endswith(("M001.pdf", "M002.pdf", "M003.pdf"))]
+            except Exception as ex:                       # noqa: BLE001
+                p("  t100sb02_1 ✗", str(ex)[:150])
+        names = sorted({f.rsplit("/", 1)[-1] for f in fs}, key=lambda f: f[len(code):len(code) + 8])
+        p("  中文簡報：", names)
+        if names:
+            run(f"{code} 簡報 {names[-1]}", lambda: pdf_text_all(f"{OV}/nas/STR/{names[-1]}"))
+        run(f"{code} 重大訊息按鈕 HTML", lambda: news_html(code))
+        run(f"{code} 年報下載", lambda: annual_pdf(code))
+
+
+def pdf_text_all(url: str):
+    b = get_bytes(url, retries=2, timeout=90, use_cache=False)
+    p(f"  下載 {url}：{len(b) / 1024:.0f}KB、開頭 {b[:5]!r}")
+    if not b.startswith(b"%PDF"):
+        p("  不是 PDF：", text(_decode(b), 300))
+        return
+    from pypdf import PdfReader
+    r = PdfReader(io.BytesIO(b))
+    lens = []
+    for i, pg in enumerate(r.pages):
+        try:
+            t = re.sub(r"\s+", " ", pg.extract_text() or "").strip()
+        except Exception as ex:                           # noqa: BLE001
+            t = ""
+            p(f"   p{i + 1} 抽字失敗 {ex}")
+        lens.append(len(t))
+        if i in (1, 2, 3, len(r.pages) // 2):
+            p(f"   p{i + 1}: {len(t)} 字：{t[:300]}")
+    p(f"  頁數 {len(r.pages)}；每頁字數 {lens}；少於 30 字的頁 {sum(x < 30 for x in lens)}")
+
+
+def news_html(code):
+    h = mops("t05st01", {"encodeURIComponent": 1, "step": 1, "firstin": 1, "off": 1, "keyword4": "", "code1": "",
+                         "TYPEK2": "", "checkbtn": "", "queryName": "co_id", "inpuType": "co_id", "TYPEK": "all",
+                         "co_id": code, "year": 115, "month": "", "b_date": "", "e_date": ""})
+    i = h.find("<input")
+    p("  第一個 input 前後：", re.sub(r"\s+", " ", h[max(0, i - 600):i + 900]))
+    m = re.search(r"<form[^>]*>.*?</form>", h, re.S | re.I)
+    p("  第一個 form：", re.sub(r"\s+", " ", m.group(0))[:1200] if m else None)
+
+
+def annual_pdf(code):
+    url = f"https://doc.twse.com.tw/server-java/t57sb01?step=1&colorchg=1&co_id={code}&year=114&mtype=F&"
+    h = _decode(get_bytes(url, retries=2, timeout=60, use_cache=False))
+    files = re.findall(r"readfile2\(\s*['\"](\w)['\"]\s*,\s*['\"](\w+)['\"]\s*,\s*['\"]([^'\"]+)['\"]", h)
+    f04 = [f for f in files if re.search(r"F04\.pdf$", f[2])]
+    p("  年報檔：", f04)
+    if not f04:
+        return
+    kind, co, fn = f04[0]
+    u9 = f"https://doc.twse.com.tw/server-java/t57sb01?step=9&kind={kind}&co_id={co}&filename={fn}"
+    h9 = _decode(get_bytes(u9, retries=2, timeout=60, use_cache=False))
+    links = re.findall(r"""href=['"]([^'"]+\.pdf)['"]""", h9, re.I)
+    p("  step9：", text(h9, 300), links[:3])
+    if not links:
+        return
+    pu = links[0] if links[0].startswith("http") else "https://doc.twse.com.tw" + links[0]
+    b = get_bytes(pu, retries=2, timeout=180, use_cache=False)
+    p(f"  年報 {pu}：{len(b) / 1024 / 1024:.1f}MB")
+    from pypdf import PdfReader
+    r = PdfReader(io.BytesIO(b))
+    lens, hit = [], []
+    for i, pg in enumerate(r.pages):
+        try:
+            t = re.sub(r"\s+", " ", pg.extract_text() or "")
+        except Exception:                                  # noqa: BLE001
+            t = ""
+        lens.append(len(t))
+        if re.search(r"營業比重|主要產品", t) and len(hit) < 3:
+            hit.append(i)
+            p(f"   p{i + 1}（營運概況候選）：{t[:500]}")
+    p(f"  頁數 {len(r.pages)}；總字數 {sum(lens)}；少於 30 字的頁 {sum(x < 30 for x in lens)}；有「營業比重／主要產品」的頁 {hit}")
+
+
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] == "2":
+        round2()
+        out = Path(__file__).resolve().parent.parent / "data" / "lab" / "_eqdocprobe2.txt"
+        out.write_text("\n".join(OUT) + "\n", encoding="utf-8")
+        print(f"寫入 {out}（{time.time() - T0:.0f}s）")
+        return
     for code, nm in CODES:
         p(f"\n################ {code} {nm} ################")
         web = run(f"{code} 公司基本資料", lambda: basic(code))
