@@ -4,8 +4,9 @@
                 過去同一組的週之後上漲／大回撤的比例、區塊重抽判定有沒有關係 → data/lab/thermo_research.json（scripts/run_thermo.py）
   now(mk, ...)  每天建頁：今天的票數（研究檔存的今年 1 月 1 日統計 × 現在有效）→ 每支溫度計兩邊的位置與一句話
 
-票數＝這支溫度計、這一邊，現在有效的 THERMO_X_CATS 訊號裡照第 5 節 ④b 會列出來的（VER 23：次數 ≥ N_MIN、這個方向比平常高
-THERMO_EDGE 以上，同 VER 16）的項目數（同一個項目一票；不做同類合併）。
+票數＝這支溫度計、這一邊，現在有效的 THERMO_X_CATS 訊號裡照第 5 節 ④c 會列出來的（VER 26：訊號自己次數 ≥ N_MIN、這個方向比平常高
+THERMO_EDGE 以上，而且那天落的那一格也是；sigage 第 5.1 節）的項目數（同一個項目一票；不做同類合併）。
+研究檔另存 VER 25 的票（"v25"：只看訊號自己的成績，VER 23 起的規則）：實戰模擬、期貨加碼照舊用那一套（weekly、now(rule="v25")）。
 （VER 21～22：預估之後和隨便挑一天差 LIST_GAP 以上、留下來的比例用那時走完的逐年紀錄；VER 17～20：命中率門檻過了。）
 只是描述，不參與任何判定。
 """
@@ -154,9 +155,16 @@ def first_year(cal: list[str]) -> int:
 
 
 def weekly(F: dict) -> dict:
-    """逐年滾動的週末票數（第 5 節 ③d）：每年 1 月 1 日只用之前走完的窗口算統計、決定每個訊號投哪一邊，那一年每個週末的票數。
-    → {"y0", "y1", "Y": {溫度計: outcomes}, "hist": {溫度計: {"t": 週末位置, "u": 偏多票數, "w": 警示票數}},
-       "votes": 今年 1 月 1 日每個訊號會投哪一邊}。研究（market）與實戰模擬（practsim）共用。"""
+    """逐年滾動的週末票數（第 5 節 ③d，VER 25 的票：只看訊號自己的成績）：每年 1 月 1 日只用之前走完的窗口算統計、
+    決定每個訊號投哪一邊，那一年每個週末的票數。→ {"y0", "y1", "Y": {溫度計: outcomes}, "hist": {溫度計: {"t": 週末位置,
+    "u": 偏多票數, "w": 警示票數}}, "votes": 今年 1 月 1 日每個訊號會投哪一邊}。實戰模擬（practsim）、期貨加碼（tilt）用這一套。"""
+    return _weekly(F, age=False)
+
+
+def _weekly(F: dict, age: bool) -> dict:
+    """weekly 的本體；age＝True 另算 VER 26 的票（第 5.1 節：訊號自己的成績會投、而且那天落的那一格也過，格子只用 cut 之前走完的日子）：
+    另有 "hist26"、"votes26"（{訊號: {"i", "v": {溫度計: {格: 邊}}}}）與新舊比較 "cmp"。"""
+    from . import sigage as A
     mk, cal, px = F["mk"], F["cal"], F["px"]
     T = len(cal)
     we = np.asarray(F["we"], dtype=np.int64)
@@ -164,9 +172,24 @@ def weekly(F: dict) -> dict:
     items = [item_of(sd) for sd in sds]
     Y = {k: G.outcomes(px, H, G.warn_th(mk, H)) for k, H in S.THERMO_H.items()}
     acts = {k: [active(sd, T, H) for sd in sds] for k, H in S.THERMO_H.items()}
+    if age:
+        cache: dict = {}
+        cxs = [A.cond(F, sd, cache) for sd in sds]
+        cday: dict = {}
+        pref: dict = {}
+        for k, H in S.THERMO_H.items():
+            cday[k], pref[k] = [], []
+            for sd, cx in zip(sds, cxs):
+                Dd = A.days(sd, T, H, cx)
+                c = np.full(T, -1, dtype=np.int64)
+                c[Dd["t"]] = Dd["cid"]
+                cday[k].append(c)
+                pref[k].append(A.Prefix(Dd, Y[k][0], Y[k][1], np.asarray(sd["samp"], dtype=np.int64), H))
     y0, y1 = first_year(cal), int(cal[-1][:4])
     hist = {k: {"t": [], "u": [], "w": []} for k in S.THERMO_H}
+    hist26 = {k: {"t": [], "u": [], "w": []} for k in S.THERMO_H}
     votes_now: dict = {}
+    votes26: dict = {}
     for yr in range(y0, y1 + 1):
         cut = bisect.bisect_left(cal, f"{yr}-01-01")
         wk = we[(we >= cut) & (we < bisect.bisect_left(cal, f"{yr + 1}-01-01"))]
@@ -174,6 +197,7 @@ def weekly(F: dict) -> dict:
             continue
         for k, H in S.THERMO_H.items():
             on = {"u": {}, "w": {}}
+            on26 = {"u": {}, "w": {}}
             for i, sd in enumerate(sds):
                 v = vote(stats_before(sd, cut, Y[k], H))
                 if not v:
@@ -183,21 +207,57 @@ def weekly(F: dict) -> dict:
                 a = acts[k][i][wk]
                 for c in v:
                     on[c][items[i]] = on[c].get(items[i], np.zeros(len(wk), dtype=bool)) | a
-            hist[k]["t"] += [int(t) for t in wk]
-            for c in ("u", "w"):
-                tot = np.zeros(len(wk), dtype=int)
-                for arr in on[c].values():
-                    tot += arr
-                hist[k][c] += [int(x) for x in tot]
-    return {"y0": y0, "y1": y1, "Y": Y, "hist": hist, "votes": votes_now}
+                if not age:
+                    continue
+                P = pref[k][i].at(cut)
+                cw = cday[k][i][wk]
+                for c in v:
+                    ok = A.passes(P, "up" if c == "u" else "warn")
+                    a26 = a & (cw >= 0) & ok[np.maximum(cw, 0)]
+                    on26[c][items[i]] = on26[c].get(items[i], np.zeros(len(wk), dtype=bool)) | a26
+                    if yr == y1 and ok.any():
+                        vv = votes26.setdefault(sd["id"], {"i": items[i], "v": {}})["v"].setdefault(k, {})
+                        for cid in np.nonzero(ok)[0].tolist():
+                            ck = A.ckey(cid)
+                            vv[ck] = "".join(x for x in "uw" if x in vv.get(ck, "") + c)
+            for hh, oo in ((hist, on), (hist26, on26)) if age else ((hist, on),):
+                hh[k]["t"] += [int(t) for t in wk]
+                for c in ("u", "w"):
+                    tot = np.zeros(len(wk), dtype=int)
+                    for arr in oo[c].values():
+                        tot += arr
+                    hh[k][c] += [int(x) for x in tot]
+    out = {"y0": y0, "y1": y1, "Y": Y, "hist": hist, "votes": votes_now}
+    if age:
+        out.update(hist26=hist26, votes26=votes26, cmp=compare(Y, hist, hist26))
+    return out
 
 
-def market(F: dict) -> dict:
-    """一個市場的研究（第 5 節 ③d；VER 23 起不用預估之後的研究檔）。"""
-    mk, cal = F["mk"], F["cal"]
-    W = weekly(F)
-    y0, y1, Y, hist = W["y0"], W["y1"], W["Y"], W["hist"]
-    out = {"y0": y0, "cut": f"{y1}-01-01", "votes": W["votes"], "hz": {}}
+def compare(Y: dict, h25: dict, h26: dict) -> dict:
+    """新舊比較（第 5.1 節，只描述）：每支溫度計、每一邊，逐年滾動的每個週末兩套規則列出來的項目（項目 × 週）之後實際的
+    上漲（偏多那一邊）或大回撤（警示那一邊）比例，和所有週末比；另列「VER 25 列、VER 26 拿掉」的那一部分。
+    → {溫度計: {邊: {"all": [比例, 週數], "v25": [比例, 項目週數], "v26": [...], "drop": [...]}}}。"""
+    out: dict = {}
+    for k in S.THERMO_H:
+        Yu, Yw, _ = Y[k]
+        t = np.asarray(h25[k]["t"], dtype=np.int64)
+        res = {}
+        for side, c, Yx in (("up", "u", Yu), ("warn", "w", Yw)):
+            y = Yx[t] if len(t) else np.zeros(0)
+            ok = np.isfinite(y)
+            a, b = np.asarray(h25[k][c], dtype=float)[ok], np.asarray(h26[k][c], dtype=float)[ok]
+            y = y[ok]
+
+            def rate(w):
+                return [float((w * y).sum() / w.sum()) if w.sum() else None, int(w.sum())]
+            res[side] = {"all": [float(y.mean()) if len(y) else None, int(len(y))], "v25": rate(a), "v26": rate(b), "drop": rate(a - b)}
+        out[k] = res
+    return out
+
+
+def _hz(mk: str, cal: list, Y: dict, hist: dict) -> dict:
+    """每支溫度計：位置、過去同一組的週之後的比例、有沒有關係（第 5 節 ③d）與最後 CAL_RANK_W＋1 個週末的票數。"""
+    out = {}
     for k, H in S.THERMO_H.items():
         h = hist[k]
         Yu, Yw, _ = Y[k]
@@ -214,8 +274,16 @@ def market(F: dict) -> dict:
         keep = S.CAL_RANK_W + 1
         res["wk"] = [cal[t] for t in h["t"][-keep:]]
         res["u"], res["w"] = h["u"][-keep:], h["w"][-keep:]
-        out["hz"][k] = res
+        out[k] = res
     return out
+
+
+def market(F: dict) -> dict:
+    """一個市場的研究（第 5 節 ③d；VER 26：票看今天那一格，另存 VER 25 的票與新舊比較）。"""
+    mk, cal = F["mk"], F["cal"]
+    W = _weekly(F, age=True)
+    return {"y0": W["y0"], "cut": f"{W['y1']}-01-01", "votes": W["votes26"], "hz": _hz(mk, cal, W["Y"], W["hist26"]),
+            "v25": {"votes": W["votes"], "hz": _hz(mk, cal, W["Y"], W["hist"])}, "cmp": W["cmp"]}
 
 
 def research(F: dict | None = None) -> dict:
@@ -246,31 +314,41 @@ def load(path: Path | None = None) -> dict | None:
 
 # ── 每天：今天的位置 ─────────────────────────────────────────────────────────
 
-def counts_now(M: dict, on: dict, xon: dict | None) -> dict:
-    """今天的票數：研究檔存的今年 1 月 1 日統計會投票、而且現在在那支溫度計有效的項目數。→ {溫度計: {"u": 票數, "w": 票數}}。"""
+def counts_now(M: dict, on: dict, xon: dict | None, rule: str = "v26") -> dict:
+    """今天的票數：研究檔存的今年 1 月 1 日統計會投票、而且現在在那支溫度計有效的項目數。→ {溫度計: {"u": 票數, "w": 票數}}。
+    VER 26（rule "v26"）：votes 的每支溫度計是 {格: 邊}，看今天落的那一格（on／xon 的 "ck"）；"v25"＝研究檔另存的舊票（只看訊號自己）。"""
     xon = xon or {}
     rows = {r["id"]: r for r in G.research_rows()}
+    V = M.get("votes") if rule == "v26" else (M.get("v25") or {}).get("votes")
     out = {k: {"u": set(), "w": set()} for k in S.THERMO_H}
-    for sid, x in (M.get("votes") or {}).items():
+    for sid, x in (V or {}).items():
         r = rows.get(sid)
         for k, v in x["v"].items():
             H = S.THERMO_H[k]
             nat = r is not None and r.get("H") == H
             if not ((nat and sid in on) or (k in (xon.get(sid) or {}))):
                 continue
+            if isinstance(v, dict):
+                cur = on[sid] if (nat and sid in on) else xon[sid][k]
+                v = v.get(cur.get("ck"), "")
             for c in v:
                 out[k][c].add(x["i"])
     return {k: {c: len(s) for c, s in d.items()} for k, d in out.items()}
 
 
-def now(mk: str, on: dict, xon: dict | None, d: str | None) -> dict | None:
+def now(mk: str, on: dict, xon: dict | None, d: str | None, rule: str = "v26") -> dict | None:
     """每支溫度計兩邊：{溫度計: {"H", "th", 邊: {"n": 票數, "pct": 比它少的週的比例, "grp", "rate", "all", "v", "ci"}}}；
-    研究檔沒有這個市場回 None。位置＝和研究檔最後 CAL_RANK_W 個週末（早於資料日的）比。"""
+    研究檔沒有這個市場回 None。位置＝和研究檔最後 CAL_RANK_W 個週末（早於資料日的）比。
+    rule＝"v25"：研究檔另存的舊票與舊的位置（實戰模擬的實測區用，practspec 寫的是那一套）。"""
     R = load()
     M = (R or {}).get("mk", {}).get(mk)
     if not M:
         return None
-    cnt = counts_now(M, on, xon)
+    cnt = counts_now(M, on, xon, rule)
+    if rule != "v26":
+        M = M.get("v25") or {}
+        if not M.get("hz"):
+            return None
     out = {}
     for k, h in M["hz"].items():
         wk = [i for i, w in enumerate(h["wk"]) if d is None or w < d][-S.CAL_RANK_W:]

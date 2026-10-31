@@ -1304,7 +1304,7 @@ def today_for(now: dict | None) -> dict | None:
     rows = research_rows()
     if not now or not rows:
         return None
-    out = {"mk": now["mk"], "d": now["d"], **board(rows, now["on"], now["mk"], now.get("acts"), now.get("xon"))}
+    out = {"mk": now["mk"], "d": now["d"], **board(rows, now["on"], now["mk"], now.get("acts"), now.get("xon"), gone=now.get("gone"))}
     try:                                              # 溫度計下面「過去讀數這樣的時候」（VER 16，第 5 節 ③d）；研究檔沒有就不顯示
         from . import thermocal as TC
         out["cal"] = TC.now(now["mk"], now["on"], now.get("xon"), now["d"])
@@ -1348,19 +1348,30 @@ def trade_dates(mk: str, cal: list[str], t: int, H: int) -> dict:
     return {"buy": at(e), "sell": at(z), "rem": max(0, z - (T - 1))}
 
 
-def now_market(F: dict, acts: dict | None = None, xon: dict | None = None) -> dict:
+def _today_trade(tr: dict) -> dict:
+    """VER 26（第 5.1 節）：今天看到、下一個交易日收盤進場的那一筆 → {"nb": 進場日, "ns": 出場日}。"""
+    return {"nb": tr.get("buy"), "ns": tr.get("sell")} if tr else {}
+
+
+def now_market(F: dict, acts: dict | None = None, xon: dict | None = None, gone: dict | None = None) -> dict:
     """一個市場 → {訊號 id: {"since": 開始日, "n": 已經幾天（月資料＝幾個月）, "left": 事件型剩幾天,
-    "buy"／"sell"／"rem"：照規則的那一筆交易（trade_dates；狀態型＝今天看到、下一個交易日收盤進場）}}，只列現在有效的。
+    "buy"／"sell"／"rem"：照規則的那一筆交易（trade_dates；狀態型＝今天看到、下一個交易日收盤進場）,
+    VER 26：「k」第幾天（交易日）、"st" 條件（on／off／-）、"ck" 今天那一格、"nb"／"ns" 今天看到的那一筆}}，只列現在有效的。
     狀態型＝資料最後一天在狀態中（月資料＝最後一個過完的月份）；事件型＝最近一次出現在最後 H 個交易日內；
-    買點＝目前一段大跌（bottom.now 進行中）之後已經出現。acts＝給了就順便填現在有效的訊號過去出現的日子（同類合併用）。
+    買點＝目前一段大跌（bottom.now 進行中）之後已經出現、而且出現後還不到 H_BUY 個交易日（VER 26）。
+    acts＝給了就順便填現在有效的訊號過去出現的日子（同類合併用）。
     xon＝給了就填跨期間（sigspec 第 5 節 ③a，VER 15）：{訊號 id: {溫度計: 同上的現在狀態}}，只列原本那個看多久以外、現在有效的；
-    acts 同時填 xkey(id, 溫度計)＝那支溫度計的看多久下出現的日子。"""
+    acts 同時填 xkey(id, 溫度計)＝那支溫度計的看多久下出現的日子。
+    gone＝給了就填事件型「之後出現相反的讀數而不算了、但照規則那一筆還沒出場」的（VER 26 進行中）：
+    {訊號 id: {溫度計: {"since", "n", "k", "exp": 相反讀數那天, buy／sell／rem}}}。"""
+    from . import sigage as AG
     cal = F["cal"]
     T = len(cal)
     out: dict = {}
     stale = set(F.get("stale") or ())                  # VER 20：資料過期的項目不算現在有效
     mk = F.get("mk")
     trd = (lambda t, H: trade_dates(mk, cal, t, H)) if mk else (lambda t, H: {})   # noqa: E731（沒有市場代號＝不排交易日）
+    cache: dict = {}
     for sd in signals(F):
         if stale and sd["cat"] in ("heat", "deriv") and sd.get("var") in stale:
             continue
@@ -1375,19 +1386,38 @@ def now_market(F: dict, acts: dict | None = None, xon: dict | None = None) -> di
                 continue
             gap = 1 if sd.get("monthly") else S.EP_GAP
             ep = episodes([i for i in range(len(samp)) if st[i]], gap, sd.get("brk"))[-1]   # VER 20：遇到相反的極端就是新的一段
-            out[sd["id"]] = {"since": cal[int(samp[ep[0]])], "n": len(ep), **trd(T - 1, sd["H"])}
+            k0 = int(samp[-1] - samp[ep[0]])                   # VER 26：這一段開始後第幾天（月資料＝最後一個月底）
+            out[sd["id"]] = {"since": cal[int(samp[ep[0]])], "n": len(ep), "k": k0, "st": "-", "ck": AG.ck_now(k0, "-"),
+                             **trd(T - 1, sd["H"])}
+            out[sd["id"]].update(_today_trade(trd(T - 1, sd["H"])))
             for k, H in xs:                              # 狀態型：現在有效、出現的日子都和原本一樣（交易照那支溫度計的看多久）
-                xon.setdefault(sd["id"], {})[k] = {**out[sd["id"]], **trd(T - 1, H)}
+                xon.setdefault(sd["id"], {})[k] = {**out[sd["id"]], **trd(T - 1, H), **_today_trade(trd(T - 1, H))}
         else:
             ds = [t for t in sd["days"] if t >= (samp[0] if len(samp) else 0)]
-            alive = bool(ds) and int(exp_end(sd, [ds[-1]], T)[0]) >= T   # VER 20：之後出現相反的讀數就不再算
-            if alive and T - 1 - ds[-1] < sd["H"]:
-                out[sd["id"]] = {"since": cal[ds[-1]], "n": T - 1 - ds[-1], "left": sd["H"] - (T - 1 - ds[-1]),
-                                 **trd(ds[-1], sd["H"])}
+            if not ds:
+                continue
+            k0 = T - 1 - ds[-1]
+            alive = int(exp_end(sd, [ds[-1]], T)[0]) >= T   # VER 20：之後出現相反的讀數就不再算
+            hz_all = [(horizon(sd), sd["H"])] + xs
+            if not any(k0 < H for _, H in hz_all):
+                continue
+            cx = AG.cond(F, sd, cache)
+            stc = "-" if cx is None else ("on" if k0 == 0 or cx[T - 1] else "off")
+            cur = {"since": cal[ds[-1]], "n": k0, "k": k0, "st": stc, "ck": AG.ck_now(k0, stc)}
+            if not alive:
+                if gone is not None:
+                    ex = np.asarray(sd.get("exp"), dtype=np.int64)
+                    j = int(np.searchsorted(ex, ds[-1], side="right"))
+                    for hz, H in hz_all:
+                        if k0 < H:
+                            gone.setdefault(sd["id"], {})[hz] = {**cur, "exp": cal[int(ex[j])] if j < len(ex) else None,
+                                                                **trd(ds[-1], H)}
+                continue
+            if k0 < sd["H"]:
+                out[sd["id"]] = {**cur, "left": sd["H"] - k0, **trd(ds[-1], sd["H"]), **_today_trade(trd(T - 1, sd["H"]))}
             for k, H in xs:
-                if alive and T - 1 - ds[-1] < H:
-                    xon.setdefault(sd["id"], {})[k] = {"since": cal[ds[-1]], "n": T - 1 - ds[-1], "left": H - (T - 1 - ds[-1]),
-                                                       **trd(ds[-1], H)}
+                if k0 < H:
+                    xon.setdefault(sd["id"], {})[k] = {**cur, "left": H - k0, **trd(ds[-1], H), **_today_trade(trd(T - 1, H))}
         if acts is not None and sd["id"] in out:
             acts[sd["id"]] = activity(sd, T)
         if acts is not None and xon is not None:
@@ -1404,9 +1434,15 @@ def now_market(F: dict, acts: dict | None = None, xon: dict | None = None) -> di
             for k, v in sigs.items():
                 if v.get("st") == "on":
                     j = bisect.bisect_left(cal, v["d"])
-                    tr = trd(j, S.H_BUY) if j < T and cal[j] == v["d"] else {}
+                    tr, cur = {}, {}
+                    if j < T and cal[j] == v["d"]:
+                        if T - 1 - j >= S.H_BUY:              # VER 26：買點也只算出現後 H_BUY 個交易日內
+                            continue
+                        tr = trd(j, S.H_BUY)
+                        cur = {"n": T - 1 - j, "k": T - 1 - j, "st": "-", "ck": AG.ck_now(T - 1 - j, "-"),
+                               **_today_trade(trd(T - 1, S.H_BUY))}
                     for ev in evs:
-                        out[f"{F['mk']}:buy:{ev}:{k}"] = {"since": v["d"], "event": a["t"], **tr}
+                        out[f"{F['mk']}:buy:{ev}:{k}"] = {"since": v["d"], "event": a["t"], **tr, **cur}
     return out
 
 
@@ -1512,16 +1548,23 @@ def _robust(fe: dict | None) -> tuple[float | None, bool]:
 
 
 def listing(rows: list[dict], on: dict, mk: str, acts: dict | None = None, xon: dict | None = None,
-            T: dict | None = None) -> list[dict]:
-    """第 5 節 ④b 列出來的規則（VER 23）：這個市場現在有效的市場層級訊號（MARKET_CATS 與大跌後買點），次數 ≥ N_MIN、
-    過去的命中率比平常高 THERMO_EDGE 以上（訊號自己的看多久＝研究列的統計；跨期間＝xon 現在有效、xh 的統計）；
-    同一個項目同一支溫度計一邊留一個、「震盪」（both）、同類合併（families）。
-    → 每一類的領頭："cls"（偏多／買點／大跌風險）、"side"、"hz"、"edge"＝過去的差 e、"st"＝那一邊的統計、"now"、"fam"；
-    預估之後（sigoos.est／est_x）有的話另有 "fe"、"g"、"ok"＝之後也成立；跨期間的列另有 "xk"、"H0"、"ak"、"xc"（事件型：
-    那支溫度計的看多久、同一批次數的報酬格），H、th、up、warn 換成那支溫度計的。預估之後的研究檔沒有（或版本不夠）照樣列，只是沒有 fe、ok 都是 False。"""
+            T: dict | None = None, A: dict | None = None, gone: dict | None = None, pend: list | None = None) -> list[dict]:
+    """第 5 節 ④c 列出來的規則（VER 26；④b 是 VER 23）：這個市場現在有效的市場層級訊號（MARKET_CATS 與大跌後買點），
+    訊號自己的成績次數 ≥ N_MIN、過去的命中率比平常高 THERMO_EDGE 以上（訊號自己的看多久＝研究列的統計；跨期間＝xon 現在有效、xh 的統計），
+    而且今天落的那一格（sigage 第 5.1 節：第幾天 × 條件，now 的 "ck"）也一樣過；同一個項目同一支溫度計一邊留一個（那一格 e 最大的）、
+    「震盪」（both）、同類合併（families）。
+    → 每一類的領頭："cls"（偏多／買點／大跌風險）、"side"、"hz"、"edge"＝那一格的 e（研究檔沒有＝訊號自己的 e）、"e0"＝訊號自己的 e、
+    "st"＝那一格這一邊的統計（研究檔沒有＝訊號自己的）、"st0"＝訊號自己的、"cell"＝那一格、"age"＝有沒有用格子、"now"、"fam"；
+    之後也成立：有格子用那一格的預估之後（sigage.est），沒有用 sigoos.est／est_x；"fe"、"g"、"ok"。跨期間的列另有 "xk"、"H0"、"ak"、"xc"
+    （事件型：那支溫度計的看多久、同一批次數的報酬格），H、th、up、warn 換成那支溫度計的。
+    pend＝給了就放進行中（第 5.1 節）：訊號自己會列、但今天那一格沒過（"why" few／weak）或之後出現相反的讀數（gone，"why" exp），
+    同一支溫度計、同一邊、同一個項目已經列了就不放，同一個項目只留一個（訊號自己的 e 最大的）。"""
+    from . import sigage as AG
     from . import sigoos as OOS
     T = OOS.load() if T is None else T
+    A = AG.load() if A is None else A
     best: dict = {}
+    cand: list = []
 
     def put(c: dict) -> None:
         key = (item_key(c), c["hz"], c["side"])
@@ -1530,39 +1573,51 @@ def listing(rows: list[dict], on: dict, mk: str, acts: dict | None = None, xon: 
 
     def ok_st(st: dict | None) -> bool:
         return bool(st) and st.get("hit") is not None and st.get("base") is not None and (st.get("n") or 0) >= S.N_MIN
+
+    def consider(r: dict, d: str, st: dict, hz: str, now: dict, x: dict | None, why: str | None = None) -> None:
+        e = st["hit"] - st["base"]
+        cls = list_cls(d, e)
+        if not cls:
+            return
+        c = {**r, **(x or {}), "d": d, "cls": cls, "side": S.LIST_SIDE[cls], "hz": hz, "now": now, "e0": e, "st0": st}
+        if why:                                                       # 之後出現相反的讀數（gone）
+            cand.append({**c, "edge": e, "st": st, "why": why, "cell": AG.cell(A, r["id"], hz, now.get("ck"))})
+            return
+        if not A:                                                     # 第幾天的成績還沒算（或傳 {} 照舊）：照 ④b
+            fe = (OOS.est_x(r, d, x["xk"], T) if x else OOS.est(r, d, T)) if T else None
+            g, ok = _robust(fe)
+            put({**c, "edge": e, "st": st, "fe": fe, "g": g, "ok": ok, "age": False})
+            return
+        cl = AG.cell(A, r["id"], hz, now.get("ck"))
+        passed, w, ce = AG.ok_cell(cl, d)
+        cst = (cl or {}).get("warn" if d == "warn" else "up") or {}
+        if not passed:
+            cand.append({**c, "edge": e, "st": st, "why": w, "cell": cl, "ce": ce})
+            return
+        es = AG.est(A, d, int(c["H"]), int(cst["n"]), float(ce), bool(x))
+        fe = {"hit": cst["hit"], "base": cst["base"], "fh": cst["base"] + es["g"], **es}
+        put({**c, "edge": ce, "st": cst, "cell": cl, "fe": fe, "g": es["g"], "ok": es["g"] >= S.LIST_GAP, "age": True})
+
+    def xinfo(r: dict, k: str, X: dict) -> dict:
+        return {"H": X["H"], "th": X["th"], "up": X["up"], "warn": X["warn"], "H0": r["H"], "xk": k, "ak": xkey(r["id"], k),
+                "xc": X.get("c")}
     for r in rows:
-        if r.get("mk") != mk or r["id"] not in on or r.get("cat") not in OOS.MARKET_CATS + ("buy",):
+        if r.get("mk") != mk or r.get("cat") not in OOS.MARKET_CATS + ("buy",):
             continue
+        own = horizon(r)
+        g0 = (gone or {}).get(r["id"]) or {}
         for d in (("buy",) if r["cat"] == "buy" else ("up", "warn")):
-            st = r.get(d)
-            if not ok_st(st):
-                continue
-            e = st["hit"] - st["base"]
-            cls = list_cls(d, e)
-            if cls:
-                fe = OOS.est(r, d, T) if T else None
-                g, ok = _robust(fe)
-                put({**r, "d": d, "cls": cls, "side": S.LIST_SIDE[cls], "hz": horizon(r), "edge": e, "st": st,
-                     "fe": fe, "g": g, "ok": ok, "now": on[r["id"]]})
-    for r in rows:                                    # 跨期間（第 5 節 ③a 的現在有效）
-        if r.get("mk") != mk or not xon or r["id"] not in xon or not r.get("xh") or r.get("cat") not in OOS.MARKET_CATS:
+            if ok_st(r.get(d)) and (r["id"] in on or own in g0):
+                consider(r, d, r[d], own, on.get(r["id"]) or g0[own], None, None if r["id"] in on else "exp")
+        if r.get("cat") not in OOS.MARKET_CATS or not r.get("xh"):
             continue
-        for k, nk in xon[r["id"]].items():
-            X = r["xh"].get(k)
-            if not X:
+        for k, X in r["xh"].items():                                 # 跨期間（第 5 節 ③a 的現在有效）
+            nk = (xon or {}).get(r["id"], {}).get(k)
+            if not X or not (nk or k in g0):
                 continue
             for d in ("up", "warn"):
-                st = X.get(d)
-                if not ok_st(st):
-                    continue
-                e = st["hit"] - st["base"]
-                cls = list_cls(d, e)
-                if cls:
-                    fe = OOS.est_x(r, d, k, T) if T else None
-                    g, ok = _robust(fe)
-                    put({**r, "H": X["H"], "th": X["th"], "up": X["up"], "warn": X["warn"], "H0": r["H"], "d": d, "cls": cls,
-                         "side": S.LIST_SIDE[cls], "hz": k, "edge": e, "st": st, "fe": fe, "g": g, "ok": ok, "now": nk,
-                         "xk": k, "ak": xkey(r["id"], k), "xc": X.get("c")})
+                if ok_st(X.get(d)):
+                    consider(r, d, X[d], k, nk or g0[k], xinfo(r, k, X), None if nk else "exp")
     items: dict = {}
     for (ik, hz, side), c in best.items():
         items.setdefault((ik, hz), {})[side] = c
@@ -1570,27 +1625,43 @@ def listing(rows: list[dict], on: dict, mk: str, acts: dict | None = None, xon: 
     for sl in items.values():
         both = len(sl) == 2                                           # 偏多（買點）＋大跌風險＝震盪
         out += [{**c, "both": both} for c in sl.values()]
+    if pend is not None:
+        pb: dict = {}
+        for c in cand:
+            key = (item_key(c), c["hz"], c["side"])
+            if key in best:
+                continue
+            if key not in pb or _lrank(c) < _lrank(pb[key]):
+                pb[key] = c
+        pend.extend(sorted(pb.values(), key=lambda c: (c["hz"], c["side"], -c["edge"], c["id"])))
     return families(out, acts)
 
 
 def today(rows: list[dict], on: dict, mk: str, acts: dict | None = None, xon: dict | None = None,
-          T: dict | None = None) -> dict:
-    """訊號總覽「今天有效的訊號」（sigspec 第 5 節 ④b，VER 23）：同 listing 的規則，偏多、警示兩邊各依 _frank 排序。
-    → {"ok": True（VER 23 起不依賴預估之後的研究檔）, "fwd": 預估之後的研究檔有沒有, "up": [...], "warn": [...]}。"""
+          T: dict | None = None, gone: dict | None = None) -> dict:
+    """訊號總覽「今天有效的訊號」（sigspec 第 5 節 ④c，VER 26）：同 listing 的規則，偏多、警示兩邊各依 _frank 排序。
+    → {"ok": True, "fwd": 預估之後的研究檔有沒有, "age": 第幾天的研究檔有沒有, "up": [...], "warn": [...],
+       "pend": {邊: [進行中…]}}。"""
+    from . import sigage as AG
     from . import sigoos as OOS
     T = OOS.load() if T is None else T
-    fams = listing(rows, on, mk, acts, xon, T)
-    return {"ok": True, "fwd": bool(T), **{s: [f for f in fams if f["side"] == s] for s in ("up", "warn")}}
+    pend: list = []
+    fams = listing(rows, on, mk, acts, xon, T, gone=gone, pend=pend)
+    return {"ok": True, "fwd": bool(T), "age": AG.load() is not None, **{s: [f for f in fams if f["side"] == s] for s in ("up", "warn")},
+            "pend": {s: [p for p in pend if p["side"] == s] for s in ("up", "warn")}}
 
 
 def board(rows: list[dict], on: dict, mk: str, acts: dict | None = None, xon: dict | None = None,
-          T: dict | None = None) -> dict:
-    """景氣頁「今天的重點」（sigspec 第 5 節 ④b，VER 23）：listing 的每一類依溫度計分三段，每段偏多、警示兩張清單（_frank 排序）；
+          T: dict | None = None, gone: dict | None = None) -> dict:
+    """景氣頁「今天的重點」（sigspec 第 5 節 ④c，VER 26）：listing 的每一類依溫度計分三段，每段偏多、警示兩張清單（_frank 排序）；
     溫度計＝每一支、每一邊的類數（一類算 1），偏多占比 ≥ THERMO_LEAN 偏多、≤ 1 − THERMO_LEAN 偏警示、其他差不多，兩邊都沒有＝中性。
-    → {"ok", "fwd", "up": [...], "warn": [...], "thermo": [{"k", "name", "h", "H", "n": {side: 類數}, "share", "lean", "up": [...], "warn": [...]}]}。"""
+    → {"ok", "fwd", "age", "up": [...], "warn": [...], "thermo": [{"k", "name", "h", "H", "n": {side: 類數}, "share", "lean",
+       "up": [...], "warn": [...], "pend": {邊: [進行中…]}}]}。進行中不算溫度計。"""
+    from . import sigage as AG
     from . import sigoos as OOS
     T = OOS.load() if T is None else T
-    fams = listing(rows, on, mk, acts, xon, T)
+    pend: list = []
+    fams = listing(rows, on, mk, acts, xon, T, gone=gone, pend=pend)
     th = []
     for k, name, h in S.THERMO_HZ:
         L = {s: [f for f in fams if f["hz"] == k and f["side"] == s] for s in ("up", "warn")}
@@ -1598,8 +1669,9 @@ def board(rows: list[dict], on: dict, mk: str, acts: dict | None = None, xon: di
         tot = n["up"] + n["warn"]
         share = n["up"] / tot if tot else None
         lean = None if share is None else "up" if share >= S.THERMO_LEAN else "warn" if share <= 1 - S.THERMO_LEAN else "even"
-        th.append({"k": k, "name": name, "h": h, "H": S.THERMO_H[k], "n": n, "share": share, "lean": lean, **L})
-    return {"ok": True, "fwd": bool(T), "up": [f for f in fams if f["side"] == "up"],
+        th.append({"k": k, "name": name, "h": h, "H": S.THERMO_H[k], "n": n, "share": share, "lean": lean, **L,
+                   "pend": {s: [p for p in pend if p["hz"] == k and p["side"] == s] for s in ("up", "warn")}})
+    return {"ok": True, "fwd": bool(T), "age": AG.load() is not None, "up": [f for f in fams if f["side"] == "up"],
             "warn": [f for f in fams if f["side"] == "warn"], "thermo": th}
 
 
@@ -1692,8 +1764,9 @@ def now_for_B(B: dict) -> dict | None:
             return None
         acts: dict = {}
         xon: dict = {}
-        on = now_market(F, acts, xon)
-        NOW[F["mk"]] = {"mk": F["mk"], "d": F["cal"][-1], "on": on, "acts": acts, "xon": xon, "cv": crash_now(F),
+        gone: dict = {}
+        on = now_market(F, acts, xon, gone)
+        NOW[F["mk"]] = {"mk": F["mk"], "d": F["cal"][-1], "on": on, "acts": acts, "xon": xon, "gone": gone, "cv": crash_now(F),
                         "sim": _sim_now(F)}
         return NOW[F["mk"]]
     except Exception as e:                            # noqa: BLE001

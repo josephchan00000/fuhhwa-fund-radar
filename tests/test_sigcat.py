@@ -484,7 +484,8 @@ def test_now_market_cross_horizon_activity(monkeypatch):
     acts, xon = {}, {}
     on = G.now_market({"cal": cal}, acts, xon)
     assert set(on) == {"s"}                                                     # 事件 e 已過 30 天 > 20
-    assert xon["e"] == {"mid": {"since": cal[T - 31], "n": 30, "left": 30}, "long": {"since": cal[T - 31], "n": 30, "left": 220}}
+    cur = {"since": cal[T - 31], "n": 30, "k": 30, "st": "-", "ck": "4-"}         # VER 26：第幾天、條件（沒有條件＝"-"）、今天那一格
+    assert xon["e"] == {"mid": {**cur, "left": 30}, "long": {**cur, "left": 220}}
     assert set(xon["s"]) == {"short", "long"} and xon["s"]["long"] == on["s"]
     assert "old" not in xon                                                     # 300 天前：12 個月（250 天）也過了
     a = acts[G.xkey("e", "long")]

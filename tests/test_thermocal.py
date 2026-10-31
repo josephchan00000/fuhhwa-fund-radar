@@ -109,7 +109,8 @@ def test_verdict_bootstrap_is_deterministic_and_reads_direction():
 
 def test_market_counts_items_with_yearly_rolling_votes(monkeypatch):
     """逐年滾動：每年 1 月 1 日用之前走完的窗口重算統計、照 ④b 的規則（VER 23）決定會投哪一邊；同一個項目一票；
-    週末的票數＝有效而且會投的項目數；今天的票數用最後一年那一次的統計（votes）。"""
+    週末的票數＝有效而且會投的項目數；今天的票數用最後一年那一次的統計（votes）。VER 26 起這一套存在 "v25"（實戰模擬用），
+    "hz"／"votes" 是 ④c：另外要那個週末落的那一格（cut 之前走完的日子算）也過——所以每一週都不會比 v25 多。"""
     T = 260 * 14
     cal = _cal(T)
     px = _px(T, seed=11)
@@ -129,6 +130,7 @@ def test_market_counts_items_with_yearly_rolling_votes(monkeypatch):
     monkeypatch.setattr(G, "signals", lambda F: sds)
     F = {"mk": "tw", "cal": cal, "px": px, "we": we, "r0": cal[0]}
     M = TC.market(F)
+    V = M["v25"]
     assert M["y0"] == TC.first_year(cal) == 2011 and M["cut"] == f"{cal[-1][:4]}-01-01"
     # 直接算某一年某一週的票數
     k, H = "mid", 60
@@ -145,7 +147,7 @@ def test_market_counts_items_with_yearly_rolling_votes(monkeypatch):
                 items.add(TC.item_of(sd))
         want_w.append(len(items))
     i0 = sum(1 for t in we if cal[t][:4] < str(yr) and cal[t][:4] >= str(M["y0"]))
-    assert len(M["hz"][k]["wk"]) == len(M["hz"][k]["w"]) <= S.CAL_RANK_W + 1
+    assert len(V["hz"][k]["wk"]) == len(V["hz"][k]["w"]) <= S.CAL_RANK_W + 1
     full = TC.market(F)                                                        # 同資料同結果
     assert full == M
     # 從頭重建一次歷史（不截尾）來比對那一年
@@ -156,9 +158,31 @@ def test_market_counts_items_with_yearly_rolling_votes(monkeypatch):
             its = {TC.item_of(sd) for sd in sds[:-1]
                    if "w" in TC.vote(TC.stats_before(sd, c, Y, H)) and TC.active(sd, T, H)[t]}
             hist.append(len(its))
-    assert hist[i0:i0 + len(wk)] == want_w and M["hz"][k]["w"] == hist[-(S.CAL_RANK_W + 1):]
-    assert "tw:buy:x" not in M["votes"] and set(M["votes"]) <= {sd["id"] for sd in sds[:-1]}
-    for sid, x in M["votes"].items():
+    assert hist[i0:i0 + len(wk)] == want_w and V["hz"][k]["w"] == hist[-(S.CAL_RANK_W + 1):]
+    # VER 26：同一個週末另外要那一格過（逐年、只用 cut 之前走完的日子）
+    from arm.lab import sigage as A
+    pre = {sd["id"]: (A.days(sd, T, H, None), ) for sd in sds[:-1]}
+    pre = {sid: (D[0], dict(zip(D[0]["t"].tolist(), D[0]["cid"].tolist())), A.Prefix(D[0], Y[0], Y[1], samp, H))
+           for sid, D in pre.items()}
+    hist26 = []
+    for y in range(M["y0"], int(cal[-1][:4]) + 1):
+        c = next(i for i, d in enumerate(cal) if d >= f"{y}-01-01")
+        for t in [t for t in we if cal[t][:4] == str(y)]:
+            its = set()
+            for sd in sds[:-1]:
+                _, cm, Pf = pre[sd["id"]]
+                if "w" in TC.vote(TC.stats_before(sd, c, Y, H)) and TC.active(sd, T, H)[t] and t in cm \
+                        and A.passes(Pf.at(c), "warn")[cm[t]]:
+                    its.add(TC.item_of(sd))
+            hist26.append(len(its))
+    assert M["hz"][k]["w"] == hist26[-(S.CAL_RANK_W + 1):] and all(a <= b for a, b in zip(hist26, hist))
+    cw = M["cmp"][k]["warn"]
+    assert cw["v25"][1] >= cw["v26"][1] and cw["drop"][1] == cw["v25"][1] - cw["v26"][1]
+    for sid, x in M["votes"].items():                                         # VER 26 的票：{格: 邊}，邊一定是 v25 會投的
+        assert set(x["v"]) <= set(V["votes"][sid]["v"])
+        assert all(set(e) <= set(V["votes"][sid]["v"][kk]) for kk, cv in x["v"].items() for e in cv.values())
+    assert "tw:buy:x" not in V["votes"] and set(V["votes"]) <= {sd["id"] for sd in sds[:-1]}
+    for sid, x in V["votes"].items():
         sd = next(s for s in sds if s["id"] == sid)
         assert x["i"] == TC.item_of(sd)
         for kk, v in x["v"].items():

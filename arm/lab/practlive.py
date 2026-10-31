@@ -86,7 +86,7 @@ def targets(mk: str, now: dict | None, R: dict | None, D: dict | None = None) ->
     out: dict = {"t": {}}
     if now:
         try:
-            C = TC.now(mk, now["on"], now.get("xon"), now["d"])
+            C = TC.now(mk, now["on"], now.get("xon"), now["d"], rule="v25")   # practspec 寫的是 sigspec VER 25 的票（VER 26 另存）
         except Exception as e:                        # noqa: BLE001
             print(f"[實測] {mk} 溫度計讀數算不出來：{type(e).__name__}: {e}")
             C = None

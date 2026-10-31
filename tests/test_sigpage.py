@@ -14,6 +14,15 @@ ROOT = Path(__file__).resolve().parents[1]
 BANNED = ("保證", "穩賺", "必賺", "包賺", "必漲", "必跌", "一定會", "建議買賣", "建議買", "建議賣", "目標價", "零風險", "無風險")
 
 
+
+@pytest.fixture(autouse=True)
+def _no_age(monkeypatch):
+    """這一檔測 ④b 的清單機制與呈現（VER 23～25：同一個項目、震盪、同類合併、跨期間）；VER 26 今天那一格的關卡在 tests/test_sigage.py。
+    第幾天的研究檔換成沒有 → 照 ④b 列（④c 的退路），假資料的訊號不會因為查不到格子被拿掉。"""
+    from arm.lab import sigage
+    monkeypatch.setattr(sigage, "load", lambda path=None: None)
+
+
 def _st(n, hit, base, tier, n10=0, hit10=None, base10=None):
     return {"n": n, "hit": hit, "base": base, "n10": n10, "hit10": hit10, "base10": base10, "tier": tier}
 
@@ -64,7 +73,8 @@ def test_today_listing_rule_one_row_per_item():
     u, w = T["up"][0], T["warn"][0]
     assert u["cls"] == "up" and abs(u["edge"] - 0.19) < 1e-9 and w["cls"] == "risk" and abs(w["edge"] - 0.29) < 1e-9
     assert u["both"] and w["both"] and u["hz"] == w["hz"] == "mid" and u["fe"]["fh"] == 0.85 and u["ok"] and w["ok"]
-    assert sigcat.today(V["rows"], {}, "tw", T=FT) == {"ok": True, "fwd": True, "up": [], "warn": []}
+    assert sigcat.today(V["rows"], {}, "tw", T=FT) == {"ok": True, "fwd": True, "age": False, "up": [], "warn": [],
+                                                        "pend": {"up": [], "warn": []}}          # VER 26：第幾天的研究檔有沒有、進行中
     nt = sigcat.today(V["rows"], V["on"], "tw", T={})                              # 預估之後的研究檔沒有：照樣列、不標
     assert nt["ok"] and not nt["fwd"] and [r["id"] for r in nt["up"] + nt["warn"]] == ["tw:heat:C1:hot_in", "tw:heat:C1:hot"]
     assert not any(r["ok"] or r["fe"] for r in nt["up"] + nt["warn"])
