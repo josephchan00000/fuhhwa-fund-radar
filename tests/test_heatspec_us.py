@@ -8,7 +8,8 @@ from arm.lab import heatspec_us as U
 
 def test_us_spec_v1_is_locked():
     # VER 2：補缺月、資料過期（docs/lab_audit_plan.md）；VER 3：情緒籌碼改成各指數自己的項目（docs/lab_us_chip_plan.md）
-    assert U.VER == 4 and U.SPEC_DATE == "2026-10-31" and U.MARKET == "us"
+    assert U.VER == 5 and U.SPEC_DATE == "2026-10-31" and U.MARKET == "us"
+    assert U.GDP_LATE == {"2013-09": "2013-11-07", "2018-12": "2019-02-28", "2025-09": "2025-12-23"}   # VER 5：GDP 停擺改期
     assert U.RELEASE_LATE == {"F5": {"2013-09": "2013-10-22", "2013-10": "2013-11-08", "2025-09": "2025-11-20",
                                      "2025-11": "2025-12-16"}, "F6": U.CPI_LATE, "F7": U.CPI_LATE}   # VER 4：停擺延後公布
     assert U.CPI_LAG_ITEMS == ("X1", "X4", "X6", "X7")              # VER 4 補充：用前 cpi_lag 個月 CPI 的項目
@@ -30,9 +31,9 @@ def test_us_spec_v1_is_locked():
     assert [k for k in freq if freq[k] == "m"] == ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11",
                                                    "S5", "R6", "R7", "R10", "X1", "X4", "X6", "X7", "X8", "X9", "X10"]
     assert set(U.RELEASE) == {k for k in freq if freq[k] == "m"}             # 每個月資料都有公布時間差
-    assert U.RELEASE == {"F1": (0, 22), "F2": (1, 1), "F9": (1, 1), "F3": (1, 15), "F4": (1, 15), "F5": (1, 8),
-                         "F6": (1, 16), "F7": (1, 16), "F8": (6, 1), "F10": (2, 10), "F11": (1, 11), "S5": (3, 15),
-                         "R6": (1, 20), "R7": (1, 28), "R10": (1, 15), "X1": (1, 1), "X4": (1, 1), "X6": (1, 1),
+    assert U.RELEASE == {"F1": (0, 22), "F2": (1, 1), "F9": (1, 1), "F3": (1, 20), "F4": (1, 15), "F5": (1, 8),   # VER 5
+                         "F6": (1, 16), "F7": (1, 16), "F8": (6, 1), "F10": (2, 14), "F11": (1, 11), "S5": (3, 15),
+                         "R6": (2, 1), "R7": (2, 1), "R10": (1, 20), "X1": (1, 1), "X4": (1, 1), "X6": (1, 1),
                          "X7": (1, 1), "X8": (1, 1), "X9": (1, 1), "X10": (1, 1)}
     assert U.ONLY == {"F10": ("sox",), "F11": ("sox",), "T14": ("ixic", "ndx", "sox"), "X10": ("spx",),
                       "X11": ("ixic", "ndx", "sox"), "S1": ("spx",), "S2": ("spx",), "S8": ("ixic", "ndx", "sox"),
@@ -107,7 +108,7 @@ def test_spec_for_each_index():
 def test_use_switches_and_restores():
     tw = (S.VER, S.MARKET, list(S.KEYS), dict(S.ITEMS), S.US, S.DSHORT)
     with S.use(U.spec_for("ndx")):
-        assert (S.VER, S.MARKET, S.INDEX) == (4, "us", "ndx")
+        assert (S.VER, S.MARKET, S.INDEX) == (5, "us", "ndx")
         assert S.ITEMS["tech"][-1] == "T14" and S.US == ("R1",) and S.band(85) == "過熱"
     assert (S.VER, S.MARKET, list(S.KEYS), dict(S.ITEMS), S.US, S.DSHORT) == tw
     assert not hasattr(S, "INDEX") and not hasattr(S, "INDICES")      # 美股才有的名稱離開時拿掉
@@ -116,4 +117,4 @@ def test_use_switches_and_restores():
             raise RuntimeError("x")
     except RuntimeError:
         pass
-    assert S.VER == 11 and S.MARKET == "tw"                             # 中途出錯也換回來
+    assert S.VER == 12 and S.MARKET == "tw"                             # 中途出錯也換回來

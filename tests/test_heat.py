@@ -10,9 +10,10 @@ from arm.lab import heatspec as S
 
 
 def test_spec_v7_is_locked():
-    assert S.VER == 11 and S.SPEC_DATE == "2026-10-31" and S.MARKET == "tw"     # VER 11：補缺月拿得到的時間、停擺延後公布（docs/lab_signal_quality_plan.md 第 9 節）
+    assert S.VER == 12 and S.SPEC_DATE == "2026-10-31" and S.MARKET == "tw"     # VER 12：一般月份的公布日對官方（docs/lab_signal_quality_plan.md 第 11.2 節）
     assert S.RELEASE_LATE == {"B8": {"2013-09": "2013-10-30", "2013-10": "2013-11-20",          # 官方改期公告（勞工統計局）
                                      "2025-09": "2025-10-24", "2025-11": "2025-12-18"}}
+    assert (S.US_TW_DAYS, S.REV_DEADLINE) == (1, 10)                                            # VER 12：美國資料台股隔天用、月營收申報期限
     # 第四版的計分規格（第五、六版沒有改分數；第七版只加泡沫面向）
     assert list(S.DIMS) == ["fund", "chip", "gliq", "tliq", "tech", "bubl"]
     assert {d: (v["fwd"], v["freq"]) for d, v in S.DIMS.items()} == {
@@ -32,9 +33,9 @@ def test_spec_v7_is_locked():
                      "T11": 1, "T12": 1, "T13": 1, "X1": 1, "X2": 1, "X3": 1, "X4": 1, "X5": 1, "X6": 1, "X7": 1}
     assert [k for k in S.KEYS if S.FREQ_OF[k] == "m"] == ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "G5",
                                                            "L1", "L2", "L6", "L8", "L9", "L10", "X1", "X4", "X6", "X7"]
-    assert S.RELEASE == {"B1": (2, 28), "B2": (2, 28), "B5": (2, 28), "B3": (1, 6), "B4": (1, 21), "B6": (1, 11),
-                         "B7": (1, 10), "B8": (1, 16), "L1": (1, 27), "L2": (1, 27), "L8": (1, 27), "L9": (1, 27),
-                         "L10": (1, 27), "L6": (1, 6), "G5": (1, 15), "X1": (1, 1), "X4": (1, 1), "X6": (1, 1), "X7": (1, 1)}
+    assert S.RELEASE == {"B1": (3, 1), "B2": (3, 1), "B5": (3, 1), "B3": (1, 8), "B4": (1, 24), "B6": (1, 11),   # VER 12
+                         "B7": (1, 14), "B8": (1, 16), "L1": (2, 1), "L2": (2, 1), "L8": (2, 1), "L9": (2, 1),
+                         "L10": (2, 1), "L6": (1, 10), "G5": (1, 20), "X1": (1, 1), "X4": (1, 1), "X6": (1, 1), "X7": (1, 1)}
     assert set(S.RELEASE) == {k for k in S.KEYS if S.FREQ_OF[k] == "m"}     # 每個月資料都有公布時間差
     assert S.PCT_WIN == {"d": 750, "m": 120} and S.PCT_MIN == {"d": 375, "m": 60}
     assert S.DAILY_LAG == 1 and S.US == ("G1", "G2", "G3", "G4", "T9") and S.PROXY == {"T10": "T9"}
