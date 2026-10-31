@@ -7,7 +7,9 @@ name: 籌碼雷達 計算核對每週重跑
 #     不一致時市場頁與研究紀錄頁頂欄下面標紅、後台「今天的驗證」列出例子、06:35 推播多一行（arm/lab/valog.py 的 verify_*）；
 #     超過 15 天沒有新結果也推播一行。
 #   · 有不一致時，commit 之後最後一步讓這一輪變紅（GitHub 會寄失敗信）；結果照樣入 main，不擋任何發佈。
-#   · 每次約 25～40 分鐘（repo 公開，一般機器不計分鐘）。
+#   · 先更新官方公布日表（scripts/fetch_reldates.py → data/lab/heat/reldates.json.gz；第 11.2 節 A-3b），新公布的月份進表，
+#     和核對結果一起 commit；抓不到（檔案館限流）就用原本的表，不擋核對。
+#   · 每次約 30～60 分鐘（repo 公開，一般機器不計分鐘）。
 # 排程只會用 main 上的這支檔（schedule 一律跑預設分支）：分支上的改動要進 main 才生效。
 
 on:
@@ -37,8 +39,11 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: 安裝相依（numpy）
-        run: pip install --quiet certifi numpy
+      - name: 安裝相依（numpy、pypdf）
+        run: pip install --quiet certifi numpy pypdf
+
+      - name: 更新官方公布日表（抓不到就用原本的）
+        run: timeout 1500 python3 scripts/fetch_reldates.py || echo "[reldates] 沒有全部跑完（逾時或出錯），用已抓到的"
 
       - name: 計算核對（第二套算法＋截斷重建）
         run: python3 scripts/run_verify.py
@@ -47,7 +52,7 @@ jobs:
         run: |
           git config user.name "josephchan00000"
           git config user.email "51159474+josephchan00000@users.noreply.github.com"
-          git add -f data/lab/verify_status.json
+          git add -f data/lab/verify_status.json data/lab/heat/reldates.json.gz
           git commit -q -m "chore: 籌碼雷達計算核對每週重跑 $(date +%F)" || { echo "無變更"; exit 0; }
           for i in 1 2 3; do
             git push origin HEAD:main && exit 0

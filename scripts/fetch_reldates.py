@@ -13,6 +13,8 @@
     （哪一季由使用端照「公布日往前 60 天以前最近的季底」對應）。
   · ALFRED（聖路易聯準銀行）2026-10-31 兩輪在 CI 都逾時，不再試。
 
+每週跟著 verify.yml 跑一次（新公布的月份進表）；也可以 lab_backfill.yml 的 relfill 模式單獨跑。
+
   python3 scripts/fetch_reldates.py
 """
 from __future__ import annotations
@@ -153,8 +155,8 @@ def main() -> None:
         try:
             got = parse_cdx(_get_backoff(u), name)
             src[f"cdx_{name}"] = f"{u}：{len(got)} 天"
-            if got:
-                d[f"cdx_{name}"] = got                  # 整份換掉（第一輪沒過濾的不留）
+            if got:                                     # 只增不減（某一次檔案館回得不完整也不會把表變小）；2026-10-31 第一輪沒過濾的已清掉
+                d[f"cdx_{name}"] = sorted(set(d.get(f"cdx_{name}") or []) | set(got))
         except Exception as e:                          # noqa: BLE001 —— 一個來源失敗不擋其他來源
             src[f"cdx_{name}"] = f"{type(e).__name__} {e}"[:200]
         print(f"[reldates] cdx_{name}：{src[f'cdx_{name}'][-60:]}；例 {(d.get(f'cdx_{name}') or [])[-3:]}", flush=True)
@@ -193,7 +195,7 @@ def main() -> None:
                 got = parse_bls(_get_backoff(v), name)
                 src[name] = f"{v}：{len(got)} 期"
                 if got:
-                    d[name] = got
+                    d[name] = {**(d.get(name) or {}), **got}
                 if len(got) >= 100:
                     break
             except Exception as e:                      # noqa: BLE001

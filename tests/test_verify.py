@@ -309,7 +309,9 @@ def test_verify_workflow_weekly_on_main_commits_and_goes_red():
     wf = (Path(__file__).resolve().parents[1] / ".github" / "workflows" / "verify.yml").read_text(encoding="utf-8")
     assert "schedule:" in wf and 'cron: "17 5 * * 6"' in wf and "workflow_dispatch:" in wf
     assert "ref: main" in wf and "python3 scripts/run_verify.py" in wf and "numpy" in wf
-    assert "git add -f data/lab/verify_status.json" in wf and "git push origin HEAD:main" in wf
+    assert "git add -f data/lab/verify_status.json data/lab/heat/reldates.json.gz" in wf and "git push origin HEAD:main" in wf
+    i_rel, i_run = wf.find("python3 scripts/fetch_reldates.py"), wf.find("python3 scripts/run_verify.py")
+    assert 0 < i_rel < i_run and "|| echo" in wf[i_rel:i_run]                       # 先更新官方公布日表，抓不到不擋核對
     i_commit, i_red = wf.find("commit 結果"), wf.find("有不一致就讓這一輪變紅")
     assert 0 < i_commit < i_red and "sys.exit(0 if d.get('ok') else 1)" in wf   # 先入 main，再變紅（不擋發佈）
 

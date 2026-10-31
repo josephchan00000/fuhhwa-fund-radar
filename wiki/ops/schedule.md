@@ -19,7 +19,7 @@
 - 22:05 cron：融資融券（~21:30 公布）、P/C 比、NAV 掃尾。23:20 夜檢（Routine 鏈的 send_later，只驗不抓）。
 - 週頻：週一 08:05 Routine → [ETF 募集週掃](etf-weekly-scan.md)（更新 `data/etf_upcoming.json`，push 經 daily.yml 併檔上線）；週日 19:00 strategy_cands.yml 排程（試用中的候選補紀錄、補算）、
   19:47 Routine → [策略探勘週報](strategy-scouting.md)（新候選經 strategy_cands.yml 合併通道回測、併進 main、重建）。Routine 見 [排程搬家](routines.md)。
-- 週六 13:17 cron：`verify.yml` 計算核對（`scripts/run_verify.py`，只讀資料、commit `data/lab/verify_status.json`；不一致時頁面標紅、推播一行、不擋發佈；見 [籌碼雷達介面](../lab/chip-ui.md)「後台自我驗證」）。
+- 週六 13:17 cron：`verify.yml` 先更新官方公布日表（`scripts/fetch_reldates.py`），再計算核對（`scripts/run_verify.py`，只讀資料、commit `data/lab/verify_status.json` 與 `data/lab/heat/reldates.json.gz`；不一致時頁面標紅、推播一行、不擋發佈；見 [籌碼雷達介面](../lab/chip-ui.md)「後台自我驗證」）。
 
 ### 三層（2026-08-03）
 

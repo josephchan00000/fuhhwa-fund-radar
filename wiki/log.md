@@ -142,3 +142,6 @@
 
 ## [2026-10-31] 收錄 | 資料來源比對（A-3c）與手算固定案例（A-3d）
 - `arm/lab/srccheck.py`（法人與融資 FinMind vs 證交所、美債財政部 vs H.15、加權指數 Yahoo vs 證交所／國發會、指數 vs ETF、單日跳動；約 12 萬筆 0 不一致）接進每週核對；`tests/test_golden.py`（歷史收盤值、自營商連 10 天、年線事件）。改了 `lab/chip-ui.md`、`lab/heat-tw.md`（規劃第 11.3、11.4 節）。
+
+## [2026-10-31] 收錄 | 月／季資料照官方實際公布日（A-3b）
+- heatspec VER 12、heatspec_us VER 5、bubspec VER 5（含兩次算結果之前的補充）：美國 CPI、就業報告、Z.1 照官方實際公布日（`arm/lab/reldates.py`、`scripts/fetch_reldates.py`，每週跟 `verify.yml` 更新），沒有官方日期的年份照同月份歷年最晚；GDP、企業獲利停擺改期；台灣月資料改保守時程；月營收照申報期限。邊際變化（`heatpos`、`heatreg`）與 CAPE 參考讀數補上實際拿得到的日子；截斷重建也比邊際變化、加 6 個核對日。改了 `lab/heat-tw.md`、`lab/heat-us.md`、`lab/bubble.md`、`lab/chip-ui.md`、`ops/schedule.md`、`lessons.md`（規劃第 11.2 節）。
