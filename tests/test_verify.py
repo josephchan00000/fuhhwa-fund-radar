@@ -4,6 +4,7 @@
 from datetime import date, timedelta
 
 import numpy as np
+import pytest
 
 from arm.lab import heat as H
 from arm.lab import heatpos as HP
@@ -357,3 +358,46 @@ def test_finish_puts_note_under_top_bar():
     assert '<div class="vfy">' not in plain
     assert appnav.BACK + '</div><div class="vfy">N</div><main>' in noted
     assert noted.replace('<div class="vfy">N</div>', "") == plain
+
+
+# ── A-3c：資料來源比對（arm/lab/srccheck.py） ────────────────────────────────
+
+def test_srccheck_compare_and_inst_missing_day():
+    from arm.lab import srccheck as SC
+    r = SC.compare("x", {"d1": 1.0, "d2": 2.0, "d3": None}, {"d1": 1.05, "d2": 2.5}, 0.1)
+    assert r["n"] == 2 and r["bad"] == [["x", "d2", 2.0, 2.5, 0.5]]
+    assert SC.compare("x", {"d1": 100.0}, {"d1": 100.4}, 0.005, rel=True)["bad"] == []
+    D = {"2026-10-29": {"total": 1.0e8, "Foreign_Investor": 2.0e8, "Investment_Trust": 0, "Dealer_self": -1.0e8, "Dealer_Hedging": 0},
+         "2026-10-31": {"total": 1.0e8}}
+    M = {"inst_total": {"2026-10-29": 1.0, "2026-10-30": 5.0, "2026-10-31": 1.3}, "inst_foreign": {"2026-10-29": 2.0},
+         "inst_trust": {"2026-10-29": 0.0}, "inst_dealer": {"2026-10-29": -1.0}}
+    r = SC.inst(D, M)
+    assert [b[:2] for b in r["bad"]] == [["法人・inst_total", "2026-10-31"], ["法人・FinMind 缺日", "2026-10-30"]]
+
+
+def test_srccheck_jumps_known_and_nonpositive():
+    from arm.lab import srccheck as SC
+    S = {"a": {"2020-01-01": 100.0, "2020-01-02": 50.0, "2020-01-03": 51.0, "2020-01-06": 0.0}}
+    r = SC.jumps(load=lambda n: S[n], thr={"a": 0.15}, known={})
+    assert [b[:2] for b in r["bad"]] == [["值 ≤ 0", "2020-01-06"], ["單日跳動", "2020-01-02"]]
+    assert [b[1] for b in SC.jumps(load=lambda n: S[n], thr={"a": 0.15}, known={"a": ("2020-01-02",)})["bad"]] == ["2020-01-06"]
+
+
+def test_srccheck_taiex_monthly_and_yields():
+    from arm.lab import srccheck as SC
+    tx = {f"2020-01-{d:02d}": 100.0 for d in range(1, 21)} | {f"2020-02-{d:02d}": 110.0 for d in range(1, 21)} | {"2020-03-02": 1.0}
+    r = SC.taiex(tx, {"2020-01": 100.0, "2020-02": 120.0, "2020-03": 1.0})
+    assert r["n"] == 2 and [b[1] for b in r["bad"]] == ["2020-02"]          # 最後一個月（還沒過完）不比
+    r = SC.yields({"d": [1.0, 2.0, 3.0]}, {"d": [1.0, 1.0, 2.0, 3.1]})
+    assert r["n"] == 2 and [b[0] for b in r["bad"]] == ["美債 10 年"]
+
+
+def test_srccheck_real_data_clean():
+    """入庫的資料現在應該全部一致（2026-10-31 實測：約 12 萬筆、0 不一致）。"""
+    from arm.lab import heatdata as HD
+    from arm.lab import srccheck as SC
+    if not HD.load("inst") or not HD.load("taiex"):
+        pytest.skip("沒有落檔")
+    R = SC.run_all()
+    assert {k: r["bad"] for k, r in R.items() if r["bad"]} == {}
+    assert sum(r["n"] for r in R.values()) > 50_000
