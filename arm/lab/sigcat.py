@@ -518,7 +518,7 @@ def frame(mk: str, B: dict, I: dict, IB: dict | None = None, BX: dict | None = N
         flat = CR.align(cal, B["cal"], [None if s is None else float(s) for s in st])
         DV.append({"key": k, "name": nm[k], "kind": HS.DERIV[k]["kind"], "x": x, "have": ~np.isnan(flat)})
     rows = ((BX or {}).get(mk) or {}).get("_C", {}).get("rows") or []
-    return {"mk": mk, "cal": cal, "px": px, "we": P.week_ends(cal), "vars": V, "cvars": CV, "comp": comp, "dims": dims,
+    return {"mk": mk, "cal": cal, "px": px, "we": P.week_ends(cal), "wes": P.done_week_ends(cal), "vars": V, "cvars": CV, "comp": comp, "dims": dims,
             "ivars": inst_vars(cal, B) if mk == "tw" else [], "bvars": bd_vars(mk, cal),
             "deriv": DV, "deriv_words": dict(HS.DERIV_WORDS), "bub": rows, "IB": IB, "r0": recent_from(cal),
             "stale": sorted((B.get("stale") or {}).keys())}
@@ -550,6 +550,11 @@ def frames(BT: dict | None = None, BA: dict | None = None, BX: dict | None = Non
 
 # ── 訊號展開 ─────────────────────────────────────────────────────────────────
 
+def _wes(F: dict) -> list[int]:
+    """訊號用的週末：已經過完的週（frame 的 "wes"；沒有就用 "we"，人工測試資料）。"""
+    return F["wes"] if "wes" in F else F["we"]
+
+
 def _var_signals(F: dict, v: dict, cat: str) -> list[dict]:
     """景氣項目／面向／大跌風險項目的 6 種。"""
     from . import hotch as HCH
@@ -570,14 +575,14 @@ def _var_signals(F: dict, v: dict, cat: str) -> list[dict]:
         elif sg == "cold":
             sd["state"] = x[samp] < S.COLD
         elif sg == "hot13":
-            w = HCH.streak_days(xl, F["we"])
+            w = HCH.streak_days(xl, _wes(F))
             sd["state"] = np.array([(w[i] or 0) >= S.HOT_WEEKS for i in samp], dtype=bool)
         elif sg == "hot_in":
             sd["days"] = heat_events(xl, "hot")
         elif sg == "cold_in":
             sd["days"] = heat_events(xl, "cold")
         elif sg == "hot_out":
-            sd["days"] = HDD.exits(xl, F["we"], S.EXIT_MIN)
+            sd["days"] = HDD.exits(xl, _wes(F), S.EXIT_MIN)
         out.append(sd)
     return _opposite(out, x, cat)
 
@@ -705,9 +710,9 @@ def inst_signals(F: dict) -> list[dict]:
                 elif sg == "cold_in":
                     sd["days"] = heat_events(xl, "cold")
                 elif sg == "hot_out":
-                    sd["days"] = HDD.exits(xl, F["we"], S.EXIT_MIN)
+                    sd["days"] = HDD.exits(xl, _wes(F), S.EXIT_MIN)
                 else:
-                    sd["days"] = cold_exits(xl, F["we"], S.EXIT_MIN)
+                    sd["days"] = cold_exits(xl, _wes(F), S.EXIT_MIN)
                 pos_out.append(sd)
             out += _opposite(pos_out, x, "inst")
             continue

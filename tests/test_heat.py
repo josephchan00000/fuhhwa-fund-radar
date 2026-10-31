@@ -194,3 +194,17 @@ def test_bands_cover_all_and_total_row():
     assert [b["band"] for b in out] == ["過冷", "偏冷", "中性", "偏熱", "過熱", "全部"]
     assert [b["n"] for b in out] == [1, 1, 1, 1, 2, 6]
     assert out[4]["avg"] == 0.5 and out[-1]["up"] == 50.0
+
+
+def test_filled_month_waits_for_closing_month_and_known_late_release():
+    """heatspec VER 11：補出來的月份等缺口後第一個有值的月份拿得到才算；已知延後公布照實際日期（和公布時間差取晚的）。"""
+    from arm.lab import heat as HT
+    raw = {"2025-08": 1.0, "2025-09": 2.0, "2025-11": 4.0, "2025-12": 5.0}
+    late = HT.late_dates(raw, (1, 16), {"2025-11": "2025-12-18"}, 2)
+    assert late == {"2025-11": "2025-12-18", "2025-10": "2025-12-18"}
+    filled = HT.fill_gaps(raw, 2)
+    cal = ["2025-11-17", "2025-12-16", "2025-12-18"]
+    assert HT.asof_monthly(cal, filled, (1, 16)) == [3.0, 4.0, 4.0]          # VER 10：11/17 就用了補出來的 10 月
+    assert HT.asof_monthly(cal, filled, (1, 16), late) == [2.0, 2.0, 4.0]    # VER 11：等 11 月實際公布（12/18）
+    assert HT.gap_dates({"2025-09": 1.0, "2025-12": 2.0}, (1, 16), {}, 2) == {"2025-10": "2026-01-16", "2025-11": "2026-01-16"}
+    assert HT.gap_dates({"2025-06": 1.0, "2025-10": 2.0}, (1, 16), {}, 2) == {}  # 缺 3 個月不補

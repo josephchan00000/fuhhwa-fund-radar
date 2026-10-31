@@ -4,11 +4,11 @@
   TZ=Asia/Taipei python3 scripts/run_verify.py
 
 兩道檢查，只讀資料、不改任何計算與研究檔：
-  ① 第二套算法（arm/lab/sigverify.py）：五個市場的每一個市場層級訊號，出現日、狀態、去重、分段、次數、命中率、平常
-     都要和網頁用的 sigcat 一樣；
+  ① 第二套算法（arm/lab/sigverify.py）：五個市場的每一個市場層級訊號（含型態類技術事件）的出現日、狀態、去重、分段、次數、命中率、平常；
+     研究列（之後怎麼走的報酬表、近 10 年、最大跌幅、判定）、大跌後買點、逐年檢查、溫度計每週票數、產業泡沫——都要和網頁用的一樣；
   ② 截斷重建（arm/lab/truncheck.py）：原始資料截到某一天整條重算，那天以前的景氣頁 0～100、泡沫頁每月條件、訊號都要一樣
      （不一樣＝那天其實還拿不到的資料被用到了）。
-截斷日＝固定幾天（不同年代、2025-10 美國政府停擺缺一個月）＋資料最新一天往前的最近一個月底、往前 10 個交易日。
+截斷日＝固定幾天（不同年代、2013 與 2025 政府停擺延後公布的期間）＋資料最新一天往前的最近一個月底、往前 10 個交易日。約 25 分鐘。
 """
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ from arm.lab import truncheck as TC  # noqa: E402
 
 OUT = ROOT / "data" / "lab" / "verify_status.json"
 VER = 1
-FIXED_DAYS = ("2008-06-30", "2016-03-31", "2021-09-30", "2025-11-30")
+FIXED_DAYS = ("2008-06-30", "2013-10-25", "2016-03-31", "2021-09-30", "2025-11-30", "2025-12-10")
 
 
 def cut_days(cal: list[str]) -> list[str]:
@@ -49,6 +49,11 @@ def run() -> dict:
     second = {mk: V.check_market(F[mk]) for mk in F}
     print(f"[verify] 第二套算法 {time.time() - t0:.0f}s：" +
           "、".join(f"{mk} {r['checked']}/{r['n']} 不同 {len(r['bad'])}" for mk, r in second.items()), flush=True)
+    more = {"rows": {mk: V.check_rows(F[mk]) for mk in F}, "buy": {mk: V.check_buy(F[mk]) for mk in F},
+            "oos": {mk: V.check_oos(F[mk]) for mk in F}, "thermo": {mk: V.check_thermo(F[mk]) for mk in F},
+            "ind": {"all": V.check_ind()}}
+    print(f"[verify] 研究列、買點、逐年檢查、溫度計、產業泡沫 {time.time() - t0:.0f}s：" +
+          "、".join(f"{k} 不同 {sum(len(r['bad']) for r in per.values())}" for k, per in more.items()), flush=True)
     days = cut_days(F["tw"]["cal"])
     full = {"tw": BT, **BA}
     heat, bub, sig = {}, {}, {}
@@ -60,13 +65,15 @@ def run() -> dict:
             sum(len(v["bad"]) for v in sig[d].values())
         print(f"[verify] 截斷 {d}：不同 {nb}（{time.time() - t0:.0f}s）", flush=True)
     bad = [["第二套", mk, *b] for mk, r in second.items() for b in r["bad"]]
+    bad += [[f"第二套・{k}", mk, *b] for k, per in more.items() for mk, r in per.items() for b in r["bad"]]
     for name, R in (("0～100", heat), ("泡沫", bub), ("訊號", sig)):
         for d, per in R.items():
             for mk, r in per.items():
                 bad += [[f"截斷・{name}", d, mk, *b] for b in r["bad"]]
     return {"ver": VER, "asof": F["tw"]["cal"][-1], "made": clock.stamp_tw(), "days": days,
-            "second": second, "trunc": {"heat": heat, "bub": bub, "sig": sig},
+            "second": second, "more": more, "trunc": {"heat": heat, "bub": bub, "sig": sig},
             "n": {"second": sum(r["checked"] for r in second.values()),
+                  **{k: sum(int(r.get("n") or 0) for r in per.values()) for k, per in more.items()},
                   "heat": sum(v["items"] for per in heat.values() for v in per.values()),
                   "bub": sum(v["rows"] for per in bub.values() for v in per.values()),
                   "sig": sum(v["n"] for per in sig.values() for v in per.values())},

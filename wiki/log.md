@@ -133,3 +133,6 @@
 
 ## [2026-10-31] 收錄 | 計算正確性核對 A-1（第二套算法＋截斷重建）
 - `arm/lab/sigverify.py`、`arm/lab/truncheck.py`、`scripts/run_verify.py` → `data/lab/verify_status.json`；第二套 1,896 個訊號 0 不同，截斷只找到美國 CPI 補缺月偷看（18 條），另查到停擺延後公布、週訊號週中暫定。改了 `lab/heat-us.md`、`lab/heat-tw.md`、`lessons.md`（規劃 `docs/lab_signal_quality_plan.md` 第 9 節）。
+
+## [2026-10-31] 收錄 | 計算正確性 A-1b、A-2（第二套補齊、停擺公布日修正、週訊號等那一週過完）
+- 第二套算法補齊研究列、大跌後買點、逐年檢查、溫度計、產業泡沫、型態類技術事件，全部 0 不同；heatspec VER 11、heatspec_us VER 4（補出來的月份等缺口後第一個月、停擺照官方日期、用前月 CPI 的項目同樣），判定 0 個改變；週訊號改用 `heatpos.done_week_ends`。改了 `lab/heat-us.md`、`lab/heat-tw.md`、`lessons.md`（規劃第 10 節）。

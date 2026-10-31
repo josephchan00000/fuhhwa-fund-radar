@@ -38,8 +38,19 @@ REL = {"ndc": (2, 28), "pmi": (1, 6), "orders": (1, 21), "exports": (2, 28), "tw
        "us_z1": (3, 15), "us_ebp": (1, 20), "us_m2": (1, 28), "us_shiller": (1, 1), "tsmc": (1, 11)}
 
 
-def cut(ser, day: str, rel: tuple[int, int] | None = None):
-    """{日期: …} 留到 day（含）；{YYYY-MM: …} 留到 day 已經公布的月份（rel＝公布時間差；沒給＝前一個月）；其他鍵不動。"""
+# 已知延後公布（heatspec.RELEASE_LATE 那幾期的實際公布日）：截斷也照實際日期，才看得出「當時真的拿得到什麼」
+LATE = {"uscpi": HS.CPI_LATE}
+# 勞工統計局 us_bls 三欄各自的公布時間差與延後公布（失業率、CPI、核心 CPI；heatspec_us.RELEASE 的 F5、F6、F7）
+BLS_COLS = (((1, 8), U.JOBS_LATE), ((1, 16), HS.CPI_LATE), ((1, 16), HS.CPI_LATE))
+
+
+def _ok(ym: str, day: str, rel, late) -> bool:
+    return max(H.avail_date(ym, rel), (late or {}).get(ym, "")) <= day if rel else ym < day[:7]
+
+
+def cut(ser, day: str, rel: tuple[int, int] | None = None, late: dict | None = None):
+    """{日期: …} 留到 day（含）；{YYYY-MM: …} 留到 day 已經公布的月份（rel＝公布時間差、late＝已知延後公布的實際日期；
+    沒給 rel＝前一個月）；其他鍵不動。"""
     if not isinstance(ser, dict):
         return ser
     out = {}
@@ -49,28 +60,38 @@ def cut(ser, day: str, rel: tuple[int, int] | None = None):
             if ks <= day:
                 out[k] = v
         elif len(ks) == 7 and ks[4] == "-" and ks[5:7].isdigit():
-            if (H.avail_date(ks, rel) <= day) if rel else (ks < day[:7]):
+            if _ok(ks, day, rel, late):
                 out[k] = v
         else:
             out[k] = v
     return out
 
 
+def cut_bls(ser: dict, day: str) -> dict:
+    """勞工統計局三欄各自截：那一欄在 day 還沒公布就當沒有（同一個月的失業率和 CPI 公布日不同）。"""
+    out = {}
+    for ym, v in (ser or {}).items():
+        row = [x if x is not None and j < len(BLS_COLS) and _ok(str(ym), day, *BLS_COLS[j]) else None
+               for j, x in enumerate(v or [])]
+        if any(x is not None for x in row):
+            out[ym] = row
+    return out
+
+
 def load_tw(day: str) -> dict:
-    D = {n: cut(HD.load(n), day, REL.get(n)) for n in HC.FILES}
-    D["uscpi"] = H.fill_gaps(D.get("uscpi") or {}, HS.GAP_FILL_MAX, geo=True)
-    D["rev"] = HC.rev_sums([(ym, doc) for ym, doc in store.load("rev") if H.avail_date(str(ym)[:7], REL["rev"]) <= day],
-                           HC.fin_codes())
+    """同 heatcalc.load，但每個落檔先截斷（月營收照公布時間差、台股估值截到 day 的前一個月）。"""
     from .heatcalc_bub import load_tw_val
+    D = {n: cut(HD.load(n), day, REL.get(n), LATE.get(n)) for n in HC.FILES}
+    D = HC.prep(D, [(ym, doc) for ym, doc in store.load("rev") if H.avail_date(str(ym)[:7], REL["rev"]) <= day])
     D["twval"] = cut(load_tw_val(), day)
     return D
 
 
 def load_us(day: str) -> dict:
+    """同 heatcalc_us.load，但每個落檔先截斷（勞工統計局三欄各自截）。"""
     D = {n: cut(HD.load(n), day, REL.get(n)) for n in HU.FILES}
-    D["us_bls"] = HU.fill_bls(D.get("us_bls") or {})
-    D["tsmc"] = cut(HU.tsmc_rev(), day, REL["tsmc"])
-    return D
+    D["us_bls"] = cut_bls(HD.load("us_bls"), day)
+    return HU.prep(D, cut(HU.tsmc_rev(), day, REL["tsmc"]))
 
 
 def _diff(a: list, b: list, cal: list, n: int) -> tuple | None:
@@ -143,9 +164,10 @@ def load_bub(day: str) -> tuple[dict, dict]:
     from . import bubble as B
     from .heatcalc_bub import load_tw_val
     rel = {**REL, **REL_BUB}
-    tw = {n: cut(HD.load(n), day, rel.get(n)) for n in B.TW_FILES}
+    tw = {n: cut(HD.load(n), day, rel.get(n), LATE.get(n)) for n in B.TW_FILES}
     tw["twval"] = cut(load_tw_val(), day)
     us = {n: cut(HD.load(n), day, rel.get(n)) for n in B.US_FILES}
+    us["us_bls"] = cut_bls(HD.load("us_bls"), day)
     us["us_spf"] = cut_q(HD.load("us_spf"), day)
     return tw, us
 
@@ -185,8 +207,8 @@ def bub_check(day: str, full: dict | None = None) -> dict:
 
 def cut_frame(F: dict, day: str) -> dict:
     """sigcat.frames() 的一個市場截到 day（含）：逐日陣列（含大跌後買點的輸入）切到那天，泡沫頁只留那天以前的月底。
-    每週取樣的日子用全部資料的週末（day 那一週還沒過完就不算）：heatpos.week_ends 把最新一天當成週末，
-    截斷那天如果不是週五，會多出一個「暫定」的週樣本——那是網頁平日的暫定訊號（另外量），不是偷看。"""
+    週末照網頁每天的算法重算（heatpos.week_ends 顯示用；done_week_ends 訊號用：那一週還沒過完的最新一天不算週末）。"""
+    from . import heatpos as P
     T = len(F["cal"])
     c = sum(1 for d in F["cal"] if d <= day)
 
@@ -200,7 +222,7 @@ def cut_frame(F: dict, day: str) -> dict:
     G = dict(F)
     G["cal"] = list(F["cal"][:c])
     G["px"] = np.asarray(F["px"])[:c]
-    G["we"] = [i for i in F["we"] if i < c - 1 or (i == c - 1 and i < T - 1)]
+    G["we"], G["wes"] = P.week_ends(G["cal"]), P.done_week_ends(G["cal"])
     for key in ("vars", "cvars", "ivars", "bvars", "deriv"):
         G[key] = [sl(d) for d in (F.get(key) or [])]
     G["comp"] = sl(F["comp"])

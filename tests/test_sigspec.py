@@ -196,7 +196,7 @@ def test_sig_spec_v20_audit_is_locked():
     assert X.INST_SIDE == {"day_sell": "s", "sell_run5": "s", "sell_run10": "s", "day_buy": "b", "buy_run5": "b", "buy_run10": "b"}
     assert X.INST_RUN == (5, 10)
     assert X.RES_VER >= 20 and X.FWD_VER >= 20 and X.CAL_VER >= 20
-    assert HS.VER == 10 and HS.SPEC_DATE == "2026-10-22" and (HS.GAP_FILL_MAX, HS.STALE_M) == (2, 2)
+    assert HS.VER >= 10 and (HS.GAP_FILL_MAX, HS.STALE_M) == (2, 2)   # VER 11 起補缺月拿得到的時間另算（docs/lab_signal_quality_plan.md 第 10 節），補缺與過期的常數不變
     # 美股 VER 2 是補缺月、資料過期；VER 3（2026-10-29）只換情緒籌碼項目，補缺月與過期規則沿用
     assert U.VER >= 2 and (U.GAP_FILL_MAX, U.STALE_M) == (HS.GAP_FILL_MAX, HS.STALE_M)
 

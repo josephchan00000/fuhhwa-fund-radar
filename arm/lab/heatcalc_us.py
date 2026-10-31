@@ -46,9 +46,20 @@ EMINI = 5                         # E-mini S&P 500 一口＝大型契約 1/5
 
 
 def load() -> dict:
-    D = {n: HD.load(n) for n in FILES}
-    D["us_bls"] = fill_bls(D.get("us_bls") or {})        # VER 2：2025-10 政府停擺缺一個月
-    D["tsmc"] = tsmc_rev()
+    return prep({n: HD.load(n) for n in FILES}, tsmc_rev())
+
+
+def prep(D: dict, tsmc: dict) -> dict:
+    """落檔 → 計分用的 D：勞工統計局補缺月（VER 2）與實際拿得到的日子（VER 4，D["late"]）、台積電月營收。
+    截斷重建（truncheck）先截斷落檔再呼叫這一支，和每天建頁同一套。"""
+    bls = D.get("us_bls") or {}
+    cols = {k: {ym: (v[j] if v and len(v) > j else None) for ym, v in bls.items()} for k, j in (("F5", 0), ("F6", 1), ("F7", 2))}
+    D["late"] = {k: H.late_dates(c, U.RELEASE[k], U.RELEASE_LATE.get(k, {}), U.GAP_FILL_MAX) for k, c in cols.items()}
+    gd = H.gap_dates(cols["F6"], U.RELEASE["F6"], U.RELEASE_LATE.get("F6", {}), U.GAP_FILL_MAX)
+    for k in U.CPI_LAG_ITEMS:                              # 用前 cpi_lag 個月 CPI 的項目：補出來的那個月往後挪 cpi_lag 個月
+        D["late"][k] = {H._ym_add(m, U.PSY["cpi_lag"]): d for m, d in gd.items()}
+    D["us_bls"] = fill_bls(bls)                            # VER 2：2025-10 政府停擺缺一個月
+    D["tsmc"] = tsmc
     return D
 
 

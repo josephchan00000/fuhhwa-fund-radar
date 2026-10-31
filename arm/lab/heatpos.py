@@ -37,6 +37,16 @@ def week_ends(cal: list[str]) -> list[int]:
     return out
 
 
+def done_week_ends(cal: list[str]) -> list[int]:
+    """已經過完的週末（訊號用；docs/lab_signal_quality_plan.md 第 9 節）：同 week_ends，但最新一天不是星期五（或星期六）就不算
+    ——那一週還沒過完，當成週末會讓「過熱結束」這類週訊號週中先出現、週五又不見（回測只看真正的週末）。
+    週五休市的那一週要到下一週第一個交易日才確定（晚一天，保守）。"""
+    we = week_ends(cal)
+    if we and we[-1] == len(cal) - 1 and date.fromisoformat(cal[-1]).weekday() < 4:
+        we = we[:-1]
+    return we
+
+
 def _pct(past: list, x: float) -> float | None:
     """x 在 past（有值的）裡的百分位，同值算一半。"""
     if not past:

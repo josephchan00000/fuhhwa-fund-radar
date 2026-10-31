@@ -6,6 +6,7 @@ from datetime import date, timedelta
 import numpy as np
 
 from arm.lab import heat as H
+from arm.lab import heatpos as HP
 from arm.lab import heattech as TT
 from arm.lab import hotch as HCH
 from arm.lab import hotdd as HDD
@@ -125,12 +126,12 @@ def _frame(mk="spx", T=1600, seed=7):
     cal = _cal(T)
     dims = ["fund", "liq", "tech", "sent"] if mk != "tw" else ["fund", "chip", "gliq", "tliq", "tech"]
     var = lambda k, grp, H=60: {"key": k, "name": k, "grp": grp, "H": H, "x": _walk(rng, T)}
-    F = {"mk": mk, "cal": cal, "px": _px(rng, T), "we": _we(cal), "dims": dims,
+    F = {"mk": mk, "cal": cal, "px": _px(rng, T), "we": _we(cal), "wes": HP.done_week_ends(cal), "dims": dims,
          "comp": {d: _walk(rng, T) for d in dims},
          "vars": [var("A1", "fund"), var("B2", "liq")], "cvars": [var("W1", "crash", 120)], "bvars": [var("BD1", "bd")],
          "deriv": [{"key": "A1", "name": "A1", "kind": "grow",
                     "x": rng.integers(1, 5, T).astype(float), "have": np.r_[np.zeros(60, bool), np.ones(T - 60, bool)]}],
-         "deriv_words": {"grow": ["加速", "趨緩", "加劇", "收斂"]}, "IB": None, "ivars": []}
+         "deriv_words": {"grow": ["加速", "趨緩", "加劇", "收斂"]}, "IB": None, "ivars": [], "r0": G.recent_from(cal)}
     if mk == "tw":
         F["ivars"] = [{"key": "fi20", "who": "fi", "w": 20, "name": "外資 20 日", "H": 60, "x": _walk(rng, T)},
                       {"key": "fi1", "who": "fi", "w": 1, "name": "外資單日", "H": 20,
@@ -219,7 +220,8 @@ def test_cut_frame_slices_and_drops_unfinished_week():
     G2 = TC.cut_frame(F, day)
     assert G2["cal"][-1] == day and len(G2["px"]) == c and len(G2["vars"][0]["x"]) == c
     assert len(G2["comp"]["fund"]) == c and len(G2["IB"]["sig"]["vix"]) == c and G2["IB"]["sig"]["c5floor"] == 12.0
-    assert G2["we"] and G2["we"][-1] < c - 1 and set(G2["we"]) <= set(F["we"])
+    assert G2["we"][-1] == c - 1                                     # 顯示用：最新一天當週末
+    assert G2["wes"] and G2["wes"][-1] < c - 1 and set(G2["wes"]) <= set(F["we"])   # 訊號用：那一週還沒過完不算
     assert all(r["d"] <= day for r in G2["bub"])
     assert G2["vars"][0]["key"] == F["vars"][0]["key"] and len(F["px"]) == 300                # 原本的不動
 
@@ -240,3 +242,40 @@ def test_sig_check_clean_and_catches_peeking(monkeypatch):
     monkeypatch.setattr(HDD, "exits", peek)
     bad = TC.sig_check(F, day)["bad"]
     assert any(b[0].endswith(":hot_out") for b in bad)
+
+
+# ── A-1b：逐年檢查、溫度計票數、產業泡沫 ─────────────────────────────────────────
+
+def test_oos_and_thermo_agree_on_synthetic_frame():
+    """十幾年的人工資料（含法人的成對事件與過冷過熱失效）：逐年紀錄、每週票數、分組比例都要和網頁的程式一樣。"""
+    F = _frame("tw", T=3800)
+    r = V.check_oos(F)
+    assert r["n"] > 500 and r["nbad"] == 0, r["bad"][:3]
+    t = V.check_thermo(F)
+    assert t["n"] > 500 and t["bad"] == [], t["bad"][:3]
+
+
+def test_ind_agrees_on_synthetic_industries(monkeypatch):
+    from arm.lab import bubind as BI
+    rng = np.random.default_rng(3)
+    months = [f"{y}-{m:02d}" for y in range(2000, 2016) for m in range(1, 13)]
+    Sx = {}
+    for code in ("A", "B", "C"):
+        v = 100 * np.exp(np.cumsum(rng.normal(0.005, 0.06, len(months))))
+        lv = np.clip(np.round(np.cumsum(rng.normal(0, 0.6, len(months)))), 0, 4)
+        Sx[code] = {"me": {m: float(x) for m, x in zip(months, v)},
+                    "rows": [{"d": m, "P1": None if i < 6 else bool(rng.random() < 0.3), "P2": None if i < 6 else bool(rng.random() < 0.3),
+                              "L": None if i < 8 else int(lv[i])} for i, m in enumerate(months)]}
+    monkeypatch.setattr(BI, "conditions", lambda S_, T: {"rows": S_["rows"]})     # 等級是輸入
+    r = V.check_ind({"tw": {"S": Sx}, "us": {"S": Sx}})
+    assert r["n"] == 4 and r["bad"] == [], r["bad"]
+
+
+def test_done_weeks_two_implementations_and_live_rule():
+    """訊號用的週末（docs/lab_signal_quality_plan.md 第 9 節）：最新一天不是星期五就不算；兩套一樣。"""
+    cal = _cal(40)
+    for end in range(25, 40):
+        c = cal[:end]
+        assert V._done_weeks(c) == HP.done_week_ends(c)
+        last_fri = date.fromisoformat(c[-1]).weekday() == 4
+        assert (len(c) - 1 in HP.done_week_ends(c)) == last_fri and len(c) - 1 in HP.week_ends(c)

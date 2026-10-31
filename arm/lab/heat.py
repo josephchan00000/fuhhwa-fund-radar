@@ -256,9 +256,11 @@ def avail_date(ym: str, rel: tuple[int, int]) -> str:
     return f"{y:04d}-{m:02d}-{rel[1]:02d}"
 
 
-def asof_monthly(dates: list[str], ser: dict, rel: tuple[int, int]) -> list:
-    """月資料 {YYYY-MM: 值} → 每個日期當下拿得到的最新一個月的值（依公布時間差）。"""
-    av = sorted((avail_date(ym, rel), ym) for ym, v in ser.items() if v is not None)
+def asof_monthly(dates: list[str], ser: dict, rel: tuple[int, int], late: dict | None = None) -> list:
+    """月資料 {YYYY-MM: 值} → 每個日期當下拿得到的最新一個月的值（依公布時間差）。
+    late＝{月: 那一期實際拿得到的日子}（heatspec VER 11：補出來的月份、已知延後公布；和公布時間差取晚的）。"""
+    late = late or {}
+    av = sorted((max(avail_date(ym, rel), late.get(ym, "")), ym) for ym, v in ser.items() if v is not None)
     out: list = [None] * len(dates)
     j = -1
     for i, t in enumerate(dates):
@@ -298,6 +300,25 @@ def fill_gaps(ser: dict, maxgap: int, geo: bool = False) -> dict:
             else:
                 out[_ym_add(a, j)] = va + (vb - va) * w
     return dict(sorted(out.items()))
+
+
+def gap_dates(raw: dict, rel: tuple[int, int], known: dict, maxgap: int) -> dict:
+    """heatspec VER 11：fill_gaps 補出來的月份（前後都有值、連續缺 ≤ maxgap）→ {月: 拿得到的日子}＝缺口後第一個有值的月份
+    拿得到的日子（補值用到它；known＝它的實際公布日，和公布時間差取晚的）。raw＝補之前的月資料。"""
+    out = {}
+    ks = sorted(k for k, v in raw.items() if v is not None)
+    for a, b in zip(ks, ks[1:]):
+        gap = _ym_diff(a, b) - 1
+        if 1 <= gap <= maxgap:
+            d = max(avail_date(b, rel), known.get(b, ""))
+            for j in range(1, gap + 1):
+                out[_ym_add(a, j)] = d
+    return out
+
+
+def late_dates(raw: dict, rel: tuple[int, int], known: dict, maxgap: int) -> dict:
+    """heatspec VER 11：和公布時間差不同的「實際拿得到的日子」→ {月: YYYY-MM-DD}：已知延後公布（known）＋補出來的月份（gap_dates）。"""
+    return {**known, **gap_dates(raw, rel, known, maxgap)}
 
 
 def stale_info(months: list[str], rel: tuple[int, int], today: str) -> tuple[str | None, list[str]]:
