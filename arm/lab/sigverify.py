@@ -1086,11 +1086,14 @@ def _verdict(gs: list[int], ys: list[float]) -> dict:
 
 def check_thermo(F: dict) -> dict:
     """溫度計：網頁用的 thermocal（weekly 的每週票數、今年的票、market 的分組比例與重抽判定）和第二套 thermo2 比。
-    項目鍵（同一個項目算一票）是命名規則，照 sigcat.item_key。"""
+    項目鍵（同一個項目算一票）是命名規則，照 sigcat.item_key。
+    sigspec VER 26（票另外要今天落的那一格也過）併進來之後：第二套照的是 VER 25 的票，所以和 thermocal 另存的 VER 25（market 的 "v25"）比；
+    VER 26 的格子與票還沒有第二套（第 D 段上線前補，docs/lab_signal_quality_plan.md 第 13 節）。"""
     from . import sigcat as G
     from . import thermocal as TC
     items = {sd["id"]: TC.item_of(sd) for sd in G.signals(F)}
     W, M, B = TC.weekly(F), TC.market(F), thermo2(F, items)
+    M = M.get("v25") or M
     bad = []
     for k in S.THERMO_H:
         for c in ("t", "u", "w"):
