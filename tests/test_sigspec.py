@@ -10,7 +10,8 @@ VER 19 同日，「預估之後」的報酬留下來的比例改用平均量，�
 VER 20 同日，資料與訊號盤查：一段遇到相反的極端就切開、最新的讀數取代舊的事件、資料過期的項目不算現在成立，docs/lab_audit_plan.md；
 VER 21 同日，今天的清單與溫度計改用預估之後仍差 3 點以上、加偏弱（1 個月）、跨期間的逐年樣本外，同文件第 11 節；
 VER 24，2026-10-28，跌幅一律列最差一次（不用中位數）、和大跌同一個算法，只改呈現，docs/lab_audit_plan.md 第 14 節；
-VER 25，2026-10-30，加寬度與深度（breadthspec VER 1）只當訊號，docs/lab_breadth_plan.md 第 11 節）。
+VER 25，2026-10-30，加寬度與深度（breadthspec VER 1）只當訊號，docs/lab_breadth_plan.md 第 11 節；
+VER 26，2026-10-31，今天的訊號改看「今天進場」量過的格子（出現後第幾天、條件成立或已斷），docs/lab_signal_listing_plan.md）。
 要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
 from arm.lab import analyze as AN
 from arm.lab import backtest as BT
@@ -23,7 +24,7 @@ from arm.lab import sigspec as X
 
 
 def test_sig_spec_v1_is_locked():
-    assert X.VER == 25 and X.SPEC_DATE == "2026-10-30"
+    assert X.VER == 26 and X.SPEC_DATE == "2026-10-31"
     assert BS.VER == 4 and "C9" in BS.SIG_MK["tw"] and "C8" in BS.SIG_MK["spx"]   # VER 13：大跌後買點的規則跟著 bottomspec VER 4
     assert X.H_BUY == 60                                                  # VER 10：大跌後買點看買進後 3 個月有沒有漲
     assert X.MARKETS == ("tw", "spx", "ixic", "ndx", "sox")
@@ -147,7 +148,7 @@ def test_sig_spec_v15_thermometer_all_horizons_is_locked():
 def test_sig_spec_v16_thermometer_calibration_is_locked():
     """VER 16（2026-10-22，docs/lab_noise_plan.md 第 14.10 節）：溫度計下面加「過去讀數這樣的時候」——逐年滾動（不偷看之後）的票數、
     和自己的過去 10 年比的位置、過去同一組的週之後怎麼走；只是描述，判定與溫度計的算法都不變。"""
-    assert X.CAL_VER == 25 and (X.CAL_WARM_Y, X.CAL_MIN_SAMP) == (10, 50)              # VER 17 投票規則、VER 20 分段與事件失效、VER 21 票的規則、VER 22 權重、VER 23 票改回比平常高 5 點、VER 25 票多寬度與深度，研究檔重跑
+    assert X.CAL_VER == 26 and (X.CAL_WARM_Y, X.CAL_MIN_SAMP) == (10, 50)              # VER 17 投票規則、VER 20 分段與事件失效、VER 21 票的規則、VER 22 權重、VER 23 票改回比平常高 5 點、VER 25 票多寬度與深度、VER 26 票看今天那一格，研究檔重跑
     assert (X.CAL_RANK_W, X.CAL_RANK_MIN, X.CAL_TERC) == (520, 260, (1 / 3, 2 / 3))
     assert (X.CAL_BLOCK, X.CAL_DRAWS, X.CAL_SEED, X.CAL_MIN_WEEKS) == (52, 1000, 20261022, 104)
     assert X.N_MIN == 5 and X.RES_VER == 24                                          # 投票規則同 △（VER 17：勝率門檻過了）
@@ -270,8 +271,37 @@ def test_sig_spec_v25_breadth_depth_is_locked():
     """VER 25（2026-10-30，docs/lab_breadth_plan.md 第 11 節）：寬度與深度（breadthspec VER 1 的股票層級變數）只當訊號（第 4.15 節）；
     判定、門檻、溫度計、預估之後的規則不變，原本每一列不變（RES_VER 不改）；sigoos_research、thermo_research 多這一類，重跑。"""
     from arm.lab import breadthspec as B
-    assert X.VER == 25 and X.RES_VER == 24 and X.FWD_VER == 25 and X.CAL_VER == 25
+    assert X.VER >= 25 and X.RES_VER == 24 and X.FWD_VER == 25 and X.CAL_VER >= 25
     assert X.BD_CAT == "bd" and X.BD_CAT in X.EP_BREAK_CATS and X.BD_CAT in X.THERMO_X_CATS
     assert B.VER == 1 and B.H == X.H_TECH and set(B.MKT_VARS) == set(B.VAR_MKT)
     assert all(set(m) <= set(X.MARKETS) for m in B.VAR_MKT.values())
     assert X.HIT_MIN == {"up": 0.60, "warn": 0.50, "buy": 0.60} and X.STAR_N == 15 and X.N_MIN == 5 and X.THERMO_EDGE == 0.05
+
+
+def test_sig_spec_v26_listing_by_age_is_locked():
+    """VER 26（2026-10-31，docs/lab_signal_listing_plan.md）：使用者：「如果說幾天前有多頭的訊號但今天不能成立了應該就要拿掉吧，
+    像是自營商連續賣出10天觸發多頭訊號，如果繼續連賣11、12天之後呢？」。今天的清單改看「今天進場」量過的格子：出現後第幾天
+    （0／1～4／5～9／10～19／20～59／60 以上）× 觸發條件還成立或已斷；訊號自己的成績照 ④b 會列、而且今天那一格也過才列（格子只拿掉、
+    不多列）；拿掉的放「進行中」；狀態型也分第幾天；買點也只到出現後 H_BUY 天。門檻不變；sig_research、sigoos_research 不動；
+    thermo_research 重跑並另存 VER 25 的票（實戰模擬、期貨加碼照舊）。"""
+    assert X.VER == 26 and X.SPEC_DATE == "2026-10-31"
+    assert X.RES_VER == 24 and X.FWD_VER == 25 and X.CAL_VER == 26 and X.AGE_VER == 26
+    assert X.AGE_B == (0, 1, 5, 10, 20, 60) and len(X.AGE_NAMES) == len(X.AGE_B)
+    assert X.AGE_ST == ("on", "off", "-") and set(X.AGE_ST_NAMES) == set(X.AGE_ST)
+    assert X.AGE_WHY == ("few", "weak", "exp") and X.AGE_XP == ("a:", "ax:") and X.FWD_XP not in X.AGE_XP
+    # 條件：0～100 的進入過熱／過冷（含法人位階的進入大賣超／大買超）、同時兩個面向過熱、法人連續、均線類技術事件
+    assert set(X.AGE_COND.values()) == {"ge_hot", "lt_cold", "multi", "run", "side"} and len(X.AGE_COND) == 23
+    for c in ("heat", "crash", "bd", "inst"):
+        assert X.AGE_COND[f"{c}:hot_in"] == "ge_hot" and X.AGE_COND[f"{c}:cold_in"] == "lt_cold"
+        assert f"{c}:hot_out" not in X.AGE_COND and f"{c}:cold_out" not in X.AGE_COND    # 重新進區就失效（VER 20），只分第幾天
+    assert X.AGE_COND["multi:hot_in"] == "multi"
+    assert {k for k, v in X.AGE_COND.items() if v == "run"} == {f"inst:{s}_run{n}" for s in ("sell", "buy") for n in X.INST_RUN}
+    assert "inst:day_sell" not in X.AGE_COND and "inst:day_buy" not in X.AGE_COND        # 單日事件只分第幾天
+    side = {k.split(":", 1)[1] for k, v in X.AGE_COND.items() if v == "side"}
+    assert side <= set(HS.EVENTS) and len(side) == 10
+    assert not side & {"pv_dn", "pv_up", "dtop", "dbot", "hstop", "hsbot"}             # 型態與前波高低點只分第幾天
+    assert all((a in side) == (b in side) for a, b in X.TECH_PAIRS)                     # 成對的兩邊一起
+    # 門檻、看多久、相反讀數失效沒動
+    assert X.N_MIN == 5 and X.THERMO_EDGE == 0.05 and X.LIST_GAP == 0.03 and X.H_BUY == 60
+    assert X.THERMO_H == {"short": 20, "mid": 60, "long": 250} and max(X.AGE_B) < max(X.THERMO_H.values())
+    assert X.THERMO_CLS == ("up", "buy", "risk") and X.CAL_MIN_SAMP == 50
