@@ -1,0 +1,63 @@
+name: 籌碼雷達 計算核對每週重跑
+
+# 2026-10-31 建立（docs/lab_signal_quality_plan.md 第 11 節，A-3；使用者決定 D4：不一致時網頁標紅＋推播、不擋發佈）：
+#   · scripts/run_verify.py：第二套算法（arm/lab/sigverify.py）重算市場層級的訊號、研究表、溫度計、產業泡沫，
+#     再用截斷重建（arm/lab/truncheck.py）把原始資料截到幾個日子整條重算——只讀資料、不改任何計算與研究檔。
+#   · 產出 data/lab/verify_status.json → commit 進 main；不重建頁面、不部署：下一班建頁（afterhours／daily）讀它，
+#     不一致時市場頁與研究紀錄頁頂欄下面標紅、後台「今天的驗證」列出例子、06:35 推播多一行（arm/lab/valog.py 的 verify_*）；
+#     超過 15 天沒有新結果也推播一行。
+#   · 有不一致時，commit 之後最後一步讓這一輪變紅（GitHub 會寄失敗信）；結果照樣入 main，不擋任何發佈。
+#   · 每次約 25～40 分鐘（repo 公開，一般機器不計分鐘）。
+# 排程只會用 main 上的這支檔（schedule 一律跑預設分支）：分支上的改動要進 main 才生效。
+
+on:
+  schedule:
+    - cron: "17 5 * * 6"     # 台北週六 13:17（週五盤後與美股週五收盤的資料都進來之後）
+  workflow_dispatch:
+
+concurrency:
+  group: lab-verify
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      TZ: Asia/Taipei
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main            # 一律核對 main 的資料與程式
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 安裝相依（numpy）
+        run: pip install --quiet certifi numpy
+
+      - name: 計算核對（第二套算法＋截斷重建）
+        run: python3 scripts/run_verify.py
+
+      - name: commit 結果（進 main）
+        run: |
+          git config user.name "josephchan00000"
+          git config user.email "51159474+josephchan00000@users.noreply.github.com"
+          git add -f data/lab/verify_status.json
+          git commit -q -m "chore: 籌碼雷達計算核對每週重跑 $(date +%F)" || { echo "無變更"; exit 0; }
+          for i in 1 2 3; do
+            git push origin HEAD:main && exit 0
+            echo "push 被拒（第 $i 次），rebase 後重試…"
+            git pull --rebase -X theirs origin main || git rebase --abort || true
+            sleep 5
+          done
+          echo "::error::push 連續失敗——本週核對結果未入 main"; exit 1
+
+      - name: 有不一致就讓這一輪變紅（結果已入 main，不擋發佈）
+        run: |
+          python3 -c "import json,sys; d=json.load(open('data/lab/verify_status.json',encoding='utf-8')); n=d.get('nbad',len(d.get('bad') or [])); print(f'不一致 {n} 項'); sys.exit(0 if d.get('ok') else 1)" \
+            || { echo "::error::計算核對有不一致——看 data/lab/verify_status.json 的 bad，或研究紀錄・後台「今天的驗證」"; exit 1; }

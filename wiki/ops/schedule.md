@@ -2,7 +2,7 @@
 
 > 每天台北時間哪一班做什麼：Routine 負責準時、GitHub cron 只當兜底（實測系統性遲到 1~3 小時）、盤後刷新與當日完整性看門狗、07:15 備援。
 > 原始資料：CLAUDE.md「每日固定時間自動更新」段的盤後刷新、cron 遲到、時點地圖、備援四條；程式：`.github/workflows/afterhours_refresh.yml`、`scripts/check_afterhours_fresh.py`。
-> 最後更新：2026-10-29
+> 最後更新：2026-10-31
 > 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
@@ -19,6 +19,7 @@
 - 22:05 cron：融資融券（~21:30 公布）、P/C 比、NAV 掃尾。23:20 夜檢（Routine 鏈的 send_later，只驗不抓）。
 - 週頻：週一 08:05 Routine → [ETF 募集週掃](etf-weekly-scan.md)（更新 `data/etf_upcoming.json`，push 經 daily.yml 併檔上線）；週日 19:00 strategy_cands.yml 排程（試用中的候選補紀錄、補算）、
   19:47 Routine → [策略探勘週報](strategy-scouting.md)（新候選經 strategy_cands.yml 合併通道回測、併進 main、重建）。Routine 見 [排程搬家](routines.md)。
+- 週六 13:17 cron：`verify.yml` 計算核對（`scripts/run_verify.py`，只讀資料、commit `data/lab/verify_status.json`；不一致時頁面標紅、推播一行、不擋發佈；見 [籌碼雷達介面](../lab/chip-ui.md)「後台自我驗證」）。
 
 ### 三層（2026-08-03）
 

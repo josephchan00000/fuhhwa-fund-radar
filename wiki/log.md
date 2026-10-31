@@ -136,3 +136,6 @@
 
 ## [2026-10-31] 收錄 | 計算正確性 A-1b、A-2（第二套補齊、停擺公布日修正、週訊號等那一週過完）
 - 第二套算法補齊研究列、大跌後買點、逐年檢查、溫度計、產業泡沫、型態類技術事件，全部 0 不同；heatspec VER 11、heatspec_us VER 4（補出來的月份等缺口後第一個月、停擺照官方日期、用前月 CPI 的項目同樣），判定 0 個改變；週訊號改用 `heatpos.done_week_ends`。改了 `lab/heat-us.md`、`lab/heat-tw.md`、`lessons.md`（規劃第 10 節）。
+
+## [2026-10-31] 收錄 | 計算核對每週自動跑（A-3a）
+- 新增 `.github/workflows/verify.yml`（週六 13:17 跑 `scripts/run_verify.py`、commit `data/lab/verify_status.json`）；不一致時市場頁與研究紀錄頁紅字、後台列例子、推播多一行，過期只推播，不擋發佈。改了 `lab/chip-ui.md`、`ops/schedule.md`、`ops/daily-update.md`（9⑨ 多一行）與 CLAUDE.md 9⑨（規劃第 11 節）。

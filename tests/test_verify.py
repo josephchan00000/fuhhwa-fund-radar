@@ -279,3 +279,81 @@ def test_done_weeks_two_implementations_and_live_rule():
         assert V._done_weeks(c) == HP.done_week_ends(c)
         last_fri = date.fromisoformat(c[-1]).weekday() == 4
         assert (len(c) - 1 in HP.done_week_ends(c)) == last_fri and len(c) - 1 in HP.week_ends(c)
+
+
+# ── A-3a：每週 CI、推播一行、頁面紅字（docs/lab_signal_quality_plan.md 第 11 節） ──────────────────────
+
+def _rv():
+    import importlib.util
+    from pathlib import Path
+    p = Path(__file__).resolve().parents[1] / "scripts" / "run_verify.py"
+    spec = importlib.util.spec_from_file_location("run_verify", p)
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+def test_cap_keeps_examples_and_total():
+    """存檔只留前 CAP 個例子、另記 nbad；已經截過的（check_oos 自帶 nbad）照它的總數。"""
+    RV = _rv()
+    R = {"bad": list(range(120)), "second": {"tw": {"bad": [1, 2]}}, "oos": {"tw": {"bad": list(range(50)), "nbad": 300}}}
+    out = RV.cap(R)
+    assert len(out["bad"]) == RV.CAP and out["nbad"] == 120
+    assert out["second"]["tw"] == {"bad": [1, 2]} and "nbad" not in out["second"]["tw"]
+    assert RV.nbad(out["oos"]["tw"]) == 300 and RV.nbad({"bad": [1]}) == 1
+
+
+def test_verify_workflow_weekly_on_main_commits_and_goes_red():
+    from pathlib import Path
+    wf = (Path(__file__).resolve().parents[1] / ".github" / "workflows" / "verify.yml").read_text(encoding="utf-8")
+    assert "schedule:" in wf and 'cron: "17 5 * * 6"' in wf and "workflow_dispatch:" in wf
+    assert "ref: main" in wf and "python3 scripts/run_verify.py" in wf and "numpy" in wf
+    assert "git add -f data/lab/verify_status.json" in wf and "git push origin HEAD:main" in wf
+    i_commit, i_red = wf.find("commit 結果"), wf.find("有不一致就讓這一輪變紅")
+    assert 0 < i_commit < i_red and "sys.exit(0 if d.get('ok') else 1)" in wf   # 先入 main，再變紅（不擋發佈）
+
+
+def _vfile(tmp_path, monkeypatch, drop=(), **kw):
+    import json
+    from arm.lab import store
+    monkeypatch.setattr(store, "LAB", tmp_path)
+    doc = {"ver": 2, "made": "2026-10-31 13:40", "n": {"second": 100, "sig": 50}, "bad": [], "nbad": 0, "ok": True, **kw}
+    doc = {k: v for k, v in doc.items() if k not in drop}
+    (tmp_path / "verify_status.json").write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
+
+
+def test_verify_state_line_and_note(tmp_path, monkeypatch):
+    from datetime import datetime
+    from arm.lab import valog as VL
+    now = datetime(2026, 11, 2, 6, 40)
+    _vfile(tmp_path, monkeypatch)
+    st = VL.verify_state(now)
+    assert st == {"d": "2026-10-31", "ok": True, "nbad": 0, "n": 150, "old": False}
+    assert VL.verify_line(st) is None and VL.verify_note(st) == ""
+    # 超過 15 天沒跑：推播一行、頁面不放
+    st = VL.verify_state(datetime(2026, 11, 16, 6, 40))
+    assert st["old"] and VL.verify_line(st) == "計算核對：上次是 10/31，已經超過兩週沒有跑，看一下 GitHub 的 verify.yml。"
+    assert VL.verify_note(st) == ""
+    # 不一致：推播一行＋頁面紅字＋例子（舊格式沒有 nbad 也照算）
+    _vfile(tmp_path, monkeypatch, drop=("nbad",), ok=False, bad=[["第二套", "tw", "B8:hot", "2020-01-02", "x"]] * 3)
+    st = VL.verify_state(now)
+    assert not st["ok"] and st["nbad"] == 3 and st["ex"][0] == "第二套・tw・B8:hot・2020-01-02・x"
+    assert VL.verify_line(st).startswith("計算核對：10/31 有 3 項不一致")
+    assert 'class="vfy"' in VL.verify_note(st) and "3 項不一致" in VL.verify_note(st)
+    # 推播：放在策略驗證那一行之前
+    rec = {"todo": {"d": "2026-11-02", "items": []}, "vfy": st, "ev": [{"txt": "資料過期：最新資料 10/30"}]}
+    out = VL.push_lines(rec)
+    assert out[0] == "11/2（一）沒有排定的買賣。" and out[1].startswith("計算核對：") and out[2].startswith("策略驗證：")
+    # 讀不到檔案：沒有狀態、沒有紅字
+    (tmp_path / "verify_status.json").unlink()
+    assert VL.verify_state(now) is None and VL.page_note() == ""
+
+
+def test_finish_puts_note_under_top_bar():
+    from arm.lab import appnav
+    page = ('<html><head><style>.a{}</style></head><body><div class="top">' + appnav.bar("mkt") + appnav.BACK +
+            '</div><main>x</main></body></html>')
+    plain, noted = appnav.finish(page), appnav.finish(page, note='<div class="vfy">N</div>')
+    assert '<div class="vfy">' not in plain
+    assert appnav.BACK + '</div><div class="vfy">N</div><main>' in noted
+    assert noted.replace('<div class="vfy">N</div>', "") == plain

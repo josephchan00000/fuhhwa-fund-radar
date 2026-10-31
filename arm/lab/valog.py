@@ -26,6 +26,8 @@
   推播多一行「少見機會：11/3（二）收盤 S&P 500 買進（期中選舉後抱一年，抱到 2027/11/2）。」（不是事件）。
 新策略候選（docs/lab_ia_v5_plan.md 第 24 節）：第一次有結果的候選推播多一行「策略候選：新增 X（市場），過去成績…；回『試用／納入／不納入』」；
   還沒決定的第一次到 candspec.MAX_OPEN 條時同一行提醒「週報先停」。
+每週計算核對（docs/lab_signal_quality_plan.md 第 11 節；每週六 verify.yml 跑 scripts/run_verify.py 寫 verify_status.json）：
+  有不一致時推播多一行、市場頁與研究紀錄頁頂欄下面標紅（verify_note），超過 VFY_OLD 天沒跑也推播一行；不擋任何發佈（使用者決定 D4）。
 """
 from __future__ import annotations
 
@@ -45,6 +47,8 @@ TYPES = {"grade": "評級變動", "full": "前瞻滿額", "lag": "前瞻落後",
          "miss": "該出名單沒出", "stale": "資料過期", "dev": "表現偏離回測", "shok": "影子版本達標", "sout": "影子版本淘汰",
          "sxl": "飆股觀察", "uqm": "美股強勢品質股"}
 LOW_LIGHT = "明顯低於回測"
+VFY_FP = "verify_status.json"
+VFY_OLD = 15               # 計算核對超過幾天沒跑算過期（每週六跑一次，多留一週的空檔）
 
 
 def _md(d: str | None) -> str:
@@ -375,6 +379,54 @@ def rare_line(cur: dict | None) -> str | None:
     return RP.remind_line((cur or {}).get("td") or [])
 
 
+def verify_state(now: datetime) -> dict | None:
+    """每週計算核對的結果（verify_status.json）。→ {"d": 核對日, "ok", "nbad": 不一致幾項, "n": 比了幾項,
+    "old": 超過 VFY_OLD 天沒跑, "ex": 前 3 個例子（不一致才有）}；檔案讀不到＝None。"""
+    doc = store.read_json(VFY_FP, None)
+    if not isinstance(doc, dict) or "ok" not in doc:
+        return None
+    d = str(doc.get("made") or "")[:10]
+    try:
+        old = (now.date() - date.fromisoformat(d)).days > VFY_OLD
+    except ValueError:
+        old = True
+    nb = int(doc.get("nbad", len(doc.get("bad") or [])))
+    out = {"d": d, "ok": bool(doc["ok"]) and nb == 0, "nbad": nb,
+           "n": sum(int(v or 0) for v in (doc.get("n") or {}).values()), "old": old}
+    if not out["ok"]:
+        out["ex"] = ["・".join(str(x) for x in b[:6])[:100] for b in (doc.get("bad") or [])[:3]]
+    return out
+
+
+def verify_line(cur: dict | None) -> str | None:
+    """推播多一行：每週計算核對有不一致，或超過兩週沒有跑。正常就不加。"""
+    if not cur:
+        return None
+    if not cur["ok"]:
+        return (f"計算核對：{_md(cur['d'])} 有 {cur['nbad']} 項不一致，修好之前市場頁訊號的成績可能不準；"
+                "明細在研究紀錄・後台「今天的驗證」。")
+    if cur["old"]:
+        return f"計算核對：上次是 {_md(cur['d'])}，已經超過兩週沒有跑，看一下 GitHub 的 verify.yml。"
+    return None
+
+
+def verify_note(cur: dict | None) -> str:
+    """市場頁、研究紀錄頁頂欄下面的紅字：不一致時才有（過期只推播，不上頁面）。"""
+    if not cur or cur["ok"]:
+        return ""
+    return (f'<div class="vfy" role="alert">計算核對：{_md(cur["d"])} 有 {cur["nbad"]} 項不一致，'
+            '修好之前訊號的成績可能不準（明細在研究紀錄・後台「今天的驗證」）。</div>')
+
+
+def page_note() -> str:
+    """建頁時讀今天的計算核對狀態 → verify_note；讀不到就沒有紅字（不擋建頁）。"""
+    try:
+        from .. import clock
+        return verify_note(verify_state(clock.now_tw()))
+    except Exception:                                     # noqa: BLE001
+        return ""
+
+
 def push_lines(rec: dict) -> list[str]:
     """06:35 推播多帶的兩行：那一天開盤（與收盤）要做的事；有驗證事件才加第二行。"""
     T = rec.get("todo") or {}
@@ -406,6 +458,9 @@ def push_lines(rec: dict) -> list[str]:
     c = cand_line(rec.get("cand"))
     if c:
         out.append(c)
+    v = verify_line(rec.get("vfy"))
+    if v:
+        out.append(v)
     ev = rec.get("ev") or []
     if ev:
         out.append("策略驗證：" + "；".join(e["txt"] for e in ev) + "。")
@@ -487,6 +542,12 @@ def update(data: dict, write_file: bool | None = None, now: datetime | None = No
         cs = cand_state((days.get(prev_d) or {}).get("cand") if prev_d else None)
         if cs:
             rec["cand"] = cs
+    except Exception:                                     # noqa: BLE001 —— 讀不到：不發提醒
+        pass
+    try:                                                  # 每週計算核對（不一致或過期才推播一行）
+        vf = verify_state(now)
+        if vf:
+            rec["vfy"] = vf
     except Exception:                                     # noqa: BLE001 —— 讀不到：不發提醒
         pass
     rec["push"] = push_lines(rec)

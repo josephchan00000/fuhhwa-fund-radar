@@ -145,7 +145,7 @@ def fut_body() -> str:
 
 def render(SV: dict | None = None, BV: dict | None = None) -> str:
     """SV＝訊號研究的 view（sigpage.view）、BV＝泡沫研究的 view（bubpage.view）；不給就照上面兩個函式取得。"""
-    from . import appnav
+    from . import appnav, valog
     from . import bubindpage as IP
     from . import bubpage as BPG
     from . import sigpage as SPG
@@ -164,7 +164,7 @@ def render(SV: dict | None = None, BV: dict | None = None) -> str:
     return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("r")).replace("{{CSS}}", css)
                          .replace("{{BODY}}", body(host)).replace("{{PANEL}}", SPG.PANEL if has_sig else "")
                          .replace("{{SGD}}", f'<script type="application/json" id="sgd">{SPG.page_json(SV)}</script>' if has_sig else "")
-                         .replace("{{BUBD}}", BPG.research_data(BV)).replace("{{JS}}", js))
+                         .replace("{{BUBD}}", BPG.research_data(BV)).replace("{{JS}}", js), note=valog.page_note())
 
 
 def build(out: Path = OUT, SV: dict | None = None, BV: dict | None = None) -> bool:

@@ -1346,7 +1346,7 @@ def page_parts(mks: list[str]) -> dict:
 
 
 def render(V: dict) -> str:
-    from . import appnav
+    from . import appnav, valog
     from . import heatviz as VZ
     P = parts(V)
     G = page_parts([V.get("mk") or "tw"])
@@ -1355,7 +1355,7 @@ def render(V: dict) -> str:
                          .replace("{{MKROW}}", market_row("tw")).replace("{{DRAWER}}", VZ.DRAWER)
                          .replace("{{PANEL}}", G["panel"]).replace("{{SGD}}", G["sgd"]).replace("{{BUBD}}", G["bubd"])
                          .replace("{{BODY}}", P["body"]).replace("{{META}}", _meta_json(V)).replace("{{JS}}", VZ.JS + _JS)
-                         .replace("{{SGJS}}", G["js"] + G["bjs"]))
+                         .replace("{{SGJS}}", G["js"] + G["bjs"]), note=valog.page_note())
 
 
 def _write(out: Path, text: str) -> bool:

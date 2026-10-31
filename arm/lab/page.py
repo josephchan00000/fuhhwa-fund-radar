@@ -1499,12 +1499,18 @@ function vSt(){const X=D.strat||{};
    今天的驗證 → 前瞻紀錄 → 事件紀錄 → 評級規則、評級總表、各策略評級依據、全部策略總表 → 訊號成績 → 指數換股研究 → 每日更新時程。 ---------- */
 const VL=D.vlog||{},VTY={grade:'評級變動',full:'前瞻滿額',lag:'前瞻落後',deep:'虧損超過歷史最差',miss:'該出名單沒出',stale:'資料過期',
   dev:'表現偏離回測',shok:'影子版本達標',sout:'影子版本淘汰'};
+function boVfy(V){if(!V)return '';                     // 每週計算核對（valog.verify_state；docs/lab_signal_quality_plan.md 第 11 節）
+  const st=V.ok?(V.old?'全部一樣，但已經超過兩週沒有重跑':'全部一樣'):`<b>不一致 ${V.nbad} 項</b>`;
+  return `<h4 class=sh>每週計算核對</h4><div class="${V.ok&&!V.old?'card bop':'vfy'}" style="margin:4px 0">${md(V.d)} 核對 ${(V.n||0).toLocaleString()} 項：${st}。`+
+    ((V.ex||[]).length?`<ul>${V.ex.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'')+`</div>`+
+    `<div class=note>每週六用另一套算法重算市場層級的訊號、研究表、溫度計、產業泡沫，再把原始資料截到幾個日子整條重算，和網頁用的比對（不一樣＝算錯，或用到那一天還拿不到的資料）。不一致時市場頁與研究紀錄頁最上面標紅、06:35 推播多一行，不擋任何更新；完整結果在 data/lab/verify_status.json。</div>`;}
 function boToday(){if(VL.err)return sec('bo-today','今日驗證','今天的驗證','',`<div class=st>驗證紀錄錯誤：${esc(VL.err)}</div>`);
   const T=VL.today||{},E=T.ev||[],S=T.st||{},ks=Object.keys(S);
   const fn=ks.reduce((a,k)=>a+(S[k].fn||0),0),full=ks.filter(k=>S[k].fn>=S[k].need).length;
   let b=`<div class=lead><div>${E.length?`今天有 <b>${E.length} 件</b>驗證事件。`:'今天沒有驗證事件。'}${ks.length} 條策略規則起算後已出場 ${fn} 筆（次），達到 A 級門檻的 ${full} 條。</div>`+
     (E.length?`<ul>${E.map(e=>`<li><span class=pill>${esc(VTY[e.ty]||e.ty)}</span> ${esc(e.txt)}</li>`).join('')}</ul>`:'')+`</div>`;
   if((T.push||[]).length)b+=`<h4 class=sh>每天 06:35 推播多帶的兩行</h4><div class="card bop">${T.push.map(x=>`<div>${esc(x)}</div>`).join('')}</div>`;
+  b+=boVfy(T.vfy);
   b+=`<div class=note>事件規則（事前寫定）：評級變動；前瞻滿額（已出場第一次達到 A 級門檻）；前瞻落後（已出場 ≥ 門檻一半、平均沒贏同一批股票）；持有中跌得比過去最差一次還多；名單產生日已過一個交易日以上卻沒有名單；資料落後 2 個交易日以上。前五種只在第一次出現時記，資料過期每天都記。</div>`+
     `<div class=note>紀錄從 ${md(VL.since)} 開始，共 ${VL.n||0} 個資料日；每天正式區重建頁面時寫入（同一天後面的班次覆蓋）。</div>`;
   return sec('bo-today','今日驗證','今天的驗證',`資料日 ${mdw(VL.d)}`,b);}
