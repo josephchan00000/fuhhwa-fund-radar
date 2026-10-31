@@ -5,6 +5,7 @@ name: 個股報告官方文件包
 # 排程讀完就刪本機檔（scripts/eq_docs_req.py --drop；使用者 2026-10-30 選「不存」）。容器刪不了別的分支（git push --delete 回 403），
 # 所以臨時分支由這裡刪：每天台北 03:23（schedule）與每次抓取時，刪掉請求日期在今天以前的。
 # 觸發：claude/** 分支 push 動到 .ping/eqdocs（eq_docs_req.py --send 寫的 JSON：{"id", "codes"}）、手動、每天清臨時分支。
+# 每次抓完把結果記進 main 的 data/eq_docs_log.json（隔天重試、連兩天抓不到才照寫：docs/lab_eq_docs_plan.md 第 12 節）。
 # 請求內容只交給 fetch_eqdocs.py 驗格式（代號 tw:四碼、編號 YYYYMMDD-HHMM-六碼），不放進任何指令。
 
 on:
@@ -58,6 +59,31 @@ jobs:
           else
             python3 scripts/fetch_eqdocs.py --codes "$CODES" --out "$OUT"
           fi
+
+      - name: 記錄抓取結果（data/eq_docs_log.json 寫回 main）
+        # 使用者選 D2：抓不到當天不寫、隔天重試，連兩天抓不到才照寫。紀錄在 main，排程換視窗也接得上；
+        # 寫進 main 失敗不擋文件包（下一步照推，index 已經標好連續沒抓到的日子）。
+        if: github.event_name != 'schedule'
+        continue-on-error: true
+        run: |
+          OUT="$RUNNER_TEMP/eqdocs"
+          [ -f "$OUT/index.json" ] || { echo "沒有文件包，略過"; exit 0; }
+          git config user.name "josephchan00000"
+          git config user.email "51159474+josephchan00000@users.noreply.github.com"
+          M="$RUNNER_TEMP/main"
+          # 只拿 main 最新一個 commit（checkout 是淺的，不用 pull --rebase）；push 被搶先就在新的 main 上重做一次（同一天的紀錄會蓋掉，不會重複）
+          for i in 1 2 3; do
+            git fetch -q --depth=1 origin +refs/heads/main:refs/remotes/origin/main
+            if [ -d "$M" ]; then git -C "$M" checkout -q --detach -f origin/main; else git worktree add -q --detach "$M" origin/main; fi
+            python3 scripts/fetch_eqdocs.py --log "$M/data/eq_docs_log.json" --index "$OUT/index.json"
+            git -C "$M" add data/eq_docs_log.json
+            if git -C "$M" diff --cached --quiet; then echo "紀錄沒變"; exit 0; fi
+            git -C "$M" commit -q -m "chore: 個股報告文件包抓取紀錄 $(date '+%Y-%m-%d %H:%M')"
+            git -C "$M" push -q origin HEAD:main && exit 0
+            echo "push 被拒（第 $i 次），在新的 main 上重做…"
+            sleep $((i * 5))
+          done
+          exit 1
 
       - name: 推到臨時分支
         if: github.event_name != 'schedule'

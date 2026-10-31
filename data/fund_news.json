@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/30 21:36",
+  "as_of": "2026/10/31 10:23",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [],
@@ -25,13 +25,6 @@
           "source": "果仁家",
           "date": "2026-10-29 12:26",
           "datetime": "2026-10-29T12:26:03+08:00"
-        },
-        {
-          "title": "00929兩年只賺9％！0050同期大漲103％ 綠角揭高股息代價",
-          "url": "https://udn.com/news/story/123006/9843835",
-          "source": "UDN",
-          "date": "2026-10-29 09:06",
-          "datetime": "2026-10-29T09:06:19+08:00"
         }
       ]
     },
@@ -49,13 +42,6 @@
           "source": "CMoney",
           "date": "2026-10-30 17:59",
           "datetime": "2026-10-30T17:59:06+08:00"
-        },
-        {
-          "title": "8299 群聯- 00991A大賣台塑化2,000張！轉攻群聯、奇鋐- 股市爆料同學會",
-          "url": "https://www.cmoney.tw/forum/article/186968023",
-          "source": "CMoney",
-          "date": "2026-10-28 17:20",
-          "datetime": "2026-10-28T17:20:58+08:00"
         }
       ]
     },
@@ -68,6 +54,13 @@
       ],
       "items": [
         {
+          "title": "「瑤池金母」崩4％慘輸！專家曝00998A靠這招不怕血洗10％高配息更猛- 財經",
+          "url": "https://www.chinatimes.com/realtimenews/20261030003707-260410",
+          "source": "中時新聞網",
+          "date": "2026-10-30 18:20",
+          "datetime": "2026-10-30T18:20:47+08:00"
+        },
+        {
           "title": "00981A大跌又反彈！他想換00998A曝最新配置 內行人同感：最好賺的一段已經結束",
           "url": "https://tw.stock.yahoo.com/news/00981a%E5%A4%A7%E8%B7%8C%E5%8F%88%E5%8F%8D%E5%BD%88-%E4%BB%96%E6%83%B3%E6%8F%9B00998a%E6%9B%9D%E6%9C%80%E6%96%B0%E9%85%8D%E7%BD%AE-%E5%85%A7%E8%A1%8C%E4%BA%BA%E5%90%8C%E6%84%9F-%E6%9C%80%E5%A5%BD%E8%B3%BA%E7%9A%84-%E6%AE%B5%E5%B7%B2%E7%B6%93%E7%B5%90%E6%9D%9F-131500636.html",
           "source": "Yahoo股市",
@@ -75,25 +68,11 @@
           "datetime": "2026-10-29T21:15:00+08:00"
         },
         {
-          "title": "持股銀行股利提高20%！00998A布局歐洲金融 11月財報接棒受關注",
-          "url": "https://tw.news.yahoo.com/%E6%8C%81%E8%82%A1%E9%8A%80%E8%A1%8C%E8%82%A1%E5%88%A9%E6%8F%90%E9%AB%9820-00998a%E5%B8%83%E5%B1%80%E6%AD%90%E6%B4%B2%E9%87%91%E8%9E%8D-11%E6%9C%88%E8%B2%A1%E5%A0%B1%E6%8E%A5%E6%A3%92%E5%8F%97%E9%97%9C%E6%B3%A8-023008598.html",
-          "source": "Yahoo新聞",
-          "date": "2026-10-29 10:30",
-          "datetime": "2026-10-29T10:30:08+08:00"
-        },
-        {
-          "title": "日銀決策登場！00998A布局瑞穗、東京海上 近期跌幅小於00406A、00981A",
-          "url": "https://www.watchmedia01.com/archives/563952",
-          "source": "觀傳媒",
-          "date": "2026-10-29 10:34",
-          "datetime": "2026-10-29T10:34:15+08:00"
-        },
-        {
-          "title": "國泰金、元大金、富邦金都有！00998A一次布局全球金融 近期勝00981A、00406A",
-          "url": "https://www.watchmedia01.com/archives/563949",
-          "source": "觀傳媒",
-          "date": "2026-10-29 10:32",
-          "datetime": "2026-10-29T10:32:45+08:00"
+          "title": "金融股只買台灣金控？00998A加入海外龍頭　同期表現優於00981A、00406A | 生活 | CTWANT",
+          "url": "https://www.ctwant.com/amp/article/504377/",
+          "source": "CTWANT",
+          "date": "2026-10-29 17:12",
+          "datetime": "2026-10-29T17:12:24+08:00"
         }
       ]
     },
@@ -131,11 +110,11 @@
       ],
       "items": [
         {
-          "title": "台股急跌逾1500點 00418A迎建倉時機、逢低布局受關注",
-          "url": "https://www.watchmedia01.com/archives/564368",
+          "title": "市場回檔、新資金找機會！00418A進入建倉階段 為後續行情布局",
+          "url": "https://www.watchmedia01.com/archives/564371",
           "source": "觀傳媒",
-          "date": "2026-10-30 11:54",
-          "datetime": "2026-10-30T11:54:28+08:00"
+          "date": "2026-10-30 11:56",
+          "datetime": "2026-10-30T11:56:52+08:00"
         },
         {
           "title": "台股大跌00418A迎建倉階段 「9倍女王」下一步受關注",
@@ -143,6 +122,13 @@
           "source": "觀傳媒",
           "date": "2026-10-30 11:50",
           "datetime": "2026-10-30T11:50:58+08:00"
+        },
+        {
+          "title": "台股震盪考驗選股功力00418A雙經理人掌握建倉良機10/27最後買進日",
+          "url": "https://enn.tw/798563/",
+          "source": "ENN台灣電報",
+          "date": "2026-10-27 12:13",
+          "datetime": "2026-10-27T12:13:57+08:00"
         }
       ]
     },
@@ -504,7 +490,7 @@
       "channel": "财富底层逻辑",
       "url": "https://www.youtube.com/watch?v=gYyMwEhSwdM",
       "date": "2026-10-26",
-      "views": 3208
+      "views": 3242
     },
     {
       "platform": "youtube",
@@ -512,7 +498,7 @@
       "channel": "夏之戀",
       "url": "https://www.youtube.com/watch?v=xaP__cQ9sac",
       "date": "2026-10-26",
-      "views": 2641
+      "views": 2668
     },
     {
       "platform": "youtube",
@@ -520,7 +506,7 @@
       "channel": "懶得變有錢",
       "url": "https://www.youtube.com/shorts/CmPUJsZF66c",
       "date": "2026-10-30",
-      "views": 997,
+      "views": 1149,
       "short": true
     },
     {
@@ -529,7 +515,7 @@
       "channel": "小宇宙大爆發",
       "url": "https://www.youtube.com/watch?v=u4xcSAzbUi8",
       "date": "2026-10-26",
-      "views": 428437,
+      "views": 438804,
       "peer": true,
       "cat": "綜合"
     },
@@ -539,7 +525,7 @@
       "channel": "風傳媒 The Storm Media",
       "url": "https://www.youtube.com/watch?v=q4n751SOzSA",
       "date": "2026-10-29",
-      "views": 184275,
+      "views": 194927,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -549,7 +535,7 @@
       "channel": "小宇宙大爆發",
       "url": "https://www.youtube.com/shorts/GqjaO8uqJOY",
       "date": "2026-10-26",
-      "views": 144832,
+      "views": 148541,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -560,7 +546,7 @@
       "channel": "理財達人秀 EBCmoneyshow",
       "url": "https://www.youtube.com/watch?v=BOnMxB8Xh6M",
       "date": "2026-10-28",
-      "views": 130147,
+      "views": 130744,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -570,7 +556,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=WkmMZrXvm84",
       "date": "2026-10-26",
-      "views": 108757,
+      "views": 110782,
       "peer": true,
       "cat": "市值型"
     },
@@ -580,7 +566,7 @@
       "channel": "葉芷娟",
       "url": "https://www.youtube.com/watch?v=vNmwEEWgWuA",
       "date": "2026-10-28",
-      "views": 93786,
+      "views": 103175,
       "peer": true,
       "cat": "主動式"
     },
@@ -590,7 +576,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=KdZ-l9pChOs",
       "date": "2026-10-28",
-      "views": 90460,
+      "views": 94232,
       "peer": true,
       "cat": "高股息"
     },
@@ -600,35 +586,35 @@
       "channel": "午後檔案",
       "url": "https://www.youtube.com/watch?v=ZRtvgX91bLA",
       "date": "2026-10-27",
-      "views": 63333,
+      "views": 63820,
       "peer": true,
       "cat": "基金"
     },
     {
       "platform": "youtube",
-      "title": "小資族全押主動式 ETF？市值型配一半更穩｜ft.超馬芭樂 #ETF投資 #資產配置 #ETF錢滾錢",
+      "title": "主動式ETF光環退燒？跌下去才知道這題有多殘酷😵｜ft.基金教母蕭碧燕、葉芷娟 #ETF投資 #主動式ETF #ETF錢滾錢",
       "channel": "【CMoney理財寶】官方頻道",
-      "url": "https://www.youtube.com/shorts/hdsf9pULGsQ",
-      "date": "2026-10-26",
-      "views": 53846,
+      "url": "https://www.youtube.com/shorts/gyebmmVJdN4",
+      "date": "2026-10-27",
+      "views": 57325,
       "peer": true,
       "short": true,
       "cat": "主動式"
     },
     {
       "platform": "youtube",
-      "title": "台灣人認賠出場，美國人卻砸百億搶進｜同一檔長天期美債，誰算對了？",
-      "channel": "墨鏡姐一粒沙",
-      "url": "https://www.youtube.com/watch?v=cNL_HzV8TiU",
-      "date": "2026-10-26",
-      "views": 36297,
+      "title": "ETF今年績效大比拚!市值還是贏?!高息型變黑馬? 高息ETF變身台股新主流?!表現搶眼還會延續?!│陳斐娟 主持 │20261030│關我什麼事",
+      "channel": "關我什麼事",
+      "url": "https://www.youtube.com/watch?v=E-tt9_An4pA",
+      "date": "2026-10-30",
+      "views": 45531,
       "peer": true,
-      "cat": "債券"
+      "cat": "高股息"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00418A（詳下方新聞標籤）",
     "社群聲量最高：懇請增加00981T（股3債7月配ETF）（0 推）",
-    "YouTube 熱片：ETF越存越窮? 3大毀滅死穴 用100萬無痛月領14萬 ft.超馬芭樂【小宇宙大爆發】（小宇宙大爆發・428,437 次觀看）"
+    "YouTube 熱片：ETF越存越窮? 3大毀滅死穴 用100萬無痛月領14萬 ft.超馬芭樂【小宇宙大爆發】（小宇宙大爆發・438,804 次觀看）"
   ]
 }

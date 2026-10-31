@@ -347,6 +347,55 @@ def index(pk: dict) -> dict:
             "annual": {"fy": a.get("fy"), "url": a.get("url"), "pages": [p for p, _ in a.get("pages") or []]} if a else None}
 
 
+# ── 抓取紀錄與「隔天重試」（使用者 2026-10-30 選 D2：抓不到當天不寫、隔天重試，連兩天抓不到才照寫並寫明）────────
+
+LOG_KEEP = 10            # 每家留最近幾次抓取
+
+
+def _why(st: dict | None) -> str:
+    bad = [f"{k} {v}" for k, v in (st or {}).items() if str(v).startswith("err")]
+    return "；".join(bad)[:200] or "沒抓到"
+
+
+def log_update(log: dict, idx: dict) -> dict:
+    """data/eq_docs_log.json（CI 寫回 main）：每家每天最後一次抓取的結果 [日期, "ok" 或錯誤原因]，留 LOG_KEEP 筆；
+    順手把每家「連續沒抓到的日子」寫進文件清單（fails，最新的在前），排程與檢查都看它。"""
+    day = str(idx.get("at") or "")[:10]
+    codes = log.setdefault("codes", {})
+    for c, x in (idx.get("codes") or {}).items():
+        hist = [h for h in codes.get(c, []) if h[0] != day]            # 同一天抓好幾次：留最後一次
+        hist.append([day, "ok" if x.get("ok") else _why(x.get("st"))])
+        codes[c] = hist[-LOG_KEEP:]
+        x["fails"] = fails(codes[c])
+    log["v"] = 1
+    return log
+
+
+def fails(hist: list) -> list[str]:
+    """從最近一次往回數，連續沒抓到的日子（不同天）；最近一次抓到＝[]。"""
+    out = []
+    for d, s in reversed(hist or []):
+        if s == "ok":
+            break
+        out.append(d)
+    return out
+
+
+def d2(x: dict) -> str:
+    """一家文件包的處理：ok＝照常寫；retry＝今天不寫、明天名單還會有它；write＝連兩天沒抓到，照寫並在資料侷限寫明。"""
+    if x.get("ok"):
+        return "ok"
+    return "write" if len(x.get("fails") or []) >= 2 else "retry"
+
+
+def for_facts(idx: dict, code: str) -> dict | None:
+    """文件清單（.eqdocs/{編號}/index.json）→ 報告旁 .facts.json 的 docs（只有日期、主旨、官方網址與抓取狀態，沒有全文）。"""
+    x = (idx.get("codes") or {}).get(f"tw:{code}")
+    if not x:
+        return None
+    return {**x, "id": idx.get("id"), "at": idx.get("at")}
+
+
 def render_md(pk: dict) -> str:
     """給寫報告的子代理讀的版本（同一份資料，換成好讀的格式）。"""
     b = pk.get("basic") or {}

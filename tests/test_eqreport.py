@@ -276,3 +276,84 @@ def test_page_escapes_pack_strings_and_blocks_non_http_links():
     assert bad not in html and "&lt;img src=x onerror=alert(1)&gt;" in html
     assert "javascript:" not in html and 'href="https://example.com/a"' in html
     assert P._safe_url("data:text/html,x") == "" and P._safe_url(" HTTPS://a.b ") == "HTTPS://a.b"
+
+
+# ── 官方文件包（docs/lab_eq_docs_plan.md 第 5、12 節）：2026-10-31 起的台股報告 ─────────────────────────────
+
+DECK = "https://mopsov.twse.com.tw/nas/STR/999920260917M001.pdf"
+ANNUAL = "https://doc.twse.com.tw/server-java/t57sb01?step=1&colorchg=1&co_id=9999&year=115&mtype=F&"
+
+
+def _docs(**kw):
+    d = {"v": 1, "made": "2026-10-31", "ok": True, "name": "測試股份有限公司", "site": "https://www.test-co.com.tw",
+         "st": {"basic": "ok", "confs": "ok", "deck": "ok", "news": "ok", "annual": "ok"},
+         "confs": [{"d": "2026-09-17", "pdf": DECK, "video": "http://irconference.twse.com.tw/9999_1_20260917_ch.mp4"}],
+         "deck": {"d": "2026-09-17", "url": DECK, "n": 20},
+         "news": [{"d": "2026-10-28", "subj": "公告本公司董事會<決議>"}] * 10,
+         "annual": {"fy": 2025, "url": ANNUAL, "pages": [60, 61]}, "fails": [], "id": "20261031-2047-abcdef", "at": "2026-10-31 20:55"}
+    d.update(kw)
+    return d
+
+
+def _pack_d(**kw):
+    return {**_pack(), "docs": _docs(**kw)}
+
+
+OFF = (f"- [測試 2026 年 9 月法說會簡報]({DECK})（2026-09-17）\n- [測試 2025 年度股東會年報]({ANNUAL})（2026-05-28）\n"
+       "- [公開資訊觀測站重大訊息](https://mopsov.twse.com.tw/mops/web/t05st01)（2026-10-28）\n"
+       + "\n".join(f"- [媒體報導 {i}](https://news.example.com/{i})（2026-10-0{i}）" for i in range(1, 7)))
+
+
+def _md31(src=OFF, co="2026 年 9 月 17 日法說會說明新產能時程。", **kw):
+    t = _md(made="2026-10-31", **kw).replace(LINKS, src)
+    return t.replace("## 公司概況\n", f"## 公司概況\n{co}\n")
+
+
+def test_tw_report_with_docs_passes_and_old_reports_are_not_checked():
+    assert R.check(_md31(), _pack_d()) == []
+    assert R.check(_md(), _pack()) == []                                     # 10/30 以前的報告不追溯
+    assert any("沒有官方文件包" in e for e in R.check(_md31(), _pack()))
+
+
+def test_tw_report_must_cite_deck_annual_and_official_urls():
+    no_deck = OFF.replace(DECK, "https://news.example.com/deck")
+    errs = R.check(_md31(src=no_deck), _pack_d())
+    assert any("最近一次法說會（2026-09-17）的簡報" in e for e in errs)
+    assert any("年報" in e for e in R.check(_md31(src=OFF.replace(ANNUAL, "https://news.example.com/ar")), _pack_d()))
+    assert any("寫出日期" in e for e in R.check(_md31(co="最近一次法說會說明新產能時程。"), _pack_d()))
+    assert R.check(_md31(co="9/17 法說會說明新產能。"), _pack_d()) == []
+    media = "\n".join(f"- [某某法說會重點整理 {i}](https://news.example.com/{i})（2026-10-0{i}）" for i in range(1, 9))
+    errs = R.check(_md31(src=media), _pack_d(deck=None, annual=None))
+    assert any("沒有官方網址" in e for e in errs)                              # 媒體標題寫「法說會」不算官方
+    site = media + "\n- [測試公司投資人關係](https://ir.test-co.com.tw/ir)（2026-10-01）"
+    assert R.check(_md31(src=site), _pack_d(deck=None, annual=None)) == []   # 文件包記下的公司官網算
+
+
+def test_limits_cannot_claim_missing_documents_that_the_pack_has():
+    lie = OFF + "\n資料侷限：未取得公司法說會簡報原文，內容依媒體轉述。"
+    assert any("文件包有 2026-09-17 的簡報" in e for e in R.check(_md31(src=lie), _pack_d()))
+    lie2 = OFF + "\n資料侷限：沒有讀到年報。"
+    assert any("年報" in e for e in R.check(_md31(src=lie2), _pack_d()))
+    ok = OFF + "\n資料侷限：簡報沒有揭露各產品毛利率；媒體對接單金額的說法不一。"
+    assert R.check(_md31(src=ok), _pack_d()) == []
+
+
+def test_docs_retry_next_day_and_write_after_two_days():
+    bad = {"ok": False, "st": {"basic": "ok", "confs": "err: 觀測站 500", "deck": "none", "news": "ok", "annual": "ok"},
+           "deck": None, "confs": []}
+    errs = R.check(_md31(), _pack_d(fails=["2026-10-31"], **bad))
+    assert any("今天不寫、明天重試" in e for e in errs)
+    errs = R.check(_md31(), _pack_d(fails=["2026-10-31", "2026-10-30"], **bad))
+    assert any("要寫明官方文件抓不到" in e for e in errs)
+    told = OFF + "\n資料侷限：官方文件包連兩天抓不到法說會清單（觀測站回應錯誤），法說會內容依媒體轉述。"
+    assert R.check(_md31(src=told), _pack_d(fails=["2026-10-31", "2026-10-30"], **bad)) == []
+    assert any("超過 3 天" in e for e in R.check(_md31(), _pack_d(at="2026-10-20 20:55")))
+
+
+def test_page_lists_company_documents_from_the_pack():
+    html = P.render(_md31(), _pack_d())
+    assert "公司文件" in html and f'href="{DECK}"' in html and "影音" in html
+    assert "2025 年度股東會年報" in html and "ANNUAL" not in html and "co_id=9999&amp;year=115" in html
+    assert "近 6 個月重大訊息 10 則" in html and "…另外 2 則" in html
+    assert "公告本公司董事會&lt;決議&gt;" in html and "<決議>" not in html          # 觀測站的字一律跳脫
+    assert "公司文件" not in P.render(_md(), _pack())                          # 沒有文件包的舊報告不放
