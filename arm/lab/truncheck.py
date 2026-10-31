@@ -264,7 +264,7 @@ def cut_frame(F: dict, day: str) -> dict:
     G = dict(F)
     G["cal"] = list(F["cal"][:c])
     G["px"] = np.asarray(F["px"])[:c]
-    G["we"], G["wes"] = P.week_ends(G["cal"]), P.done_week_ends(G["cal"])
+    G["we"], G["wes"] = P.week_ends(G["cal"]), P.done_week_ends(G["cal"], P.market_closed(F.get("mk")))
     for key in ("vars", "cvars", "ivars", "bvars", "deriv"):
         G[key] = [sl(d) for d in (F.get(key) or [])]
     G["comp"] = sl(F["comp"])

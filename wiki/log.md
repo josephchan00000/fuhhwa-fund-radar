@@ -145,3 +145,4 @@
 
 ## [2026-10-31] 收錄 | 月／季資料照官方實際公布日（A-3b）
 - heatspec VER 12、heatspec_us VER 5、bubspec VER 5（含兩次算結果之前的補充）：美國 CPI、就業報告、Z.1 照官方實際公布日（`arm/lab/reldates.py`、`scripts/fetch_reldates.py`，每週跟 `verify.yml` 更新），沒有官方日期的年份照同月份歷年最晚；GDP、企業獲利停擺改期；台灣月資料改保守時程；月營收照申報期限。邊際變化（`heatpos`、`heatreg`）與 CAPE 參考讀數補上實際拿得到的日子；截斷重建也比邊際變化、加 6 個核對日。改了 `lab/heat-tw.md`、`lab/heat-us.md`、`lab/bubble.md`、`lab/chip-ui.md`、`ops/schedule.md`、`lessons.md`（規劃第 11.2 節）。
+- 截斷重建新核對日 2026-04-02 查到週訊號的週末在週五休市那一週回測比網頁早一天 → `heatpos.done_week_ends` 與第二套 `sigverify._done_weeks` 改照官方休市表（`market_closed`）；研究檔不變。改了 `lab/chip-ui.md`、`lessons.md`。

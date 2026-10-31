@@ -248,15 +248,19 @@ def _tech(mk: str, px: np.ndarray) -> list[dict]:
             for k, d in ev.items()]
 
 
-def _done_weeks(cal: list) -> list[int]:
-    """訊號用的週末：每個 ISO 週最後一個交易日；最新一天要是星期五或星期六才算（那一週還沒過完就不算）。"""
-    from datetime import date
+def _done_weeks(cal: list, closed=None) -> list[int]:
+    """訊號用的週末：每個 ISO 週最後一個交易日；最新一天要是星期五或星期六才算，或之後到星期五都休市（closed：官方休市表；
+    那一週還沒過完就不算）。"""
+    from datetime import date, timedelta
     out = []
     for i, d in enumerate(cal):
         if i + 1 < len(cal):
             if date.fromisoformat(cal[i + 1]).isocalendar()[:2] != date.fromisoformat(d).isocalendar()[:2]:
                 out.append(i)
-        elif date.fromisoformat(d).weekday() >= 4:
+            continue
+        x = date.fromisoformat(d)
+        rest = [x + timedelta(days=k) for k in range(1, 5 - x.weekday())]           # 之後到星期五的平日
+        if x.weekday() >= 4 or (closed is not None and rest and all(closed(y) is True for y in rest)):
             out.append(i)
     return out
 
@@ -264,7 +268,8 @@ def _done_weeks(cal: list) -> list[int]:
 def detect(F: dict) -> tuple[list[dict], list[str]]:
     """一個市場的訊號（第二套）；回傳 (訊號, 沒有第二套算法的訊號 id 前綴)。"""
     mk, cal, px = F["mk"], F["cal"], np.asarray(F["px"], dtype=float)
-    we = _done_weeks(cal)
+    from . import heatpos as P
+    we = _done_weeks(cal, P.market_closed(mk))                                     # 休市表是資料，兩套共用
     T = len(cal)
     out: list[dict] = []
     for cat, key in (("heat", "vars"), ("crash", "cvars"), ("bd", "bvars")):

@@ -518,7 +518,7 @@ def frame(mk: str, B: dict, I: dict, IB: dict | None = None, BX: dict | None = N
         flat = CR.align(cal, B["cal"], [None if s is None else float(s) for s in st])
         DV.append({"key": k, "name": nm[k], "kind": HS.DERIV[k]["kind"], "x": x, "have": ~np.isnan(flat)})
     rows = ((BX or {}).get(mk) or {}).get("_C", {}).get("rows") or []
-    return {"mk": mk, "cal": cal, "px": px, "we": P.week_ends(cal), "wes": P.done_week_ends(cal), "vars": V, "cvars": CV, "comp": comp, "dims": dims,
+    return {"mk": mk, "cal": cal, "px": px, "we": P.week_ends(cal), "wes": P.done_week_ends(cal, P.market_closed(mk)), "vars": V, "cvars": CV, "comp": comp, "dims": dims,
             "ivars": inst_vars(cal, B) if mk == "tw" else [], "bvars": bd_vars(mk, cal),
             "deriv": DV, "deriv_words": dict(HS.DERIV_WORDS), "bub": rows, "IB": IB, "r0": recent_from(cal),
             "stale": sorted((B.get("stale") or {}).keys())}

@@ -282,6 +282,21 @@ def test_done_weeks_two_implementations_and_live_rule():
         assert (len(c) - 1 in HP.done_week_ends(c)) == last_fri and len(c) - 1 in HP.week_ends(c)
 
 
+def test_done_weeks_friday_holiday_counts_on_thursday():
+    """週五休市（官方休市表）：週四當天就算週末——回測（完整日曆）和網頁（只看到週四）一致（2026-10-31 A-3 截斷重建查到）。"""
+    thu = ["2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02"]                 # 2026-04-03（五）兩邊都休市
+    for mk in ("tw", "spx"):
+        cl = HP.market_closed(mk)
+        assert cl(date(2026, 4, 3)) is True and cl(date(2026, 4, 2)) is False
+        assert HP.done_week_ends(thu, cl) == [3] == V._done_weeks(thu, cl)
+        assert HP.done_week_ends(thu) == [] == V._done_weeks(thu)                    # 沒給休市表：照舊等下一週
+        assert HP.done_week_ends(thu + ["2026-04-07"], cl) == [3] == HP.week_ends(thu + ["2026-04-07"])[:1]
+    wed = ["2026-04-01"]                                                          # 週四開市：週三不算
+    assert HP.done_week_ends(wed, HP.market_closed("tw")) == [] == V._done_weeks(wed, HP.market_closed("tw"))
+    assert HP.market_closed("tw")(date(1990, 4, 6)) is None                       # 休市表沒涵蓋＝不知道 → 當成開市
+    assert HP.done_week_ends(["1990-04-05"], lambda d: None) == []
+
+
 # ── A-3a：每週 CI、推播一行、頁面紅字（docs/lab_signal_quality_plan.md 第 11 節） ──────────────────────
 
 def _rv():
