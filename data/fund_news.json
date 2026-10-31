@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/31 10:23",
+  "as_of": "2026/10/31 21:00",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [],
@@ -13,11 +13,11 @@
       ],
       "items": [
         {
-          "title": "00927、00878、00929…台股高息ETF揚眉吐氣！這檔今年含息報酬率稱冠，達人喊它定位明確：多一層成長想像",
+          "title": "00927、00878、00929、0056…台股5千點大回檔、它竟還翻倍賺！不只配息還多這層加持，最佳配比曝光",
           "url": "https://www.businesstoday.com.tw/article/category/183013/post/202610290014/",
           "source": "今周刊",
-          "date": "2026-10-29 18:20",
-          "datetime": "2026-10-29T18:20:00+08:00"
+          "date": "2026-10-30 22:56",
+          "datetime": "2026-10-30T22:56:00+08:00"
         },
         {
           "title": "2026 年 11 月 ETF 配息入帳懶人包：0056、00922、00929 等 19 檔，一張最高領 2,500 元",
@@ -25,6 +25,20 @@
           "source": "果仁家",
           "date": "2026-10-29 12:26",
           "datetime": "2026-10-29T12:26:03+08:00"
+        },
+        {
+          "title": "00929兩年只賺9％！0050同期大漲103％ 綠角揭高股息代價",
+          "url": "https://udn.com/news/story/123006/9843835",
+          "source": "UDN",
+          "date": "2026-10-29 09:06",
+          "datetime": "2026-10-29T09:06:19+08:00"
+        },
+        {
+          "title": "00929與0050的報酬率差異，是否暗示了高股息投資的長期風險？",
+          "url": "https://udn.com/news/ai/answer/00929%E8%88%87-59194094",
+          "source": "UDN",
+          "date": "2026-10-29 01:10",
+          "datetime": "2026-10-29T01:10:25+08:00"
         }
       ]
     },
@@ -54,6 +68,13 @@
       ],
       "items": [
         {
+          "title": "本金不多想買第一檔ETF！新手鎖定00757、00998A 網勸先評估風險",
+          "url": "https://tw.stock.yahoo.com/news/%E6%9C%AC%E9%87%91%E4%B8%8D%E5%A4%9A%E6%83%B3%E8%B2%B7%E7%AC%AC-%E6%AA%94etf-%E6%96%B0%E6%89%8B%E9%8E%96%E5%AE%9A00757-00998a-%E7%B6%B2%E5%8B%B8%E5%85%88%E8%A9%95%E4%BC%B0%E9%A2%A8%E9%9A%AA-025000457.html",
+          "source": "Yahoo股市",
+          "date": "2026-10-31 10:50",
+          "datetime": "2026-10-31T10:50:00+08:00"
+        },
+        {
           "title": "「瑤池金母」崩4％慘輸！專家曝00998A靠這招不怕血洗10％高配息更猛- 財經",
           "url": "https://www.chinatimes.com/realtimenews/20261030003707-260410",
           "source": "中時新聞網",
@@ -66,13 +87,6 @@
           "source": "Yahoo股市",
           "date": "2026-10-29 21:15",
           "datetime": "2026-10-29T21:15:00+08:00"
-        },
-        {
-          "title": "金融股只買台灣金控？00998A加入海外龍頭　同期表現優於00981A、00406A | 生活 | CTWANT",
-          "url": "https://www.ctwant.com/amp/article/504377/",
-          "source": "CTWANT",
-          "date": "2026-10-29 17:12",
-          "datetime": "2026-10-29T17:12:24+08:00"
         }
       ]
     },
@@ -110,11 +124,11 @@
       ],
       "items": [
         {
-          "title": "市場回檔、新資金找機會！00418A進入建倉階段 為後續行情布局",
-          "url": "https://www.watchmedia01.com/archives/564371",
+          "title": "台股急跌逾1500點 00418A迎建倉時機、逢低布局受關注",
+          "url": "https://www.watchmedia01.com/archives/564368",
           "source": "觀傳媒",
-          "date": "2026-10-30 11:56",
-          "datetime": "2026-10-30T11:56:52+08:00"
+          "date": "2026-10-30 11:54",
+          "datetime": "2026-10-30T11:54:28+08:00"
         },
         {
           "title": "台股大跌00418A迎建倉階段 「9倍女王」下一步受關注",
@@ -124,11 +138,11 @@
           "datetime": "2026-10-30T11:50:58+08:00"
         },
         {
-          "title": "台股震盪考驗選股功力00418A雙經理人掌握建倉良機10/27最後買進日",
-          "url": "https://enn.tw/798563/",
-          "source": "ENN台灣電報",
-          "date": "2026-10-27 12:13",
-          "datetime": "2026-10-27T12:13:57+08:00"
+          "title": "AI股拉回，下一筆資金怎麼布局？00418A建倉時點受關注",
+          "url": "https://tw.stock.yahoo.com/news/ai%E8%82%A1%E6%8B%89%E5%9B%9E-%E4%B8%8B-%E7%AD%86%E8%B3%87%E9%87%91%E6%80%8E%E9%BA%BC%E5%B8%83%E5%B1%80-00418a%E5%BB%BA%E5%80%89%E6%99%82%E9%BB%9E%E5%8F%97%E9%97%9C%E6%B3%A8-220808075.html",
+          "source": "Yahoo股市",
+          "date": "2026-10-30 06:08",
+          "datetime": "2026-10-30T06:08:08+08:00"
         }
       ]
     },
@@ -270,7 +284,15 @@
       "short_names": [
         "復華"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "防災教育向下扎根！高市消防苓雅分隊挺進復華雙語小學宣導",
+          "url": "https://life.tw/article/%E9%98%B2%E7%81%BD%E6%95%99%E8%82%B2%E5%90%91%E4%B8%8B%E6%89%8E%E6%A0%B9-%E9%AB%98%E5%B8%82%E6%B6%88%E9%98%B2%E8%8B%93%E9%9B%85%E5%88%86%E9%9A%8A%E6%8C%BA%E9%80%B2%E5%BE%A9%E8%8F%AF%E9%9B%99%E8%AA%9E%E5%B0%8F%E5%AD%B8%E5%AE%A3%E5%B0%8E-3198856",
+          "source": "Life 生活網",
+          "date": "2026-10-30 17:55",
+          "datetime": "2026-10-30T17:55:31+08:00"
+        }
+      ]
     },
     {
       "base": "復華高成長基金",
@@ -430,6 +452,13 @@
   "social": [
     {
       "platform": "fundhot",
+      "board": "天使",
+      "title": "10年藏金圖，5次進場訊號都暴賺！10月30日訊號再現",
+      "url": "https://fundhot.com/forum/%E5%A4%A9%E4%BD%BF/10%E5%B9%B4%E8%97%8F%E9%87%91%E5%9C%96%EF%BC%8C5%E6%AC%A1%E9%80%B2%E5%A0%B4%E8%A8%8A%E8%99%9F%E9%83%BD%E6%9A%B4%E8%B3%BA%EF%BC%8110%E6%9C%8830%E6%97%A5%E8%A8%8A%E8%99%9F%E5%86%8D%E7%8F%BE/14035",
+      "date": "2026-10-31"
+    },
+    {
+      "platform": "fundhot",
       "board": "ETF",
       "title": "懇請增加00981T（股3債7月配ETF）",
       "url": "https://fundhot.com/forum/ETF/%E6%87%87%E8%AB%8B%E5%A2%9E%E5%8A%A000981T%EF%BC%88%E8%82%A13%E5%82%B57%E6%9C%88%E9%85%8DETF%EF%BC%89/14034",
@@ -440,7 +469,7 @@
       "board": "股票基金",
       "title": "一年報酬超越凱基台灣精五門的基金分享",
       "url": "https://fundhot.com/forum/%E8%82%A1%E7%A5%A8%E5%9F%BA%E9%87%91/%E4%B8%80%E5%B9%B4%E5%A0%B1%E9%85%AC%E8%B6%85%E8%B6%8A%E5%87%B1%E5%9F%BA%E5%8F%B0%E7%81%A3%E7%B2%BE%E4%BA%94%E9%96%80%E7%9A%84%E5%9F%BA%E9%87%91%E5%88%86%E4%BA%AB/14033",
-      "date": "2026-10-30"
+      "first_seen": "2026-10-31"
     },
     {
       "platform": "fundhot",
@@ -478,19 +507,12 @@
       "first_seen": "2026-10-28"
     },
     {
-      "platform": "fundhot",
-      "board": "天使",
-      "title": "4年一次勝率100％的15個月套利機會！這波修正我買了這些",
-      "url": "https://fundhot.com/forum/%E5%A4%A9%E4%BD%BF/4%E5%B9%B4%E4%B8%80%E6%AC%A1%E5%8B%9D%E7%8E%87100%EF%BC%85%E7%9A%8415%E5%80%8B%E6%9C%88%E5%A5%97%E5%88%A9%E6%A9%9F%E6%9C%83%EF%BC%81%E9%80%99%E6%B3%A2%E4%BF%AE%E6%AD%A3%E6%88%91%E8%B2%B7%E4%BA%86%E9%80%99%E4%BA%9B/14025",
-      "first_seen": "2026-10-28"
-    },
-    {
       "platform": "youtube",
       "title": "別再盲目存 00929！0056、00878 與 00713 終極對決：誰才是真正跌不倒、配得穩的「養老真防守」？ #00878 #0056 #00713 #00929 #高股息ETF",
       "channel": "财富底层逻辑",
       "url": "https://www.youtube.com/watch?v=gYyMwEhSwdM",
       "date": "2026-10-26",
-      "views": 3242
+      "views": 3275
     },
     {
       "platform": "youtube",
@@ -498,7 +520,7 @@
       "channel": "夏之戀",
       "url": "https://www.youtube.com/watch?v=xaP__cQ9sac",
       "date": "2026-10-26",
-      "views": 2668
+      "views": 2673
     },
     {
       "platform": "youtube",
@@ -506,18 +528,8 @@
       "channel": "懶得變有錢",
       "url": "https://www.youtube.com/shorts/CmPUJsZF66c",
       "date": "2026-10-30",
-      "views": 1149,
+      "views": 1204,
       "short": true
-    },
-    {
-      "platform": "youtube",
-      "title": "ETF越存越窮? 3大毀滅死穴 用100萬無痛月領14萬 ft.超馬芭樂【小宇宙大爆發】",
-      "channel": "小宇宙大爆發",
-      "url": "https://www.youtube.com/watch?v=u4xcSAzbUi8",
-      "date": "2026-10-26",
-      "views": 438804,
-      "peer": true,
-      "cat": "綜合"
     },
     {
       "platform": "youtube",
@@ -525,20 +537,9 @@
       "channel": "風傳媒 The Storm Media",
       "url": "https://www.youtube.com/watch?v=q4n751SOzSA",
       "date": "2026-10-29",
-      "views": 194927,
+      "views": 206675,
       "peer": true,
       "cat": "市場趨勢"
-    },
-    {
-      "platform": "youtube",
-      "title": "ETF存股簡單1招 退休月領突破14萬【小宇宙大爆發】#shorts #財經",
-      "channel": "小宇宙大爆發",
-      "url": "https://www.youtube.com/shorts/GqjaO8uqJOY",
-      "date": "2026-10-26",
-      "views": 148541,
-      "peer": true,
-      "short": true,
-      "cat": "綜合"
     },
     {
       "platform": "youtube",
@@ -546,19 +547,9 @@
       "channel": "理財達人秀 EBCmoneyshow",
       "url": "https://www.youtube.com/watch?v=BOnMxB8Xh6M",
       "date": "2026-10-28",
-      "views": 130744,
+      "views": 131104,
       "peer": true,
       "cat": "市場趨勢"
-    },
-    {
-      "platform": "youtube",
-      "title": "用1檔ETF「無腦買台灣」年賺22%　0050/009816/006208…6大候選人選他！（2026版）｜懶錢包LazyWallet",
-      "channel": "懶錢包 Lazy Wallet",
-      "url": "https://www.youtube.com/watch?v=WkmMZrXvm84",
-      "date": "2026-10-26",
-      "views": 110782,
-      "peer": true,
-      "cat": "市值型"
     },
     {
       "platform": "youtube",
@@ -566,9 +557,19 @@
       "channel": "葉芷娟",
       "url": "https://www.youtube.com/watch?v=vNmwEEWgWuA",
       "date": "2026-10-28",
-      "views": 103175,
+      "views": 111656,
       "peer": true,
       "cat": "主動式"
+    },
+    {
+      "platform": "youtube",
+      "title": "台股最壞時刻已過.下週必反彈!別被主力騙了!友達.台達電.聯發科.0050.績優股跌無可跌!║楊育華、楊惠宇、王威瀚║2026.10.30",
+      "channel": "瘋狂股市福利社Free Free Free!",
+      "url": "https://www.youtube.com/watch?v=RxPRvqYjVKc",
+      "date": "2026-10-30",
+      "views": 104469,
+      "peer": true,
+      "cat": "市值型"
     },
     {
       "platform": "youtube",
@@ -576,9 +577,29 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=KdZ-l9pChOs",
       "date": "2026-10-28",
-      "views": 94232,
+      "views": 98292,
       "peer": true,
       "cat": "高股息"
+    },
+    {
+      "platform": "youtube",
+      "title": "台股跌到4萬點？超馬芭樂買「這2檔ETF」安穩避風港！【#賺錢放大術】20261030｜超馬芭樂、白昀霏",
+      "channel": "賺錢放大術",
+      "url": "https://www.youtube.com/watch?v=8-Szt70v4xY",
+      "date": "2026-10-30",
+      "views": 94939,
+      "peer": true,
+      "cat": "綜合"
+    },
+    {
+      "platform": "youtube",
+      "title": "《揭外資操弄ETF真相! 散戶自保大作戰!》【錢線百分百】20261027-10│非凡財經新聞│",
+      "channel": "USTV 非凡電視",
+      "url": "https://www.youtube.com/watch?v=qaDZXiyg5SU",
+      "date": "2026-10-27",
+      "views": 68959,
+      "peer": true,
+      "cat": "綜合"
     },
     {
       "platform": "youtube",
@@ -586,7 +607,7 @@
       "channel": "午後檔案",
       "url": "https://www.youtube.com/watch?v=ZRtvgX91bLA",
       "date": "2026-10-27",
-      "views": 63820,
+      "views": 64226,
       "peer": true,
       "cat": "基金"
     },
@@ -596,7 +617,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/gyebmmVJdN4",
       "date": "2026-10-27",
-      "views": 57325,
+      "views": 61011,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -607,14 +628,14 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=E-tt9_An4pA",
       "date": "2026-10-30",
-      "views": 45531,
+      "views": 52857,
       "peer": true,
       "cat": "高股息"
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00418A（詳下方新聞標籤）",
-    "社群聲量最高：懇請增加00981T（股3債7月配ETF）（0 推）",
-    "YouTube 熱片：ETF越存越窮? 3大毀滅死穴 用100萬無痛月領14萬 ft.超馬芭樂【小宇宙大爆發】（小宇宙大爆發・438,804 次觀看）"
+    "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00418A、（詳下方新聞標籤）",
+    "社群聲量最高：10年藏金圖，5次進場訊號都暴賺！10月30日訊號再現（0 推）",
+    "YouTube 熱片：【理財】台股抄底時間到了？卡位下一波大漲，高手加碼必看「這3個關鍵」！ft.股海老牛｜下班經濟學797｜謝哲青、張瓊方（風傳媒 The Storm Media・206,675 次觀看）"
   ]
 }
