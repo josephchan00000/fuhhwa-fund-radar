@@ -7,7 +7,8 @@
 
 三層，各自只假設上一層沒問題：
   ① 景氣頁 0～100：check(day, full) → {"tw"／指數: {"items": 比了幾個, "bad": [[項目, 第一天不同, 不同的天數, 全部, 截斷]]}}
-     （cut 一個落檔截到 day；load_tw／load_us 同 heatcalc.load／heatcalc_us.load，但每個落檔先截斷）
+     （cut 一個落檔截到 day；load_tw／load_us 同 heatcalc.load／heatcalc_us.load，但每個落檔先截斷）；
+     也比邊際變化（heatpos.deriv 的一階、二階、二階熱度、狀態；2026-10-31 A-3b 加，那一層原本沒用到實際公布日）
   ② 泡沫頁每月條件：bub_check(day, full) → {市場: {"rows": 比了幾個月, "bad": [[月底, 不同的欄位]]}}
      （load_bub 同 bubble.load_tw／load_us，但每個落檔先截斷；比 P1～F、G1、G2、等級）
   ③ 訊號：sig_check(F, day) → {"n": 比了幾個訊號, "bad": [[訊號, 第一個不同的日子]]}
@@ -31,17 +32,24 @@ from . import store
 TOL = 1e-9
 
 
-# 月資料的落檔 → 公布時間差（同 heatspec.RELEASE、heatspec_us.RELEASE 用到它的項目；一個落檔多個項目取最早的）
-REL = {"ndc": (2, 28), "pmi": (1, 6), "orders": (1, 21), "exports": (2, 28), "twcpi": (1, 10), "uscpi": (1, 16),
-       "money": (1, 27), "cbcbank": (1, 27), "sfbflow": (1, 6), "mmf": (1, 15), "rev": (1, 11),
-       "us_philly": (0, 22), "us_cli": (1, 15), "us_bls": (1, 8), "us_umich": (1, 1), "us_wsts": (2, 10),
-       "us_z1": (3, 15), "us_ebp": (1, 20), "us_m2": (1, 28), "us_shiller": (1, 1), "tsmc": (1, 11)}
+# 月資料的落檔 → 公布時間差：直接取 heatspec.RELEASE、heatspec_us.RELEASE 用到它的項目（一個落檔多個項目取最早的；規格改了這裡跟著改）
+REL = {"ndc": HS.RELEASE["B1"], "pmi": HS.RELEASE["B3"], "orders": HS.RELEASE["B4"], "exports": HS.RELEASE["B5"],
+       "twcpi": HS.RELEASE["B7"], "uscpi": HS.RELEASE["B8"], "money": HS.RELEASE["L1"], "cbcbank": HS.RELEASE["L8"],
+       "sfbflow": HS.RELEASE["L6"], "mmf": min(HS.RELEASE["G5"], U.RELEASE["R10"]), "rev": HS.RELEASE["B6"],
+       "us_philly": U.RELEASE["F1"], "us_cli": U.RELEASE["F3"], "us_bls": U.RELEASE["F5"], "us_umich": U.RELEASE["F9"],
+       "us_wsts": U.RELEASE["F10"], "us_z1": U.RELEASE["S5"], "us_ebp": U.RELEASE["R6"], "us_m2": U.RELEASE["R7"],
+       "us_shiller": (1, 1), "tsmc": U.RELEASE["F11"]}
 
 
-# 已知延後公布（heatspec.RELEASE_LATE 那幾期的實際公布日）：截斷也照實際日期，才看得出「當時真的拿得到什麼」
-LATE = {"uscpi": HS.CPI_LATE}
-# 勞工統計局 us_bls 三欄各自的公布時間差與延後公布（失業率、CPI、核心 CPI；heatspec_us.RELEASE 的 F5、F6、F7）
-BLS_COLS = (((1, 8), U.JOBS_LATE), ((1, 16), HS.CPI_LATE), ((1, 16), HS.CPI_LATE))
+def late_tables() -> dict:
+    """實際拿得到的日子（和每天建頁同一份，heatspec VER 11～12、heatspec_us VER 4～5）：截斷也照實際日期，
+    才看得出「當時真的拿得到什麼」。→ {落檔: {月: 日}}、勞工統計局三欄、月營收與台積電的申報期限。"""
+    k = HU.known_late()
+    return {"uscpi": HC.late_b8(), "us_z1": k["S5"], "bls": (k["F5"], k["F6"], k["F7"])}
+
+
+# 勞工統計局 us_bls 三欄各自的公布時間差（失業率、CPI、核心 CPI；heatspec_us.RELEASE 的 F5、F6、F7）
+BLS_REL = (U.RELEASE["F5"], U.RELEASE["F6"], U.RELEASE["F7"])
 
 
 def _ok(ym: str, day: str, rel, late) -> bool:
@@ -67,11 +75,12 @@ def cut(ser, day: str, rel: tuple[int, int] | None = None, late: dict | None = N
     return out
 
 
-def cut_bls(ser: dict, day: str) -> dict:
+def cut_bls(ser: dict, day: str, late: tuple | None = None) -> dict:
     """勞工統計局三欄各自截：那一欄在 day 還沒公布就當沒有（同一個月的失業率和 CPI 公布日不同）。"""
+    late = late_tables()["bls"] if late is None else late
     out = {}
     for ym, v in (ser or {}).items():
-        row = [x if x is not None and j < len(BLS_COLS) and _ok(str(ym), day, *BLS_COLS[j]) else None
+        row = [x if x is not None and j < len(BLS_REL) and _ok(str(ym), day, BLS_REL[j], late[j]) else None
                for j, x in enumerate(v or [])]
         if any(x is not None for x in row):
             out[ym] = row
@@ -81,17 +90,22 @@ def cut_bls(ser: dict, day: str) -> dict:
 def load_tw(day: str) -> dict:
     """同 heatcalc.load，但每個落檔先截斷（月營收照公布時間差、台股估值截到 day 的前一個月）。"""
     from .heatcalc_bub import load_tw_val
-    D = {n: cut(HD.load(n), day, REL.get(n), LATE.get(n)) for n in HC.FILES}
-    D = HC.prep(D, [(ym, doc) for ym, doc in store.load("rev") if H.avail_date(str(ym)[:7], REL["rev"]) <= day])
+    lt = late_tables()
+    D = {n: cut(HD.load(n), day, REL.get(n), lt.get(n)) for n in HC.FILES}
+    docs = list(store.load("rev"))
+    rl = HC.late_rev({str(ym)[:7] for ym, _ in docs})
+    D = HC.prep(D, [(ym, doc) for ym, doc in docs if _ok(str(ym)[:7], day, REL["rev"], rl)])
     D["twval"] = cut(load_tw_val(), day)
     return D
 
 
 def load_us(day: str) -> dict:
     """同 heatcalc_us.load，但每個落檔先截斷（勞工統計局三欄各自截）。"""
-    D = {n: cut(HD.load(n), day, REL.get(n)) for n in HU.FILES}
-    D["us_bls"] = cut_bls(HD.load("us_bls"), day)
-    return HU.prep(D, cut(HU.tsmc_rev(), day, REL["tsmc"]))
+    lt = late_tables()
+    D = {n: cut(HD.load(n), day, REL.get(n), lt.get(n)) for n in HU.FILES}
+    D["us_bls"] = cut_bls(HD.load("us_bls"), day, lt["bls"])
+    ts = HU.tsmc_rev()
+    return HU.prep(D, cut(ts, day, REL["tsmc"], HC.late_rev(ts)))
 
 
 def _diff(a: list, b: list, cal: list, n: int) -> tuple | None:
@@ -101,7 +115,8 @@ def _diff(a: list, b: list, cal: list, n: int) -> tuple | None:
         x, y = a[i] if i < len(a) else None, b[i] if i < len(b) else None
         fx = x is not None and not (isinstance(x, float) and math.isnan(x))
         fy = y is not None and not (isinstance(y, float) and math.isnan(y))
-        if fx != fy or (fx and abs(float(x) - float(y)) > TOL):
+        num = fx and fy and isinstance(x, (int, float)) and isinstance(y, (int, float))
+        if fx != fy or (num and abs(float(x) - float(y)) > TOL) or (fx and fy and not num and x != y):
             bad.append(i)
     if not bad:
         return None
@@ -130,14 +145,39 @@ def compare(Bf: dict, Bc: dict, day: str) -> dict:
     return out
 
 
+DERIV_KEYS = ("d1", "d2", "acc", "state")
+
+
+def compare_deriv(Bf: dict, Bc: dict, day: str) -> dict:
+    """邊際變化（heatpos.deriv；用目前換上的規格）：截斷那天以前每一天的一階、二階、二階熱度、狀態都要一樣。"""
+    from . import heatpos as P
+    cal = Bf["cal"]
+    n = sum(1 for d in cal if d <= day)
+    out = {"items": 0, "bad": []}
+    for k in HS.DERIV:
+        a, b = P.deriv(Bf, k), P.deriv(Bc, k)
+        for f in DERIV_KEYS:
+            out["items"] += 1
+            d = _diff(list(a[f]), list(b[f]), cal, n)
+            if d:
+                out["bad"].append([f"deriv:{k}:{f}", *d])
+    return out
+
+
+def _both(Bf: dict, Bc: dict, day: str) -> dict:
+    r, dv = compare(Bf, Bc, day), compare_deriv(Bf, Bc, day)
+    return {"items": r["items"] + dv["items"], "bad": r["bad"] + dv["bad"]}
+
+
 def check(day: str, full: dict | None = None) -> dict:
-    """截斷到 day 重算台股與美股四個指數的景氣頁，和 full（{"tw": B, 指數: B}；沒給就現算）比。"""
+    """截斷到 day 重算台股與美股四個指數的景氣頁，和 full（{"tw": B, 指數: B}；沒給就現算）比（0～100、面向、邊際變化）。"""
     full = full if full is not None else {"tw": HC.build(), **HU.build_all()}
-    out = {"tw": compare(full["tw"], HC.build(load_tw(day)), day)}
+    out = {"tw": _both(full["tw"], HC.build(load_tw(day)), day)}
     BA = HU.build_all(load_us(day))
     for idx in U.INDEX_ORDER:
         if idx in full and idx in BA:
-            out[idx] = compare(full[idx], BA[idx], day)
+            with HS.use(U.spec_for(idx)):
+                out[idx] = _both(full[idx], BA[idx], day)
     return out
 
 
@@ -164,10 +204,12 @@ def load_bub(day: str) -> tuple[dict, dict]:
     from . import bubble as B
     from .heatcalc_bub import load_tw_val
     rel = {**REL, **REL_BUB}
-    tw = {n: cut(HD.load(n), day, rel.get(n), LATE.get(n)) for n in B.TW_FILES}
+    from . import bubspec as BS
+    lt = {**late_tables(), "us_gdp": U.GDP_LATE, "us_cp": BS.CP_LATE, "us_tech_q": BS.CP_LATE}   # bubspec VER 5
+    tw = {n: cut(HD.load(n), day, rel.get(n), lt.get(n)) for n in B.TW_FILES}
     tw["twval"] = cut(load_tw_val(), day)
-    us = {n: cut(HD.load(n), day, rel.get(n)) for n in B.US_FILES}
-    us["us_bls"] = cut_bls(HD.load("us_bls"), day)
+    us = {n: cut(HD.load(n), day, rel.get(n), lt.get(n)) for n in B.US_FILES}
+    us["us_bls"] = cut_bls(HD.load("us_bls"), day, lt["bls"])
     us["us_spf"] = cut_q(HD.load("us_spf"), day)
     return tw, us
 

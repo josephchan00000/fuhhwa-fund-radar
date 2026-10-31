@@ -52,15 +52,28 @@ def load() -> dict:
 def prep(D: dict, tsmc: dict) -> dict:
     """落檔 → 計分用的 D：勞工統計局補缺月（VER 2）與實際拿得到的日子（VER 4，D["late"]）、台積電月營收。
     截斷重建（truncheck）先截斷落檔再呼叫這一支，和每天建頁同一套。"""
+    from . import heatcalc as HC
     bls = D.get("us_bls") or {}
     cols = {k: {ym: (v[j] if v and len(v) > j else None) for ym, v in bls.items()} for k, j in (("F5", 0), ("F6", 1), ("F7", 2))}
-    D["late"] = {k: H.late_dates(c, U.RELEASE[k], U.RELEASE_LATE.get(k, {}), U.GAP_FILL_MAX) for k, c in cols.items()}
-    gd = H.gap_dates(cols["F6"], U.RELEASE["F6"], U.RELEASE_LATE.get("F6", {}), U.GAP_FILL_MAX)
+    known = known_late()
+    D["late"] = {k: H.late_dates(c, U.RELEASE[k], known[k], U.GAP_FILL_MAX) for k, c in cols.items()}
+    gd = H.gap_dates(cols["F6"], U.RELEASE["F6"], known["F6"], U.GAP_FILL_MAX)
     for k in U.CPI_LAG_ITEMS:                              # 用前 cpi_lag 個月 CPI 的項目：補出來的那個月往後挪 cpi_lag 個月
-        D["late"][k] = {H._ym_add(m, U.PSY["cpi_lag"]): d for m, d in gd.items()}
+        D["late"][k] = {H._ym_add(m, U.PSY["cpi_lag"]): d for m, d in {**known["F6"], **gd}.items()}
+    D["late"]["S5"] = known["S5"]                          # VER 5：聯準會 Z.1 實際公布日
     D["us_bls"] = fill_bls(bls)                            # VER 2：2025-10 政府停擺缺一個月
     D["tsmc"] = tsmc
+    D["late"]["F11"] = HC.late_rev(tsmc)                   # VER 5：台積電月營收同台股月營收的申報期限
     return D
+
+
+def known_late() -> dict:
+    """VER 5：官方實際公布日表（reldates.table：沒有官方日期的期照同一個月份歷年最晚的公布）＋停擺改期（JOBS_LATE、CPI_LATE），
+    同一期取晚的；Z.1 的 Z1_SKIP（停擺影響的季）不算進「歷年最晚」。"""
+    from . import reldates as RD
+    cpi = RD.merge(U.CPI_LATE, RD.table("cpi", skip=U.CPI_LATE))
+    return {"F5": RD.merge(U.JOBS_LATE, RD.table("empsit", skip=U.JOBS_LATE)), "F6": cpi, "F7": cpi,
+            "S5": RD.table("z1", skip=U.Z1_SKIP)}
 
 
 def fill_bls(bls: dict) -> dict:
@@ -109,10 +122,12 @@ def sat_count(ym: str) -> int:
     return n
 
 
-def quarter_asof(q: dict, ym: str, rel: tuple) -> str | None:
-    """季資料 {季底月: 值}：月份 ym 的值在 ym 的下一個月 1 日用，那時拿得到的最新一季（季底月）。"""
+def quarter_asof(q: dict, ym: str, rel: tuple, late: dict | None = None) -> str | None:
+    """季資料 {季底月: 值}：月份 ym 的值在 ym 的下一個月 1 日用，那時拿得到的最新一季（季底月）；
+    late＝{季底月: 實際公布日}（heatspec_us VER 5，和公布時間差取晚的）。"""
     day = f"{C.ym_add(ym, 1)}-01"
-    ks = [k for k in q if q[k] is not None and H.avail_date(k, rel) <= day]
+    late = late or {}
+    ks = [k for k in q if q[k] is not None and max(H.avail_date(k, rel), late.get(k, "")) <= day]
     return max(ks) if ks else None
 
 
@@ -186,13 +201,14 @@ def z1_ratios(D: dict, L: dict) -> tuple[dict, dict]:
     eq, nw = col(z1, 0), col(z1, 1)
     gdp = {k: v for k, v in (D.get("us_gdp") or {}).items() if v}
     me = L["spx_me"]
+    zl = known_late()["S5"]                               # VER 5：Z.1 實際公布日、GDP 停擺改期
     bf, tq = {}, {}
     for ym in sorted(me):
-        q = quarter_asof(eq, ym, Z1_REL)
+        q = quarter_asof(eq, ym, Z1_REL, zl)
         if not q or not me.get(q):
             continue
         cap = eq[q] * me[ym] / me[q]
-        g = quarter_asof(gdp, ym, GDP_REL)
+        g = quarter_asof(gdp, ym, GDP_REL, U.GDP_LATE)
         if g:
             bf[ym] = cap / gdp[g]
         if nw.get(q):
@@ -343,7 +359,7 @@ def references(D: dict, L: dict, M: dict, cp: dict) -> dict:
     y10 = H.asof_daily(ds, col(h15, 3), stale=7)
     y126 = H.roll_mean(y10, 126, 120)
     cpp = expanding_pct(cp, S.PCT_MIN["m"])
-    cap = H.asof_monthly(ds, cpp, U.RELEASE["X6"])
+    cap = H.asof_monthly(ds, cpp, U.RELEASE["X6"], (D.get("late") or {}).get("X6"))   # 同 X6：CPI 實際拿得到的日子
     q1 = {}
     for i, d in enumerate(ds):
         if ma[i] is None or y10[i] is None or y126[i] is None or cap[i] is None:

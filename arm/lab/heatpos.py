@@ -312,6 +312,12 @@ def _daily_d(N: dict, spec: dict) -> tuple[dict, dict]:
     return ({d: v for d, v in zip(ks, d1) if v is not None}, {d: v for d, v in zip(ks, d2) if v is not None})
 
 
+def late(B: dict, k: str) -> dict | None:
+    """月資料 k 實際拿得到的日子（heatcalc.prep 的 D["late"]：補缺月、停擺改期、官方公布日；heatspec VER 11～12）。
+    邊際變化和分數用同一份（2026-10-31 A-3b 查到這裡原本只照 RELEASE）。"""
+    return ((B.get("D") or {}).get("late") or {}).get(k)
+
+
 def deriv(B: dict, k: str) -> dict:
     """核心訊號 k 的邊際變化：
     native＝(一階 dict, 二階 dict)（來源日期或月份上）；
@@ -320,11 +326,11 @@ def deriv(B: dict, k: str) -> dict:
     cal = B["cal"]
     if S.FREQ_OF[k] == "m":
         d1, d2 = _monthly_d(B["mraw"][k], spec)
-        rel = S.RELEASE[k]
-        a1, a2 = H.asof_monthly(cal, d1, rel), H.asof_monthly(cal, d2, rel)
+        rel, lt = S.RELEASE[k], late(B, k)
+        a1, a2 = H.asof_monthly(cal, d1, rel, lt), H.asof_monthly(cal, d2, rel, lt)
         ks = sorted(d2)
         p = H.pct_series([d2[m] for m in ks], S.DERIV_PCT_WIN["m"], S.DERIV_PCT_MIN["m"])
-        acc = H.asof_monthly(cal, {m: H.to_heat(x, S.HOT[k]) for m, x in zip(ks, p) if x is not None}, rel)
+        acc = H.asof_monthly(cal, {m: H.to_heat(x, S.HOT[k]) for m, x in zip(ks, p) if x is not None}, rel, lt)
     else:
         d1, d2 = _daily_d(B["nat"][k], spec)
         stale = S.STALE.get(k, 7)

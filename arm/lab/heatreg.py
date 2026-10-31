@@ -389,11 +389,11 @@ def item_native(B: dict, k: str) -> dict:
     return {"d1": pack(d1), "d2": {v: pack(d2_list(d1, spec["L2"], v)) for v in S.M6_VARIANTS}}
 
 
-def _pct_monthly(d: dict, dates: list, rel: tuple) -> list:
-    """月序列在過去 120 個月（有值的筆數）的百分位，換成每個日期當下拿得到的值。"""
+def _pct_monthly(d: dict, dates: list, rel: tuple, late: dict | None = None) -> list:
+    """月序列在過去 120 個月（有值的筆數）的百分位，換成每個日期當下拿得到的值（late＝實際拿得到的日子，同分數）。"""
     ks = sorted(d)
     p = H.pct_series([d[x] for x in ks], S.DERIV_PCT_WIN["m"], S.DERIV_PCT_MIN["m"])
-    return H.asof_monthly(dates, {x: q for x, q in zip(ks, p) if q is not None}, rel)
+    return H.asof_monthly(dates, {x: q for x, q in zip(ks, p) if q is not None}, rel, late)
 
 
 def item_panel(B: dict, k: str, me: list, dates: list, nat: dict | None = None) -> dict:
@@ -401,12 +401,12 @@ def item_panel(B: dict, k: str, me: list, dates: list, nat: dict | None = None) 
     nat = nat if nat is not None else item_native(B, k)
     out: dict = {"X2": {}, "S2": {}}
     if S.FREQ_OF[k] == "m":
-        rel = S.RELEASE[k]
-        out["D1"] = H.asof_monthly(dates, nat["d1"], rel)
-        out["X1"] = [_scale(q) for q in _pct_monthly(nat["d1"], dates, rel)]
+        rel, lt = S.RELEASE[k], P.late(B, k)
+        out["D1"] = H.asof_monthly(dates, nat["d1"], rel, lt)
+        out["X1"] = [_scale(q) for q in _pct_monthly(nat["d1"], dates, rel, lt)]
         for v in S.M6_VARIANTS:
-            out["X2"][v] = [_scale(q) for q in _pct_monthly(nat["d2"][v], dates, rel)]
-            out["S2"][v] = [_sign(x) for x in H.asof_monthly(dates, nat["d2"][v], rel)]
+            out["X2"][v] = [_scale(q) for q in _pct_monthly(nat["d2"][v], dates, rel, lt)]
+            out["S2"][v] = [_sign(x) for x in H.asof_monthly(dates, nat["d2"][v], rel, lt)]
     else:
         cal = B["cal"]
         after, stale = k in S.US, S.STALE.get(k, 7)
@@ -1087,9 +1087,9 @@ def ext_panel(B: dict, Pn: dict, A: dict) -> dict | None:
     for k in _items():
         nat = Pn["nat"][k]
         if S.FREQ_OF[k] == "m":
-            rel = S.RELEASE[k]
-            x2 = [_scale(q) for q in _pct_monthly(nat["d2"][v0], dates, rel)]
-            s2 = [_sign(x) for x in H.asof_monthly(dates, nat["d2"][v0], rel)]
+            rel, lt = S.RELEASE[k], P.late(B, k)
+            x2 = [_scale(q) for q in _pct_monthly(nat["d2"][v0], dates, rel, lt)]
+            s2 = [_sign(x) for x in H.asof_monthly(dates, nat["d2"][v0], rel, lt)]
         else:
             src = Pn["it"][k]["X2"][v0]
             x2 = [src[main[x]] if x in main else None for x in months]

@@ -65,13 +65,28 @@ def load() -> dict:
     return D
 
 
+def late_b8() -> dict:
+    """VER 12：美國 CPI 實際拿得到的日子（台股）＝官方公布日（沒有官方日期的月份照同一個月份歷年最晚的公布；
+    停擺改期表取晚的）＋US_TW_DAYS。"""
+    from . import reldates as RD
+    lt = S.RELEASE_LATE.get("B8", {})
+    return RD.plus_days(RD.merge(lt, RD.table("cpi", skip=lt)), S.US_TW_DAYS)
+
+
+def late_rev(months, cal: list[str] | None = None) -> dict:
+    """VER 12：月營收申報期限（次月 REV_DEADLINE 日、遇非交易日順延）的下一天。"""
+    from . import reldates as RD
+    return RD.deadlines(months, S.REV_DEADLINE, RD.tw_calendar() if cal is None else cal)
+
+
 def prep(D: dict, rev_docs) -> dict:
-    """落檔 → 計分用的 D：美國 CPI 補缺月（VER 10）與實際拿得到的日子（VER 11，D["late"]）、月營收合計。
+    """落檔 → 計分用的 D：美國 CPI 補缺月（VER 10）與實際拿得到的日子（VER 11～12，D["late"]）、月營收合計。
     截斷重建（truncheck）先截斷落檔再呼叫這一支，和每天建頁同一套。"""
     raw = D.get("uscpi") or {}
-    D["late"] = {"B8": H.late_dates(raw, S.RELEASE["B8"], S.RELEASE_LATE.get("B8", {}), S.GAP_FILL_MAX)}
+    D["late"] = {"B8": H.late_dates(raw, S.RELEASE["B8"], late_b8(), S.GAP_FILL_MAX)}
     D["uscpi"] = H.fill_gaps(raw, S.GAP_FILL_MAX, geo=True)                     # VER 10：2025-10 政府停擺缺 CPI
     D["rev"] = rev_sums(rev_docs, fin_codes())
+    D["late"]["B6"] = late_rev(D["rev"])                                         # VER 12：申報期限遇假日順延
     return D
 
 
