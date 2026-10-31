@@ -130,3 +130,6 @@
 
 ## [2026-10-31] 收錄 | 個股報告官方文件包第二段（報告怎麼用、檢查怎麼擋）
 - 規劃 `docs/lab_eq_docs_plan.md` 第 12 節：技能步驟 0／1／3、`eqreport.docs_issues`（2026-10-31 起的台股報告）、`data/eq_docs_log.json` 與 `eqdocs.d2`（隔天重試）、`eqpage.docs_box`、Routine ⑦ prompt。改了 `lab/equity-report.md`、`ops/routines.md`。
+
+## [2026-10-31] 收錄 | 計算正確性核對 A-1（第二套算法＋截斷重建）
+- `arm/lab/sigverify.py`、`arm/lab/truncheck.py`、`scripts/run_verify.py` → `data/lab/verify_status.json`；第二套 1,896 個訊號 0 不同，截斷只找到美國 CPI 補缺月偷看（18 條），另查到停擺延後公布、週訊號週中暫定。改了 `lab/heat-us.md`、`lab/heat-tw.md`、`lessons.md`（規劃 `docs/lab_signal_quality_plan.md` 第 9 節）。
