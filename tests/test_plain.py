@@ -11,7 +11,7 @@ METHOD = ("只當參考", "不當成預估", "看不出", "樣本不足", "亂�
           "隨便挑一天", "判定", "樣本", "信賴", "顯著", "p 值")
 STATUS = ("★", "●", "○", "◆", "△", "好策略", "可參考", "A 級", "B 級", "C 級")
 NOT_PLAIN = ("核心", "衛星", "三種過熱", "亮", "前瞻", "→", "←")
-ALLOW = ("研究紀錄", "核心 CPI", "核心 PCE")          # 連到研究紀錄頁的小字；指標名稱
+ALLOW = ("研究紀錄", "核心 CPI", "核心 PCE", "衛星通訊")   # 連到研究紀錄頁的小字；指標名稱；公司本業（銥星通訊＝衛星通訊業者）
 CFG_ALLOW = ("候選",)                                # 策略狀態（使用中・觀察中・候選・淘汰）
 OPEN = """(sel) => { const r = sel ? document.querySelector(sel) : document;
   if (r) r.querySelectorAll('details').forEach(d => { if (!d.closest('.hview[hidden]')) d.open = true; }); }"""

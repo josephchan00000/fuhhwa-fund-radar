@@ -12,7 +12,7 @@ from arm.lab import corepage as CPG
 from arm.lab import corespec as S
 from arm.lab import page
 from arm.lab import sigpage as SG
-from test_corepage import BANNED, JARGON, NOT_PLAIN, STK, _now, _text, _us
+from test_corepage import BANNED, JARGON, NOT_PLAIN, PLAIN_OK, STK, _now, _text, _us
 
 
 @pytest.fixture(scope="module")
@@ -354,6 +354,8 @@ def test_cfg_text_is_plain(R, QMX):
     out = CF.build(_data(), _bundle(R, qm=QMX))
     for mk in ("tw", "us"):
         t = _text(out[mk]["card"] + out[mk]["hold"])
+        for a in PLAIN_OK:                                                        # 公司本業的名詞（持股簡介）
+            t = t.replace(a, "")
         for w in BANNED + JARGON + NOT_PLAIN:
             assert w not in t, (mk, w)
         for w in BANNED + NOT_PLAIN:                                              # 策略一行可以寫「候選 0」
