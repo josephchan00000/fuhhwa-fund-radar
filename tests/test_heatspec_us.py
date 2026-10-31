@@ -8,7 +8,9 @@ from arm.lab import heatspec_us as U
 
 def test_us_spec_v1_is_locked():
     # VER 2：補缺月、資料過期（docs/lab_audit_plan.md）；VER 3：情緒籌碼改成各指數自己的項目（docs/lab_us_chip_plan.md）
-    assert U.VER == 3 and U.SPEC_DATE == "2026-10-29" and U.MARKET == "us"
+    assert U.VER == 4 and U.SPEC_DATE == "2026-10-31" and U.MARKET == "us"
+    assert U.RELEASE_LATE == {"F5": {"2013-09": "2013-10-22", "2013-10": "2013-11-08", "2025-09": "2025-11-20",
+                                     "2025-11": "2025-12-16"}, "F6": U.CPI_LATE, "F7": U.CPI_LATE}   # VER 4：停擺延後公布
     assert list(U.INDICES) == list(U.INDEX_ORDER) == ["spx", "ixic", "ndx", "sox"]
     assert {k: v["sym"] for k, v in U.INDICES.items()} == {"spx": "^GSPC", "ixic": "^IXIC", "ndx": "^NDX", "sox": "^SOX"}
     assert U.IVOL == {"spx": "vix", "ixic": "vxn", "ndx": "vxn", "sox": "vix"}
@@ -104,7 +106,7 @@ def test_spec_for_each_index():
 def test_use_switches_and_restores():
     tw = (S.VER, S.MARKET, list(S.KEYS), dict(S.ITEMS), S.US, S.DSHORT)
     with S.use(U.spec_for("ndx")):
-        assert (S.VER, S.MARKET, S.INDEX) == (3, "us", "ndx")
+        assert (S.VER, S.MARKET, S.INDEX) == (4, "us", "ndx")
         assert S.ITEMS["tech"][-1] == "T14" and S.US == ("R1",) and S.band(85) == "過熱"
     assert (S.VER, S.MARKET, list(S.KEYS), dict(S.ITEMS), S.US, S.DSHORT) == tw
     assert not hasattr(S, "INDEX") and not hasattr(S, "INDICES")      # 美股才有的名稱離開時拿掉
@@ -113,4 +115,4 @@ def test_use_switches_and_restores():
             raise RuntimeError("x")
     except RuntimeError:
         pass
-    assert S.VER == 10 and S.MARKET == "tw"                             # 中途出錯也換回來
+    assert S.VER == 11 and S.MARKET == "tw"                             # 中途出錯也換回來

@@ -38,6 +38,11 @@ VER 3（2026-10-29，docs/lab_us_chip_plan.md；使用者：「費半、納指�
 
 和台股頁共用、而且被當成函式預設參數的統計常數（重抽次數、種子、信賴水準、t＋1 起算、均線天數、
 第六版的變體與模型設定）直接從 heatspec 匯入，保證兩邊一樣（tests 守）。
+
+VER 4（2026-10-31，docs/lab_signal_quality_plan.md 第 9 節；同台股頁 heatspec VER 11）：①補出來的月份要等缺口後第一個有值的月份拿得到才算；
+②已知延後公布 RELEASE_LATE：2013、2025 年政府停擺時勞工統計局延後的就業報告（F5 失業率）與 CPI（F6、F7），照官方改期公告的實際公布日。
+  寫這一版之前已經看過的：截斷重建與停擺月份的差異（F5 在 2025-12-08～12-15 用了 18.3、當時應該 28.3，被算成過冷；第 9 節）；
+  沒有看過改了之後任何研究結果。
 """
 from __future__ import annotations
 
@@ -57,10 +62,13 @@ from .heatspec import (BANDS, BH_Q, BOOT_N, BOOT_SEED, CH_DAILY, CH_DEFAULT_RANG
 from .heatspec import (BUB_BLOCK, BUB_BOOT, BUB_DD, BUB_EPI_GAP, BUB_EPI_MIN, BUB_HOT, BUB_MIN_HOT,  # noqa: F401
                        BUB_SEED, BUB_VERDICT, LPPLS, PSY, TREND, RUNUP_DAYS, ACC_DAYS)
 from .heatspec import band  # noqa: F401
-from .heatspec import GAP_FILL_MAX, STALE_M  # noqa: F401  （VER 2：補缺月、資料過期，兩邊同一份）
+from .heatspec import CPI_LATE, GAP_FILL_MAX, STALE_M  # noqa: F401  （VER 2：補缺月、資料過期，兩邊同一份）
 
-VER = 3
-SPEC_DATE = "2026-10-29"
+VER = 4
+SPEC_DATE = "2026-10-31"
+# VER 4：已知延後公布的月份 → 實際公布日（官方改期公告；和 RELEASE 取晚的；來源同 heatspec.CPI_LATE）
+JOBS_LATE = {"2013-09": "2013-10-22", "2013-10": "2013-11-08", "2025-09": "2025-11-20", "2025-11": "2025-12-16"}
+RELEASE_LATE = {"F5": JOBS_LATE, "F6": CPI_LATE, "F7": CPI_LATE}
 MARKET = "us"
 
 # ── 四個指數（使用者選定：一頁切換、那斯達克兩個都做） ─────────────────────────
