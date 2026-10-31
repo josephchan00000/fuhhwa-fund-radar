@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/31 06:49",
+  "as_of": "2026/10/31 10:23",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [],
@@ -25,20 +25,6 @@
           "source": "果仁家",
           "date": "2026-10-29 12:26",
           "datetime": "2026-10-29T12:26:03+08:00"
-        },
-        {
-          "title": "00929兩年只賺9％！0050同期大漲103％ 綠角揭高股息代價",
-          "url": "https://udn.com/news/story/123006/9843835",
-          "source": "UDN",
-          "date": "2026-10-29 09:06",
-          "datetime": "2026-10-29T09:06:19+08:00"
-        },
-        {
-          "title": "想月領1萬股息，買00929還是「0056+00878+00919」？本金竟差20萬！小資族、退休族...月月配最佳策略曝光",
-          "url": "https://www.businesstoday.com.tw/article/category/183013/post/202610280091/",
-          "source": "今周刊",
-          "date": "2026-10-28 17:56",
-          "datetime": "2026-10-28T17:56:00+08:00"
         }
       ]
     },
@@ -124,11 +110,11 @@
       ],
       "items": [
         {
-          "title": "台股急跌逾1500點 00418A迎建倉時機、逢低布局受關注",
-          "url": "https://www.watchmedia01.com/archives/564368",
+          "title": "市場回檔、新資金找機會！00418A進入建倉階段 為後續行情布局",
+          "url": "https://www.watchmedia01.com/archives/564371",
           "source": "觀傳媒",
-          "date": "2026-10-30 11:54",
-          "datetime": "2026-10-30T11:54:28+08:00"
+          "date": "2026-10-30 11:56",
+          "datetime": "2026-10-30T11:56:52+08:00"
         },
         {
           "title": "台股大跌00418A迎建倉階段 「9倍女王」下一步受關注",
@@ -136,6 +122,13 @@
           "source": "觀傳媒",
           "date": "2026-10-30 11:50",
           "datetime": "2026-10-30T11:50:58+08:00"
+        },
+        {
+          "title": "台股震盪考驗選股功力00418A雙經理人掌握建倉良機10/27最後買進日",
+          "url": "https://enn.tw/798563/",
+          "source": "ENN台灣電報",
+          "date": "2026-10-27 12:13",
+          "datetime": "2026-10-27T12:13:57+08:00"
         }
       ]
     },
@@ -497,7 +490,7 @@
       "channel": "财富底层逻辑",
       "url": "https://www.youtube.com/watch?v=gYyMwEhSwdM",
       "date": "2026-10-26",
-      "views": 3238
+      "views": 3242
     },
     {
       "platform": "youtube",
@@ -505,7 +498,7 @@
       "channel": "夏之戀",
       "url": "https://www.youtube.com/watch?v=xaP__cQ9sac",
       "date": "2026-10-26",
-      "views": 2666
+      "views": 2668
     },
     {
       "platform": "youtube",
@@ -513,7 +506,7 @@
       "channel": "懶得變有錢",
       "url": "https://www.youtube.com/shorts/CmPUJsZF66c",
       "date": "2026-10-30",
-      "views": 1127,
+      "views": 1149,
       "short": true
     },
     {
@@ -522,7 +515,7 @@
       "channel": "小宇宙大爆發",
       "url": "https://www.youtube.com/watch?v=u4xcSAzbUi8",
       "date": "2026-10-26",
-      "views": 436250,
+      "views": 438804,
       "peer": true,
       "cat": "綜合"
     },
@@ -532,7 +525,7 @@
       "channel": "風傳媒 The Storm Media",
       "url": "https://www.youtube.com/watch?v=q4n751SOzSA",
       "date": "2026-10-29",
-      "views": 192871,
+      "views": 194927,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -542,7 +535,7 @@
       "channel": "小宇宙大爆發",
       "url": "https://www.youtube.com/shorts/GqjaO8uqJOY",
       "date": "2026-10-26",
-      "views": 147817,
+      "views": 148541,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -553,7 +546,7 @@
       "channel": "理財達人秀 EBCmoneyshow",
       "url": "https://www.youtube.com/watch?v=BOnMxB8Xh6M",
       "date": "2026-10-28",
-      "views": 130651,
+      "views": 130744,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -563,7 +556,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=WkmMZrXvm84",
       "date": "2026-10-26",
-      "views": 110516,
+      "views": 110782,
       "peer": true,
       "cat": "市值型"
     },
@@ -573,7 +566,7 @@
       "channel": "葉芷娟",
       "url": "https://www.youtube.com/watch?v=vNmwEEWgWuA",
       "date": "2026-10-28",
-      "views": 102035,
+      "views": 103175,
       "peer": true,
       "cat": "主動式"
     },
@@ -583,7 +576,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=KdZ-l9pChOs",
       "date": "2026-10-28",
-      "views": 93391,
+      "views": 94232,
       "peer": true,
       "cat": "高股息"
     },
@@ -593,17 +586,17 @@
       "channel": "午後檔案",
       "url": "https://www.youtube.com/watch?v=ZRtvgX91bLA",
       "date": "2026-10-27",
-      "views": 63793,
+      "views": 63820,
       "peer": true,
       "cat": "基金"
     },
     {
       "platform": "youtube",
-      "title": "小資族全押主動式 ETF？市值型配一半更穩｜ft.超馬芭樂 #ETF投資 #資產配置 #ETF錢滾錢",
+      "title": "主動式ETF光環退燒？跌下去才知道這題有多殘酷😵｜ft.基金教母蕭碧燕、葉芷娟 #ETF投資 #主動式ETF #ETF錢滾錢",
       "channel": "【CMoney理財寶】官方頻道",
-      "url": "https://www.youtube.com/shorts/hdsf9pULGsQ",
-      "date": "2026-10-26",
-      "views": 56380,
+      "url": "https://www.youtube.com/shorts/gyebmmVJdN4",
+      "date": "2026-10-27",
+      "views": 57325,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -614,7 +607,7 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=E-tt9_An4pA",
       "date": "2026-10-30",
-      "views": 44592,
+      "views": 45531,
       "peer": true,
       "cat": "高股息"
     }
@@ -622,6 +615,6 @@
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00418A（詳下方新聞標籤）",
     "社群聲量最高：懇請增加00981T（股3債7月配ETF）（0 推）",
-    "YouTube 熱片：ETF越存越窮? 3大毀滅死穴 用100萬無痛月領14萬 ft.超馬芭樂【小宇宙大爆發】（小宇宙大爆發・436,250 次觀看）"
+    "YouTube 熱片：ETF越存越窮? 3大毀滅死穴 用100萬無痛月領14萬 ft.超馬芭樂【小宇宙大爆發】（小宇宙大爆發・438,804 次觀看）"
   ]
 }
