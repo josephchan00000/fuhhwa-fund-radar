@@ -11,6 +11,7 @@ def test_us_spec_v1_is_locked():
     assert U.VER == 4 and U.SPEC_DATE == "2026-10-31" and U.MARKET == "us"
     assert U.RELEASE_LATE == {"F5": {"2013-09": "2013-10-22", "2013-10": "2013-11-08", "2025-09": "2025-11-20",
                                      "2025-11": "2025-12-16"}, "F6": U.CPI_LATE, "F7": U.CPI_LATE}   # VER 4：停擺延後公布
+    assert U.CPI_LAG_ITEMS == ("X1", "X4", "X6", "X7")              # VER 4 補充：用前 cpi_lag 個月 CPI 的項目
     assert list(U.INDICES) == list(U.INDEX_ORDER) == ["spx", "ixic", "ndx", "sox"]
     assert {k: v["sym"] for k, v in U.INDICES.items()} == {"spx": "^GSPC", "ixic": "^IXIC", "ndx": "^NDX", "sox": "^SOX"}
     assert U.IVOL == {"spx": "vix", "ixic": "vxn", "ndx": "vxn", "sox": "vix"}
