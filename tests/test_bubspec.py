@@ -1,12 +1,13 @@
 """泡沫頁規格（docs/lab_risk_plan.md 第 8、9 節）：規格鎖定。
 
-規格是看任何新結果之前寫定的（VER 1～4 都是 2026-10-18）。要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
+規格是看任何新結果之前寫定的（VER 1～4 都是 2026-10-18，VER 5 是 2026-10-31）。要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
 from arm.lab import bubspec as B
 from arm.lab import heatspec as S
 
 
 def test_bubble_spec_v1_is_locked():
-    assert B.VER == 4 and B.SPEC_DATE == "2026-10-18"
+    assert B.VER == 5 and B.SPEC_DATE == "2026-10-31"
+    assert B.CP_LATE == {"1995-12": "1996-04-02", "2025-09": "2025-12-23", "2025-12": "2026-04-09"}   # VER 5：企業獲利停擺延後公布
     assert B.MARKETS == ("tw", "spx", "ixic", "ndx", "sox")
     assert B.DRIFT_GRID == (0.0, 0.025, 0.05, 0.075, 0.10, 0.125, 0.15, 0.20)
     assert (B.CV_REPS, B.CV_SEED, B.CV_NMAX, B.DRIFT_MIN_N, B.PSY_RUN, B.CPI_GAP_MAX) == (2000, 20261020, 2100, 60, 3, 2)
@@ -54,8 +55,12 @@ def test_bubble_spec_v2_is_locked():
     assert B.E_RUN == 3 and B.SPLIT_MONTHS == 24
     assert B.TESTS2 == ("P1", "P2", "P3", "E", "V", "F", "PF", "PN", "L2", "L3", "L4", "L3v1")
     from arm.lab import heatspec_us as U
-    assert B.FUND_REL["pe"] == U.RELEASE["F8"] and B.FUND_REL["wsts"] == U.RELEASE["F10"]
-    assert B.FUND_REL["ex"] == S.RELEASE["B5"]
+    assert B.FUND_REL["pe"] == U.RELEASE["F8"]
+    # VER 5：泡沫頁在月底判定（那個月內公布就算拿得到），景氣頁是逐日（heatspec VER 12：下午 4 點、收盤後公布隔天才用）——「哪個月」一致
+    from arm.lab import heat as H
+    assert H.avail_date("2001-01", B.FUND_REL["wsts"])[:7] == H.avail_date("2001-01", U.RELEASE["F10"])[:7] == "2001-03"
+    assert H.avail_date("2001-01", S.RELEASE["B5"]) == "2001-04-01"            # 國發會 3 月 27～29 日發布：景氣頁 4/1 起用
+    assert H.avail_date("2001-01", B.FUND_REL["ex"])[:7] == "2001-03"          # 泡沫頁 3 月底判定就用
 
 
 def test_level2_table():
@@ -91,7 +96,9 @@ def test_bubble_spec_v4_is_locked():
     assert B.PROXY_SUM == {"tech": 4, "cp": 4, "wsts": 12, "orders": 12}
     assert (B.PROXY_G1_BACK, B.PROXY_G2_BACK) == ({"q": 2, "m": 6}, {"q": 1, "m": 3})
     assert B.PROXY_REL == {"tech": (3, 1), "cp": (3, 1), "wsts": (2, 10), "orders": (1, 21)}
-    assert B.PROXY_REL["wsts"] == B.FUND_REL["wsts"] and B.PROXY_REL["orders"] == S.RELEASE["B4"]
+    assert B.PROXY_REL["wsts"] == B.FUND_REL["wsts"]
+    from arm.lab import heat as H
+    assert H.avail_date("2001-01", B.PROXY_REL["orders"])[:7] == H.avail_date("2001-01", S.RELEASE["B4"])[:7] == "2001-02"
     assert (B.SPF_FILE, B.SPF_FIRST_ANNUAL, B.SPF_BREAK) == ("Median_CPROF_Level", (1981, 3), (2006, 1))
     assert B.TECH_NAICS_Q == ("BEA/NIPA-T61600D/N501RC-Q", "BEA/NIPA-T61600D/N502RC-Q")
     assert B.TECH_NAICS_A == ("BEA/NIPA-T61600D/N501RC-A", "BEA/NIPA-T61600D/N502RC-A")

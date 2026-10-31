@@ -9,9 +9,12 @@ from arm.lab import heatspec_us as U
 def test_us_spec_v1_is_locked():
     # VER 2：補缺月、資料過期（docs/lab_audit_plan.md）；VER 3：情緒籌碼改成各指數自己的項目（docs/lab_us_chip_plan.md）
     assert U.VER == 5 and U.SPEC_DATE == "2026-10-31" and U.MARKET == "us"
-    assert U.GDP_LATE == {"2013-09": "2013-11-07", "2018-12": "2019-02-28", "2025-09": "2025-12-23"}   # VER 5：GDP 停擺改期
+    assert U.GDP_LATE == {"1995-12": "1996-02-23", "2013-09": "2013-11-07", "2018-12": "2019-02-28", "2025-09": "2025-12-23",
+                          "2025-12": "2026-02-20"}                                       # VER 5（含補充）：GDP 停擺改期
+    assert U.Z1_SKIP == ("2025-09", "2025-12")                                           # VER 5 補充：不算進「歷年最晚」
     assert U.RELEASE_LATE == {"F5": {"2013-09": "2013-10-22", "2013-10": "2013-11-08", "2025-09": "2025-11-20",
-                                     "2025-11": "2025-12-16"}, "F6": U.CPI_LATE, "F7": U.CPI_LATE}   # VER 4：停擺延後公布
+                                     "2025-11": "2025-12-16", "2026-01": "2026-02-11"},
+                              "F6": U.CPI_LATE, "F7": U.CPI_LATE}   # VER 4：停擺延後公布（VER 5 補充加 2026-01）
     assert U.CPI_LAG_ITEMS == ("X1", "X4", "X6", "X7")              # VER 4 補充：用前 cpi_lag 個月 CPI 的項目
     assert list(U.INDICES) == list(U.INDEX_ORDER) == ["spx", "ixic", "ndx", "sox"]
     assert {k: v["sym"] for k, v in U.INDICES.items()} == {"spx": "^GSPC", "ixic": "^IXIC", "ndx": "^NDX", "sox": "^SOX"}
