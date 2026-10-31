@@ -92,6 +92,7 @@
   ③**主計總處伺服器沒送中繼憑證** → `config/certs/twca_ssl_ca.pem`（CA 公開發布的 TWCA 中繼憑證，到 2033）加進信任清單，**照常完整驗證，不關掉驗證**；
   ④聯準會 DDP 的 CSV 回空檔、ZIP 的 XML 70MB 且官方說要停用 → 用 DBnomics 轉載；
   ⑤期交所期貨、選擇權法人網站只給近 3 年 → FinMind 2018-06 起；台指 VIX 免費只有近 4 個月 → 從 2026-07 起每天存；
+  ⑦Yahoo 的 ^TWII 在颱風停市日（2001-09-18、2014-07-23、2016-07-08）有假的一列、沒有 1999～2018 年週六補班日的交易、2000-10-23 收盤錯 1.3%；日曆與收盤以證交所 FMTQIK 為準（`heatcalc.calendar`），Yahoo 只補證交所沒有的月份。每週由 `srccheck.taiex_day` 比對（2026-10-31，A-3c）。
   ⑥Yahoo 含息還原收盤（HYG、IEF）遇到新配息會改寫整段歷史 → 每次整段抓、整段換（`heatfetch._replace`，少於原有 9 成只補不換）。
   第四版又三輪：⑦ICI 換什麼標頭都 403；
   ⑧央行開放資料 OAS 寫的 `api/OpenData/DataSet` 回空檔或 404，**統計資料庫 DataAPI（`API/DataAPI/Get?FileName=代碼`）才有資料**，代碼列舉 EF01～60、EG01～40 找得到存放款、拆款、定存單，找不到應提／超額準備；

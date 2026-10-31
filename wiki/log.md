@@ -139,3 +139,6 @@
 
 ## [2026-10-31] 收錄 | 計算核對每週自動跑（A-3a）
 - 新增 `.github/workflows/verify.yml`（週六 13:17 跑 `scripts/run_verify.py`、commit `data/lab/verify_status.json`）；不一致時市場頁與研究紀錄頁紅字、後台列例子、推播多一行，過期只推播，不擋發佈。改了 `lab/chip-ui.md`、`ops/schedule.md`、`ops/daily-update.md`（9⑨ 多一行）與 CLAUDE.md 9⑨（規劃第 11 節）。
+
+## [2026-10-31] 收錄 | 資料來源比對（A-3c）與手算固定案例（A-3d）
+- `arm/lab/srccheck.py`（法人與融資 FinMind vs 證交所、美債財政部 vs H.15、加權指數 Yahoo vs 證交所／國發會、指數 vs ETF、單日跳動；約 12 萬筆 0 不一致）接進每週核對；`tests/test_golden.py`（歷史收盤值、自營商連 10 天、年線事件）。改了 `lab/chip-ui.md`、`lab/heat-tw.md`（規劃第 11.3、11.4 節）。
