@@ -3,6 +3,7 @@
 
     python3 scripts/fetch_eqdocs.py --ping .ping/eqdocs --out DIR          # push 觸發：讀請求 {"id", "codes", "raw"?}
     python3 scripts/fetch_eqdocs.py --codes "tw:6870 tw:7730" --out DIR     # 手動
+    python3 scripts/fetch_eqdocs.py --log 主幹/data/eq_docs_log.json --index DIR/index.json   # 抓完：記錄、標「連續沒抓到的日子」
 
 寫 DIR/id.txt（請求編號）、DIR/tw-{代號}.json（全文）、DIR/tw-{代號}.md（給子代理讀）、DIR/index.json（每家狀態與文件清單）。
 請求裡 "raw": true＝另存每個觀測站回應的前 60KB 到 DIR/raw/（做測試樣本用）。代號與編號照格式驗過才用，不進任何指令。"""
@@ -42,8 +43,14 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--ping")
     ap.add_argument("--codes")
-    ap.add_argument("--out", required=True)
+    ap.add_argument("--out")
+    ap.add_argument("--log", help="data/eq_docs_log.json（CI 寫回 main 的那一份）")
+    ap.add_argument("--index", help="這次的 index.json（會補上每家的 fails）")
     args = ap.parse_args()
+    if args.log:
+        return log(Path(args.log), Path(args.index))
+    if not args.out:
+        ap.error("要給 --out")
     rid, codes, raw = request(args)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -77,6 +84,18 @@ def main() -> int:
         idx["codes"][c] = E.index(pk)
         print(f"[eqdocs] {c} {pk.get('name')}：{pk['st']}（{(datetime.now() - t0).seconds}s）", flush=True)
     (out / "index.json").write_text(json.dumps(idx, ensure_ascii=False, indent=1), encoding="utf-8")
+    return 0
+
+
+def log(lp: Path, ip: Path) -> int:
+    idx = json.loads(ip.read_text(encoding="utf-8"))
+    lg = json.loads(lp.read_text(encoding="utf-8")) if lp.exists() else {}
+    E.log_update(lg, idx)
+    lp.parent.mkdir(parents=True, exist_ok=True)
+    lp.write_text(json.dumps(lg, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    ip.write_text(json.dumps(idx, ensure_ascii=False, indent=1), encoding="utf-8")
+    for c, x in idx["codes"].items():
+        print(f"[eqdocs] {c}：{E.d2(x)}（連續沒抓到 {len(x['fails'])} 天）")
     return 0
 
 

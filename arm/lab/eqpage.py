@@ -552,6 +552,46 @@ def co_box(pack: dict) -> str:
     return f'<div class="chain"><b>產業鏈位置</b>（櫃買中心產業價值鏈）<ul>{items}</ul></div>'
 
 
+MOPS_NEWS = "https://mopsov.twse.com.tw/mops/web/t05st01"     # 觀測站「重大訊息」查詢（逐則的網址要送表單，給查詢頁）
+DOCS_NEWS_MAX = 8
+
+
+def _a(u, text: str) -> str:
+    u = _safe_url(u)
+    return f'<a href="{escape(u)}" target="_blank" rel="noopener">{escape(text)}</a>' if u else escape(text)
+
+
+def docs_box(pack: dict) -> str:
+    """公司文件：官方文件包的清單（報告旁 .facts.json 的 docs；docs/lab_eq_docs_plan.md），撰寫者不用寫。"""
+    dc = pack.get("docs") or {}
+    if not dc:
+        return ""
+    md_ = lambda d: escape(str(d or "")[5:].replace("-", "/"))                 # noqa: E731
+    items = []
+    deck, confs = dc.get("deck") or {}, dc.get("confs") or []
+    if deck.get("url"):
+        vid = next((c.get("video") for c in confs if c.get("d") == deck.get("d") and c.get("video")), None)
+        items.append(f'<li>最近一次法說會 {escape(deck.get("d") or "")}：{_a(deck["url"], "簡報")}'
+                     + (f"、{_a(vid, '影音')}" if vid else "") + f"（近兩年 {len(confs)} 場）</li>")
+    elif confs:
+        items.append(f"<li>最近一次法說會 {escape(confs[-1].get('d') or '')}（超過 12 個月）</li>")
+    else:
+        items.append("<li>近兩年沒有法說會</li>")
+    ann = dc.get("annual") or {}
+    if ann.get("url"):
+        items.append(f"<li>{escape(str(ann.get('fy') or ''))} 年度股東會年報：{_a(ann['url'], '公開資訊觀測站電子書')}</li>")
+    if dc.get("site"):
+        items.append(f"<li>公司網站：{_a(dc['site'], dc['site'])}</li>")
+    news = dc.get("news") or []
+    if news:
+        nl = "".join(f"<li>{md_(n.get('d'))} {escape(n.get('subj') or '')}</li>" for n in news[:DOCS_NEWS_MAX])
+        more = f"<li>…另外 {len(news) - DOCS_NEWS_MAX} 則</li>" if len(news) > DOCS_NEWS_MAX else ""
+        items.append(f"<li>近 6 個月重大訊息 {len(news)} 則（{_a(MOPS_NEWS, '公開資訊觀測站查詢')}）<ul>{nl}{more}</ul></li>")
+    bad = [k for k, v in (dc.get("st") or {}).items() if str(v).startswith("err")]
+    note = f"官方文件 {escape(str(dc.get('at') or ''))} 抓取" + (f"；這幾段沒抓到：{escape('、'.join(bad))}" if bad else "")
+    return f'<div class="chain docs"><b>公司文件</b>（公開資訊觀測站）<ul>{"".join(items)}</ul><p class="tn">{note}</p></div>'
+
+
 def _data_list(pack: dict) -> str:
     sd = pack.get("src_d") or {}
     if _us(pack):
@@ -623,7 +663,7 @@ def render(text: str, pack: dict, ctx: dict | None = None) -> str:
              f'<nav class="toc" aria-label="目錄">{toc}<a href="{_self(pack)}#app">附錄</a></nav>']
     blocks = {"財務分析": lambda: fin_section(pack, F), "同業比較": lambda: peer_section(pack, F),
               "估值": lambda: val_section(pack, val, fm, F), "催化劑與籌碼": lambda: cat_section(pack, F),
-              "為什麼被選上": lambda: why_box(pack), "公司概況": lambda: co_box(pack)}
+              "為什麼被選上": lambda: why_box(pack), "公司概況": lambda: docs_box(pack) + co_box(pack)}
     for s in R.SECTIONS:
         if s == "重點":
             continue

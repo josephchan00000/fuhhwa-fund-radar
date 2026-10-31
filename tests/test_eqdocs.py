@@ -186,5 +186,36 @@ def test_workflow_never_feeds_request_text_to_a_shell():
     assert re.search(r"permissions:\s*\n\s*contents: write\s*\n\s*\n", wf)
     assert "grep -Eq '^[0-9]{8}-[0-9]{4}-[0-9a-f]{6}$'" in wf and "refs/heads/claude/eqdocs-tmp/$ID" in wf
     assert "git add -f eqdocs" in wf and "GIT_INDEX_FILE" in wf and "git add -A" not in wf
-    assert "cron: '23 19 * * *'" in wf and wf.count("if: github.event_name != 'schedule'") == 4   # 每天只清臨時分支
+    assert "cron: '23 19 * * *'" in wf and wf.count("if: github.event_name != 'schedule'") == 5   # 每天只清臨時分支
     assert 'CUT=$(date +%Y%m%d)' in wf and "TZ: Asia/Taipei" in wf                               # 請求日期在今天以前的就刪
+
+
+def test_fetch_log_marks_consecutive_failures_and_retry_decision():
+    """D2（使用者 2026-10-30）：抓不到當天不寫、隔天重試，連兩天（不同天的連續兩次）抓不到才照寫。"""
+    ok = {"ok": True, "st": {"deck": "ok"}}
+    bad = {"ok": False, "st": {"deck": "ok", "news": "err: 觀測站 500"}}
+    log: dict = {}
+    E.log_update(log, {"at": "2026-10-29 20:50", "codes": {"tw:6870": dict(ok), "tw:7730": dict(bad)}})
+    idx = {"at": "2026-10-30 20:50", "codes": {"tw:6870": dict(bad), "tw:7730": dict(bad)}}
+    E.log_update(log, idx)
+    assert idx["codes"]["tw:6870"]["fails"] == ["2026-10-30"] and E.d2(idx["codes"]["tw:6870"]) == "retry"
+    assert idx["codes"]["tw:7730"]["fails"] == ["2026-10-30", "2026-10-29"] and E.d2(idx["codes"]["tw:7730"]) == "write"
+    again = {"at": "2026-10-30 22:10", "codes": {"tw:6870": dict(ok)}}               # 同一天重抓成功：留最後一次
+    E.log_update(log, again)
+    assert log["codes"]["tw:6870"] == [["2026-10-29", "ok"], ["2026-10-30", "ok"]] and E.d2(again["codes"]["tw:6870"]) == "ok"
+    assert log["codes"]["tw:7730"][-1][1] == "news err: 觀測站 500"
+    for i in range(15):
+        E.log_update(log, {"at": f"2026-11-{i + 1:02d} 20:50", "codes": {"tw:6870": dict(ok)}})
+    assert len(log["codes"]["tw:6870"]) == E.LOG_KEEP
+    fx = E.for_facts({"id": "20261031-2047-abcdef", "at": "2026-10-31 20:55", "codes": {"tw:6870": {"ok": True, "deck": None}}}, "6870")
+    assert fx["id"] == "20261031-2047-abcdef" and fx["at"].startswith("2026-10-31") and E.for_facts({"codes": {}}, "6870") is None
+
+
+def test_workflow_logs_to_main_before_pushing_the_pack():
+    wf = (ROOT / ".github" / "workflows" / "eq_docs.yml").read_text("utf-8")
+    i, j = wf.index("data/eq_docs_log.json 寫回 main"), wf.index("- name: 推到臨時分支")
+    assert i < j                                                           # 排程拉到文件包時，main 已經有今天的紀錄、index 已標 fails
+    step = wf[i:j]
+    assert "continue-on-error: true" in step and "add data/eq_docs_log.json" in step and "push -q origin HEAD:main" in step
+    assert "fetch_eqdocs.py --log" in step and "git add -A" not in step
+    assert "--depth=1 origin +refs/heads/main" in step and not re.search(r"git( -C \S+)? pull", step)   # checkout 是淺的：只拿 main 最新一個 commit、不 rebase
