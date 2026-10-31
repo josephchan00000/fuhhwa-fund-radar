@@ -109,63 +109,66 @@ def z1_quarter(rel: str) -> str:
     return f"{y:04d}-{m:02d}"
 
 
+def _save(d: dict, src: dict) -> None:
+    """每抓完一個來源就存一次（CI 那一步有時間上限，後面的來源逾時也不會連前面的一起丟掉）。"""
+    d["_src"] = dict(src)
+    d["_asof"] = date.today().isoformat()
+    HD.save("reldates", "bls,frb,alfred", d)
+
+
 def main() -> None:
-    old = HD.load("reldates")
-    d: dict = {k: v for k, v in old.items()}
-    src: dict[str, str] = {}
+    d: dict = dict(HD.load("reldates"))
+    src: dict[str, str] = dict(d.get("_src") or {})
     for name, url in BLS_PAGES.items():
-        got = {}
-        for u in (url, "https://web.archive.org/web/2026id_/" + url):
-            try:
-                got = parse_bls(_get(u) if u == url else _get_backoff(u), name)
-                src[name] = f"{u}：{len(got)} 期"
-                if len(got) >= 100:
-                    break
-            except Exception as e:                      # noqa: BLE001 —— 一個來源失敗不擋其他來源
-                src[name] = f"{u}：{type(e).__name__} {e}"[:200]
-                print(f"[reldates] {name} {u[:60]}…：{src[name][-120:]}", flush=True)
-            time.sleep(2)
-        if got:
-            d[name] = {**(d.get(name) or {}), **got}
-        print(f"[reldates] {name}：{src[name]}；例 {sorted(got.items())[-3:] if got else '—'}", flush=True)
         u = ("https://web.archive.org/cdx/search/cdx?url=bls.gov/news.release/archives/"
              f"{name}_&matchType=prefix&fl=original&collapse=urlkey&output=txt")
-        try:
+        try:                                            # ① CDX 索引：公布日在檔名裡
             got2 = parse_cdx(_get_backoff(u), name)
             src[f"cdx_{name}"] = f"{u}：{len(got2)} 天"
             if got2:
                 d[f"cdx_{name}"] = sorted(set(d.get(f"cdx_{name}") or []) | set(got2))
-        except Exception as e:                          # noqa: BLE001
+        except Exception as e:                          # noqa: BLE001 —— 一個來源失敗不擋其他來源
             src[f"cdx_{name}"] = f"{type(e).__name__} {e}"[:200]
         print(f"[reldates] cdx_{name}：{src[f'cdx_{name}']}；例 {(d.get(f'cdx_{name}') or [])[-3:]}", flush=True)
+        _save(d, src)
+        urls = [url] + ([] if len(d.get(f"cdx_{name}") or []) >= 100 else ["https://web.archive.org/web/2026id_/" + url])
+        for v in urls:                                  # ② 新聞稿檔案頁（帶資料月份）
+            try:
+                got = parse_bls(_get(v) if v == url else _get_backoff(v), name)
+                src[name] = f"{v}：{len(got)} 期"
+                if got:
+                    d[name] = {**(d.get(name) or {}), **got}
+                if len(got) >= 100:
+                    break
+            except Exception as e:                      # noqa: BLE001
+                src[name] = f"{v}：{type(e).__name__} {e}"[:200]
+            print(f"[reldates] {name}：{src[name][-160:]}", flush=True)
+        _save(d, src)
     z1: set[str] = set(d.get("z1") or [])
-    for u in Z1_PAGES:
+    for v in Z1_PAGES:
         try:
-            got = parse_z1(_get(u))
+            got = parse_z1(_get(v))
             z1 |= set(got)
-            src[f"z1:{u}"] = f"{len(got)} 期"
+            src[f"z1:{v}"] = f"{len(got)} 期"
         except Exception as e:                          # noqa: BLE001
-            src[f"z1:{u}"] = f"{type(e).__name__} {e}"[:200]
-        print(f"[reldates] Z.1 {u}：{src[f'z1:{u}']}", flush=True)
-        time.sleep(2)
+            src[f"z1:{v}"] = f"{type(e).__name__} {e}"[:200]
+        print(f"[reldates] Z.1 {v}：{src[f'z1:{v}']}", flush=True)
     if z1:
         d["z1"] = sorted(z1)
-    for key, rid in ALFRED.items():
+    _save(d, src)
+    for key, rid in ALFRED.items():                     # ③ ALFRED：只試一次、45 秒（2026-10-31 第一輪在 CI 每次都逾時）
         if d.get(key):
-            continue                                    # 上一輪已經拿到
-        u = f"https://alfred.stlouisfed.org/release/downloaddates?rid={rid}&ff=txt"
+            continue
+        v = f"https://alfred.stlouisfed.org/release/downloaddates?rid={rid}&ff=txt"
         try:
-            got = parse_dates(_get(u, 150))
-            src[key] = f"{u}：{len(got)} 天"
+            got = parse_dates(get_bytes(v, retries=1, timeout=45, use_cache=False, headers=HDRS).decode("utf-8", "replace"))
+            src[key] = f"{v}：{len(got)} 天"
             if got:
                 d[key] = got
         except Exception as e:                          # noqa: BLE001
-            src[key] = f"{u}：{type(e).__name__} {e}"[:200]
-        print(f"[reldates] {key}：{src[key]}；例 {d.get(key, [])[-3:]}", flush=True)
-        time.sleep(2)
-    d["_src"] = src
-    d["_asof"] = date.today().isoformat()
-    HD.save("reldates", "bls,frb,alfred", d)
+            src[key] = f"{type(e).__name__} {e}"[:200]
+        print(f"[reldates] {key}：{src[key][-120:]}", flush=True)
+        _save(d, src)
     print("[reldates] 寫入 data/lab/heat/reldates.json.gz：" +
           "、".join(f"{k} {len(v)}" for k, v in sorted(d.items()) if not k.startswith("_")), flush=True)
 
