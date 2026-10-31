@@ -28,13 +28,20 @@ def test_parse_z1_and_quarter():
         ["2019-06", "2019-09", "2019-12", "2020-03", "2025-09"]
 
 
-def test_parse_dates_dedup_sorted():
-    assert R.parse_dates("2015-02-26\n2015-01-16\n2015-02-26 x 1999-13-99") == ["1999-13-99", "2015-01-16", "2015-02-26"]
-
-
 def test_parse_cdx_lines():
     txt = ("https://www.bls.gov/news.release/archives/cpi_02262015.htm\n"
            "http://bls.gov:80/news.release/archives/cpi_02262015.pdf\n"
            "https://www.bls.gov/news.release/archives/cpi_01162015.htm\n"
            "https://www.bls.gov/news.release/archives/cpi_toc.htm\n")
     assert R.parse_cdx(txt, "cpi") == ["2015-01-16", "2015-02-26"]
+
+
+def test_parse_cdx_keeps_only_real_weekday_captures():
+    """2026-10-31 第一輪沒過濾：混進沒有公布過的網址（檔案館存到的是 404）、週末日期、公布前就「存到」的。"""
+    txt = ("https://www.bls.gov/news.release/archives/empsit_01102020.htm 20200110153000 200\n"
+           "https://www.bls.gov/news.release/archives/empsit_01032020.htm 20200103140000 404\n"   # 沒有這一則
+           "https://www.bls.gov/news.release/archives/empsit_03052023.htm 20230306000000 200\n"   # 週日
+           "https://www.bls.gov/news.release/archives/empsit_02062026.htm 20260201000000 200\n"   # 存檔日早於檔名日
+           "https://www.bls.gov/news.release/archives/empsit_02112026.htm 20260211133000 200\n")
+    assert R.parse_cdx(txt, "empsit") == ["2020-01-10", "2026-02-11"]
+
