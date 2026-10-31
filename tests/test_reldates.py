@@ -30,3 +30,11 @@ def test_parse_z1_and_quarter():
 
 def test_parse_dates_dedup_sorted():
     assert R.parse_dates("2015-02-26\n2015-01-16\n2015-02-26 x 1999-13-99") == ["1999-13-99", "2015-01-16", "2015-02-26"]
+
+
+def test_parse_cdx_lines():
+    txt = ("https://www.bls.gov/news.release/archives/cpi_02262015.htm\n"
+           "http://bls.gov:80/news.release/archives/cpi_02262015.pdf\n"
+           "https://www.bls.gov/news.release/archives/cpi_01162015.htm\n"
+           "https://www.bls.gov/news.release/archives/cpi_toc.htm\n")
+    assert R.parse_cdx(txt, "cpi") == ["2015-01-16", "2015-02-26"]

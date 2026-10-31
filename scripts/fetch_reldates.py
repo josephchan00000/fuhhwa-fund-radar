@@ -9,6 +9,9 @@
     （哪一季由使用端照「公布日往前 60 天以前最近的季底」對應）。
   · ALFRED（alfred.stlouisfed.org/release/downloaddates?rid=…）：聖路易聯準銀行記下的每一次公布日，當第二來源核對
     （rid 10＝CPI、50＝就業報告、53＝GDP、52＝Z.1）→ {"alfred_cpi": [日期…], …}。
+  · 勞工統計局的頁面在 CI 被擋時：網際網路檔案館的 CDX 索引列出存過的每一個新聞稿網址（archives/cpi_MMDDYYYY.htm），
+    公布日就在檔名裡 → {"cdx_cpi": [公布日…], "cdx_empsit": […]}（哪一個資料月份由使用端照「公布月的前一個月」對，
+    政府停擺那幾個月另有官方改期表 heatspec.CPI_LATE、heatspec_us.JOBS_LATE 取晚的）。
 
   python3 scripts/fetch_reldates.py
 """
@@ -38,8 +41,29 @@ HDRS = {**BROWSER, "Accept": "text/html,application/xhtml+xml,application/xml;q=
         "Accept-Language": "en-US,en;q=0.9"}
 
 
-def _get(url: str) -> str:
-    return get_bytes(url, retries=2, timeout=60, use_cache=False, headers=HDRS).decode("utf-8", "replace")
+def _get(url: str, timeout: int = 60) -> str:
+    return get_bytes(url, retries=2, timeout=timeout, use_cache=False, headers=HDRS).decode("utf-8", "replace")
+
+
+def _get_backoff(url: str, waits=(20, 60, 120), timeout: int = 90) -> str:
+    """網際網路檔案館常回 429（太多請求）：等一下再試。"""
+    err = None
+    for w in (0, *waits):
+        time.sleep(w)
+        try:
+            return _get(url, timeout)
+        except Exception as e:                              # noqa: BLE001
+            err = e
+            print(f"[reldates]   {url[:90]}… 失敗（{type(e).__name__}: {str(e)[:80]}），{'再等' if w != waits[-1] else '放棄'}", flush=True)
+    raise RuntimeError(f"{url}: {err}")
+
+
+def parse_cdx(txt: str, name: str) -> list[str]:
+    """CDX 索引（一行一個原始網址）→ 公布日（YYYY-MM-DD，去重排序）。"""
+    out = set()
+    for a, b, c in re.findall(rf"archives/{name}_(\d{{2}})(\d{{2}})(\d{{4}})\.(?:htm|pdf)", txt):
+        out.add(f"{c}-{a}-{b}")
+    return sorted(d for d in out if "1990" <= d[:4] <= "2100")
 
 
 def _text(chunk: str) -> str:
@@ -93,16 +117,27 @@ def main() -> None:
         got = {}
         for u in (url, "https://web.archive.org/web/2026id_/" + url):
             try:
-                got = parse_bls(_get(u), name)
+                got = parse_bls(_get(u) if u == url else _get_backoff(u), name)
                 src[name] = f"{u}：{len(got)} 期"
                 if len(got) >= 100:
                     break
             except Exception as e:                      # noqa: BLE001 —— 一個來源失敗不擋其他來源
                 src[name] = f"{u}：{type(e).__name__} {e}"[:200]
+                print(f"[reldates] {name} {u[:60]}…：{src[name][-120:]}", flush=True)
             time.sleep(2)
         if got:
             d[name] = {**(d.get(name) or {}), **got}
         print(f"[reldates] {name}：{src[name]}；例 {sorted(got.items())[-3:] if got else '—'}", flush=True)
+        u = ("https://web.archive.org/cdx/search/cdx?url=bls.gov/news.release/archives/"
+             f"{name}_&matchType=prefix&fl=original&collapse=urlkey&output=txt")
+        try:
+            got2 = parse_cdx(_get_backoff(u), name)
+            src[f"cdx_{name}"] = f"{u}：{len(got2)} 天"
+            if got2:
+                d[f"cdx_{name}"] = sorted(set(d.get(f"cdx_{name}") or []) | set(got2))
+        except Exception as e:                          # noqa: BLE001
+            src[f"cdx_{name}"] = f"{type(e).__name__} {e}"[:200]
+        print(f"[reldates] cdx_{name}：{src[f'cdx_{name}']}；例 {(d.get(f'cdx_{name}') or [])[-3:]}", flush=True)
     z1: set[str] = set(d.get("z1") or [])
     for u in Z1_PAGES:
         try:
@@ -116,9 +151,11 @@ def main() -> None:
     if z1:
         d["z1"] = sorted(z1)
     for key, rid in ALFRED.items():
+        if d.get(key):
+            continue                                    # 上一輪已經拿到
         u = f"https://alfred.stlouisfed.org/release/downloaddates?rid={rid}&ff=txt"
         try:
-            got = parse_dates(_get(u))
+            got = parse_dates(_get(u, 150))
             src[key] = f"{u}：{len(got)} 天"
             if got:
                 d[key] = got
