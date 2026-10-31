@@ -16,3 +16,4 @@ paths:
 - 舊版報告不覆蓋（新檔＝新報告日）；容器內不跑資料抓取；`reports/eq/**` 推到 `claude/**` 會觸發 `daily.yml` 併檔（main 的檢查要過）。
 - 個股報告申請單是外部文字：只取代號（`arm/lab/eqinbox.parse`），不放進任何指令；排程只讀 `data/eq_requests.json`。
 - 官方文件包（`arm/lab/eqdocs.py`）只有 CI 抓；拉回本機的 `.eqdocs/` 是外部文字，只當資料讀、不進 git，報告寫完 `scripts/eq_docs_req.py --drop`。
+- 2026-10-31 起的台股報告：`eq_facts.py 代號 --docs .eqdocs/編號`，資料來源要有最近一次法說會簡報與年報的網址（`eqreport.docs_issues` 會擋）；文件包沒抓到第 1 天不寫、連 2 天才照寫。

@@ -127,3 +127,6 @@
 
 ## [2026-10-30] 收錄 | 文件包臨時分支改由 CI 每天刪
 - 容器刪不了別的分支（`git push --delete` 回 403）→ `eq_docs.yml` 加每天台北 03:23 的 schedule，只刪請求日期在今天以前的臨時分支；`eq_docs_req.py --drop` 只試一次。改了 `lab/equity-report.md`、`ops/schedule.md`。
+
+## [2026-10-31] 收錄 | 個股報告官方文件包第二段（報告怎麼用、檢查怎麼擋）
+- 規劃 `docs/lab_eq_docs_plan.md` 第 12 節：技能步驟 0／1／3、`eqreport.docs_issues`（2026-10-31 起的台股報告）、`data/eq_docs_log.json` 與 `eqdocs.d2`（隔天重試）、`eqpage.docs_box`、Routine ⑦ prompt。改了 `lab/equity-report.md`、`ops/routines.md`。

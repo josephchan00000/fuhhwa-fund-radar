@@ -2,6 +2,7 @@
 
     TZ=Asia/Taipei python3 scripts/eq_facts.py 4958                 # → reports/eq/tw/4958/{今天}.facts.json
     TZ=Asia/Taipei python3 scripts/eq_facts.py 4958 --peers 3037,8046,3189,2368,3044,2313
+    TZ=Asia/Taipei python3 scripts/eq_facts.py 4958 --docs .eqdocs/{編號}   # 台股一律帶官方文件包的清單（scripts/eq_docs_req.py 拉下來的）
     TZ=Asia/Taipei python3 scripts/eq_facts.py --ind tw-L000         # → reports/eq/ind/tw-L000/{今天}.facts.json
     TZ=Asia/Taipei python3 scripts/eq_facts.py PAYC                  # 美股（代號是英文字母）→ reports/eq/us/PAYC/{今天}.facts.json
     TZ=Asia/Taipei python3 scripts/eq_facts.py --ind us-human-resource-and-employment-service   # 美股產業＝GICS 細產業
@@ -29,6 +30,7 @@ def main() -> int:
     ap.add_argument("code", nargs="?")
     ap.add_argument("--ind", help="產業代號（tw-L000＝櫃買產業鏈 L000）")
     ap.add_argument("--peers", help="換過的同業，逗號分開")
+    ap.add_argument("--docs", help="官方文件包資料夾 .eqdocs/{編號}（台股；清單寫進資料包的 docs，全文不寫）")
     ap.add_argument("--out")
     a = ap.parse_args()
     today = clock.today_tw().isoformat()
@@ -59,6 +61,17 @@ def main() -> int:
         pack = U.us_pack(a.code.upper())
     else:
         pack = E.tw_pack(a.code, peers=peers)
+    if a.docs:
+        if mk != "tw":
+            print("美股的官方文件包還沒做（docs/lab_eq_docs_plan.md 第 6 節）")
+            return 2
+        from arm.lab import eqdocs as D
+        ip = Path(a.docs) / "index.json"
+        docs = D.for_facts(json.loads(ip.read_text(encoding="utf-8")), pack["code"]) if ip.exists() else None
+        if not docs:
+            print(f"{ip} 裡沒有 tw:{pack['code']}（先 scripts/eq_docs_req.py --send tw:{pack['code']}，再 --wait）")
+            return 2
+        pack["docs"] = docs
     pack["made"] = today
     out = Path(a.out) if a.out else ROOT / "reports" / "eq" / mk / pack["code"] / f"{today}.facts.json"
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -70,6 +83,13 @@ def main() -> int:
     print(f"倍數範圍 {v.get('range')}；預設目標價 {v.get('tp_dflt')}（{v.get('rating_dflt')}，上檔 {v.get('up_dflt')}%）；"
           f"範圍換算目標價 {v.get('tp_lo')}～{v.get('tp_hi')}")
     print(f"同業（{pack['peer_how']}）：{[(p['c'], p['n']) for p in pack['peers']]}；照規則的同業：{pack['peers_auto']}")
+    dc = pack.get("docs")
+    if dc:
+        from arm.lab import eqdocs as D
+        print(f"官方文件包（{dc.get('at')}）：{D.d2(dc)}；最近一次法說會簡報 {(dc.get('deck') or {}).get('d') or '12 個月內沒有'}、"
+              f"年報 {(dc.get('annual') or {}).get('fy') or '沒有'} 年度、重大訊息 {len(dc.get('news') or [])} 則")
+    elif mk == "tw":
+        print("⚠ 沒帶官方文件包（--docs）：2026-10-31 起的台股報告檢查會擋")
     if mk == "us":
         print(f"GICS：{pack.get('sector')}・{pack.get('ind')}；預設產業報告 {pack.get('ind_key')}")
     else:

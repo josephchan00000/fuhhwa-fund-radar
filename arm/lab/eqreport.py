@@ -8,7 +8,8 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import date
+from datetime import date, timedelta
+from urllib.parse import urlparse
 
 from . import eqspec as S
 
@@ -33,6 +34,12 @@ NUM = re.compile(r"(約\s*)?([-+−]?\d{1,3}(?:,\d{3})+(?:\.\d+)?|[-+−]?\d+(?:
                  r"(個百分點|%|億元|億|萬元|萬張|萬|美元|元|倍|張|位|家)")
 LINK = re.compile(r"\[([^\]]+)\]\((https?://[^)\s]+)\)")
 ISO = re.compile(r"(20\d\d-\d\d-\d\d)")
+# 官方文件包（docs/lab_eq_docs_plan.md 第 5、12 節）：這天起的台股報告要帶文件清單、引用官方原文；舊報告不追溯，美股等 SEC 文件包
+DOCS_FROM = "2026-10-31"
+DOCS_AGE = 3                       # 文件包要是報告日前 3 天內抓的
+OFFICIAL_HOSTS = ("twse.com.tw", "tpex.org.tw", "sec.gov")      # 觀測站（mops／mopsov／doc／emops）、證交所、法說會影音、櫃買、SEC
+NEG = re.compile(r"未能?(取得|讀到|讀取|找到|查到|打開|看到|抓到)|沒有?(取得|讀到|讀取|找到|查到|打開|看到|抓到)|"
+                 r"無法(取得|讀取|打開|查到|找到)|查不到|找不到|讀不到|拿不到|抓不到")
 
 
 # ── 解析 ─────────────────────────────────────────────────────────────────
@@ -252,11 +259,80 @@ def _common(p: dict, sections: tuple, req: tuple, src_min: int, pmin: int, pmax:
     return errs
 
 
+def _host(u: str) -> str:
+    return (urlparse(u).hostname or "").lower()
+
+
+def official_url(u: str, site: str | None = None) -> bool:
+    """官方文件看網址：觀測站、證交所、櫃買、SEC，或文件包記下的公司官網；媒體文章標題寫「法說會」不算。"""
+    h = _host(u)
+    if any(h == x or h.endswith("." + x) for x in OFFICIAL_HOSTS):
+        return True
+    base = _host(site or "").removeprefix("www.")
+    return bool(base) and (h == base or h.endswith("." + base))
+
+
+def _date_said(iso: str, text: str) -> bool:
+    y, m, d = (int(x) for x in iso.split("-"))
+    forms = (iso, f"{y}/{m}/{d}", f"{y}/{m:02d}/{d:02d}", f"{m}/{d}", f"{m:02d}/{d:02d}", f"{y - 1911}/{m:02d}/{d:02d}",
+             f"{m} 月 {d} 日", f"{m}月{d}日")
+    return any(re.search(rf"(?<![\d/]){re.escape(x)}(?![\d/])", text) for x in forms)
+
+
+def docs_issues(p: dict, pack: dict) -> list[str]:
+    """台股報告（DOCS_FROM 起）對照官方文件包的清單（.facts.json 的 docs）。"""
+    from .eqdocs import d2
+    made = str(p["fm"].get("made"))
+    dc = pack.get("docs")
+    if not dc:
+        return ["沒有官方文件包（台股 2026-10-31 起一定要帶）：scripts/eq_docs_req.py 抓、scripts/eq_facts.py 代號 --docs .eqdocs/編號"]
+    errs = []
+    got = str(dc.get("at") or "")[:10]
+    try:
+        if date.fromisoformat(got) < date.fromisoformat(made) - timedelta(days=DOCS_AGE):
+            errs.append(f"官方文件包是 {got} 抓的，超過 {DOCS_AGE} 天；重抓")
+    except ValueError:
+        errs.append(f"官方文件包的抓取時間看不懂：{dc.get('at')}")
+    src = p["sec"].get("資料來源", "")
+    urls = [u for _, u in LINK.findall(src)]
+    lim = " ".join(ln for ln in src.splitlines() if "資料侷限" in ln)
+    act = d2(dc)
+    if act == "retry":
+        errs.append(f"官方文件包今天沒抓到（{dc.get('st')}）：照規則今天不寫、明天重試，連兩天沒抓到才照寫")
+    elif act == "write" and not (re.search(r"文件包|官方文件", lim) and NEG.search(lim)):
+        errs.append(f"官方文件包連續 {len(dc.get('fails') or [])} 天沒抓到：「資料侷限」要寫明官方文件抓不到與原因")
+    if not any(official_url(u, dc.get("site")) for u in urls):
+        errs.append("資料來源沒有官方網址（公開資訊觀測站、證交所、櫃買或公司官網）；媒體文章標題寫「法說會」不算")
+    deck = dc.get("deck") or {}
+    if deck.get("url"):
+        fn = deck["url"].rsplit("/", 1)[-1]
+        if not any(u.endswith(fn) and official_url(u) for u in urls):
+            errs.append(f"資料來源要有最近一次法說會（{deck.get('d')}）的簡報：{deck['url']}")
+        if deck.get("d") and not _date_said(deck["d"], p["sec"].get("公司概況", "")):
+            errs.append(f"「公司概況」要寫最近一次法說會（{deck['d']}）說了什麼，並寫出日期")
+    ann = dc.get("annual") or {}
+    code = str(pack.get("code"))
+    if ann.get("url") and not any(_host(u).endswith("doc.twse.com.tw") and code in u for u in urls):
+        errs.append(f"資料來源要有 {ann.get('fy')} 年度股東會年報：{ann['url']}")
+    for sent in re.split(r"[。；;]", lim):
+        if not NEG.search(sent):
+            continue
+        if deck.get("url") and re.search(r"簡報|法說", sent):
+            errs.append(f"資料侷限寫沒讀到法說會簡報，但文件包有 {deck.get('d')} 的簡報：「{sent.strip()[:60]}」")
+        elif ann.get("url") and "年報" in sent:
+            errs.append(f"資料侷限寫沒讀到年報，但文件包有 {ann.get('fy')} 年度年報：「{sent.strip()[:60]}」")
+        elif dc.get("ok") and re.search(r"觀測站|官方|公司.{0,4}原文|原文", sent):
+            errs.append(f"資料侷限寫沒讀到官方原文，但文件包都抓到了：「{sent.strip()[:60]}」")
+    return errs
+
+
 def check(text: str, pack: dict) -> list[str]:
     """個股報告 → 錯誤清單（空＝🟢）。"""
     p = parse(text)
     fm = p["fm"]
     errs = _common(p, SECTIONS, FM_REQ, SRC_MIN, PROSE_MIN, PROSE_MAX)
+    if pack.get("mk", "tw") == "tw" and str(fm.get("made")) >= DOCS_FROM:
+        errs += docs_issues(p, pack)
     if str(fm.get("code")) != str(pack.get("code")):
         errs.append(f"代號和資料包不同：{fm.get('code')} vs {pack.get('code')}")
     if fm.get("asof") != pack.get("asof"):

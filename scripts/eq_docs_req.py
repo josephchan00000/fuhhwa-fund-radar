@@ -97,7 +97,12 @@ def wait(rid: str, timeout: int) -> int:
               + f"、重大訊息 {len(x.get('news') or [])} 則"
               + (f"、年報 {a.get('fy')} 年度營運概況 {len(a.get('pages') or [])} 頁" if a else "、沒有年報")
               + ("" if x.get("ok") else f"；{x.get('st')}"))
-        print(f"  讀：{dest.relative_to(ROOT)}/tw-{c.split(':')[1]}.md")
+        act = E.d2(x)
+        if act == "retry":
+            print(f"  → 今天不寫這家（文件包沒抓到，明天重試；連續沒抓到 {len(x.get('fails') or [])} 天）")
+        elif act == "write":
+            print(f"  → 連續 {len(x['fails'])} 天沒抓到（{'、'.join(x['fails'])}）：照寫，「資料侷限」寫明官方文件包連兩天抓不到與原因")
+        print(f"  讀：{dest.relative_to(ROOT)}/tw-{c.split(':')[1]}.md；資料包：scripts/eq_facts.py {c.split(':')[1]} --docs {dest.relative_to(ROOT)}")
     return 0
 
 
