@@ -13,7 +13,7 @@
 """
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -31,9 +31,6 @@ class Trade:
     mfe: float = 0.0               # 進場後最有利（點，不含滑價）
     mae: float = 0.0               # 進場後最不利（點，負的）
     moves: list = field(default_factory=list)   # [(秒, 新停損)]
-
-    def as_dict(self) -> dict:
-        return asdict(self)
 
 
 def simulate(ticks: list[tuple[int, int, int, bool]], side: str, decide_s: int, *,

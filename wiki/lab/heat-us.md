@@ -2,7 +2,7 @@
 
 > 美股景氣頁 x9mu.html：四個指數的規格、情緒籌碼、泡沫模型、資料、結果與坑。
 > 原始資料：CLAUDE.md「『美股景氣』頁＋泡沫面向」段；規劃 `docs/lab_heat_us_plan.md`、`docs/lab_us_chip_plan.md`；程式：`arm/lab/heat*_us.py`、`arm/lab/heatbubble.py`、`arm/lab/insider.py`
-> 最後更新：2026-10-29
+> 最後更新：2026-11-01
 > 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
@@ -24,6 +24,7 @@
 - 四個都有：S3、S4、S5（名稱標「全市場」）、S6 槓桿 ETF 做多比重（3 倍多空一對近 20 日成交金額，SPXL／SPXS、TQQQ／SQQQ、SOXL／SOXS；Direxion 沒有發行份數歷史，所以一律用成交金額、不用資金流）、S7 成分股內部人淨買比例（`arm/lab/insider.py`）。
 - 內部人資料：SEC 每季資料集（2006q1 起；網址從資料集頁讀，`/files/structureddata/…` 與 `/files/datastandardsinnovation/…` 混用）＋最新一季之後的 EDGAR 每日索引 Form 4 原件；只留 Form 4（不含 4/A）、非衍生性交易、代碼 P／S、申報人之一是董事或經理人。
   存 `data/lab/ins/{YYYY-MM}.json.gz`（依申報日，`{日: {CIK: [淨股數, 當時在 S&P 500]}}`）；名單 `data/lab/heat/ins_members`（S&P 500 歷史期間、現在的那斯達克 100、產業代碼 3674 ∪ 現在費半）；進度 `ins_state`（`through`＝涵蓋到哪天，之後的交易日 S7 沒有值）。
+  一季資料集解析出 0 筆（多半是 SEC 改了欄位名稱）→ 不換掉那三個月、不記做完、印「⚠ …解析出 0 筆」，下次重抓（2026-11-01，體檢第 5 條；之前會把三個月換成空的、而且記成做完不再抓）。
   每天 `fetch_heat_us.py` 一天一次（150 秒上限、做不完下次續做）；回補 `.ping/lab` 第一行 `uschipfill`（或 `uschipfill:ins`、`:lev`、`:cftc_nq`，時間上限 3300 秒）。
 - 大跌風險 crashspec VER 2、反向檢查 hotchspec VER 2 的美股變數跟著依指數（`PRED[idx]`、`CHIP_VARS[idx]`、`hotchpage.ORDER[mk]`）。
 
@@ -62,6 +63,17 @@
 2. X2、X3 的 10 年百分位要在指數自己的交易日上算再對齊（直接在台股頁日曆上算，覆蓋只到 2002-06 起）。
 3. 分數四捨五入會跨區（79.6 寫成「80 偏熱」）→ `heatpage.n0()`／頁面 JS `sc0()`：跨到下一區時改成無條件捨去到一位小數。
 4. 本機建台股頁到暫存目錄要 `HP.build(out, data_out)` 兩個路徑都給，只給 out 會把 `dashboard/x9mh.json`（有入庫）改掉——改到就 `git checkout -- dashboard/x9mh.json`。
+5. **停擺時偷看未來（2026-10-31 截斷重建查到，heatspec_us VER 4 修好；`docs/lab_signal_quality_plan.md` 第 9 節）**：①`fill_bls` 補的 2025-10
+   照 10 月自己的時程當成拿得到（其實要等 11 月公布）；②固定的公布時間差（次月 8、16 日）在停擺延後公布時太早（9 月失業率早用 31 個交易日、
+   11 月失業率早 6 天，那 6 天 F5 被算成過冷）；③用前一個月 CPI 的 X1、X4、X6、X7 也吃到補值。現在：補出來的月份等缺口後第一個有值的月份
+   拿得到才算（`heat.gap_dates`、`D["late"]`），停擺那幾期照官方改期日期（`RELEASE_LATE`），`CPI_LAG_ITEMS` 往後挪一個月。
+   截斷重建抓得到①③，②要對官方公布日——見第 6 條。
+6. **一般月份的公布日對官方（2026-10-31，heatspec_us VER 5；規劃第 11.2 節）**：CPI、就業報告照勞工統計局新聞稿的實際公布日
+   （`arm/lab/reldates.py`；官方表 `data/lab/heat/reldates.json.gz` 由 `scripts/fetch_reldates.py` 在 CI 抓，每週跟 `verify.yml` 更新），
+   Z.1（S5、X8、X9）照聯準會公布日（120 季裡 23 季比「季底後 (3,15)」晚，2003 Q3、2025 Q3 晚到隔年 1 月），GDP 照停擺改期（`GDP_LATE`：
+   1995 Q4、2013 Q3、2018 Q4、2025 Q3、2025 Q4），台積電月營收照申報期限；沒有官方日期的期照同一個月份（季底月）歷年最晚的公布日。
+   **抓官方表的坑**：網際網路檔案館的索引沒過濾時混進沒有公布過的網址（存檔是 404、週末日期，例「2020-01-03 就業報告」其實 1/10 才公布），
+   同月取最早會早用一週——只收狀態 200、平日、存檔日不早於檔名日的網址，同月兩則取晚的；CPI 新聞稿檔案頁（寫明資料月份）292 個月和索引推的完全一致。
 
 ## 歷史
 

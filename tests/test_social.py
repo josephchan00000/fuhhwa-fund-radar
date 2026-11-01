@@ -1,7 +1,7 @@
-"""社群/KOL 情報層單元測試（M4）：source-agnostic、確定性 baseline 分析、drop-in 承接。"""
+"""社群/KOL 情報層單元測試（M4）：source-agnostic、確定性 baseline 分析、drop-in 承接。
+2026-11-01 拿掉舊的本機流程（arm/ideas.py 的 g_kol 兩個測試一起拿掉）；臉書抓取留著，這裡測它用到的 base。"""
 import json
 
-from arm import ideas
 from arm.connectors import social
 from arm.connectors.social import base
 
@@ -55,21 +55,3 @@ def test_recent_mentions_merges_live_adapter(monkeypatch):
     out = social.recent_mentions(as_of="2026-06-12", window_days=7)
     assert out and out[0].author == "LIVE"           # 聲量最高排最前、live 來源有被併入
     social.LIVE_ADAPTERS.pop("fake", None)
-
-
-def test_g_kol_real_when_present(monkeypatch):
-    ms = [_m(author="財經Y", platform="youtube", text="主動度高、季配息殖利率不錯，值得佈局（業配合作）",
-             etfs=("00991A",), reach=52000)]
-    monkeypatch.setattr(ideas.social, "recent_mentions", lambda **k: ms)
-    out = ideas.g_kol({"etf_id": "00991A", "trade_date": "2026-06-12"}, {})
-    assert out and out[0].status == "real"
-    assert "社群熱議賣點" in out[0].headline
-    assert any("疑似業配" in i.headline for i in out)   # 業配反推想法有產生
-
-
-def test_g_kol_fallback_when_empty(monkeypatch):
-    monkeypatch.setattr(ideas.social, "recent_mentions", lambda **k: [])
-    out = ideas.g_kol({"etf_id": "00991A", "trade_date": "2026-06-12"},
-                      {"social_seed": ["種子訊息"]})
-    assert out and out[0].status == "intel"           # 無資料 → 誠實降級
-    assert "已就緒" in out[0].evidence

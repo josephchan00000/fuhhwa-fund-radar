@@ -25,6 +25,7 @@ import math
 import os
 from datetime import date, timedelta
 
+from .. import fileio
 from . import sxlivespec as S
 from . import store
 
@@ -824,8 +825,9 @@ def ytd_part(rec: dict, ctx: dict, last: str | None, book: str | None = None) ->
 KEEP_FROM = 3                         # 這一版起的每週紀錄沿用（VER 4 沒有改名單的記法，只多一本 N8）
 
 
-def read() -> dict:
-    doc = store.read_json(S.LOG_FILE, {}) or {}
+def read(strict: bool = False) -> dict:
+    """strict（update 要寫回時）：檔案在但讀不起來就停下報錯，不當成空的從頭記（arm/fileio.read_json）。"""
+    doc = (fileio.read_json(store.LAB / S.LOG_FILE, {}, strict=True) if strict else store.read_json(S.LOG_FILE, {})) or {}
     if not isinstance(doc, dict) or (doc.get("ver") or 0) < KEEP_FROM:
         doc = {}
     return {"ver": S.VER, "spec": S.SPEC_DATE, "start": S.START, "weeks": dict(doc.get("weeks") or {})}
@@ -856,8 +858,7 @@ def write(rec: dict) -> bool:
     txt = dump(rec)
     if p.exists() and p.read_text(encoding="utf-8") == txt:
         return False
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(txt, encoding="utf-8")
+    fileio.write_text(p, txt)
     return True
 
 
@@ -892,7 +893,7 @@ def update(DL, ctx: dict | None = None, now=None, write_file: bool | None = None
     cal = P.cal
     ix = {d: i for i, d in enumerate(cal)}
     last = next((cal[i] for i in range(len(cal) - 1, -1, -1) if complete(DL, cal[i])), None)
-    rec = read()
+    rec = read(strict=write_file)
     R = load_rules()
     seed = load_seed()
     if seed is None:

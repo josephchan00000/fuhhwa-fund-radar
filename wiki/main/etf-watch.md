@@ -2,7 +2,7 @@
 
 > 追蹤清單、雙來源、報酬與配息、預估配息、欄序、落檔與欄位級合併。
 > 原始資料：CLAUDE.md「『ETF 數據追蹤』分頁」段；程式：`arm/etfwatch.py`、`scripts/fetch_etf_watch.py`。
-> 最後更新：2026-10-29
+> 最後更新：2026-11-01
 > 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 主儀表板「ETF 數據追蹤」分頁（左上第四分頁）那張表；當日漲跌另見 [ETF 當日漲跌的坑](etf-daily-change.md)。
@@ -25,9 +25,13 @@
   （同 2026-07-22 的總報酬坑）。抓不到就沿用既有值，絕不洗成空白。之後的修正見 [當日漲跌](etf-daily-change.md)。
 - **配息殖利率一律用年化配息率**＝最近一次「實際」配息金額 ÷ 最新市價 × 配息頻率次數（月配×12／季配×4／半年配×2／年配×1），不是 trailingYield 近12月回溯值。
   上櫃兩檔 etfinfo 未收錄 → 收盤價由報酬序列末值回填、規模／首配用 WebSearch 查證種子（`SEED_PERF` 含 `last_div`），年化配息率以配息×次數÷序列收盤自算。
-- **當月預估配息**（etfinfo 只揭露已實際除息者）：依序 MOPS（`arm/connectors/mops.etf_distributions`，端點多變、常抓不到）→ **`arm/etfwatch.ANNOUNCED_EST` 人工維護清單**（投信官方已公告之首配／當期預估，除息日未到）；
-  etfinfo 配息表中除息日在本月且未到期／標記預估者也算。取本月未到期者 → 配息欄加註「預估 X*」橘標（*＝投信公告非正式配息金額，實際以除息公告為準），過月自動失效。
-  **投信新公告配息時，把 `{code: {amount, ex_date}}` 補進 `ANNOUNCED_EST`**（來源：各投信官網／經濟日報等；除息後 etfinfo 會接手實際值）。例：00991A 首配 0.77（除息 7/21）、0056 Q3 擬配 1.35。
+- **當月預估配息**（etfinfo 只揭露已實際除息者）：etfinfo 配息表中除息日在本月且未到期／標記預估者先用；沒有就依序看
+  **證交所／櫃買的除權除息預告表**（`arm/connectors/twse.fetch_exdiv`＝OpenAPI `TWT48U_ALL`、`arm/connectors/tpex.fetch_exdiv`＝`prepost_result.php`；
+  `arm/etfwatch.exchange_distributions` 每檔取今天以後最早的一次）→ MOPS（`arm/connectors/mops.etf_distributions`，端點多變、常抓不到）。
+  取本月未到期者 → 配息欄加註「預估 X*」橘標（*＝投信公告非正式配息金額，實際以除息公告為準），過月自動失效；`est_src` 記來源（`exch`／`mops`）。除息後 etfinfo 會接手實際值。
+  **金額待公告（2026-11-01）**：交易所表上這個月已排好除息日、還沒有金額（證交所金額欄空白、櫃買寫「尚未公告」）→ `est_pend` 記除息日，
+  配息欄顯示「M/D 除息・金額待公告」，交易所補上後自動改成「預估 X*」。投信公告後交易所要一兩個工作天才補上（2026-11-01 探針：00400A 新聞已寫 0.12 元、證交所表仍空白）。交易所這輪抓不到 → 沿用舊的 `est_pend`（一樣過了除息日就拿掉）；抓得到而表上沒有 → 拿掉。
+  不做新聞備援（2026-11-01 探針：追蹤清單這個月要除息的檔兩張表都有，新聞標題很少寫金額；使用者同意）。
 - 落檔 `data/etf_watch.json`：`scripts/fetch_etf_watch.py` 逐檔「欄位級合併」，fallback 鏈為**本次 etfinfo 新值 → 既有落檔值 → 內建 `SEED_PERF` 週報底稿**（成立日一律取 WATCHLIST 靜態值）。
   報酬標 `perf_asof` 基準日、規模／殖利率標 `as_of` 抓取日，儀表板分別備註（沿用最近可得值時使用者已同意）。
 
@@ -35,3 +39,8 @@
 
 - `data/etf_watch.json` 曾被 `.gitignore` 的 `data/*` 擋掉沒入庫 → CI 從零抓、etfinfo 缺欄 → 成立日期／週月報酬整片變 null。已加 `!data/etf_watch.json` 例外，此檔**必須入庫**當 fallback。
 - 欄位級 fallback 用「值是否為 None」判斷，**不可用 `dict.get(key, default)`**——CI 曾把欄位寫成顯式 `null`，`get(key, default)` 會回傳那個 null 而非 default，反而把資料洗空。用 `arm/etfwatch._pick()`。
+
+## 歷史
+
+- 2026-07～11-01：預估配息有一張人工清單 `ANNOUNCED_EST`（投信公告後手動登錄），只填過 2026-07 那一批（例：00991A 首配 0.77、0056 Q3 擬配 1.35），之後沒人補。
+  2026-11-01 使用者：「不可能手動補啦要抓公告 不然就是抓新聞因為投信都會買新聞」→ 拿掉，改抓交易所預告表（`docs/etf_div_auto_plan.md`）。

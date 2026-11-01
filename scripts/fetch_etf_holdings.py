@@ -3,7 +3,7 @@
 
 **路線沿革（2026-07-29 定案）**：投信官網逐家逆向 7 輪＋無頭瀏覽器 3 輪後，
 使用者指示「不必抓官網第一手，彙整站即可、找第二站雙重驗證」；本家三檔例外——
-舊管線（arm/pipeline.py）本就以 assetsExcel 第一手抓 00991A/00998A/00986D，沿用：
+舊管線（arm/pipeline.py，2026-11-01 拿掉）本就以 assetsExcel 第一手抓 00991A/00998A/00986D，沿用：
   · **主來源 etfinfo.tw**（Tier B）：`GET /api/etf/{code}` 的 holdings 欄位＝完整每日快照
     （stock_id／weight／shares＋snapshotDate）。既有連接器 `arm/connectors/etfinfo.py`
     早已封裝（`holdings_fresh`），且 CI 每天抓規模／殖利率就在打同一 API——可達性已被證實數週。
@@ -37,7 +37,7 @@ from arm.connectors.issuers import pcf                   # noqa: E402
 _KINDS = ("active", "other", "passive")
 
 # 本家 ETF（products.json 有 fund_id 對映者：00991A/00998A/00986D）＝**復華官網第一手優先**
-# ——舊管線 arm/pipeline.py 三檔全走 assetsExcel（含前後快照 diff、排除期貨避險），能力本就存在。
+# ——舊管線 arm/pipeline.py（2026-11-01 拿掉）三檔全走 assetsExcel（含前後快照 diff、排除期貨避險），能力本就存在。
 # 順序：fhtrust（Tier A 第一手）→ etfinfo（Tier B，同為每日 PCF 基準 → 可做**同基準日權重驗證**，
 # 這是唯一能亮真正「🟢 雙源相符」的組合）→ Yahoo（月度基準，只驗構成）。
 # fhtrust.fetch_holdings 原生支援外股 ticker（'C US'）與債券（面額/幣別）；期貨避險列排除

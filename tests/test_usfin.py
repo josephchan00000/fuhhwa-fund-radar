@@ -141,3 +141,14 @@ def test_peers_nearest_market_cap_in_same_sub_industry():
     assert UF.peers("Q", gics, scr, lambda k: _F(), lambda k: None) is None                      # 不在 S&P 1500
     few = {"D": gics["D"], "E": gics["E"]}
     assert UF.peers("D", few, scr, lambda k: _F(), lambda k: None) is None                       # 不到 PEER_MIN 家
+
+def test_save_keeps_old_file_when_no_company_has_reports(tmp_path, capsys):
+    """資料分支沒拉到 → 一家季報都沒有：舊檔有內容就不寫（體檢第 6 條）；沒有舊檔照寫。"""
+    p = tmp_path / "fin.json"
+    full = {"ver": UF.VER, "made": "2026-10-24", "sec": "2026-10-24", "codes": ["VLO"], "s": {"VLO": UF.summary(_doc())}}
+    empty = {**full, "made": "2026-10-31", "sec": None, "s": {}}
+    assert UF.save(full, p)
+    assert not UF.save(empty, p)
+    assert UF.load(p)["s"]["VLO"] and "保留舊檔" in capsys.readouterr().out
+    q = tmp_path / "new.json"
+    assert UF.save(empty, q) and UF.load(q)["s"] == {}

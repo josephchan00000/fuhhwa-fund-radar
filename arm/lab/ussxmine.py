@@ -8,7 +8,6 @@ Cols：{"d": 日期（字串陣列）, "c": 代號（字串陣列）, "f": {條�
 """
 from __future__ import annotations
 
-import bisect
 from itertools import combinations
 
 import numpy as np
@@ -227,8 +226,8 @@ def select_final(rules: list, B: Bits, rule: dict | None = None) -> list[dict]:
     return final
 
 
-def mine_fold(cols: dict, lab: str, y: int, ix_of: dict | None = None, cal: list[str] | None = None) -> dict:
-    """交易年 y 那一本帳的規則（ussxspec.fold_periods；主門檻沒有就用 FALLBACK）。ix_of＝{日期: 交易日索引}，用來挑
+def mine_fold(cols: dict, lab: str, y: int, cal: list[str] | None = None) -> dict:
+    """交易年 y 那一本帳的規則（ussxspec.fold_periods；主門檻沒有就用 FALLBACK）。cal＝交易日曆，用來挑
     「訊號日＋n ≤ y−1 年最後一個交易日」的 VAL 樣本。"""
     f = X.fold_periods(y, lab)
     n = X.hold_of(lab)

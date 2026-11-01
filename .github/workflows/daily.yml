@@ -59,6 +59,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main            # push 事件預設會 checkout 被推分支——一律固定 main，新聞另行併入
+      # shortcut: 沒指定分支時抓下全部 claude 分支（2026-11-01 有 86 個，含兩三百 MB 的美股資料分支，這步約 25 秒），挑最新、有今天台股報告的那條；合併過 main 的工作分支都可能被挑中，簡介檔只比筆數、即將登場只比日期，同一天改過的內容可能被蓋回去。升級：分支超過 150 個、這步超過 1 分鐘、或挑錯分支 → 只看排程視窗那條分支，或定期刪掉已合併的分支。
       - name: 併入今日新聞報告（NEWS_REF 或 cron 兜底自動偵測）——「新聞＋真實資料」一次 commit
         id: merge
         run: |
@@ -315,6 +316,7 @@ jobs:
           done
           echo "::error::push 連續失敗——本日資料未入 main"; exit 1
 
+      # shortcut: 每筆 main commit Vercel 都會自動部署，CI 的 commit 再打一次 Deploy Hook（afterhours_refresh.yml、etf_holdings.yml 同樣）；免費方案每天 100 次，10/30 main 有 41 筆 commit，程式 PR 合併後頁面沒變也照樣部署。升級：對時哨兵出現部署被限流、或一天 main 超過 45 筆 → vercel.json 設 dashboard/ 沒變就不部署（ignoreCommand）。
       - name: 觸發 Vercel 部署（Deploy Hook — 確保線上吃到 CI 這筆真實資料版，不靠 Vercel 自動偵測）
         if: steps.merge.outputs.skip != 'true'
         env:

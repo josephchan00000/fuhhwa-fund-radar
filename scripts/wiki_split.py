@@ -184,6 +184,8 @@ EXTRA: dict[str, tuple[str, str]] = {
     "user": ("使用者偏好與做決定的方式", "他要什麼、怎麼判斷好壞、畫面與用字的要求、怎麼一起做事；每條附原話與日期。"),
     "lessons": ("跨主題的教訓", "踩過不只一次、換個地方還會再踩的事；一條一句，細節連到出處頁。"),
     "lab/signals-versions-early": ("訊號總覽：版本紀錄 VER 1～16", "從 lab/signals-versions 拆出來的早期版本紀錄。"),
+    "lab/signals-quality": ("訊號計算核對與參數鄰近", "第二套算法、截斷重建、資料來源比對、每週核對；參數鄰近檢查。"),
+    "lab/signals-today": ("今天的清單、進行中與溫度計", "市場頁今天的訊號列哪些、拿掉的放哪裡、每一條的原因；溫度計怎麼算。"),
 }
 
 
@@ -257,6 +259,7 @@ def index() -> str:
         "",
         "- `docs/*_plan.md`：每個功能的規劃、使用者的決定、結果。",
         "- `docs/prompt_audit/`：2026-09-24 prompt 稽核。",
+        "- `docs/code_debt.md`：債務帳——程式裡已知的上限、到期日與什麼時候要升級（ponytail 第四段）。",
         "- `tw-superstock-lab/`：飆股研究（自己的 CLAUDE.md、PROGRESS.md、reports/）。",
         "- `reports/`：每天的新聞報告；`data/`：資料與研究檔。",
         "",

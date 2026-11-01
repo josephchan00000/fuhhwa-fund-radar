@@ -2,7 +2,7 @@
 
 > 美股強勢品質股（QM）的規則、紀錄、頁面、推播；資料分支；沒過的美股策略與飆股帳。
 > 原始資料：CLAUDE.md「交易計畫：核心 70%＋衛星 30%」段的「美股個股策略的資料」「美股個股策略」「美股三成：美股飆股研究」；規劃 `docs/lab_us_sleeve_plan.md`；程式 `arm/lab/ussxqm.py`、`scripts/run_ussx.py`
-> 最後更新：2026-10-29
+> 最後更新：2026-11-01
 > 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
@@ -14,13 +14,14 @@
   研究檔另有 `plans[…].base`（原本在用的計畫）、`cur`＝機動也買指數（只描述）、`pit`、`keep`、`prefix`（修正前）、`desc.nofix`（不扣 D）。`ussx_books.json`、`ussx_explore.json`、`ussx_omfix.json` 是修正前算的，不重跑。
 - **每週六** `ussx_weekly.yml` 資料更新後，另外 checkout main 到 `mainrepo/`、`USSX_DIR` 指到資料分支的資料，跑 `run_ussx.py --qm-live` → `data/lab/ussx_qm_live.json`（每週名單前 20、這週買賣、週末持股、下週一開盤要賣要買、淨值對 S&P 500 含息；**只增不改**，重跑不同另記 `diff`；
   2026-10-24 起另記 `names`＝手上、要買、名單前 20 的英文公司名），只把這一支小檔 push 回 main。上線起點 10/23（規劃第 13.3 節），接手從 2010 年照做下來的持股。
-- **每天**（`daily_fund.sh`、afterhours 每班）`scripts/fetch_ussx_watch.py` 抓手上每一檔的 Yahoo 日線（還在交易中的那一天不收）→ `data/lab/ussx_qm_watch.json`：收盤跌破 50 日線＝下一個交易日開盤賣（只是提醒，帳以每週重跑為準；只認對得上最新一週紀錄的那一份）。一週還沒結束（資料停在週中）的名單不算數、不買（`ussxqm.week_done`）。
+- **每天**（`daily_fund.sh`、afterhours 每班）`scripts/fetch_ussx_watch.py` 抓手上每一檔的 Yahoo 日線（還在交易中的那一天不收）→ `data/lab/ussx_qm_watch.json`：收盤跌破 50 日線＝下一個交易日開盤賣（只是提醒，帳以每週重跑為準；只認對得上最新一週紀錄的那一份）。哪一檔這次抓不到，就沿用上一次那一檔的結果（同一週紀錄才沿用，含已經觸發的賣出；標 `carried`、日期留上一次的），每一檔都抓不到就不寫檔（`ussxqm.watch` 的 `prev`、`save_watch`；2026-11-01 起，之前賣出提醒會被洗掉）。一週還沒結束（資料停在週中）的名單不算數、不買（`ussxqm.week_done`）。
 - **頁面**：交易計畫卡 S&P 500、那斯達克 100 的三成改列美股強勢品質股（`corepage.qm_on`、`_qm_*`）：現在拿哪幾檔、各占全部資金多少、買進後漲跌、離 50 日線多遠；接下來要做的事（開盤要賣、要買、每週五看新名單〔有幾個空位、手上沒有的前幾名〕、每天看 50 日線）；過去照做的結果改用新規則的回測（2014 起），另寫同一段時間三成也買指數的錢；細節多為什麼、上線後怎麼檢查（63／126／252 個交易日跟回測同長度的期間比，最差兩成標「比回測差」）、要注意的事（看過結果才挑、賺的集中在少數大飆股、
   拿掉賺最多的 8 檔剩 13.4%、複委託成本、存活偏誤、2008 沒有財報資料）。標「美股三成：新規則驗證中」，**頁面不說「前瞻」**。配置頁（2026-10-28 起搬到研究紀錄・交易計畫）成績下面多一行「原本的計畫…同一段：100 萬變…」，那斯達克 100 那一行寫「警訊改看那斯達克 100」。資料流：`sigpage.core_data()` 的 `qm`＝{R: 研究檔, L: 每週紀錄, W: 每天的檢查}；`core.record` 那天美股三成換了就記 `sat: ["qm"]`。
 - **推播**：`valog.uqm_state`——06:35 推播多一行「美股三成：10/26（一）開盤賣 INSW、買 PAYC。」（有要做的才有：每週紀錄的下週一買賣；每天的 50 日線檢查到了那一天〔美股已收盤〕就不再提——2026-10-27 修，之前會一直掛到週六）。事件 `uqm`：每週紀錄停在比該有的還早的一週（美股週五收盤＋36 小時後算該有）、第一次滿 63／126／252 個交易日、多一筆重跑差異。
 - **美股飆股資料**只放資料分支 `claude/ussx-data`（約 135MB，**絕不合併進 main**）：Yahoo 開高低收量＋配息分割（5,194 檔，2006 起）、11 檔 ETF、那斯達克篩選器、SEC 第一次公布的財報（`arm/lab/ussxdata.py`、`secfin.py`、`scripts/backfill_ussx.py`；`lab_backfill.yml` mode `ussxfill` 只准在資料分支跑）。
   研究時 `git worktree add --detach <資料夾> origin/claude/ussx-data`、`USSX_DIR=<資料夾>/data/lab/ussx`（財報行事曆也跟著讀資料分支的 `data/lab/usstk`）。每週更新 `.github/workflows/ussx_weekly.yml`（週六台北 10:05，checkout 資料分支、只 push 回資料分支）：下市的公司當時就記下來。
   SEC 聯絡 email **只從 Actions secret `SEC_CONTACT_EMAIL` 讀**，程式、日誌、存檔都不出現（`tests/test_secfin.py` 守）。
+  每週更新會整份重寫 5,196 個價格檔（2026-11-01 抽樣估約 170 MB；壓縮檔 git 存不了差異）→ 資料分支歷史每週多約 170 MB、一年約 9 GB，GitHub 建議 repo 在 10 GB 以內，2027 年 6 月前要處理（債務帳 `docs/code_debt.md`）。
 - **S&P 500 歷史成分股**：`arm/lab/usstk.py`＋`scripts/backfill_usstk.py`＋`lab_backfill.yml` mode `usstkfill`（每 50 分鐘 commit、跑約 330 分鐘、沒做完自己再派一輪；`--status` 第一行 DONE／STUCK／LEFT）：2008 後在指數裡的，Yahoo 還原收盤 2006 起、那斯達克財報行事曆 2008 起逐日 → `data/lab/usstk/`（還原收盤以 1bp 精度差分存）。
   不用 SEC（要帶 email）。代號是現在的、已下市的多半沒有＝存活偏誤，做策略主要對照一律是同一批有股價的成分股等權。
 

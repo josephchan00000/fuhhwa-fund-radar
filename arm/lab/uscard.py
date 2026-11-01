@@ -27,6 +27,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 
+from ..clock import today_tw
 from .. import fund_intro as FI
 from . import ussxspec as X
 
@@ -78,7 +79,7 @@ def cached(fetch=None, today: date | None = None, back_days: int = BACK_DAYS):
     fetch(Yahoo 代號, 開始日) 預設 ussxdata.fetch_since（一個請求最多等 20 秒）。"""
     from . import ussxdata as UD
     fetch = fetch or (lambda sym, st: UD.fetch_since(sym, st, timeout=20))
-    floor = ((today or date.today()) - timedelta(days=back_days)).isoformat()
+    floor = ((today or today_tw()) - timedelta(days=back_days)).isoformat()
     memo: dict[str, tuple] = {}
 
     def f(c: str, start: str):
@@ -361,7 +362,7 @@ def update(L: dict | None = None, *, fetch=None, force: bool = False, budget_s: 
         stat["skip"] = f"已經有 {want} 收盤的資料"
         return stat
     fetch = fetch or cached(today=today)
-    start = getattr(fetch, "floor", None) or ((today or date.today()) - timedelta(days=BACK_DAYS)).isoformat()
+    start = getattr(fetch, "floor", None) or ((today or today_tw()) - timedelta(days=BACK_DAYS)).isoformat()
     if need_a and Y is None:
         Y = _yahoo()
         if Y is None:

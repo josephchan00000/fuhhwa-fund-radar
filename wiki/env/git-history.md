@@ -11,7 +11,7 @@
   - 早期 17 個 commit 作者欄的姓名、Gmail、Mac 主機名換成 `josephchan00000 <51159474+josephchan00000@users.noreply.github.com>`；
   - 檔案內容 `/Users/<名字>` 換成 `$HOME`、兩個 email 換成 `user@example.com`；
   - 工具：`git filter-repo --sensitive-data-removal --mailmap --replace-text`，2,141 個 commit 全部改寫，
-    每個分支的檔案內容只差 `scripts/daily_run.sh`、`scripts/cf_publish.py` 各一行。
+    每個分支的檔案內容只差 `scripts/daily_run.sh`、`scripts/cf_publish.py` 各一行（這兩支屬舊的本機流程，2026-11-01 拿掉）。
 - **舊 commit 編號不存在了**：本檔與 docs 提到的舊編號（例 `21b5bcb`、`01767f9e7`）在分支上已不存在，新 main 從 `945a995cd` 起算。
 - **分支現況（2026-10-16）**：擁有者已在 Mac 刪掉 90 個舊分支，GitHub 上只剩 `main`、`claude/etf-holdings-analysis-ui-0vkuak`、
   `claude/archive-old-branches`、`claude/all-update-45bep4`（都是新歷史，4 個沒合併的舊 PR 隨之關閉）。

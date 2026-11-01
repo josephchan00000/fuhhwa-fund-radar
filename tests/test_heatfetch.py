@@ -63,7 +63,7 @@ def test_taifex_pcr_and_vix(lab, monkeypatch):
            "20260901\t13450000\t\t\t24.91\t\t24.92\n20260930\t13450000\t\t\t23.04\t\t23.04\n").encode("cp950")
     page404 = b"<HTML  xmlns='http://www.w3.org/1999/xhtml'><title>404</title></HTML>"
     monkeypatch.setattr(F, "_get", lambda url, **kw: txt if "202609" in url else page404)
-    monkeypatch.setattr(F, "date", type("D", (), {"today": staticmethod(lambda: date(2026, 10, 17))}))
+    monkeypatch.setattr(F, "today_tw", lambda: date(2026, 10, 17))
     assert F.taifex_vix(2) == 2
     assert HD.load("vixtw") == {"2026-09-01": 24.91, "2026-09-30": 23.04}
 

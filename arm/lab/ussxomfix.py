@@ -9,11 +9,11 @@ from __future__ import annotations
 
 import json
 import time
-from datetime import date
 from pathlib import Path
 
 import numpy as np
 
+from ..clock import today_tw
 from . import omfixspec as S
 from . import ussxqm as QM
 from . import ussxspec as X
@@ -86,7 +86,7 @@ def research(C: dict, log=print) -> dict:
     base = QM.qm_mask(f)
     sel = base & (C["yr"] >= X.QM_Y0)
     variants = {"V6": None, **S.CANDS, **S.DESC}
-    out = {"ver": S.VER, "spec": S.SPEC_DATE, "rule_ver": X.VER, "made": date.today().isoformat(), "last": C["cal"][-1],
+    out = {"ver": S.VER, "spec": S.SPEC_DATE, "rule_ver": X.VER, "made": today_tw().isoformat(), "last": C["cal"][-1],
            "rows": int(sel.sum()), "runs": {}}
     tr0 = None
     for k, sp in variants.items():

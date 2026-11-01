@@ -59,11 +59,34 @@ def rev_sums(shards, fin: set[str]) -> dict:
 
 
 def load() -> dict:
-    D = {n: HD.load(n) for n in FILES}
-    D["uscpi"] = H.fill_gaps(D.get("uscpi") or {}, S.GAP_FILL_MAX, geo=True)   # VER 10：2025-10 政府停擺缺 CPI
-    D["rev"] = rev_sums(store.load("rev"), fin_codes())
     from .heatcalc_bub import load_tw_val            # 第七版：上市櫃市值與近四季淨利（本益比、市值 ÷ GDP）
+    D = prep({n: HD.load(n) for n in FILES}, store.load("rev"))
     D["twval"] = load_tw_val()
+    return D
+
+
+def late_b8() -> dict:
+    """VER 12：美國 CPI 實際拿得到的日子（台股）＝官方公布日（沒有官方日期的月份照同一個月份歷年最晚的公布；
+    停擺改期表取晚的）＋US_TW_DAYS。"""
+    from . import reldates as RD
+    lt = S.RELEASE_LATE.get("B8", {})
+    return RD.plus_days(RD.merge(lt, RD.table("cpi", skip=lt)), S.US_TW_DAYS)
+
+
+def late_rev(months, cal: list[str] | None = None) -> dict:
+    """VER 12：月營收申報期限（次月 REV_DEADLINE 日、遇非交易日順延）的下一天。"""
+    from . import reldates as RD
+    return RD.deadlines(months, S.REV_DEADLINE, RD.tw_calendar() if cal is None else cal)
+
+
+def prep(D: dict, rev_docs) -> dict:
+    """落檔 → 計分用的 D：美國 CPI 補缺月（VER 10）與實際拿得到的日子（VER 11～12，D["late"]）、月營收合計。
+    截斷重建（truncheck）先截斷落檔再呼叫這一支，和每天建頁同一套。"""
+    raw = D.get("uscpi") or {}
+    D["late"] = {"B8": H.late_dates(raw, S.RELEASE["B8"], late_b8(), S.GAP_FILL_MAX)}
+    D["uscpi"] = H.fill_gaps(raw, S.GAP_FILL_MAX, geo=True)                     # VER 10：2025-10 政府停擺缺 CPI
+    D["rev"] = rev_sums(rev_docs, fin_codes())
+    D["late"]["B6"] = late_rev(D["rev"])                                         # VER 12：申報期限遇假日順延
     return D
 
 
@@ -415,9 +438,10 @@ def score(D: dict, cal: list[str], px: list, info: dict, N: dict, M: dict, PRE: 
             win, mn = S.PCT_WIN_ITEM.get(k, (S.PCT_WIN["m"], S.PCT_MIN["m"]))
             p = H.pct_series([M[k][x] for x in ks], win, mn)
             hm = {ym: H.to_heat(x, S.HOT[k]) for ym, x in zip(ks, p) if x is not None}
-        heat[k] = H.asof_monthly(cal, hm, S.RELEASE[k])
-        raw[k] = H.asof_monthly(cal, M[k], S.RELEASE[k])
-        ymu[k] = H.asof_monthly(cal, {ym: ym for ym in M[k]}, S.RELEASE[k])
+        lt = (D.get("late") or {}).get(k)                  # VER 11：補出來的月份、已知延後公布
+        heat[k] = H.asof_monthly(cal, hm, S.RELEASE[k], lt)
+        raw[k] = H.asof_monthly(cal, M[k], S.RELEASE[k], lt)
+        ymu[k] = H.asof_monthly(cal, {ym: ym for ym in M[k]}, S.RELEASE[k], lt)
     hc = dict(heat)
     proxy: dict[str, list] = {}
     for k, src in S.PROXY.items():

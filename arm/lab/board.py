@@ -113,7 +113,6 @@ def plan_rows(bundle: dict | None) -> list[dict]:
 
 def boom_rows(bundle: dict | None) -> list[dict]:
     """新飆股（選股頁台股的第一條；飆股前瞻記錄的 N8 那本帳，corespec VER 5）。成績＝那個做法的回測（2019 起每年只用以前的資料找條件）。"""
-    from . import corepage as CPG
     B = bundle or {}
     R, stk = B.get("R") or {}, B.get("stk") or {}
     plan = ((((R.get("mk") or {}).get("tw") or {}).get("sc") or {}).get("plan")) or {}

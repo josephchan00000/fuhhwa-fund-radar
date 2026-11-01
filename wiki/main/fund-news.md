@@ -2,13 +2,13 @@
 
 > 「復華新聞・社群」區塊：新聞從哪抓、四層過濾、Google News 洗日期；社群 PTT、YouTube 三層清單與額度、強基金、分類篩選、落檔防呆。
 > 原始資料：CLAUDE.md「已知環境限制與防呆」段的復華新聞與社群各條；規劃 `docs/social_api_plan.md`；程式：`arm/fundnews.py`、`arm/connectors/gnews.py`。
-> 最後更新：2026-10-29
+> 最後更新：2026-11-01
 > 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 
 區塊叫「復華新聞・社群」（2026-08-12 前叫「基金相關新聞・社群」；nav、區塊標題、內層標題、鮮度列標籤同步改，section id `#fundnews` 不動）。
-抓取全在 CI（容器 proxy 擋 stockfeel、PTT、fundhot），落檔 `data/fund_news.json`，整份「全空不覆寫」只看 brand/funds/social 全空。
+抓取全在 CI（容器 proxy 擋 stockfeel、PTT、fundhot），落檔 `data/fund_news.json`，整份「全空不覆寫」只看 brand/funds/social 全空；單一社群平台全空、某組 Google 新聞查詢出錯，各自沿用上一次（見下方「落檔防呆」）。
 
 ### 新聞從哪抓
 
@@ -51,7 +51,7 @@
   - 日文：`fundnews._is_japanese()`＝平/片假名**字母** ぁ-ゖ／ァ-ヺ（排除台灣商品名風格用字「の」），抓取端 `yt_relevant`/`yt_peer_relevant` 與讀取端 `_social_ok` 都接。
     讀取端 `sanitize()`：非官方且標題無漢字、黑名單 `YT_BLOCK_IDS` 一律剔除——舊落檔與 `_carry_social` 沿用款不必等重抓即消失。
   - **時長 ≤3 分標 Shorts**（連結走 /shorts/、來源標「YouTube Shorts」）。
-  - **額度**：search 11 組 ×100（相關 4＋熱門 7）＋playlistItems 2＋channels 1＋videos.list **分批**（單次上限 50 支）數單位 ≈每輪 1,110 單位（日限 10,000）；配額於太平洋時間午夜（台北 15~16 時）重置。
+  - **額度**：search 11 組 ×100（相關 4＋熱門 7）＋playlistItems 2＋channels 1＋videos.list **分批**（單次上限 50 支）數單位 ≈每輪 1,110 單位（日限 10,000）；配額於太平洋時間午夜（台北 15~16 時）重置。一天整輪超過約 9 次搜尋就會被拒（10/28 跑了 10 次）；升級時機見債務帳 `docs/code_debt.md`。
 - **強基金 fundhot**（`fetch_fundhot`）：台灣最大共同基金討論社群、金複合討論主場；渲染＝💬 章＋「強基金・板名」來源標。兩套站並抓（新站 `fundhot.com/forum/{分類}/{slug}/{id}` 列表頁 regex＋舊 phpBB
   `forum.fundhot.com/feed.php?mode=topics` Atom），同標題跨源去重、單源失敗不牽連；新站解析 0 筆會印**結構探針**片段（grep `[fundhot]`）供一輪收斂。
   - 新站種子＝實際存在的分類（股票基金／ETF／資產配置）＋由**總覽頁話題連結的分類段自尋**（`FUNDHOT_MAX_PAGES`=6 上限），標頭 `FUNDHOT_HEADERS`（Accept／Accept-Language／Referer，UA 仍誠實標研究用途）——
@@ -65,6 +65,7 @@
 ### 落檔防呆
 
 - **`_carry_social` 來源級沿用**：單一平台本次全空且既有落檔該平台非空 → 沿用舊項目（ISO 日期出 7 天窗剔除、看點重算），平台清單含 fundhot；只擋「單平台全空」（剩 1 支不觸發）、時窗檢查對「無 ISO 日期」一律豁免。
+- **`_carry_news` Google 新聞沿用（2026-11-01，體檢第 4 條）**：`gnews.search` 出錯時把 `gnews.FAILS` 加一（只印第一次的原因）；品牌或某一組（基金／自家 ETF）查詢出錯、一則都沒拿到 → `assemble`／`fetch_funds`／`fetch_etf_products` 標 `_gfail`，`save` 併入上一次同一組還在 7 天窗內的項目、看點重算，標記不入檔；CI 日誌印「Google 新聞 N 次查詢出錯」「沿用既有 N 則」。查得到、真的沒新聞的組不沿用。舊防呆只擋「整份全空」：Google 被限流但社群照常時，各組新聞會被寫成空的。
 - **儀表板 `_yt_watch_chip`**：social 段存在而 youtube 0 支 → 「網頁更新時間」列紅章，配 SOP 步驟 9⑦ 的每日驗證（根因與補救見 9⑦：push 觸發用舊分支 workflow 檔）。
 
 ## 不能改的規則

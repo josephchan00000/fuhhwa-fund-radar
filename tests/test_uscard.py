@@ -242,7 +242,7 @@ def test_fetch_script_and_workflows_wired():
     from pathlib import Path
     root = Path(__file__).resolve().parents[1]
     sc = (root / "scripts" / "fetch_ussx_watch.py").read_text(encoding="utf-8")
-    assert "UC.cached()" in sc and "QM.watch(L, fetch=fetch)" in sc and "--card-force" in sc
+    assert "UC.cached()" in sc and "QM.watch(L, fetch=fetch, prev=QM.load_watch())" in sc and "--card-force" in sc
     ah = (root / ".github" / "workflows" / "afterhours_refresh.yml").read_text(encoding="utf-8")
     sh = (root / "scripts" / "daily_fund.sh").read_text(encoding="utf-8")
     for t in (ah, sh):

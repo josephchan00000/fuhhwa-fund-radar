@@ -16,12 +16,31 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from arm import config, fundnav             # noqa: E402
+from arm import config, fileio, fundnav     # noqa: E402
 from arm.clock import now_tw                 # noqa: E402  台北時間（UTC 容器/CI 防跨日錯置）
 from arm.connectors import fhfund            # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "data" / "funds"
+HOLD_KEYS = ("as_of", "top_holdings", "asset_alloc", "country_alloc", "sector_alloc")
+
+
+def _keep_holdings(doc: dict, fp: Path) -> bool:
+    """這一次持股頁抓不到（出錯或解析 0 筆）而舊檔有持股 → 持股、配置、持股基準日都沿用舊檔，淨值等其他欄位照新的。
+    持股基準日跟著舊的（月底日期就是過期標記），另記 holdings_error。回傳有沒有沿用。
+    鐵則：非空的落檔絕不覆寫成空（docs/code_ponytail_audit.md 第 1 條）。"""
+    if doc.get("top_holdings"):
+        return False
+    try:
+        old = json.loads(fp.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    if not old.get("top_holdings"):
+        return False
+    for k in HOLD_KEYS:
+        doc[k] = old.get(k)
+    doc.setdefault("holdings_error", "持股頁解析 0 筆")
+    return True
 
 
 def _name_matches(cfg_name: str | None, api_name: str | None) -> bool:
@@ -57,9 +76,10 @@ def run(ids: list[str]) -> list[dict]:
             continue
         doc["group"] = cfg.get("group")
         doc["fetched_at"] = now_tw().strftime("%Y-%m-%d %H:%M")
+        if _keep_holdings(doc, OUT / f"{fid}.json"):
+            print(f"  ↺ {fid}：持股頁這次抓不到（{doc['holdings_error']}），持股沿用上一次（持股基準 {doc.get('as_of')}）")
         docs.append(doc)
-        (OUT / f"{fid}.json").write_text(
-            json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8")
+        fileio.write_text(OUT / f"{fid}.json", json.dumps(doc, ensure_ascii=False, indent=2))
         n = len(doc.get("top_holdings") or [])
         print(f"  ✓ {fid} {doc.get('name','')[:22]}｜NAV {doc.get('nav')} "
               f"({doc.get('nav_date')})｜十大 {n} 檔｜持股基準 {doc.get('as_of')}")
@@ -106,9 +126,8 @@ def _write_index(fetched: list[dict]) -> None:
     order = [str(f["id"]) for f in config.funds()]
     merged = [old[i] for i in order if i in old]
     merged += [e for i, e in old.items() if i not in order]      # 已移出清單者仍保留
-    fp.write_text(json.dumps({"as_of": now_tw().strftime("%Y-%m-%d %H:%M"),
-                              "funds": merged}, ensure_ascii=False, indent=2),
-                  encoding="utf-8")
+    fileio.write_text(fp, json.dumps({"as_of": now_tw().strftime("%Y-%m-%d %H:%M"),
+                                      "funds": merged}, ensure_ascii=False, indent=2))
 
 
 def main() -> None:

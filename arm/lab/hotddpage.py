@@ -83,7 +83,7 @@ def state(B: dict) -> dict | None:
     if mk not in S.MARKETS or not R or mk not in (R.get("markets") or {}) or not B.get("cal"):
         return None
     RM = R["markets"][mk]
-    N = K.now(B, RM)
+    N = K.now(B)
     dims, items = K.variables(B)
     names = {d: HS.DIMS[d]["name"] for d in dims}
     names.update({r[0]: r[2] for r in HS.IND if r[0] in items})

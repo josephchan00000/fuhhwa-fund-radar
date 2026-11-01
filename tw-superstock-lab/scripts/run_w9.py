@@ -207,7 +207,7 @@ def report() -> None:
     R = json.loads((REPORTS / "W9_results.json").read_text("utf-8"))
     mk, r60, tr, ew = R["main"], R["r60"], R["bench"]["TR"], R["bench"]["EW"]
     M = R["runs"][mk]
-    L = [f"# W9　用《超級績效》的選股邏輯挑台股：結果", "",
+    L = ["# W9　用《超級績效》的選股邏輯挑台股：結果", "",
          f"規格：`arm/lab/sepaspec.py` VER {R['ver']}（{R['spec']}，跑之前 commit）；規劃 `docs/lab_sepa_pick_plan.md`。"
          f"資料到 {R['last']}。數字由 `scripts/run_w9.py` 產生。", "",
          f"## 判定：{R['verdict']}", "",

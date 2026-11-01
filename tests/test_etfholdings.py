@@ -723,7 +723,7 @@ def test_foreign_delta_and_render_without_tw_quotes():
 
 
 def test_fhtrust_source_excludes_hedge_futures(monkeypatch):
-    """期貨避險/轉倉列不算持股變化（舊管線 arm/pipeline.py 同一慣例：diff 前先剔除）。"""
+    """期貨避險/轉倉列不算持股變化（舊管線 arm/pipeline.py 同一慣例，2026-11-01 拿掉：diff 前先剔除）。"""
     m = _fh_mod()
     from arm.connectors import fhtrust as fh
     monkeypatch.setattr(fh, "fetch_holdings", lambda fid, iso: {"holdings": (

@@ -146,6 +146,44 @@ def test_check_reports_holiday_gate():
     assert check._check_calendar_holidays(future, "c.md", "2030-03-04") == []   # 未涵蓋年份 fail-open
 
 
+def test_fetch_and_save_takes_next_year_from_website_table(tmp_path, monkeypatch):
+    # 2026-11-01 探針：OpenAPI 只給今年；隔年要抓網站版（date=隔年 0101），欄位 日期／名稱／說明、西元日期，
+    # 公告前回 0 列。公告後 CI 自動整年取代暫代層（使用者 2026-11-01：不手動補）
+    from arm import http
+    p = tmp_path / "tw_holidays.json"
+    monkeypatch.setattr(twholidays, "PATH", p)
+    monkeypatch.setattr(clock, "today_tw", lambda: date(2026, 11, 20))
+    this_year = [{"Name": n, "Date": f"115{k[5:7]}{k[8:10]}", "Weekday": "", "Description": ""}
+                 for k, n in twholidays.SEED[2026].items()]
+    nxt = {"stat": "ok", "date": "20270101", "title": "116 年市場開休市日期", "fields": ["日期", "名稱", "說明"], "data": []}
+    seen = []
+
+    def fake(url, **k):
+        seen.append(url)
+        return nxt if url == twholidays.NEXT_API.format(y=2027) else this_year
+    monkeypatch.setattr(http, "get_json", fake)
+    logs = []
+    assert twholidays.fetch_and_save(log=logs.append) is True          # 還沒公告：照寫今年、隔年留暫代層
+    assert list(json.loads(p.read_text(encoding="utf-8"))["years"]) == ["2026"]
+    assert twholidays.NEXT_API.format(y=2027) in seen
+    nxt["data"] = [[k, n, "依規定放假1日。"] for k, n in twholidays.PROVISIONAL[2027].items()] + [
+        ["2027-02-01", "農曆春節前最後交易日", "農曆春節前最後交易。"],          # 交易日的註記 → 不算休市
+        ["2027-02-02", "農曆春節前", "市場無交易，僅辦理結算交割作業。"],          # 證交所自己加的休市
+        ["2027-02-03", "農曆春節前", "市場無交易，僅辦理結算交割作業。"]]
+    assert twholidays.fetch_and_save(log=logs.append) is True
+    doc = json.loads(p.read_text(encoding="utf-8"))
+    assert set(doc["years"]["2027"]) == set(twholidays.PROVISIONAL[2027]) | {"2027-02-02", "2027-02-03"}
+    assert twholidays.NEXT_API.format(y=2027) in doc["source"]
+    assert any("取代人事行政總處暫代層" in x and "2027-02-02" in x for x in logs)
+    monkeypatch.setattr(twholidays, "PATH", p)
+    assert twholidays.provisional(twholidays.load()) == {}              # 暫代層退場
+    nxt.clear()
+    monkeypatch.setattr(http, "get_json", lambda url, **k: (_ for _ in ()).throw(RuntimeError("403"))
+                        if "rwd" in url else this_year)
+    assert twholidays.fetch_and_save(log=logs.append) is True           # 隔年那張抓不到不擋今年的
+    assert "2027 年的表抓取失敗" in " ".join(logs)
+
+
 def test_provisional_2027_is_self_consistent():
     # 人事行政總處 116 年辦公日曆：全年放假 121 天、無補行上班日 → 週末 104＋平日 17
     prov = twholidays.PROVISIONAL[2027]
@@ -160,8 +198,9 @@ def test_provisional_year_replaced_before_december():
     today = clock.today_tw()
     for y in twholidays.provisional():
         assert today < date(y - 1, 12, 1), (
-            f"證交所 {y} 年休市表應已公告：確認 CI 落檔 data/tw_holidays.json 有 {y}；"
-            f"官方 API 不含隔年就依證交所公告補進 SEED[{y}]")
+            f"證交所 {y} 年休市表應已公告：CI 每天抓證交所網站版的隔年表（twholidays.NEXT_API），"
+            f"落檔 data/tw_holidays.json 應已有 {y}；證交所還沒公告就照使用者 2026-11-01 的決定提醒使用者、"
+            f"延後期限（可延到 12/20），不手動補")
 
 
 def test_provisional_layer_semantics(tmp_path, monkeypatch):

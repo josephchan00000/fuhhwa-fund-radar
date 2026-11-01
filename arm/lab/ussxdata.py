@@ -26,6 +26,7 @@ import time
 import urllib.parse
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from ..clock import today_tw
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -47,6 +48,7 @@ def data_dir() -> Path:
 
 # ── 存檔 ───────────────────────────────────────────────────────────────────────
 
+# shortcut: 每檔一個壓縮的欄式檔、每週整份重寫：5,196 檔約 170 MB，壓縮過 git 存不了差異 → 資料分支每週多約 170 MB 歷史、一年約 9 GB（GitHub 建議 repo 在 10 GB 以內）。升級：2027 年 6 月前——把資料分支的舊歷史定期壓成一筆（這個分支不需要歷史），或改成只追加的格式。
 def _dump(doc) -> bytes:
     raw = json.dumps(doc, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
     buf = io.BytesIO()
@@ -109,7 +111,7 @@ def calendar_symbols() -> list[str]:
     from . import usstk
     point_usstk()
     out = set()
-    for y in range(int(usstk.EARN_START[:4]), date.today().year + 1):
+    for y in range(int(usstk.EARN_START[:4]), today_tw().year + 1):
         for rows in (usstk.load_earn(y).get("rows") or {}).values():
             for r in rows:
                 if r and r[0]:
@@ -511,7 +513,7 @@ def fetch_screen() -> dict:
 def update_screen() -> int:
     """篩選器一天抓一次（三個交易所都要有才寫）。"""
     meta = load_meta()
-    today = date.today().isoformat()
+    today = today_tw().isoformat()
     if meta.get("screen") == today:
         return 0
     got = fetch_screen()

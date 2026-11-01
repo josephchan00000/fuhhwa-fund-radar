@@ -39,7 +39,11 @@ CSS = (".top{align-items:center}"
        "@media (max-width:640px){.top{gap:6px}.apptab a{padding:5px 10px;font-size:14px}.applk{font-size:12px}.applk>a{padding:5px 2px}"
        ".top .thm{padding:4px 7px}.top .thm-t{display:none}.top .bk1{display:none}}"
        "@media (max-width:400px){.applk{font-size:11.5px}}"
-       "@media (max-width:359px){.applk{order:5;flex-basis:100%;justify-content:flex-end;margin-left:0}.top .thm{margin-left:auto}}")
+       "@media (max-width:359px){.applk{order:5;flex-basis:100%;justify-content:flex-end;margin-left:0}.top .thm{margin-left:auto}}"
+       # 計算核對不一致的紅字（valog.verify_note；finish 的 note）。紅框＋半透明紅底、字用頁面本身的顏色：
+       # 深淺色都看得清楚，也不用 @media（finish 會改寫深色規則，這一段要能原樣出現在頁面裡）
+       ".vfy{margin:10px max(16px,calc((100% - 1048px)/2)) 0;padding:8px 12px;border-radius:8px;border-left:4px solid #d33a34;"
+       "background:rgba(211,58,52,.13);color:inherit;font-size:13.5px;line-height:1.6}")
 
 
 def links(page: str = "", search: str = "") -> str:
@@ -179,8 +183,11 @@ def dual_dark(css: str) -> str:
         i = k
 
 
-def finish(page: str) -> str:
-    """頁面輸出前最後一步：<head> 的樣式改寫成可切換深淺色、加切換程式與「記住上次位置」的程式，頂欄「返回主頁」前面加按鈕。"""
+def finish(page: str, note: str = "") -> str:
+    """頁面輸出前最後一步：<head> 的樣式改寫成可切換深淺色、加切換程式與「記住上次位置」的程式，頂欄「返回主頁」前面加按鈕；
+    note（例 計算核對不一致的紅字，valog.page_note）放在頂欄下面。"""
+    if note:
+        page = page.replace(BACK + "</div>", BACK + "</div>" + note, 1)
     h = page.find("</head>")
     if h < 0:
         return page

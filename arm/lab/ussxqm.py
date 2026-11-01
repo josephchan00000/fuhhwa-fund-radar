@@ -18,6 +18,8 @@ from pathlib import Path
 
 import numpy as np
 
+from ..clock import today_tw
+from .. import fileio
 from . import corespec as CS
 from . import ussxbook as BK
 from . import ussxfeat as UF
@@ -262,7 +264,7 @@ def research(C: dict, log=print, mask: np.ndarray | None = None, desc: bool = Tr
     m = qm_mask(C["cols"]["f"]) if mask is None else mask
     sig = signals(C, m)
     spx_idle = C["PQ"]["spx"]["idle"]
-    out = {"ver": X.VER, "spec": X.SPEC_DATE, "made": date.today().isoformat(), "last": cal[-1], "a": cal[a], "eval": cal[a14],
+    out = {"ver": X.VER, "spec": X.SPEC_DATE, "made": today_tw().isoformat(), "last": cal[-1], "a": cal[a], "eval": cal[a14],
            "rule": {"qm": X.QM, "slots": X.QM_SLOTS, "exit": X.QM_EXIT}, "weeks": int(sum(1 for i in sig if i > a)),
            "signals": int(sum(len(v) for i, v in sig.items() if i > a))}
     R = {(mk, ck): run(C, sig, mk, c) for mk in X.QM_PLANS for ck, c in (("main", X.COST["stk"]), ("alt", X.COST["stk_alt"]))}
@@ -473,7 +475,7 @@ def save(R: dict, path: Path | None = None) -> bool:
     txt = json.dumps(_clean(R), ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
     if p.exists() and p.read_text(encoding="utf-8") == txt:
         return False
-    p.write_text(txt, encoding="utf-8")
+    fileio.write_text(p, txt)
     return True
 
 
@@ -496,13 +498,10 @@ def _empty_live() -> dict:
     return {"ver": X.VER, "start": None, "weeks": {}, "diff": [], "curve": None, "now": None}
 
 
-def load_live(path: Path | None = None) -> dict:
-    """前瞻紀錄；版本不同＝從頭記。"""
-    try:
-        L = json.loads((path or LIVE).read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return _empty_live()
-    return L if L.get("ver") == X.VER else _empty_live()
+def load_live(path: Path | None = None, strict: bool = False) -> dict:
+    """前瞻紀錄；版本不同＝從頭記。strict（live_update 寫回前）：檔案在但讀不起來就停下報錯，不當成空的從頭記（arm/fileio.read_json）。"""
+    L = fileio.read_json(path or LIVE, None, strict=strict)
+    return L if isinstance(L, dict) and L.get("ver") == X.VER else _empty_live()
 
 
 def _held_at(C: dict, r: dict, i: int) -> list[dict]:
@@ -541,7 +540,7 @@ def live_update(C: dict, r: dict, sig: dict[int, list], L: dict | None = None, m
     """用到最新一天的資料重跑之後：每一個新的、已經結束的週訊號日（QM_LIVE 起）各記一筆；已經記下的週不改，
     重跑結果不同時另記一筆差異。另外更新從起點以來每天的淨值（curve）與最新一天的狀態（now）。r＝run(C, sig, "spx")。"""
     cal, T = C["cal"], C["T"]
-    L = L if L is not None else load_live()
+    L = L if L is not None else load_live(strict=True)
     a = r["a"]
     wk = [i for i in sorted(C["cols"]["wk"]) if cal[i] >= X.QM_LIVE and i < T and week_done(cal[i])]
     if not wk:
@@ -565,7 +564,7 @@ def live_update(C: dict, r: dict, sig: dict[int, list], L: dict | None = None, m
                "buy_next": [x["c"] for x in _trades_between(C, r, i, i + 1) if x["act"] == "buy"] if i + 1 < T else None}
         rec["sell_next"] = [h["c"] for h in rec["hold"] if h["sell"]]
         if d not in weeks:
-            weeks[d] = {**rec, "made": made or date.today().isoformat()}
+            weeks[d] = {**rec, "made": made or today_tw().isoformat()}
         else:
             old = weeks[d]
             if [h["c"] for h in old.get("hold") or []] != [h["c"] for h in rec["hold"]] or \
@@ -636,14 +635,18 @@ def watch_one(h: dict, base: str, s: dict | None) -> dict:
     return out
 
 
-def watch(L: dict | None = None, fetch=None, made: str | None = None) -> dict:
-    """最新一週紀錄的持股，逐檔抓 Yahoo 日線（ussxdata.fetch_since，從買進前約 150 天起）檢查。只是頁面提醒，帳以每週重跑為準。"""
+def watch(L: dict | None = None, fetch=None, made: str | None = None, prev: dict | None = None) -> dict:
+    """最新一週紀錄的持股，逐檔抓 Yahoo 日線（ussxdata.fetch_since，從買進前約 150 天起）檢查。只是頁面提醒，帳以每週重跑為準。
+    prev＝上一次的檢查（load_watch）：同一週紀錄、這一檔這次抓不到 → 沿用上一次那一檔（含已經觸發的賣出），標 carried；
+    日期 d 留上一次的（過期標記）。docs/code_ponytail_audit.md 第 2 條。"""
     from datetime import timedelta
     from . import ussxdata as UD
     L = L if L is not None else load_live()
     now = L.get("now") or {}
     fetch = fetch or (lambda c, st: UD.fetch_since(c, st, timeout=20))    # 每天的檢查最多 8 檔：一檔最多等 20 秒（整支 180 秒內跑完）
-    out = {"ver": X.VER, "made": made or date.today().isoformat(), "base": now.get("d"), "hold": [], "sell": [], "err": []}
+    out = {"ver": X.VER, "made": made or today_tw().isoformat(), "base": now.get("d"), "hold": [], "sell": [], "err": []}
+    same = bool(prev) and prev.get("base") == now.get("d")
+    last = {w["c"]: w for w in (prev or {}).get("hold") or [] if same and not w.get("err")}
     for h in now.get("hold") or []:
         start = (date.fromisoformat(h["ent"]) - timedelta(days=150)).isoformat()
         try:
@@ -653,6 +656,8 @@ def watch(L: dict | None = None, fetch=None, made: str | None = None) -> dict:
         w = watch_one(h, now.get("d") or "", s)
         if w.get("err"):
             out["err"].append({"c": h["c"], "msg": msg if msg != "ok" else w["err"]})
+            if h["c"] in last:
+                w = {**last[h["c"]], "carried": True}
         out["hold"].append(w)
         if w.get("trig"):
             out["sell"].append({"c": h["c"], "trig": w["trig"], "on": w["on"]})
@@ -661,7 +666,15 @@ def watch(L: dict | None = None, fetch=None, made: str | None = None) -> dict:
     return out
 
 
+def watch_failed(W: dict) -> bool:
+    """每一檔都抓不到日線（沿用上一次的也算）。"""
+    return bool(W.get("hold")) and len(W.get("err") or []) >= len(W["hold"])
+
+
 def save_watch(W: dict, path: Path | None = None) -> bool:
+    """每一檔都抓不到＝不寫，留著上一次的檢查（鐵則：非空的落檔不覆寫成空）。"""
+    if watch_failed(W):
+        return False
     return save(W, path or WATCH)
 
 

@@ -35,6 +35,7 @@ from bisect import bisect_right
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
 
+from ..clock import today_tw
 from . import heatdata as HD
 from . import heatspec_us as HU
 from . import secfin as SF
@@ -289,7 +290,7 @@ def through(st: dict) -> str | None:
         if d.weekday() < 5:
             t = d
         d += timedelta(days=1)
-        if d > date.today():
+        if d > today_tw():
             break
     return t.isoformat()
 
@@ -334,7 +335,7 @@ def update_members(C: Client) -> dict:
         log("S&P 500 期間 ✗", type(e).__name__, str(e)[:120])
     st, b = C.get(SF.TICKERS_URL, timeout=60)
     tick = SF.ticker_map(json.loads(b.decode("utf-8"))) if st == 200 and b else {}
-    cons = F.constituents(date.today().isoformat())
+    cons = F.constituents(today_tw().isoformat())
     if tick and len(cons.get("ndx") or []) >= 90:
         ndx = sorted({tick[s] for s in cons["ndx"] if s in tick})
         if len(ndx) >= 80:
@@ -349,7 +350,7 @@ def update_members(C: Client) -> dict:
     sox = {tick[s] for s in cons.get("sox") or [] if s in tick} if tick else set()
     if len(sic) >= 300:
         out["semi"] = sorted(set(sic) | sox)
-    out["asof"] = date.today().isoformat()
+    out["asof"] = today_tw().isoformat()
     if out != old:
         HD.save(MEMBERS, "sec", out)
     log(f"名單：S&P 500 期間 {len(out.get('spx') or [])}、那斯達克 100 {len(out.get('ndx') or [])}、"
@@ -399,6 +400,9 @@ def do_quarters(C: Client, M: dict, st: dict, budget_s: float) -> None:
         y, k = int(q[:4]), int(q[5])
         ms = {f"{y}-{3 * (k - 1) + j:02d}" for j in (1, 2, 3)}
         rows = [v for v in acc.values() if v[0][:7] in ms]
+        if not rows:                 # 解析出 0 筆多半是 SEC 改了欄位名稱：不換掉那三個月、不記做完，下次重抓（體檢第 5 條）
+            log(f"⚠ {q}：解析出 0 筆合格的 Form 4（全部 {len(acc)} 份），可能是 SEC 改了欄位；這一季先跳過、下次重抓")
+            continue
         n = write_rows(rows, M, replace_months=ms)
         st.setdefault("q", []).append(q)
         save_state(st)
@@ -420,9 +424,9 @@ def do_days(C: Client, M: dict, st: dict, budget_s: float, workers: int = 4) -> 
     tick = SF.ticker_map(json.loads(b.decode("utf-8")))
     done = set(st.get("days") or [])
     d = date.fromisoformat(q_end(qs[-1])) + timedelta(days=1)
-    d0, today = d.isoformat(), date.today().isoformat()       # 每日索引那一行只有 CIK：用這段期間頭尾在 S&P 500 裡的公司
+    d0, today = d.isoformat(), today_tw().isoformat()       # 每日索引那一行只有 CIK：用這段期間頭尾在 S&P 500 裡的公司
     tick_ok: set[int] = set(G["ndx"]) | set(G["semi"]) | {c for s, c in tick.items() if spans(s, d0) or spans(s, today)}
-    last = date.today() - timedelta(days=1)                   # 今天的索引晚上才有
+    last = today_tw() - timedelta(days=1)                   # 今天的索引晚上才有
     while d <= last:
         ds = d.isoformat()
         if d.weekday() >= 5 or ds in done:
@@ -432,7 +436,7 @@ def do_days(C: Client, M: dict, st: dict, budget_s: float, workers: int = 4) -> 
             log("時間到，下次續做每日索引")
             break
         s, b = C.get(DAILY_IDX.format(y=d.year, q=(d.month - 1) // 3 + 1, ymd=d.strftime("%Y%m%d")), timeout=120)
-        if no_index(s, b) and d <= date.today() - timedelta(days=3):
+        if no_index(s, b) and d <= today_tw() - timedelta(days=3):
             st.setdefault("days", []).append(ds)                # SEC 休息日（聯邦假日，例 10/12 哥倫布日）沒有索引
             d += timedelta(days=1)
             continue
@@ -475,7 +479,7 @@ def run(budget_s: float = 150.0, members: bool | None = None) -> dict:
     C = Client(email)
     t0 = time.time()
     M = load_members()
-    if members or members is None and (not M or (M.get("asof") or "") <= (date.today() - timedelta(days=7)).isoformat()):
+    if members or members is None and (not M or (M.get("asof") or "") <= (today_tw() - timedelta(days=7)).isoformat()):
         M = update_members(C)
     if not (M.get("spx") and M.get("ndx") and M.get("semi")):
         log("名單不齊，這次不抓")

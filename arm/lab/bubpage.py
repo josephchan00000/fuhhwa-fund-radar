@@ -89,10 +89,6 @@ def industries() -> dict:
     return _IND["I"]
 
 
-def clear_cache() -> None:
-    _IND.clear()
-
-
 # ── 文字小工具 ───────────────────────────────────────────────────────────────
 
 def _pct(x, dec=0, sign=False) -> str:
@@ -167,11 +163,6 @@ def summary(mk: str, m: dict) -> str:
         if c.get("z") is not None and c["z"] >= CYC_HI:
             tail.append(f'{CYC_NAMES[k]}比長期趨勢高 {c["z"]:.1f} 個標準差，基本面本身可能在景氣高峰')
     return s + "。" + ("；".join(tail) + "。" if tail else "")
-
-
-def _g_src(n: dict) -> dict:
-    g = n.get("g") or {}
-    return g.get(g.get("src") or "") or {}
 
 
 def _g_short(n: dict) -> str:

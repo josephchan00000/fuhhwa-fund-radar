@@ -20,6 +20,8 @@ from pathlib import Path
 
 import numpy as np
 
+from ..clock import today_tw
+from .. import fileio
 from . import candspec as CS
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -846,7 +848,7 @@ class Ctx:
 def evaluate(it: dict, X: Ctx | None = None, today: str | None = None) -> dict:
     """一條候選 → 研究檔的一筆（v＝判定或 need／err／peek）。"""
     X = X or Ctx()
-    base = {"id": it["id"], "spec": CS.VER, "sha": it.get("sha"), "dig": digest(it), "made": today or date.today().isoformat(),
+    base = {"id": it["id"], "spec": CS.VER, "sha": it.get("sha"), "dig": digest(it), "made": today or today_tw().isoformat(),
             "engine": it["engine"], "mk": it["mk"], "kind": it["kind"]}
     if it.get("need") is not None:
         return {**base, "v": "need"}
@@ -956,21 +958,21 @@ def compute(ids: list[str] | None = None, *, force: bool = False, X: Ctx | None 
         try:
             res = evaluate(it, X)
         except Exception as e:                            # noqa: BLE001
-            res = {"id": it["id"], "spec": CS.VER, "sha": it.get("sha"), "dig": digest(it), "made": date.today().isoformat(),
+            res = {"id": it["id"], "spec": CS.VER, "sha": it.get("sha"), "dig": digest(it), "made": today_tw().isoformat(),
                    "engine": it.get("engine"), "mk": it.get("mk"), "kind": it.get("kind"), "v": "err",
                    "err": f"{type(e).__name__}: {e}"}
         R["items"][it["id"]] = res
         done.append(it["id"])
         log(f"[候選] {it['id']} {it.get('name')}：{CS.VERDICT.get(res['v'], res['v'])}"
             + (f"（{res.get('err')}）" if res.get("err") else "") + (f"；{res['peek'][0]}" if res.get("peek") else ""))
-    R["ver"], R["made"] = CS.VER, date.today().isoformat()
+    R["ver"], R["made"] = CS.VER, today_tw().isoformat()
     return R, done
 
 
-def load_live(path: Path | None = None) -> dict:
-    try:
-        L = json.loads((path or LIVE).read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+def load_live(path: Path | None = None, strict: bool = False) -> dict:
+    """試用紀錄。strict（forward 寫回前）：檔案在但讀不起來就停下報錯，不當成空的從頭記（arm/fileio.read_json）。"""
+    L = fileio.read_json(path or LIVE, None, strict=strict)
+    if not isinstance(L, dict):
         return {"v": 1, "items": {}}
     L.setdefault("items", {})
     return L
@@ -1036,7 +1038,7 @@ def forward(X: Ctx | None = None, *, log=print, live_path: Path | None = None, s
     X = X or Ctx()
     dec = decisions(board)
     items = {it["id"]: it for it in load_spec(spec_path)["items"] if isinstance(it, dict)}
-    L = load_live(live_path)
+    L = load_live(live_path, strict=True)
     touched = []
     for cid in sorted(dec):
         d = dec[cid]
@@ -1066,6 +1068,5 @@ def save_live(L: dict, path: Path | None = None) -> bool:
     txt = json.dumps(_clean(L), ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
     if p.exists() and p.read_text(encoding="utf-8") == txt:
         return False
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(txt, encoding="utf-8")
+    fileio.write_text(p, txt)
     return True

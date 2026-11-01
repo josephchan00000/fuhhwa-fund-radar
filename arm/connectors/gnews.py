@@ -15,7 +15,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 
-from ..clock import TW_TZ
+from ..clock import TW_TZ, today_tw
 
 RSS = "https://news.google.com/rss/search?q={q}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant"
 UA = "Mozilla/5.0 (FH-ARM research bot; contact: marketing)"
@@ -27,19 +27,25 @@ def _ctx() -> ssl.SSLContext:
 
 
 _CTX = _ctx()
+FAILS = 0   # search 出錯（連線／解析）的累計次數：呼叫端比前後差，分得出「沒新聞」和「沒抓到」（體檢第 4 條）
 
 
 def search(query: str, *, days: int = 7, limit: int = 6) -> list[dict]:
     """關鍵字 → 近 days 天的新聞 [{title, url, source, date, datetime}]，依時間新→舊。
 
-    title 末端常帶『 - 來源』；source 以 <source> 標籤為準、無則由標題尾切出。取不到回 []。
+    title 末端常帶『 - 來源』；source 以 <source> 標籤為準、無則由標題尾切出。取不到回 []；
+    出錯時另把 FAILS 加一（只印第一次的原因，次數由 fundnews.assemble 彙總）。
     """
+    global FAILS
     url = RSS.format(q=urllib.parse.quote(query))
     try:
         req = urllib.request.Request(url, headers={"User-Agent": UA})
         with urllib.request.urlopen(req, timeout=20, context=_CTX) as r:
             root = ET.fromstring(r.read())
-    except Exception:
+    except Exception as e:
+        FAILS += 1
+        if FAILS == 1:
+            print(f"[gnews] 查詢出錯：{type(e).__name__}: {e}")
         return []
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
     out = []
@@ -183,7 +189,7 @@ _ISO_ISH = re.compile(r"(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})")
 
 
 def _plausible(dt: datetime | None) -> datetime | None:
-    if dt and 2000 <= dt.year <= datetime.now().year + 1:
+    if dt and 2000 <= dt.year <= today_tw().year + 1:
         return dt
     return None
 

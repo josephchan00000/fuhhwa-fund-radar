@@ -31,6 +31,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
 
+from .. import fileio
 from . import store
 
 TZ = timezone(timedelta(hours=8))
@@ -194,8 +195,7 @@ def _write_lines(name: str, doc: dict, key: str) -> bool:
     p = store.LAB / name
     if p.exists() and p.read_text(encoding="utf-8") == txt:
         return False
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(txt, encoding="utf-8")
+    fileio.write_text(p, txt)
     return True
 
 
@@ -390,6 +390,8 @@ def update_yahoo(listed: dict[str, str], *, full: bool = False, budget_s: float 
                  today: date | None = None, force: bool = False) -> dict:
     """一天一次。full、每週一或 cover 空 → 全部上市櫃；否則只抓 cover（有分析師的公司）。
     這次查到「沒有分析師」（200 但沒資料、或 404）的拿掉；請求失敗的保留舊紀錄（fail-open）。"""
+    if not listed:                               # 上市櫃名單分片讀不到：不動舊紀錄（體檢第 6 條）
+        return {"err": "上市櫃名單是空的（分片讀不到？），不更新"}
     t0 = time.time()
     today = today or datetime.now(TZ).date()
     doc = load_yahoo()
@@ -436,6 +438,8 @@ def update_yahoo(listed: dict[str, str], *, full: bool = False, budget_s: float 
         else:
             stat[st] = stat.get(st, 0) + 1               # 失敗：保留舊值
     s = {c: s[c] for c in sorted(s) if c in listed}
+    if not s and doc.get("s"):                   # 一家都沒有而舊檔有（Yahoo 格式變了？）：不寫（體檢第 6 條）
+        return {**stat, "err": "這次一家都沒有分析師資料，保留舊紀錄"}
     doc.update({"d": today.isoformat(), "s": s, "cover": sorted(s),
                 "part": bool(stat["skip"] or stat["429"] >= 20)})   # 沒抓完 → 同一天下一輪再補
     if full and stat["skip"] == 0 and stat["429"] < 20:

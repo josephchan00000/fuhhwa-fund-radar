@@ -34,7 +34,7 @@ def test_weights_of_adds_long_hold_and_skips_pending():
 
 def test_record_tw_only_in_ci(tmp_path, monkeypatch):
     monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
-    monkeypatch.setattr(ytd, "load_live", lambda: {"ver": S.VER, "tw": {}})
+    monkeypatch.setattr(ytd, "load_live", lambda **k: {"ver": S.VER, "tw": {}})
     p = tmp_path / "live.json"
     pos = {"2330": [{"w": 0.05, "h": 1}]}
     assert not ytd.record_tw("2026-10-28", pos, 0.2, path=p)

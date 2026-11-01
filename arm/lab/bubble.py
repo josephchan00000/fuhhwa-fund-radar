@@ -226,10 +226,12 @@ def roll_q_avg(F: dict, n: int) -> dict:
     return out
 
 
-def fund_asof(F: dict, months, rel: tuple) -> dict:
-    """基本面 {期別 YYYY-MM: 值} → {月: (期別, 值)}：那個月月底拿得到的最新一期（比當月舊超過 FUND_STALE 個月就不算）。"""
+def fund_asof(F: dict, months, rel: tuple, late: dict | None = None) -> dict:
+    """基本面 {期別 YYYY-MM: 值} → {月: (期別, 值)}：那個月月底拿得到的最新一期（比當月舊超過 FUND_STALE 個月就不算）。
+    late＝{期別: 實際公布日}（bubspec VER 5：經濟分析局企業獲利延後公布 CP_LATE；和公布時間差取晚的）。"""
     from . import heat as H
-    av = sorted((H.avail_date(ym, rel), ym) for ym, v in F.items() if v is not None)
+    late = late or {}
+    av = sorted((max(H.avail_date(ym, rel), late.get(ym, "")), ym) for ym, v in F.items() if v is not None)
     out: dict = {}
     j = -1
     for m in sorted(months):
@@ -284,11 +286,11 @@ def fund_ratios(mk: str, I: dict, D: dict, fund: dict | None = None) -> dict:
         elif k == "cp":
             cp = D.get("us_cp") or HD.load("us_cp")
             c4 = roll_q_avg({ym: v for ym, v in cp.items() if v}, BS.FUND_SUM4["cp"])
-            fa = fund_asof(c4, I["pm"].keys(), BS.FUND_REL4["cp"])
+            fa = fund_asof(c4, I["pm"].keys(), BS.FUND_REL4["cp"], BS.CP_LATE)
             out[k] = {"lr": ratio_log(I["pm"], fa), "f": fa, "p": I["pm"], "raw": c4}
         elif k == "tech":
             c4 = roll_q_avg(tech_q(D), BS.FUND_SUM4["tech"])
-            fa = fund_asof(c4, I["pm"].keys(), BS.FUND_REL4["tech"])
+            fa = fund_asof(c4, I["pm"].keys(), BS.FUND_REL4["tech"], BS.CP_LATE)
             out[k] = {"lr": ratio_log(I["pm"], fa), "f": fa, "p": I["pm"], "raw": c4}
     return out
 
@@ -311,7 +313,7 @@ def g_proxy(src: str, D: dict) -> dict | None:
     else:
         return None
     P = FW.proxy_flags(F, kind, BS.PROXY_SUM[src])
-    return {"src": src, "P": P, "rel": BS.PROXY_REL[src]} if P else None
+    return {"src": src, "P": P, "rel": BS.PROXY_REL[src], "late": BS.CP_LATE if src in ("cp", "tech") else {}} if P else None
 
 
 def proxy_asof(GP: dict | None, months) -> dict:
@@ -322,7 +324,8 @@ def proxy_asof(GP: dict | None, months) -> dict:
     if GP["src"] == "spf":
         av = [(r["avail"], r["k"], r) for r in GP["T"]]
     else:
-        av = [(H.avail_date(per, GP["rel"]), per, rec) for per, rec in GP["P"].items()]
+        lt = GP.get("late") or {}
+        av = [(max(H.avail_date(per, GP["rel"]), lt.get(per, "")), per, rec) for per, rec in GP["P"].items()]
     av.sort()
     out: dict = {}
     j = -1
@@ -343,7 +346,8 @@ def proxy_now(GP: dict | None, day: str) -> tuple[str | None, dict | None]:
     if GP["src"] == "spf":
         av = [(r["avail"], r["k"], r) for r in GP["T"]]
     else:
-        av = [(H.avail_date(per, GP["rel"]), per, rec) for per, rec in GP["P"].items()]
+        lt = GP.get("late") or {}
+        av = [(max(H.avail_date(per, GP["rel"]), lt.get(per, "")), per, rec) for per, rec in GP["P"].items()]
     av = [a for a in av if a[0] <= day]
     if not av:
         return None, None
@@ -428,7 +432,7 @@ def tw_inputs(D: dict) -> dict:
     tsmc = {ym: 100.0 * v[3] / v[2] for ym, v in val.items() if v[2]}
     lp = D.get("tw_lppls") or {}
     I = {"cal": cal, "px": px, "pm": pm, "lr": lr, "fuel_raw": fuel, "fuel": expanding_pct_span(fuel, BS.FUEL_MIN_MONTHS["tw"]),
-         "fuel_rel": REL, "val": None, "val_raw": None,
+         "fuel_rel": REL, "fuel_late": None, "val": None, "val_raw": None,
          "ref": {"pe": pe, "tsmc": tsmc, "lppls": {d: v[0] - v[1] for d, v in lp.items() if v and len(v) >= 2}}}
     I["fund"] = fund_ratios("tw", I, D)
     I["fund3"] = I["fund"]
@@ -453,6 +457,7 @@ def us_inputs(D: dict) -> dict:
     rs = {d: rsp[d] / spy[d] for d in rsp if rsp[d] and spy.get(d)}
     return {"L": L, "val_raw": raw, "val": {k: expanding_pct_span(v, BS.VAL_MIN_MONTHS) for k, v in raw.items()},
             "fuel_raw": s5, "fuel": expanding_pct_span(s5, BS.FUEL_MIN_MONTHS["us"]), "fuel_rel": U.RELEASE["S5"],
+            "fuel_late": HU.known_late()["S5"],                       # VER 5：Z.1 實際公布日（同景氣頁 S5）
             "ecy": HU.ecy(L, cp), "rsp_spy": rs}
 
 
@@ -469,7 +474,7 @@ def us_index_inputs(D: dict, S: dict, idx: str) -> dict:
     if idx == "spx":
         ref.update({"ecy": S["ecy"], "rsp_spy": S["rsp_spy"]})
     I = {"cal": cal, "px": px, "pm": pm, "lr": CB.real_log(pm, L["cpi"], BS.PSY["cpi_lag"]), "L": L,
-         "fuel_raw": S["fuel_raw"], "fuel": S["fuel"], "fuel_rel": S["fuel_rel"],
+         "fuel_raw": S["fuel_raw"], "fuel": S["fuel"], "fuel_rel": S["fuel_rel"], "fuel_late": S.get("fuel_late"),
          "val": S["val"] if on else None, "val_raw": S["val_raw"] if on else None, "ref": ref}
     I["fund"] = fund_ratios(idx, I, D)
     I["fund3"] = fund_ratios(idx, I, D, BS.FUND) if BS.FUND[idx] != BS.FUND4[idx] else I["fund"]
@@ -497,7 +502,7 @@ def conditions(I: dict, T: dict) -> dict:
     p1 = H.asof_monthly(dates, p1m, REL)
     p1o = H.asof_monthly(dates, p1r, REL)
     p3z = H.asof_monthly(dates, z, REL)
-    fu = H.asof_monthly(dates, I["fuel"], I["fuel_rel"]) if I["fuel"] else [None] * len(dates)
+    fu = H.asof_monthly(dates, I["fuel"], I["fuel_rel"], I.get("fuel_late")) if I["fuel"] else [None] * len(dates)
     va = {k: H.asof_monthly(dates, v, REL) for k, v in (I["val"] or {}).items()}
     EF = e_flags(I.get("fund") or {}, T)
     EF3 = EF if I.get("fund3") is I.get("fund") else e_flags(I.get("fund3") or {}, T)
@@ -552,12 +557,13 @@ def conditions(I: dict, T: dict) -> dict:
 
 # ── 現在的狀態、歷史、泡沫段 ─────────────────────────────────────────────────
 
-def _latest(ser: dict, day: str, rel: tuple) -> tuple[str | None, object]:
-    """月資料 {YYYY-MM: 值} 在 day 當下拿得到的最新一個月與值。"""
+def _latest(ser: dict, day: str, rel: tuple, late: dict | None = None) -> tuple[str | None, object]:
+    """月資料 {YYYY-MM: 值} 在 day 當下拿得到的最新一個月與值（late＝實際公布日，和公布時間差取晚的）。"""
     from . import heat as H
+    late = late or {}
     best = None
     for ym, v in ser.items():
-        if v is None or H.avail_date(ym, rel) > day:
+        if v is None or max(H.avail_date(ym, rel), late.get(ym, "")) > day:
             continue
         if best is None or ym > best:
             best = ym
@@ -600,12 +606,12 @@ def status(I: dict, C: dict) -> dict:
         out["v"] = items
     F = None
     if I["fuel"]:
-        ym, p = _latest(I["fuel"], day, I["fuel_rel"])
+        ym, p = _latest(I["fuel"], day, I["fuel_rel"], I.get("fuel_late"))
         if p is not None:
             F = p >= BS.FUEL_PCT
             out["f"] = {"ym": ym, "pct": p, "raw": I["fuel_raw"].get(ym)}
     if I.get("fuel_raw"):
-        ymr, raw = _latest(I["fuel_raw"], day, I["fuel_rel"])
+        ymr, raw = _latest(I["fuel_raw"], day, I["fuel_rel"], I.get("fuel_late"))
         out.setdefault("f", {"ym": ymr, "pct": None, "raw": raw})
     out["V"], out["F"] = V, F
     E, _, ei = _e_now(I, C.get("EF") or {}, I["fund"], day, detail=True)
@@ -1031,7 +1037,3 @@ def now_for(mk: str, D: dict) -> dict | None:
 def last(mk: str) -> dict | None:
     """這個程序裡最近一次算好的市場結果（泡沫頁建頁時沿用景氣頁算過的）。"""
     return _CACHE.get(("last", mk))
-
-
-def clear_cache() -> None:
-    _CACHE.clear()

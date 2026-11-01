@@ -363,7 +363,7 @@ def boom_card(P: dict, evs: list[dict], bundle: dict, X: dict | None, col: int) 
     held, todo = boom_rows(P)
     lead = _todo_box(P, X) + '<div class="pkmine" id="pkmine"></div>'
     if X:
-        lead += (f'<h3 class="cfh3" id="pkbxh">這週名單<span class="sub">'
+        lead += ('<h3 class="cfh3" id="pkbxh">這週名單<span class="sub">'
                   + (f'{_e(_md(X["last"]))} 收盤試算・{_e(_md(X["fix"]))} 收盤定案' if X["trial"] else f'{_e(_md(X["d"]))} 收盤')
                   + '</span></h3><div class="pkbx" id="pkbx"></div>'
                   + f'<p class="pknw">{_e(nowait_txt(W))}</p>'

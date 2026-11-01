@@ -484,7 +484,8 @@ def test_now_market_cross_horizon_activity(monkeypatch):
     acts, xon = {}, {}
     on = G.now_market({"cal": cal}, acts, xon)
     assert set(on) == {"s"}                                                     # 事件 e 已過 30 天 > 20
-    assert xon["e"] == {"mid": {"since": cal[T - 31], "n": 30, "left": 30}, "long": {"since": cal[T - 31], "n": 30, "left": 220}}
+    cur = {"since": cal[T - 31], "n": 30, "k": 30, "st": "-", "ck": "4-"}         # VER 26：第幾天、條件（沒有條件＝"-"）、今天那一格
+    assert xon["e"] == {"mid": {**cur, "left": 30}, "long": {**cur, "left": 220}}
     assert set(xon["s"]) == {"short", "long"} and xon["s"]["long"] == on["s"]
     assert "old" not in xon                                                     # 300 天前：12 個月（250 天）也過了
     a = acts[G.xkey("e", "long")]
@@ -529,3 +530,58 @@ def test_research_cross_stats_agree_with_returns_table():
                 assert abs(c[11] - x["warn"]["mddw"]) < 1e-9 and c[12] == x["warn"]["mddw_d"], (r["id"], k)
             m += 1
     assert m > 1000
+
+
+def _param_case():
+    st = lambda h, b, n=20: {"n": n, "hit": h, "base": b}
+    rows = [{"id": f"tw:heat:{v}:hot_in", "mk": "tw", "cat": "heat", "var": v, "kind": "event", "H": 20, "name": v,
+             "up": st(0.8, 0.6), "warn": st(0.1, 0.1)} for v in "abcde"]
+    cell = lambda n, hu: [n, n * 3, hu, 0.1, 0.01, 0.05, "2020-01-02"]
+    A = {"ver": S.AGE_VER, "cells": {}, "rows": {r["id"]: {"short": {"H": 20, "b": [0.6, 0.1, 0.0], "c": {"2x": cell(9, 0.7)}}}
+                                                for r in rows}}
+    A["rows"]["tw:heat:e:hot_in"]["short"]["c"]["2x"] = cell(9, 0.62)            # 今天那一格不比平常高 5 點
+    now = {"since": "2026-10-21", "n": 5, "k": 5, "st": "off", "ck": "2x"}
+    return rows, A, {r["id"]: dict(now) for r in rows}
+
+
+def test_listing_ver27_param_gating(monkeypatch):
+    """sigspec 第 5.2 節（VER 27）：會列的再查參數鄰近——只在這個參數成立（ok False）＝不列、放進行中（why param、pdims＝哪幾個參數）；
+    穩定＝照列（pn None）；看不出來＝照列、pn＝PARAM_NA；研究檔裡沒有這一組＝照列、pn＝PARAM_MISS；研究檔沒有＝照 VER 26、pn＝PARAM_NONE。
+    今天那一格沒過的照舊是 few／weak（先看格子，再看參數）；第幾天的研究檔沒有（④b）也一樣擋參數。"""
+    from arm.lab import sigrobust
+    rows, A, on = _param_case()
+    RB = {("tw:heat:a:hot_in", "up", None): (True, []), ("tw:heat:b:hot_in", "up", None): (False, ["hz", "th"]),
+          ("tw:heat:c:hot_in", "up", None): (None, []), ("tw:heat:e:hot_in", "up", None): (False, ["th"]),
+          ("tw:heat:d:hot_in", "up", "long"): (False, ["hz"])}                       # 跨期間的另一組，不影響自己的看多久
+    for age, e_why in ((A, "weak"), ({}, "param")):
+        pend: list = []
+        L = G.listing(rows, on, "tw", T={}, A=age, pend=pend, RB=RB)
+        pn = {x["id"].split(":")[2]: x["pn"] for x in L}
+        assert pn == {"a": None, "c": S.PARAM_NA, "d": S.PARAM_MISS}
+        why = {p["id"].split(":")[2]: (p["why"], p.get("pdims")) for p in pend}
+        assert why == {"b": ("param", ["hz", "th"]), "e": (e_why, ["th"] if e_why == "param" else None)}
+    monkeypatch.setattr(sigrobust, "load", lambda path=None: None)
+    pend = []
+    L = G.listing(rows, on, "tw", T={}, A=A, pend=pend)                            # 研究檔沒有：照 VER 26
+    assert {x["id"].split(":")[2]: x["pn"] for x in L} == {v: S.PARAM_NONE for v in "abcd"}
+    assert [(p["id"], p["why"]) for p in pend] == [("tw:heat:e:hot_in", "weak")]
+
+
+def test_today_board_read_param_research(monkeypatch):
+    """today／board 讀參數鄰近的研究檔（sigrobust.load → robust_index）："param"＝有沒有；不穩定的進那支溫度計的進行中、不算溫度計。"""
+    from arm.lab import sigage, sigrobust
+    rows, A, on = _param_case()
+    R = {"ver": 1, "rows": [{"id": "tw:heat:b:hot_in", "d": "up", "k": None, "ok": False, "dims": {"hz": False, "th": True}},
+                            {"id": "tw:heat:a:hot_in", "d": "up", "k": None, "ok": True, "dims": {"hz": True}}]}
+    assert G.robust_index(R) == {("tw:heat:b:hot_in", "up", None): (False, ["hz"]), ("tw:heat:a:hot_in", "up", None): (True, [])}
+    assert G.robust_index(None) is None and G.robust_index({}) is None
+    monkeypatch.setattr(sigage, "load", lambda path=None: A)
+    monkeypatch.setattr(sigrobust, "load", lambda path=None: R)
+    Td = G.today(rows, on, "tw", T={})
+    assert Td["param"] is True and {x["id"][8] for x in Td["up"]} == {"a", "c", "d"}
+    assert {(p["id"][8], p["why"]) for p in Td["pend"]["up"]} == {("b", "param"), ("e", "weak")}
+    B = G.board(rows, on, "tw", T={})
+    short = next(t for t in B["thermo"] if t["k"] == "short")
+    assert B["param"] is True and short["n"] == {"up": 3, "warn": 0} and len(short["pend"]["up"]) == 2
+    monkeypatch.setattr(sigrobust, "load", lambda path=None: None)
+    assert G.today(rows, on, "tw", T={})["param"] is False

@@ -161,3 +161,17 @@ def test_backfill_waits_out_quota_then_continues(tmp_path, monkeypatch):
                     today="2020-01-05", quota_wait=900, sleep=slept.append)
     assert slept == [900] and st["quota"] and st["done"] == 1 and st["left"] == 0
     assert M.load_agg()["d"]["2020-01-03"] == [10000, 2, 1, 0, 0, 0]
+
+def test_update_series_keeps_old_when_nothing_computed(monkeypatch, capsys):
+    """融資餘額序列讀不到 → 算出 0 筆：舊序列有內容就不寫（體檢第 6 條）；算得出來照寫。"""
+    old = {"2026-10-30": [165.2, 0.93, 1]}
+    saved = []
+    monkeypatch.setattr(M, "load_agg", lambda: {"end": "2026-09-30", "d": {"2026-09-30": [1, 1, 1, 1, 1, 1]}})
+    monkeypatch.setattr(M.HD, "load", lambda name: old if name == M.SERIES else {})
+    monkeypatch.setattr(M.HD, "save", lambda *a: saved.append(a))
+    monkeypatch.setattr(M.store, "load", lambda *a, **k: [])
+    monkeypatch.setattr(M, "build_series", lambda agg, margin, shards: {})
+    assert M.update_series() == 0 and saved == []
+    assert "保留舊的維持率序列" in capsys.readouterr().out
+    monkeypatch.setattr(M, "build_series", lambda agg, margin, shards: {"2026-10-30": [166.0, 0.93, 1]})
+    assert M.update_series() == 1 and saved and saved[0][0] == M.SERIES

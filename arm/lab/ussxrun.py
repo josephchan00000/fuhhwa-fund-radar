@@ -6,7 +6,6 @@ books(P)  建樣本（ussxfeat）→ 五本帳逐年找規則（ussxmine）→ �
 from __future__ import annotations
 
 import json
-import math
 import multiprocessing as mp
 import time
 from datetime import date
@@ -14,6 +13,7 @@ from pathlib import Path
 
 import numpy as np
 
+from ..clock import today_tw
 from . import core as CO
 from . import corespec as CS
 from . import ussxbook as BK
@@ -185,7 +185,7 @@ def books(P: dict | None = None, workers: int = 4, log=print, small: bool = True
         DIV = np.vstack([np.zeros((1, Cf.shape[1])), np.where(np.isfinite(DIV), DIV, 0.0)])
     surv = json.loads((ROOT / "data" / "lab" / "ussx_surv.json").read_text(encoding="utf-8"))
     G_surv = surv.get("G")
-    out = {"ver": X.VER, "spec": X.SPEC_DATE, "made": date.today().isoformat(), "last": cal[-1], "rows": int(len(cols["d"])),
+    out = {"ver": X.VER, "spec": X.SPEC_DATE, "made": today_tw().isoformat(), "last": cal[-1], "rows": int(len(cols["d"])),
            "folds": [folds[k] for k in sorted(folds)], "books": {}, "surv_G": G_surv}
 
     def engine(book, sig, a, idle, *, c_stk=X.COST["stk"], ex=None, style=None, weight=None, max_pos=None):

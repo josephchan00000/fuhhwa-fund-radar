@@ -2,7 +2,7 @@
 
 > 台灣區與精簡規則、台股法說財報、官方休市表與颱風、昨日版底稿與漂移閘門、核心排程錨、待更新標示與週末上週結果、官方自動補值。
 > 原始資料：CLAUDE.md 行事曆「台灣區與精簡規則」「資料可信度盤查與因應」兩段；程式：`arm/macronews.py`、`arm/calfill.py`、`arm/twholidays.py`、`scripts/check_reports.py`；設定：`config/official_schedule.json`。
-> 最後更新：2026-10-30
+> 最後更新：2026-11-01
 > 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
@@ -35,9 +35,11 @@
 1. **證交所官方年度表**：CI 每日 `scripts/fetch_tw_holidays.py`（`daily_fund.sh`）抓 `openapi.twse.com.tw/v1/holidaySchedule/holidaySchedule`
    （Name／Date＝民國 7 碼／Weekday／Description；週末列、「最後交易日／開始交易日」不算休市，「無交易僅辦理結算交割」算）→ `data/tw_holidays.json`（**必須入庫**，`.gitignore` 例外＋daily.yml add）。
    一年解析 <5 天不採信、抓不到沿用既有、與種子不一致印日誌。**內建 2026 種子 `SEED`**（容器擋 twse）：18 個平日休市，兩來源核對＋總數自洽（2026 平日 261 − 證交所公告交易日 243 ＝ 18）。
+   OpenAPI 只給今年；**隔年那張另抓證交所網站版 `twholidays.NEXT_API`**（`rwd/zh/holidaySchedule/holidaySchedule?date={隔年}0101`，欄位 日期／名稱／說明、西元日期，
+   2026-11-01 起）——證交所公告前回 0 列＝正常；抓不到只印一行、不擋今年的表。
 2. **暫代層 `twholidays.PROVISIONAL`**（隔年表公告前；2026 年表是 2025-10-29 才公告；2026-10-13 補 2027）：人事行政總處已核定的辦公日曆平日放假日（2027＝17 天，2026-05-21 核定；週末 104＋17＝全年 121 天自洽）。
    語意＝「**已知必休**」：放假日 `is_closed`→True，其餘平日→**None（未知）**交給行事曆文字——證交所另加的休市日（春節前「無交易僅結算」兩天，2026 是 2/12、2/13）辦公日曆上沒有，**不猜**。
-   提示包把這些日子標「＊」並註明「證交所年度表未公告」；證交所表一到即整年取代，CI 日誌印「證交所另加：…」供核對。
+   提示包把這些日子標「＊」並註明「證交所年度表未公告」；證交所一公告，CI 下一輪就自動抓進來整年取代，日誌印「證交所另加：…」供核對。
 3. **颱風停止交易 `twholidays.ADHOC`**：查證過的颱風日（附證交所公告與媒體來源；2026 年有 7/10 巴威、10/23 薔琵），`is_closed`、`closed_days`、`upcoming` 一律算休市——
    看門狗、鮮度、策略的交易日推算、飆股前瞻記錄的週末日、dayquotes 的 T 同時生效；`SEED`（年度表）不動。還沒補進的颱風日：看門狗與行事曆閘門另認市況段「M/D 因颱風休市」
    （`twholidays.typhoon_said`：只認颱風、只認寫明的那一天；其他理由的休市文字照舊以官方表為準）。
@@ -105,7 +107,9 @@
     「待補／延期／延後／取消／改期」提到它（`macronews.late_rows`、`late_explained`，項目正規化後前 4 字）。
 - 逼補測試：
   - `tests/test_twholidays.py::test_holiday_tables_cover_next_45_days`：台／美任一表未涵蓋「今日＋45 天」→ 紅＝**每年 11 月中逼補下一年**（證交所通常 10 月底公告）。
-  - `test_provisional_year_replaced_before_december`：**隔年前一年 12/1 還在暫代 → 紅**（官方 API 不含隔年就依公告補 `SEED[年]`）。
+  - `test_provisional_year_replaced_before_december`：**隔年前一年 12/1 還在暫代 → 紅**。隔年的表 CI 自動抓（上面第 1 點），證交所一公告就解，不手動補。
+    2026-11-01 查：證交所 116 年表還沒公告（網站版回 0 列）→ 11 月底還沒公告就提醒使用者，可把期限延到 12/20（債務帳 `docs/code_debt.md`）；
+    紅了的話早上全部更新的測試步驟、PR 測試都會卡住。
   - `tests/test_schedule_anchors.py::test_schedule_not_running_out`：錨最後一筆在 21 天內 → 紅（FOMC／ECB／BOJ／BLS 隔年排程年初前都已公布，台灣逐月補）。
 - 生效條件：呈現、相容、昨日版閘門（容器端 check_reports）＝merge 即生效；提示包與台灣區閘門＝merge 後「排程搬家」（[排程](../ops/routines.md)）。
 
@@ -154,3 +158,4 @@
   第四段（使用者同意先做第四段再做第三段：「好」）：提示包「已過公布時間」清單、`_check_calendar_late`（10/31 起）、景氣燈號前值核對。
   第三段（使用者：「好的」）：CI 探針四輪；接上勞工統計局（非農、時薪、季調 CPI、PPI、JOLTS、ECI）、歐洲央行、主計總處 GDP 年增，有列在等才抓；
   回放 7/1～10/30：官方算得出的列從 4% 到 8%（規劃時估 17%，差在每週都有的初領失業金接不上）。
+- 2026-11-01（使用者：「不可能手動補啦要抓公告」）：隔年休市表改成 CI 自動抓證交所網站版（`docs/etf_div_auto_plan.md`）；原本是 OpenAPI 不含隔年時人工依公告補 `SEED[年]`。

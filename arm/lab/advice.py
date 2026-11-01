@@ -757,7 +757,6 @@ def _ev(oos: dict | None, ins: dict) -> tuple:
 
 # —— 逐筆交易（docs/lab_trades_plan.md；2026-10-15 使用者：「每個策略都要有像 0050 策略的逐筆歷史交易，我才能去驗證」）
 
-TR_KIND = {"s1": "trade", "s5": "trade", "s3": "rev", "hd": "rev"}   # 其餘（月營收、財報驚喜）＝per（每期換股）
 
 
 def trade_book(data: dict, live: dict, keys: set) -> tuple[dict, dict]:

@@ -58,13 +58,6 @@ reports/*.md
 # 昨夜美股提示包為可重建產物（gen_usnews.py）
 reports/usnews/prompts/
 
-# M6 文案層產物（由 gen_copy.py 重建；responses 為手動回灌內容，不入庫）
-reports/copy/*.copy.md
-reports/copy/prompts/
-reports/copy/responses/
-
-# 舊 ETF 版儀表板產物（gen_dashboard.py 重建，不入庫）
-dashboard/etf.html
 # 註：基金版 dashboard/index.html 現「入庫」——由已入庫的 data/funds/*.json 零 DB 重建，
 #     供 Vercel 直接靜態部署（連 repo 即自動部署，免 token）；每日 routine 會 commit 更新。
 
@@ -73,3 +66,6 @@ dashboard/etf.html
 
 # 個股報告官方文件包（scripts/eq_docs_req.py --wait 拉下來的全文；用完就刪，不進 git）
 /.eqdocs/
+
+# 寫檔用的暫存檔（arm/fileio.py：先寫到同資料夾的暫存檔再換名；程式寫到一半被砍掉時會留下，不要 commit）
+*.tmp

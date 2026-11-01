@@ -26,6 +26,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from .. import fileio
 from .. import fund_intro as FI
 from . import ussxspec as X
 
@@ -318,11 +319,13 @@ def load(path: Path | None = None) -> dict:
 
 
 def save(doc: dict, path: Path | None = None) -> bool:
-    """內容沒變（made 不算）就不寫；回有沒有寫。"""
+    """內容沒變（made 不算）就不寫；這次一家季報都沒有而舊檔有 → 也不寫（資料分支沒拉到；體檢第 6 條）。回有沒有寫。"""
     p = path or FIN
     old = load(p)
+    if old.get("s") and not doc.get("s"):
+        print("[美股季報] ⚠ 這次一家季報都沒有（資料分支沒拉到？），保留舊檔")
+        return False
     if old and {k: v for k, v in old.items() if k != "made"} == {k: v for k, v in doc.items() if k != "made"}:
         return False
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(json.dumps(doc, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
+    fileio.write_text(p, json.dumps(doc, ensure_ascii=False, separators=(",", ":")) + "\n")
     return True

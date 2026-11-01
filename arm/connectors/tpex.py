@@ -3,7 +3,7 @@
 關鍵：復華自家 00998A（主動金融股息）、00986D（主動金融債息）與多檔債券/債競品
 （00679B/00772B/00773B/00937B…）皆為**上櫃**掛牌，TWSE openapi STOCK_DAY_ALL 抓不到，
 價量必須走 TPEx openapi。介面刻意對齊 arm.connectors.twse.fetch_today_all，
-讓 fetch_peers / firsthand 可把兩個交易所的當日價量合併使用（同一格式、同走 certifi 驗證）。
+讓 dayquotes 等可把兩個交易所的當日價量合併使用（同一格式、同走 certifi 驗證）。
 
 來源：tpex_mainboard_daily_close_quotes（上櫃主板每日收盤，官方、免金鑰）。
 """
@@ -147,3 +147,41 @@ def fetch_basic_rows() -> list[dict]:
     """上櫃公司基本資料（含產業別）原始列；介面對齊 twse.fetch_basic_rows。"""
     rows = get_json(BASIC_URL, cache_ttl=86400)
     return rows if isinstance(rows, list) else []
+
+
+EXDIV_URL = ("https://www.tpex.org.tw/web/stock/exright/preAnnounce/prepost_result.php"
+             "?l=zh-tw&o=json")                    # 除權息預告（上櫃；債券 ETF 多在這裡）
+
+
+def parse_exdiv(doc) -> list[tuple[str, str, float | None]]:
+    """櫃買除權息預告 {tables:[{fields, data}]} → [(代號, 除息日 ISO, 每單位現金股利)]。
+
+    欄位用名稱找（除權息日期／代號／除權息／現金股利）；「尚未公告」＝表上還沒有金額 → None。
+    表上也有已經過了的除息日，呼叫端自己挑今天以後的。"""
+    out = []
+    tables = doc.get("tables") if isinstance(doc, dict) else None
+    for t in tables or []:
+        fields = (t.get("fields") if isinstance(t, dict) else None) or []
+        try:
+            i_d, i_c, i_k, i_a = [fields.index(k) for k in ("除權息日期", "代號", "除權息", "現金股利")]
+        except (AttributeError, ValueError):
+            continue
+        for r in t.get("data") or []:
+            try:
+                d, code, kind, amt = str(r[i_d]).strip(), str(r[i_c]).strip(), str(r[i_k]), _num(r[i_a])
+            except (IndexError, KeyError, TypeError):
+                continue
+            ymd = d.split("/")
+            if "息" not in kind or not code or len(ymd) != 3 or not all(x.isdigit() for x in ymd):
+                continue
+            iso = f"{int(ymd[0]) + 1911:04d}-{int(ymd[1]):02d}-{int(ymd[2]):02d}"
+            out.append((code, iso, amt if amt and amt > 0 else None))
+    return out
+
+
+def fetch_exdiv() -> list[tuple[str, str, float | None]]:
+    """櫃買除權息預告 → parse_exdiv 的列；抓不到或格式不對丟例外，由呼叫端決定怎麼退。"""
+    doc = get_json(EXDIV_URL, cache_ttl=3600)
+    if not isinstance(doc, dict) or not isinstance(doc.get("tables"), list):
+        raise ValueError(f"櫃買除權息預告格式不對：{str(doc)[:80]}")
+    return parse_exdiv(doc)

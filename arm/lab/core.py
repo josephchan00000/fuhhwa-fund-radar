@@ -16,6 +16,8 @@ from pathlib import Path
 
 import numpy as np
 
+from ..clock import today_tw
+from .. import fileio
 from . import corespec as S
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -185,7 +187,7 @@ def simulate_fixed(tot, rf, share: float, a: int, b: int, sl=None, swc=None, cor
 
 def _years(cal: list[str], a: int, b: int, nav) -> list[list]:
     """[[年, 報酬, 交易日數]]：每一年最後一個交易日對前一年最後一個交易日（第一年對起點）。"""
-    out, last_y, base = [], None, 1.0
+    out, base = [], 1.0
     end = {}
     cnt: dict[str, int] = {}
     for k in range(a, b):
@@ -195,7 +197,7 @@ def _years(cal: list[str], a: int, b: int, nav) -> list[list]:
     for y in sorted(end):
         v = nav[end[y] - a]
         out.append([y, v / base - 1, cnt[y]])
-        base, last_y = v, y
+        base = v
     return out
 
 
@@ -402,7 +404,7 @@ def market_inputs(mk: str, B: dict | None = None) -> dict:
 
 
 def research() -> dict:
-    out = {"ver": S.VER, "spec": S.SPEC_DATE, "made": date.today().isoformat(), "mk": {}}
+    out = {"ver": S.VER, "spec": S.SPEC_DATE, "made": today_tw().isoformat(), "mk": {}}
     for mk in S.MARKETS:
         M = market_inputs(mk)
         cal, px, tot, rf = M["cal"], M["px"], M["tot"], M["rf"]
@@ -537,7 +539,7 @@ def boom_share(mk: str = "tw") -> float:
 def stk_from_adv(A: dict, asof: str | None = None, boom: dict | None = None) -> dict:
     """個股頁的 advice 結果 → 台股機動：★ 策略（照頁面順序）、每條手上的股票、接下來 45 天要做的事；
     boom＝新飆股那本帳現在的狀態（sxlive.plan_state；VER 5＝N8 那一本）。"""
-    asof = asof or date.today().isoformat()
+    asof = asof or today_tw().isoformat()
     book = [b for b in A.get("book") or [] if b.get("tier") == S.SLEEVE_TIER]
     ks = [b["k"] for b in book]
     hold: dict[str, list] = {k: [] for k in ks}
@@ -563,12 +565,10 @@ def stk_from_adv(A: dict, asof: str | None = None, boom: dict | None = None) -> 
 
 # ── 前瞻 ─────────────────────────────────────────────────────────────────────
 
-def load_live() -> dict:
-    """前瞻紀錄；版本不同（規則改過）＝從頭記。LIVE_KEEP 的版本沿用（VER 5 只換新飆股那一本，警訊與 ★ 策略沒變）。"""
-    try:
-        L = json.loads(LIVE.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return {"ver": S.VER, "days": {}}
+def load_live(strict: bool = False) -> dict:
+    """前瞻紀錄；版本不同（規則改過）＝從頭記。LIVE_KEEP 的版本沿用（VER 5 只換新飆股那一本，警訊與 ★ 策略沒變）。
+    strict（record 寫回前）：檔案在但讀不起來就停下報錯，不當成空的從頭記（arm/fileio.read_json）。"""
+    L = fileio.read_json(LIVE, None, strict=strict)
     ok = isinstance(L, dict) and (L.get("ver") == S.VER or L.get("ver") in S.LIVE_KEEP)
     return {**L, "ver": S.VER, "days": dict(L.get("days") or {})} if ok else {"ver": S.VER, "days": {}}
 
@@ -579,7 +579,7 @@ def record(nows: dict, stk: dict | None, qm: dict | None = None) -> bool:
     台股 sat＝★ 策略＋新飆股（VER 4 起；VER 5 的新飆股是 N8，持股與淨值在 sxlive.json）。"""
     if os.environ.get("GITHUB_ACTIONS") != "true":
         return False
-    L = load_live()
+    L = load_live(strict=True)
     days = L.setdefault("days", {})
     for mk, n in (nows or {}).items():
         if not n or mk not in S.MARKETS or n["d"] < S.LIVE_START:
@@ -599,7 +599,7 @@ def record(nows: dict, stk: dict | None, qm: dict | None = None) -> bool:
     txt = json.dumps(L, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     if LIVE.exists() and LIVE.read_text(encoding="utf-8") == txt:
         return False
-    LIVE.write_text(txt, encoding="utf-8")
+    fileio.write_text(LIVE, txt)
     return True
 
 

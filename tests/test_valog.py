@@ -175,8 +175,11 @@ def test_v3live_tr_ret_same_period_market():
 
 
 def test_update_tr_recent_zero_requests_when_current(tmp_path, monkeypatch):
+    from datetime import date
+    from arm import clock
     from arm.lab import market, v3data
     monkeypatch.setattr(store, "LAB", tmp_path)
+    monkeypatch.setattr(clock, "today_tw", lambda: date(2026, 10, 16))   # 固定「今天」：跨月之後本月／上個月會變（2026-11-01 起會紅）
     store.write("mkt", "2026-10-15", {"q_tw": {}})
     store.write_json("v3_tr.json", {"q": {"2026-10-15": 1.0}, "m": ["2026-09"]})
     monkeypatch.setattr(market, "twse_tr_month", lambda y, m: pytest.fail("不該發請求"))

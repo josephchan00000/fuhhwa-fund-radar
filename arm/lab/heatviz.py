@@ -25,7 +25,6 @@ DD_MIN = 0.20          # 地形圖的大跌期間：高點到低點跌幅門檻
 SWING_TW = 0.10        # 雷達底下的波段高低點：收盤從高點回落 10% 才確認高點（低點反彈 10%）；
                        # 美股換算成和台股一樣常見＝crashspec.TH 的 60 日門檻（docs/lab_heatviz_v2_plan.md 第 1 節）
 SWING_N = 8            # 最近幾個已確認的轉折點
-KEY_SHOW = 4           # 關鍵狀態先列幾個
 MOVE_FLAT = 3          # 這週變化：面向分數動 ±3 分以內收成「其他沒什麼變」（docs/lab_heatviz_v2_plan.md 第 4 節）
 MOVE_WHY = 2           # 每個面向列幾個主要原因（拉動最多的項目）
 MOVE_WHY_MIN = 1.0     # 拉動不到 1 分的項目不算主要原因
@@ -291,53 +290,6 @@ def _vt(v) -> str:
     return f'<span class="vt {v}">{_e(S.VERDICT[v])}</span>' if v in ("weak", "strong") else ""
 
 
-def _verd(a: dict) -> str:
-    by: dict[str, list] = {}
-    for h in a["hs"]:
-        by.setdefault(a["verdict"][h], []).append(h)
-    return "".join(f'<span class="vt {v}">{_e(S.VERDICT[v])}（{"、".join(str(x) for x in hs)} 日）</span>'
-                   for v, hs in by.items())
-
-
-def _key_line(a: dict) -> str:
-    cur, al = a["cur"], a["all"]
-    unit = HP._unit(a["freq"])
-    yrs = HP._yrs(cur.get("yrs"))
-    where = f"，出現在 {yrs} 年" if yrs else ""
-    up = f'、上漲 {cur["up"]:.0f}%' if cur.get("up") is not None else ""
-    allt = f'；所有時候 {_pct(al.get("avg"))}' if al.get("avg") is not None else ""
-    return (f'過去在「{_e(a["band"])}」時，之後 {a["h"]} 日{_e(HP.MK["px"])}平均 <b>{_e(_pct(cur.get("avg")))}</b>'
-            f'{up}（{cur["n"]:,} {unit}{_e(where)}）{_e(allt)}。')
-
-
-def _kcard(a: dict, full: bool) -> str:
-    did = f'dim:{a["k"]}' if a["kind"] == "dim" else f'item:{a["k"]}'
-    kind = "面向" if a["kind"] == "dim" else S.DSHORT[a["dim"]]
-    wk = f'<span class="kw">已連續 {a["weeks"]} 週</span>' if a["weeks"] else ""
-    z = _zc(a["heat"])
-    head = (f'<div class="kt"><b>{_e(a["name"])}</b><span class="kk">{_e(kind)}</span>'
-            f'<span class="kv zt{z}">{HP.n0(a["heat"])} {_e(a["band"])}</span>{wk}</div>')
-    if not full:
-        return (f'<li><button type="button" class="kmini" data-open="{did}">{head}<span class="ke">{_verd(a)}</span></button></li>')
-    return (f'<article class="kcard" data-open="{did}" tabindex="0" role="button" aria-label="{_e(a["name"])}：打開細節">{head}'
-            f'<div class="ke">{_verd(a)}</div><p class="kp">{_key_line(a)}</p>'
-            f'{zone_svg(a["bands"], a["band"], a["all"])}</article>')
-
-
-def key_html(ks: list[dict]) -> str:
-    if not ks:
-        return ('<section class="kstate card" id="key"><div class="khd"><h2>關鍵狀態</h2></div>'
-                '<p class="note">現在沒有「研究顯示有穩定關係、而且正在過熱或過冷」的項目。</p></section>')
-    cards = "".join(_kcard(a, True) for a in ks[:KEY_SHOW])
-    more = ""
-    if len(ks) > KEY_SHOW:
-        more = (f'<details class="kmore"><summary>還有 {len(ks) - KEY_SHOW} 個</summary><ul class="klist">'
-                + "".join(_kcard(a, False) for a in ks[KEY_SHOW:]) + "</ul></details>")
-    return (f'<section class="kstate card" id="key"><div class="khd"><h2>關鍵狀態</h2><span class="kn">{len(ks)} 個</span></div>'
-            '<p class="ksub">研究顯示有穩定關係、而且現在在過熱或過冷；長條＝過去在各區之後的平均漲跌，虛線＝所有時候。只當參考。</p>'
-            f'{cards}{more}</section>')
-
-
 def _nmb(k: str, name: str) -> str:
     return f'<button type="button" class="nmb" data-k="{_e(k)}">{_e(name)}</button>'
 
@@ -416,7 +368,7 @@ def moves_html(V: dict) -> str:
     rows.sort(key=lambda r: (r[0], r[1]))
     body = "".join(r[2] for r in rows)
     if flat:
-        body += (f'<li class="wfl"><span class="wtag">其他沒什麼變</span>' + "、".join(flat) + "</li>")
+        body += ('<li class="wfl"><span class="wtag">其他沒什麼變</span>' + "、".join(flat) + "</li>")
     rec = []
     for d, L in V["dims"].items():
         for it in L["items"]:
@@ -432,23 +384,6 @@ def moves_html(V: dict) -> str:
     return (f'<section class="wchg card" id="wchg"><div class="khd"><h2>這週變化</h2><span class="kn">和 '
             f'{_e(HP._md(V.get("viz", {}).get("t0")))}比</span></div>'
             f'<ul>{body}</ul></section>')
-
-
-def items_table(V: dict) -> str:
-    rows = []
-    for d, L in V["dims"].items():
-        for it in _item_order(L):
-            h, a = it["heat"], it["ago"]
-            ch = "—" if h is None or a is None else HP._sgn(h - a, 0)
-            hv = "—" if h is None else HP.n0(h)
-            av = "—" if a is None else HP.n0(a)
-            pl = "—" if it["pull"] is None else HP._sgn(it["pull"])
-            sh = "—" if it["share"] is None else f'{it["share"]:.0f}%'
-            rows.append(f'<tr><td class="l">{_nmb(it["k"], it["name"])}</td><td class="l">{_e(S.DSHORT[d])}</td>'
-                        f'<td><b class="zt{_zc(h)}">{hv}</b></td><td>{av}</td><td>{ch}</td><td>{pl}</td><td>{sh}</td>'
-                        f'<td class="l">{_e(it["val"])}</td></tr>')
-    return ('<div class="tw itab" id="itab" hidden><table><tr><th class="l">項目</th><th class="l">面向</th><th>0～100</th>'
-            '<th>上週</th><th>變化</th><th>拉動</th><th>佔比</th><th class="l">現值</th></tr>' + "".join(rows) + "</table></div>")
 
 
 def _radar_card(V: dict | None = None) -> str:
@@ -586,8 +521,11 @@ TQ_OK = "之後的年份也比任一天高 3 點以上"
 def tq_item(r: dict, ref: str | None, panel: bool = True) -> str:
     """清單一列（一類，同類合併）：名稱（買點、原本看別的期間、震盪、之後也成立另外標）；過去的機率（隨便挑一天）、報酬或回撤中位數、
     次數；哪天出現、照規則哪天進場、持有到哪天；同一類的其他訊號只寫幾個（滑過看名稱）。
-    panel＝景氣頁：點了打開「之後怎麼走？」捲到這個訊號，沒有 JS 就連訊號總覽；否則（訊號總覽）連這一頁的指標。"""
+    panel＝景氣頁：點了打開「之後怎麼走？」捲到這個訊號，沒有 JS 就連訊號總覽；否則（訊號總覽）連這一頁的指標。
+    VER 26～27：數字是今天那一格的（「過去這樣進場」），下一行寫出現日、過了幾天、條件與今天看到、下一個交易日收盤進場的那一筆；
+    參數還沒檢查（或比不出來）標一下；法人訊號另加一句。"""
     from . import sigpage as SPG
+    from . import sigspec as SS
     tags = []
     if r.get("cls") == "buy":
         tags.append('<span class="tqy">買點</span>')
@@ -598,6 +536,8 @@ def tq_item(r: dict, ref: str | None, panel: bool = True) -> str:
         tags.append('<span class="tqo" title="同一個項目：之後上漲的機率比任一天高，中間出現大回撤的機率也比較高">震盪</span>')
     if r.get("ok"):
         tags.append(f'<span class="tqok" title="{_e(TQ_OK)}">之後也成立</span>')
+    if r.get("pn") in (SS.PARAM_MISS, SS.PARAM_NA):               # VER 27：參數還沒檢查／比不出來（照列、標一下）
+        tags.append(f'<span class="tqpm">{_e(r["pn"])}</span>')
     fam = r.get("fam") or []
     ft = ""
     if fam:
@@ -607,9 +547,67 @@ def tq_item(r: dict, ref: str | None, panel: bool = True) -> str:
         href, op = f'#s={_e(r["id"])}', f' data-open="out:out" data-to="{osg_id(r["id"], r.get("hz"), r.get("side"))}"'
     else:
         href, op = f'#s={_e(r["id"])}', ""
+    if r.get("age"):                                                  # VER 26：今天那一格＝列出來的原因
+        stt = r.get("kind") == "state"
+        cn = SPG.age_cell_name((r.get("cell") or {}).get("ck"), stt)
+        tip = f' title="過去{_e(cn)}時進場"' if cn else ""
+        tr = SPG.age_trade(r["now"], ref)
+        line = (f'<span class="tql"{tip}>{SPG.tq_stats(r)}</span>'
+                f'<span class="tqs">{_e(SPG.age_head(r["now"], ref, stt))}{"；" + _e(tr) if tr else ""}{ft}</span>')
+    else:
+        line = f'<span class="tql">{SPG.tq_stats(r)}</span><span class="tqs">{_e(SPG._since(r["now"], ref))}{ft}</span>'
+    ip = f'<span class="tqip">{_e(SS.INST_NOTE)}</span>' if r.get("cat") == "inst" else ""
     return (f'<li><a class="tqi" href="{href}"{op}><span class="tqt"><b>{_e(_tz_name(r))}</b>{"".join(tags)}</span>'
-            f'<span class="tql">{SPG.tq_stats(r)}</span>'
-            f'<span class="tqs">{_e(SPG._since(r["now"], ref))}{ft}</span></a></li>')
+            f'{line}{ip}</a></li>')
+
+
+# 參數的白話（sigspec 第 5.2 節進行中的原因；nbrspec.DIM_NAMES，泡沫與大跌後買點的參數另外寫白話）
+PDIM_NAMES = {"psy": "價格連續爆發幾個月", "run2": "兩年漲幅", "ath": "離歷史高點多近", "tz": "偏離長期趨勢多少",
+              "erun": "漲得比基本面快幾個月", "gpx": "和幾個月前的價格比", "fuel": "槓桿多高算過高", "val": "估值多高算過高",
+              "e5th": "5 日急跌跌多少", "e5d": "急跌算幾天", "e10": "從 60 日高點跌幾 %", "wait": "固定等幾天",
+              "sigwin": "落底訊號要在幾天內"}
+
+
+def _pdim(k: str) -> str:
+    from . import nbrspec as N
+    if k in PDIM_NAMES:
+        return PDIM_NAMES[k]
+    if k.startswith("c") and k in N.BUY:
+        return "落底訊號的設定"
+    return N.DIM_NAMES.get(k, k)
+
+
+def tq_pend(p: dict, ref: str | None) -> str:
+    """進行中的一列（sigspec 第 5.1 節 D4、第 5.2 節）：名稱；出現日、過了幾天、條件與不列的原因；事件型另列照規則那一筆與到今天的漲跌。"""
+    from . import sigpage as SPG
+    from . import sigspec as SS
+    n = p.get("now") or {}
+    stt = p.get("kind") == "state"
+    why = p.get("why")
+    cell = p.get("cell") or {}
+    cst = cell.get("warn" if p.get("d") == "warn" else "up") or {}
+    cn = SPG.age_cell_name(cell.get("ck") or n.get("ck"), stt)
+    if why == "exp":
+        rs = (f'{SPG._dy(n["exp"], ref)} 出現相反的讀數，不算了' if n.get("exp") else "之後出現相反的讀數，不算了")
+    elif why == "param":
+        dims = "、".join(dict.fromkeys(_pdim(k) for k in p.get("pdims") or []))
+        rs = SS.PARAM_WHY + (f"（{dims}）" if dims else "")
+    elif why == "weak" and cst.get("hit") is not None and cst.get("base") is not None:
+        rs = f'過去這樣進場 {cst["hit"] * 100:.0f}%（任一天 {cst["base"] * 100:.0f}%），沒有比較好'
+    else:
+        k = cst.get("n") or 0
+        rs = f"過去這樣進場只有 {k} 次" if k else "過去沒有這樣進場過"
+    tip = f' title="過去{_e(cn)}時進場"' if cn and why in ("few", "weak") else ""
+    tr = ""
+    if not stt and n.get("buy") and n.get("sell"):
+        tr = f'照規則那一筆 {SPG._dy(n["buy"], ref)} 收盤進場・持有到 {SPG._dy(n["sell"], ref)}'
+        if n.get("chg") is not None:
+            tr += f'・到今天 {SPG._sgn(n["chg"])}'
+    ip = f'<span class="tqip">{_e(SS.INST_NOTE)}</span>' if p.get("cat") == "inst" else ""
+    return (f'<li><a class="tqi tqpi" href="#s={_e(p["id"])}"><span class="tqt"><b>{_e(_tz_name(p))}</b>'
+            + (f'<span class="tqg">{_e(_tz_orig(p).lstrip("・"))}</span>' if p.get("xk") else "") + '</span>'
+            f'<span class="tqpr"{tip}>{_e(rs)}</span>'
+            f'<span class="tqs">{_e(SPG.age_head(n, ref, stt))}{"；" + _e(tr) if tr else ""}</span>{ip}</a></li>')
 
 
 def _tq_side(xs: list[dict], s: str, th: dict, mk: str | None, ref: str | None, panel: bool) -> str:
@@ -627,13 +625,16 @@ def _tq_side(xs: list[dict], s: str, th: dict, mk: str | None, ref: str | None, 
     tip = f' title="{len(xs) + nf} 個訊號，常一起出現的併成一類"' if nf else ""
     head = (f'<h4 class="tqsh"{tip}><i class="tqd tqd-{s}"></i>{_e(TZ_SIDE[s])}<b>{len(xs)}</b>類'
             f'<span class="sub">{_e(what)}</span></h4>')
+    pend = ((th.get("pend") or {}).get(s)) or []                    # VER 26～27：進行中，清單最下面、預設收起來、不算溫度計
+    pd = (f'<details class="tqpd"><summary>進行中 {len(pend)} 個（今天不列）</summary><ul class="tqu tqpu">'
+          + "".join(tq_pend(p, ref) for p in pend) + "</ul></details>") if pend else ""
     if not xs:
-        return f'<div class="tqsd tqsd-{s}">{head}<p class="tqno">沒有</p></div>'
+        return f'<div class="tqsd tqsd-{s}">{head}<p class="tqno">沒有</p>{pd}</div>'
     top, rest = xs[:SS.TODAY_PER_SIDE], xs[SS.TODAY_PER_SIDE:]
     more = (f'<details class="tqmore"><summary>還有 {len(rest)} 類</summary><ul class="tqu">'
             + "".join(tq_item(r, ref, panel) for r in rest) + "</ul></details>") if rest else ""
     return (f'<div class="tqsd tqsd-{s}">{head}<ul class="tqu">' + "".join(tq_item(r, ref, panel) for r in top)
-            + f"</ul>{more}</div>")
+            + f"</ul>{more}{pd}</div>")
 
 
 def today_core(T: dict, mk: str | None, ref: str | None, panel: bool = True, cal: bool = True) -> str:
@@ -648,7 +649,11 @@ def today_core(T: dict, mk: str | None, ref: str | None, panel: bool = True, cal
     panes = "".join(f'<div class="tqpn" id="{pid(th["k"])}">'
                     + _tq_side(th["up"], "up", th, mk, ref, panel) + _tq_side(th["warn"], "warn", th, mk, ref, panel) + "</div>"
                     for th in ths)
-    return (f'<div class="tqk">{radios}{thermo_card(T, mk)}{cal_block(T.get("cal")) if cal else ""}'
+    from . import sigspec as SS
+    notes = ([] if T.get("age", True) else ["第幾天的成績還沒算，先用出現當天的成績"]) + \
+        ([] if T.get("param", True) else [SS.PARAM_NONE])                # sigspec 第 5.1、5.2 節：研究檔沒有照舊列、標一句
+    nt = f'<p class="tqnt">{_e("；".join(notes))}</p>' if notes else ""
+    return (f'<div class="tqk">{radios}{thermo_card(T, mk)}{cal_block(T.get("cal")) if cal else ""}{nt}'
             f'<div class="tqsg" aria-label="選持有多久">{tabs}</div><div class="tqps">{panes}</div></div>')
 
 
@@ -1111,6 +1116,9 @@ def out_sig(V: dict) -> str:
         ok = f'<span class="tqok" title="{_e(TQ_OK)}">之後也成立</span>' if r.get("ok") else ""
         hd = (f'<p class="ofh">{tz_cls(r)}<b>{_e(_tz_name(r))}</b>'
               f'<span class="ofd">持有 {_e(SPG._hz(r))}{_e(orig)}</span>{both}{ok}</p>')
+        if r.get("age"):                              # VER 26：清單上的數字是今天那一格的，這裡兩個都列
+            cn = SPG.age_cell_name((r.get("cell") or {}).get("ck"), r.get("kind") == "state")
+            hd += f'<p class="ofl">{_e(cn)}：{SPG.tq_stats(r)}</p>' if cn else ""
         if seen[k] > SS.TODAY_PER_SIDE:               # 清單裡收起來的那些：一行（表格只給清單先列的那幾類，面板才不會太長）
             cards.append(f'<div class="ofam ofam-{side} ofc" id="{osg_id(r["id"], r.get("hz"), side)}">{hd}<p class="ofl">{SPG._line(r)}</p>'
                          f'<p class="ofn"><a href="#s={_e(r["id"])}" data-sg="{_e(r["id"])}">報酬表、每一次與走勢</a></p></div>')
@@ -1960,6 +1968,12 @@ table.oft{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-nume
 .tqy{border-color:var(--bull);color:var(--ink)}.tqo{background:var(--line);border-color:transparent;color:var(--ink);cursor:help}
 .tqok{border-color:var(--acc);color:var(--acc);font-weight:600;cursor:help}
 .tqno{margin:2px 0 4px 14px;font-size:12.5px;color:var(--mut)}
+.tqpm{font-size:11px;padding:0 6px;border-radius:999px;white-space:nowrap;line-height:1.6;border:1px dashed var(--line2);color:var(--mut)}
+.tqip{display:block;font-size:11px;color:var(--mut);line-height:1.5}
+.tqnt{margin:4px 2px 2px;font-size:12px;color:var(--mut)}
+.tqpd summary{cursor:pointer;font-size:12.5px;color:var(--mut);padding:4px 14px}
+.tqpu{opacity:.92}.tqpi .tqt b{font-weight:500}
+.tqpr{display:block;font-size:12.5px;color:var(--ink2);line-height:1.55}
 .tqmore summary{cursor:pointer;font-size:12.5px;color:var(--acc);padding:4px 14px}
 @media (max-width:640px){.tqax,.tqq{grid-template-columns:54px 22px minmax(0,1fr) 22px 60px;column-gap:4px}.tqq{padding:5px 4px}.tqax{padding:0 4px}}
 .tzst{margin-top:8px;padding-top:6px;border-top:1px solid var(--line)}

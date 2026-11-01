@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import bisect
 import warnings
-from datetime import date, timedelta
+from datetime import date
 
 import numpy as np
 
@@ -600,7 +600,6 @@ def build(P: dict, liq: float = X.LIQ_MIN, earn: dict | None = None, sec: dict |
     D20 = UP.dv20(P)
     el = UP.eligible(P, liq=liq, rep=rep, D20=D20)
     pb = price_block(P, wk)
-    W = len(wk)
     use = pb["valid"] & el[np.asarray(wk)]
     rs = rs_rank(pb["score"], use)
     log(f"[ussxfeat] 股價條件 {time.time() - t0:.0f}s，樣本 {int(use.sum()):,} 列")
