@@ -178,3 +178,6 @@
 
 ## [2026-11-01] 收錄 | 基金持股頁抓不到時沿用上一次（體檢第 1 條）
 - 使用者「照建議」開始修。`scripts/fetch_holdings.py` 加 `_keep_holdings`：持股頁出錯或解析 0 筆、舊檔有持股 → 前十大、配置、持股基準日沿用舊檔，淨值照新的；測試 `tests/test_fetch_holdings.py`。改了 `env/container.md`。
+
+## [2026-11-01] 收錄 | 美股強勢品質股每天的 50 日線檢查：抓不到的那一檔沿用上一次（體檢第 2 條）
+- `arm/lab/ussxqm.py`：`watch(…, prev)` 同一週紀錄、這一檔抓不到 → 沿用上一次（含已觸發的賣出，標 `carried`）；`watch_failed`／`save_watch` 每一檔都抓不到就不寫檔；`scripts/fetch_ussx_watch.py` 帶上一次的檢查。測試 `tests/test_ussxqm.py`。改了 `lab/us-qm.md`。

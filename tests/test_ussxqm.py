@@ -1,5 +1,6 @@
 """美股三成的規則 QM（arm/lab/ussxqm.py；ussxspec VER 3、docs/lab_us_sleeve_plan.md 第 13 節）：用假資料驗證規則、
 資金帳戶（和 ussxbook.run 同一套）、最新一天的狀態、每週紀錄只增不改、每天的 50 日線檢查、檢討的百分位。"""
+import json
 from datetime import date, timedelta
 
 import numpy as np
@@ -251,6 +252,38 @@ def test_watch_lists_sells_and_errors():
     W = QM.watch(L, fetch=lambda s, start: (s, data.get(s), "ok" if s in data else "404"), made="2026-10-24")
     assert [x["c"] for x in W["sell"]] == ["DN"] and W["sell"][0]["on"] == QM.next_day(W["sell"][0]["trig"])
     assert [e["c"] for e in W["err"]] == ["XX"] and W["d"] == "2026-10-23"
+
+
+def test_watch_keeps_last_result_when_yahoo_fails(tmp_path):
+    """抓不到的那一檔沿用上一次（同一週紀錄）的結果，已經觸發的賣出不會被洗掉；每一檔都抓不到就不寫檔
+    （docs/code_ponytail_audit.md 第 2 條）。"""
+    ds = _cal("2026-06-01", "2026-10-23")
+    up = [100 + k for k in range(len(ds))]
+    data = {"UP": _yahoo(ds, up), "DN": _yahoo(ds, up[:-3] + [100.0] * 3)}
+    L = {"now": {"d": "2026-10-16", "hold": [{"c": "UP", "ent": "2026-09-01", "above": True},
+                                             {"c": "DN", "ent": "2026-09-01", "above": True}]}}
+    ok = lambda s, start: (s, data[s], "ok")                                     # noqa: E731
+    part = lambda s, start: (s, data[s], "ok") if s == "UP" else (s, None, "HTTP 429")   # noqa: E731
+    bad = lambda s, start: (s, None, "HTTP 429")                                 # noqa: E731
+    W1 = QM.watch(L, fetch=ok, made="2026-10-24")
+    assert [x["c"] for x in W1["sell"]] == ["DN"]
+    # 隔天 DN 抓不到：賣出提醒還在，那一檔標 carried、日期留上一次的
+    W2 = QM.watch(L, fetch=part, made="2026-10-25", prev=W1)
+    assert W2["sell"] == W1["sell"] and [e["c"] for e in W2["err"]] == ["DN"]
+    dn = next(w for w in W2["hold"] if w["c"] == "DN")
+    assert dn["carried"] is True and dn["d"] == "2026-10-23" and dn["trig"] == W1["sell"][0]["trig"]
+    # 沒有上一次、或上一次對的是別一週的紀錄：不沿用（和原本一樣只記抓不到）
+    for prev in (None, {**W1, "base": "2026-10-09"}):
+        W3 = QM.watch(L, fetch=part, made="2026-10-25", prev=prev)
+        assert W3["sell"] == [] and "carried" not in next(w for w in W3["hold"] if w["c"] == "DN")
+    # 每一檔都抓不到：不寫檔，留著上一次的
+    p = tmp_path / "w.json"
+    assert QM.save_watch(W1, p) and not QM.watch_failed(W1) and not QM.watch_failed(W2)
+    W4 = QM.watch(L, fetch=bad, made="2026-10-25", prev=W1)
+    assert QM.watch_failed(W4) and W4["sell"] == W1["sell"]
+    assert QM.save_watch(W4, p) is False and json.loads(p.read_text(encoding="utf-8"))["made"] == "2026-10-24"
+    # 正常情況：給了上一次，結果也和原本一模一樣
+    assert QM.watch(L, fetch=ok, made="2026-10-24", prev=W1) == W1
 
 
 def test_review_percentile_and_low_flag():
