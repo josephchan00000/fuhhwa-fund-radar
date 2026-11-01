@@ -2,7 +2,7 @@
 
 > 美股景氣頁 x9mu.html：四個指數的規格、情緒籌碼、泡沫模型、資料、結果與坑。
 > 原始資料：CLAUDE.md「『美股景氣』頁＋泡沫面向」段；規劃 `docs/lab_heat_us_plan.md`、`docs/lab_us_chip_plan.md`；程式：`arm/lab/heat*_us.py`、`arm/lab/heatbubble.py`、`arm/lab/insider.py`
-> 最後更新：2026-10-31
+> 最後更新：2026-11-01
 > 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
@@ -24,6 +24,7 @@
 - 四個都有：S3、S4、S5（名稱標「全市場」）、S6 槓桿 ETF 做多比重（3 倍多空一對近 20 日成交金額，SPXL／SPXS、TQQQ／SQQQ、SOXL／SOXS；Direxion 沒有發行份數歷史，所以一律用成交金額、不用資金流）、S7 成分股內部人淨買比例（`arm/lab/insider.py`）。
 - 內部人資料：SEC 每季資料集（2006q1 起；網址從資料集頁讀，`/files/structureddata/…` 與 `/files/datastandardsinnovation/…` 混用）＋最新一季之後的 EDGAR 每日索引 Form 4 原件；只留 Form 4（不含 4/A）、非衍生性交易、代碼 P／S、申報人之一是董事或經理人。
   存 `data/lab/ins/{YYYY-MM}.json.gz`（依申報日，`{日: {CIK: [淨股數, 當時在 S&P 500]}}`）；名單 `data/lab/heat/ins_members`（S&P 500 歷史期間、現在的那斯達克 100、產業代碼 3674 ∪ 現在費半）；進度 `ins_state`（`through`＝涵蓋到哪天，之後的交易日 S7 沒有值）。
+  一季資料集解析出 0 筆（多半是 SEC 改了欄位名稱）→ 不換掉那三個月、不記做完、印「⚠ …解析出 0 筆」，下次重抓（2026-11-01，體檢第 5 條；之前會把三個月換成空的、而且記成做完不再抓）。
   每天 `fetch_heat_us.py` 一天一次（150 秒上限、做不完下次續做）；回補 `.ping/lab` 第一行 `uschipfill`（或 `uschipfill:ins`、`:lev`、`:cftc_nq`，時間上限 3300 秒）。
 - 大跌風險 crashspec VER 2、反向檢查 hotchspec VER 2 的美股變數跟著依指數（`PRED[idx]`、`CHIP_VARS[idx]`、`hotchpage.ORDER[mk]`）。
 

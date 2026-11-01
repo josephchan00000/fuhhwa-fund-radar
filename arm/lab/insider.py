@@ -399,6 +399,9 @@ def do_quarters(C: Client, M: dict, st: dict, budget_s: float) -> None:
         y, k = int(q[:4]), int(q[5])
         ms = {f"{y}-{3 * (k - 1) + j:02d}" for j in (1, 2, 3)}
         rows = [v for v in acc.values() if v[0][:7] in ms]
+        if not rows:                 # 解析出 0 筆多半是 SEC 改了欄位名稱：不換掉那三個月、不記做完，下次重抓（體檢第 5 條）
+            log(f"⚠ {q}：解析出 0 筆合格的 Form 4（全部 {len(acc)} 份），可能是 SEC 改了欄位；這一季先跳過、下次重抓")
+            continue
         n = write_rows(rows, M, replace_months=ms)
         st.setdefault("q", []).append(q)
         save_state(st)

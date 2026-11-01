@@ -193,3 +193,6 @@
 
 ## [2026-11-01] 收錄 | Google 新聞查詢出錯時，那一組沿用上一次的新聞（體檢第 4 條）
 - `arm/connectors/gnews.py`：`search` 出錯時 `FAILS` 加一、只印第一次的原因；`arm/fundnews.py`：`fetch_funds`／`fetch_etf_products`／`assemble` 標出錯的組，`save` 經 `_carry_news` 併入上一次同組 7 天窗內的項目（比照 `_carry_social`）。測試 `tests/test_fundnews.py`。改了 `main/fund-news.md`、`.claude/rules/fundnews.md`。
+
+## [2026-11-01] 收錄 | 美股內部人季資料解析出 0 筆時跳過、不記做完（體檢第 5 條）
+- `arm/lab/insider.py` 的 `do_quarters`：一季解析出 0 筆合格的 Form 4 → 不換掉那三個月、不記做完、印警告，下次重抓。測試 `tests/test_insider.py`。改了 `lab/heat-us.md`。
