@@ -66,3 +66,6 @@
 
 ## [2026-11-01] 收錄 | PR 進 main 之前自動跑全部測試（體檢第 10 條）
 - 新 workflow `.github/workflows/tests.yml`（pull_request 到 main＋手動）：Python 3.12、台北時區，裝 pytest／numpy／pandas／pyyaml／certifi／pypdf／openpyxl，跑 `pytest -q`；沒裝 playwright，瀏覽器兩支自動略過。改了 `ops/ci-budget.md`。
+
+## [2026-11-01] 收錄 | 債務帳（ponytail 第四段）
+- 新檔 `docs/code_debt.md`：7 處已知上限，程式旁各一行 `# shortcut: 上限。升級：…`（只加註解）；`tests/test_code_debt.py` 守兩邊對得上。最急的是台股 2027 年休市表：12/1 前要換成證交所正式表，否則 `tests/test_twholidays.py` 會紅。知識庫各頁留到第五段再改。
