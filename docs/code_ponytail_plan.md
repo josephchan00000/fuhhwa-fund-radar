@@ -88,7 +88,7 @@ ponytail（GitHub `DietrichGebert/ponytail`，MIT 授權）**不是資料夾樣�
 
 文件與知識庫：體檢報告 PR #425 先合進 main（程式註解指到它）；每條各改知識庫一頁＋`wiki/log.md` 一行。
 
-## 9. 第四段結果：債務帳（2026-11-01）
+## 9. 第四段結果：債務帳（2026-11-01，PR #438）
 
 `docs/code_debt.md` 收 7 條，程式旁各一行 `# shortcut: 上限。升級：…`。這一段只加註解：五個 .py 的語法樹、`daily.yml` 解析後的內容都和修改前一模一樣。
 `tests/test_code_debt.py` 守兩件事：每條都寫升級時機，註解和債務帳要對得上。
