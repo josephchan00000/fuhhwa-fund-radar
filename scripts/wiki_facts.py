@@ -6,7 +6,7 @@
 日期（2026-10-29、10/29）、帶單位的數字（50.7%、1,321 萬、30 分…）、「引號裡的字」（使用者原話、頁面上的字）、run 編號、VER 幾——
 每一個都要還出現在知識庫裡（比對時忽略空白與 * 號）。
   · 出現在別頁＝搬到別頁了（只列出來看，不算錯）；
-  · 哪裡都沒有＝不見了（算錯），除非日誌 wiki/log.md 有一行「- 刪：`記號`、`記號`…——原因」
+  · 哪裡都沒有＝不見了（算錯），除非日誌 wiki/log.md（或按月封存的 docs/wiki_log/*.md）有一行「- 刪：`記號`、`記號`…——原因」
     （2026-10-29 使用者：沒用或明顯被覆蓋的規則可以清除；一條規則一行，列出它帶走的記號）。
 瘦身前搬走的段落已在第五段用瘦身前的全文比過一次（0 個不見）；那些頁現在就是正本，不再比。
 
@@ -62,14 +62,15 @@ def source(page: str, text: str | None = None) -> str:
 
 
 def dropped() -> set[str]:
-    log = WS.WIKI / "log.md"
-    if not log.exists():
-        return set()
+    """日誌（含按月封存的 docs/wiki_log/*.md）裡「- 刪：」行登記的記號。"""
     out = set()
-    for s in log.read_text("utf-8").split("\n"):
-        m = DROP.match(s)
-        if m:
-            out |= {norm(t) for t in TICK.findall(m.group(1))}
+    for log in [WS.WIKI / "log.md", *sorted((WS.ROOT / "docs" / "wiki_log").glob("*.md"))]:
+        if not log.exists():
+            continue
+        for s in log.read_text("utf-8").split("\n"):
+            m = DROP.match(s)
+            if m:
+                out |= {norm(t) for t in TICK.findall(m.group(1))}
     return out
 
 
