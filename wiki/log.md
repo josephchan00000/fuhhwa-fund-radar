@@ -69,3 +69,6 @@
 
 ## [2026-11-01] 收錄 | 債務帳（ponytail 第四段）
 - 新檔 `docs/code_debt.md`：7 處已知上限，程式旁各一行 `# shortcut: 上限。升級：…`（只加註解）；`tests/test_code_debt.py` 守兩邊對得上。最急的是台股 2027 年休市表：12/1 前要換成證交所正式表，否則 `tests/test_twholidays.py` 會紅。知識庫各頁留到第五段再改。
+
+## [2026-11-01] 收錄 | 債務帳接進知識庫（ponytail 第五段）
+- 目錄「原始資料」加 `docs/code_debt.md`；`main/calendar.md`、`ops/deploy.md`、`lab/us-qm.md`、`main/fund-news.md`、`ops/schedule.md`、`main/etf-watch.md` 各加現況與升級時機；`user.md` 加「資料要自動抓，不靠人工清單」。使用者定調預估配息與隔年休市表都改自動抓（另外規劃）。

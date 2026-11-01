@@ -99,6 +99,7 @@ CI 分鐘帳（私有時期的帳；2026-10-16 起 repo 已公開，一般機器
   但部署建不起來，線上停在舊版。診斷見上面第 4 步。當下對策：當天少推分支，等限制解除，下一班 CI 會自動部署。
   根治：兩支 vercel.json 加 `"git": {"deploymentEnabled": {"claude/**": false}}`，停掉工作分支的預覽部署
   （2026-10-16 使用者同意、已改，`tests/test_multiuser_hardening.py` 守）。
+  現況（2026-11-01）：main 每筆 commit 仍自動部署一次、CI 的 commit 再打一次 Deploy Hook；10/29～11/1 main 每天 18～41 筆，程式 PR 合併後頁面沒變也照樣部署。免費方案每天 100 次——一天超過 45 筆或對時哨兵見限流，就讓 vercel.json 在 dashboard/ 沒變時不部署（債務帳 `docs/code_debt.md`）。
 
 ## 歷史
 

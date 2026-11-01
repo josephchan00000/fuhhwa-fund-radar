@@ -51,7 +51,7 @@
   - 日文：`fundnews._is_japanese()`＝平/片假名**字母** ぁ-ゖ／ァ-ヺ（排除台灣商品名風格用字「の」），抓取端 `yt_relevant`/`yt_peer_relevant` 與讀取端 `_social_ok` 都接。
     讀取端 `sanitize()`：非官方且標題無漢字、黑名單 `YT_BLOCK_IDS` 一律剔除——舊落檔與 `_carry_social` 沿用款不必等重抓即消失。
   - **時長 ≤3 分標 Shorts**（連結走 /shorts/、來源標「YouTube Shorts」）。
-  - **額度**：search 11 組 ×100（相關 4＋熱門 7）＋playlistItems 2＋channels 1＋videos.list **分批**（單次上限 50 支）數單位 ≈每輪 1,110 單位（日限 10,000）；配額於太平洋時間午夜（台北 15~16 時）重置。
+  - **額度**：search 11 組 ×100（相關 4＋熱門 7）＋playlistItems 2＋channels 1＋videos.list **分批**（單次上限 50 支）數單位 ≈每輪 1,110 單位（日限 10,000）；配額於太平洋時間午夜（台北 15~16 時）重置。一天整輪超過約 9 次搜尋就會被拒（10/28 跑了 10 次）；升級時機見債務帳 `docs/code_debt.md`。
 - **強基金 fundhot**（`fetch_fundhot`）：台灣最大共同基金討論社群、金複合討論主場；渲染＝💬 章＋「強基金・板名」來源標。兩套站並抓（新站 `fundhot.com/forum/{分類}/{slug}/{id}` 列表頁 regex＋舊 phpBB
   `forum.fundhot.com/feed.php?mode=topics` Atom），同標題跨源去重、單源失敗不牽連；新站解析 0 筆會印**結構探針**片段（grep `[fundhot]`）供一輪收斂。
   - 新站種子＝實際存在的分類（股票基金／ETF／資產配置）＋由**總覽頁話題連結的分類段自尋**（`FUNDHOT_MAX_PAGES`=6 上限），標頭 `FUNDHOT_HEADERS`（Accept／Accept-Language／Referer，UA 仍誠實標研究用途）——

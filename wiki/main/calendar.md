@@ -105,7 +105,8 @@
     「待補／延期／延後／取消／改期」提到它（`macronews.late_rows`、`late_explained`，項目正規化後前 4 字）。
 - 逼補測試：
   - `tests/test_twholidays.py::test_holiday_tables_cover_next_45_days`：台／美任一表未涵蓋「今日＋45 天」→ 紅＝**每年 11 月中逼補下一年**（證交所通常 10 月底公告）。
-  - `test_provisional_year_replaced_before_december`：**隔年前一年 12/1 還在暫代 → 紅**（官方 API 不含隔年就依公告補 `SEED[年]`）。
+  - `test_provisional_year_replaced_before_december`：**隔年前一年 12/1 還在暫代 → 紅**。官方 API 不含隔年時，原本靠人工依公告補 `SEED[年]`；2026-11-01 使用者定調不手動補、要抓公告 → 改成自動抓（規劃中）。
+    2026-11-01 查：2027 年還在暫代、證交所 116 年表還沒公告 → 12/1 起這支會紅，早上全部更新的測試步驟也會卡住（債務帳 `docs/code_debt.md`）。
   - `tests/test_schedule_anchors.py::test_schedule_not_running_out`：錨最後一筆在 21 天內 → 紅（FOMC／ECB／BOJ／BLS 隔年排程年初前都已公布，台灣逐月補）。
 - 生效條件：呈現、相容、昨日版閘門（容器端 check_reports）＝merge 即生效；提示包與台灣區閘門＝merge 後「排程搬家」（[排程](../ops/routines.md)）。
 

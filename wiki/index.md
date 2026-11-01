@@ -93,5 +93,6 @@
 
 - `docs/*_plan.md`：每個功能的規劃、使用者的決定、結果。
 - `docs/prompt_audit/`：2026-09-24 prompt 稽核。
+- `docs/code_debt.md`：債務帳——程式裡已知的上限、到期日與什麼時候要升級（ponytail 第四段）。
 - `tw-superstock-lab/`：飆股研究（自己的 CLAUDE.md、PROGRESS.md、reports/）。
 - `reports/`：每天的新聞報告；`data/`：資料與研究檔。
