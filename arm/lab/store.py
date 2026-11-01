@@ -15,6 +15,8 @@ import json
 from datetime import date, timedelta
 from pathlib import Path
 
+from .. import fileio
+
 ROOT = Path(__file__).resolve().parents[2]
 LAB = ROOT / "data" / "lab"
 
@@ -42,8 +44,7 @@ def write(kind: str, d: str, doc) -> bool:
     data = _dump(doc)
     if p.exists() and p.read_bytes() == data:
         return False
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_bytes(data)
+    fileio.write_bytes(p, data)
     return True
 
 
@@ -127,8 +128,7 @@ def write_json(name: str, doc) -> bool:
     txt = json.dumps(doc, ensure_ascii=False, sort_keys=True, indent=0)
     if p.exists() and p.read_text(encoding="utf-8") == txt:
         return False
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(txt, encoding="utf-8")
+    fileio.write_text(p, txt)
     return True
 
 

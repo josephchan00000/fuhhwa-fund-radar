@@ -33,7 +33,7 @@ import re
 from datetime import date, timedelta
 from pathlib import Path
 
-from . import clock
+from . import clock, fileio
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "data" / "etf_watch.json"
@@ -1130,7 +1130,7 @@ def save(doc: dict) -> tuple[Path, bool]:
     OUT.parent.mkdir(parents=True, exist_ok=True)
     if is_empty(doc) and not is_empty(load()):
         return OUT, False
-    OUT.write_text(json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8")
+    fileio.write_text(OUT, json.dumps(doc, ensure_ascii=False, indent=2))
     return OUT, True
 
 

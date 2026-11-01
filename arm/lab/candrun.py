@@ -20,6 +20,7 @@ from pathlib import Path
 
 import numpy as np
 
+from .. import fileio
 from . import candspec as CS
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -967,10 +968,10 @@ def compute(ids: list[str] | None = None, *, force: bool = False, X: Ctx | None 
     return R, done
 
 
-def load_live(path: Path | None = None) -> dict:
-    try:
-        L = json.loads((path or LIVE).read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+def load_live(path: Path | None = None, strict: bool = False) -> dict:
+    """試用紀錄。strict（forward 寫回前）：檔案在但讀不起來就停下報錯，不當成空的從頭記（arm/fileio.read_json）。"""
+    L = fileio.read_json(path or LIVE, None, strict=strict)
+    if not isinstance(L, dict):
         return {"v": 1, "items": {}}
     L.setdefault("items", {})
     return L
@@ -1036,7 +1037,7 @@ def forward(X: Ctx | None = None, *, log=print, live_path: Path | None = None, s
     X = X or Ctx()
     dec = decisions(board)
     items = {it["id"]: it for it in load_spec(spec_path)["items"] if isinstance(it, dict)}
-    L = load_live(live_path)
+    L = load_live(live_path, strict=True)
     touched = []
     for cid in sorted(dec):
         d = dec[cid]
@@ -1066,6 +1067,5 @@ def save_live(L: dict, path: Path | None = None) -> bool:
     txt = json.dumps(_clean(L), ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
     if p.exists() and p.read_text(encoding="utf-8") == txt:
         return False
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(txt, encoding="utf-8")
+    fileio.write_text(p, txt)
     return True

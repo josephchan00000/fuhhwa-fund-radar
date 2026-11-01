@@ -16,6 +16,7 @@ from pathlib import Path
 
 import numpy as np
 
+from .. import fileio
 from . import corespec as S
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -563,12 +564,10 @@ def stk_from_adv(A: dict, asof: str | None = None, boom: dict | None = None) -> 
 
 # ── 前瞻 ─────────────────────────────────────────────────────────────────────
 
-def load_live() -> dict:
-    """前瞻紀錄；版本不同（規則改過）＝從頭記。LIVE_KEEP 的版本沿用（VER 5 只換新飆股那一本，警訊與 ★ 策略沒變）。"""
-    try:
-        L = json.loads(LIVE.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return {"ver": S.VER, "days": {}}
+def load_live(strict: bool = False) -> dict:
+    """前瞻紀錄；版本不同（規則改過）＝從頭記。LIVE_KEEP 的版本沿用（VER 5 只換新飆股那一本，警訊與 ★ 策略沒變）。
+    strict（record 寫回前）：檔案在但讀不起來就停下報錯，不當成空的從頭記（arm/fileio.read_json）。"""
+    L = fileio.read_json(LIVE, None, strict=strict)
     ok = isinstance(L, dict) and (L.get("ver") == S.VER or L.get("ver") in S.LIVE_KEEP)
     return {**L, "ver": S.VER, "days": dict(L.get("days") or {})} if ok else {"ver": S.VER, "days": {}}
 
@@ -579,7 +578,7 @@ def record(nows: dict, stk: dict | None, qm: dict | None = None) -> bool:
     台股 sat＝★ 策略＋新飆股（VER 4 起；VER 5 的新飆股是 N8，持股與淨值在 sxlive.json）。"""
     if os.environ.get("GITHUB_ACTIONS") != "true":
         return False
-    L = load_live()
+    L = load_live(strict=True)
     days = L.setdefault("days", {})
     for mk, n in (nows or {}).items():
         if not n or mk not in S.MARKETS or n["d"] < S.LIVE_START:
@@ -599,7 +598,7 @@ def record(nows: dict, stk: dict | None, qm: dict | None = None) -> bool:
     txt = json.dumps(L, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     if LIVE.exists() and LIVE.read_text(encoding="utf-8") == txt:
         return False
-    LIVE.write_text(txt, encoding="utf-8")
+    fileio.write_text(LIVE, txt)
     return True
 
 

@@ -31,6 +31,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
 
+from .. import fileio
 from . import store
 
 TZ = timezone(timedelta(hours=8))
@@ -194,8 +195,7 @@ def _write_lines(name: str, doc: dict, key: str) -> bool:
     p = store.LAB / name
     if p.exists() and p.read_text(encoding="utf-8") == txt:
         return False
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(txt, encoding="utf-8")
+    fileio.write_text(p, txt)
     return True
 
 

@@ -18,6 +18,7 @@ from pathlib import Path
 
 import numpy as np
 
+from .. import fileio
 from . import corespec as CS
 from . import ussxbook as BK
 from . import ussxfeat as UF
@@ -473,7 +474,7 @@ def save(R: dict, path: Path | None = None) -> bool:
     txt = json.dumps(_clean(R), ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
     if p.exists() and p.read_text(encoding="utf-8") == txt:
         return False
-    p.write_text(txt, encoding="utf-8")
+    fileio.write_text(p, txt)
     return True
 
 
@@ -496,13 +497,10 @@ def _empty_live() -> dict:
     return {"ver": X.VER, "start": None, "weeks": {}, "diff": [], "curve": None, "now": None}
 
 
-def load_live(path: Path | None = None) -> dict:
-    """前瞻紀錄；版本不同＝從頭記。"""
-    try:
-        L = json.loads((path or LIVE).read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return _empty_live()
-    return L if L.get("ver") == X.VER else _empty_live()
+def load_live(path: Path | None = None, strict: bool = False) -> dict:
+    """前瞻紀錄；版本不同＝從頭記。strict（live_update 寫回前）：檔案在但讀不起來就停下報錯，不當成空的從頭記（arm/fileio.read_json）。"""
+    L = fileio.read_json(path or LIVE, None, strict=strict)
+    return L if isinstance(L, dict) and L.get("ver") == X.VER else _empty_live()
 
 
 def _held_at(C: dict, r: dict, i: int) -> list[dict]:
@@ -541,7 +539,7 @@ def live_update(C: dict, r: dict, sig: dict[int, list], L: dict | None = None, m
     """用到最新一天的資料重跑之後：每一個新的、已經結束的週訊號日（QM_LIVE 起）各記一筆；已經記下的週不改，
     重跑結果不同時另記一筆差異。另外更新從起點以來每天的淨值（curve）與最新一天的狀態（now）。r＝run(C, sig, "spx")。"""
     cal, T = C["cal"], C["T"]
-    L = L if L is not None else load_live()
+    L = L if L is not None else load_live(strict=True)
     a = r["a"]
     wk = [i for i in sorted(C["cols"]["wk"]) if cal[i] >= X.QM_LIVE and i < T and week_done(cal[i])]
     if not wk:

@@ -26,6 +26,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from .. import fileio
 from .. import fund_intro as FI
 from . import ussxspec as X
 
@@ -323,6 +324,5 @@ def save(doc: dict, path: Path | None = None) -> bool:
     old = load(p)
     if old and {k: v for k, v in old.items() if k != "made"} == {k: v for k, v in doc.items() if k != "made"}:
         return False
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(json.dumps(doc, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
+    fileio.write_text(p, json.dumps(doc, ensure_ascii=False, separators=(",", ":")) + "\n")
     return True

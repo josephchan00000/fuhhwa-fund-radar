@@ -181,3 +181,6 @@
 
 ## [2026-11-01] 收錄 | 美股強勢品質股每天的 50 日線檢查：抓不到的那一檔沿用上一次（體檢第 2 條）
 - `arm/lab/ussxqm.py`：`watch(…, prev)` 同一週紀錄、這一檔抓不到 → 沿用上一次（含已觸發的賣出，標 `carried`）；`watch_failed`／`save_watch` 每一檔都抓不到就不寫檔；`scripts/fetch_ussx_watch.py` 帶上一次的檢查。測試 `tests/test_ussxqm.py`。改了 `lab/us-qm.md`。
+
+## [2026-11-01] 收錄 | 寫檔先寫暫存檔再換名、前瞻紀錄讀到壞檔停下報錯（體檢第 3 條）
+- 新模組 `arm/fileio.py`（`write_text`／`write_bytes`／`read_json`）；七本前瞻紀錄要寫回時 strict 讀（`fundnav`、`core`、`valog`、`ytd`、`ussxqm`、`candrun`、`sxlive`，體檢寫四本，另外三本同樣的問題一起修）；會被 `timeout` 砍到的抓取程式寫跨天的檔改用它；`.gitignore` 加 `*.tmp`。測試 `tests/test_fileio.py`。改了 `env/container.md`。

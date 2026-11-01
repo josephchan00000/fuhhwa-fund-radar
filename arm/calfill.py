@@ -21,6 +21,7 @@ import re
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
+from . import fileio
 from . import macronews as MN
 from .lab import heatdata as HD
 
@@ -494,6 +495,6 @@ def run(today: date, now: datetime, cal_dir: Path | None = None, S=None, write: 
     new, acts = fill(md, fd, today, now, S)
     wrote = False
     if write and new != md and len(MN._parse_cal_rows(new)) == len(MN._parse_cal_rows(md)) and len(new) > len(md):
-        f.write_text(new, encoding="utf-8")
+        fileio.write_text(f, new)
         wrote = True
     return {"file": str(f), "acts": acts, "wrote": wrote}

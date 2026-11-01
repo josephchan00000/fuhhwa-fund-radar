@@ -22,6 +22,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import quote
 
+from .. import fileio
 from ..http import get_bytes
 
 ROOT = Path(__file__).resolve().parent.parent.parent
@@ -359,13 +360,10 @@ def apply_overlay(docs: list[dict], out_dir: Path) -> int:
         # 釘選值優先（審查 2026-07-18）：頁面刮到的 cnyesId 不得反向覆寫人工核對過的釘選
         fmap[fid] = {"cnyesId": pin or ov["cnyes_id"] or old.get("cnyesId"),
                      "name": ov["cnyes_name"] or old.get("name")}
-        (out_dir / f"{fid}.json").write_text(
-            json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8")
+        fileio.write_text(out_dir / f"{fid}.json", json.dumps(doc, ensure_ascii=False, indent=2))
         n += 1
     if n:
-        MAP_PATH.parent.mkdir(parents=True, exist_ok=True)
-        MAP_PATH.write_text(json.dumps(fmap, ensure_ascii=False, indent=1),
-                            encoding="utf-8")
+        fileio.write_text(MAP_PATH, json.dumps(fmap, ensure_ascii=False, indent=1))
     print(f"  [cnyes] 每日報酬覆蓋 {n}/{len(docs)} 檔"
           + ("" if n else "（零命中——請在 data/cnyes_fund_map.json 釘 cnyesId 或看日誌診斷）"))
     return n

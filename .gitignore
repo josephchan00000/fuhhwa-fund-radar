@@ -73,3 +73,6 @@ dashboard/etf.html
 
 # 個股報告官方文件包（scripts/eq_docs_req.py --wait 拉下來的全文；用完就刪，不進 git）
 /.eqdocs/
+
+# 寫檔用的暫存檔（arm/fileio.py：先寫到同資料夾的暫存檔再換名；程式寫到一半被砍掉時會留下，不要 commit）
+*.tmp
