@@ -1552,8 +1552,17 @@ def _robust(fe: dict | None) -> tuple[float | None, bool]:
     return g, g >= S.LIST_GAP
 
 
+def robust_index(R: dict | None) -> dict | None:
+    """參數鄰近研究檔（sigrobust）→ {(訊號 id, 方向, 跨期間的溫度計或 None): (ok, 不穩定的參數)}；研究檔沒有＝None（sigspec 第 5.2 節，VER 27）。"""
+    if not R:
+        return None
+    return {(x["id"], x["d"], x.get("k")): (x.get("ok"), [k for k, v in (x.get("dims") or {}).items() if v is False])
+            for x in R.get("rows") or []}
+
+
 def listing(rows: list[dict], on: dict, mk: str, acts: dict | None = None, xon: dict | None = None,
-            T: dict | None = None, A: dict | None = None, gone: dict | None = None, pend: list | None = None) -> list[dict]:
+            T: dict | None = None, A: dict | None = None, gone: dict | None = None, pend: list | None = None,
+            RB: dict | None = None) -> list[dict]:
     """第 5 節 ④c 列出來的規則（VER 26；④b 是 VER 23）：這個市場現在有效的市場層級訊號（MARKET_CATS 與大跌後買點），
     訊號自己的成績次數 ≥ N_MIN、過去的命中率比平常高 THERMO_EDGE 以上（訊號自己的看多久＝研究列的統計；跨期間＝xon 現在有效、xh 的統計），
     而且今天落的那一格（sigage 第 5.1 節：第幾天 × 條件，now 的 "ck"）也一樣過；同一個項目同一支溫度計一邊留一個（那一格 e 最大的）、
@@ -1563,11 +1572,15 @@ def listing(rows: list[dict], on: dict, mk: str, acts: dict | None = None, xon: 
     之後也成立：有格子用那一格的預估之後（sigage.est），沒有用 sigoos.est／est_x；"fe"、"g"、"ok"。跨期間的列另有 "xk"、"H0"、"ak"、"xc"
     （事件型：那支溫度計的看多久、同一批次數的報酬格），H、th、up、warn 換成那支溫度計的。
     pend＝給了就放進行中（第 5.1 節）：訊號自己會列、但今天那一格沒過（"why" few／weak）或之後出現相反的讀數（gone，"why" exp），
-    同一支溫度計、同一邊、同一個項目已經列了就不放，同一個項目只留一個（訊號自己的 e 最大的）。"""
+    同一支溫度計、同一邊、同一個項目已經列了就不放，同一個項目只留一個（訊號自己的 e 最大的）。
+    VER 27（第 5.2 節）：會列的再查參數鄰近 RB（robust_index；沒給就讀研究檔）：只在這個參數成立＝不列、放進行中（"why" param，"pdims"
+    哪幾個參數）；看不出來／研究檔裡沒有這一組＝照列，"pn"＝PARAM_NA／PARAM_MISS；研究檔沒有（RB 是 None）＝照 VER 26，"pn"＝PARAM_NONE。"""
     from . import sigage as AG
     from . import sigoos as OOS
+    from . import sigrobust as RBM
     T = OOS.load() if T is None else T
     A = AG.load() if A is None else A
+    RB = robust_index(RBM.load()) if RB is None else RB
     best: dict = {}
     cand: list = []
 
@@ -1588,10 +1601,15 @@ def listing(rows: list[dict], on: dict, mk: str, acts: dict | None = None, xon: 
         if why:                                                       # 之後出現相反的讀數（gone）
             cand.append({**c, "edge": e, "st": st, "why": why, "cell": AG.cell(A, r["id"], hz, now.get("ck"))})
             return
+        pr = None if RB is None else RB.get((r["id"], d, x["xk"] if x else None), (S.PARAM_MISS, []))
+        pn = S.PARAM_NONE if pr is None else S.PARAM_MISS if pr[0] == S.PARAM_MISS else S.PARAM_NA if pr[0] is None else None
         if not A:                                                     # 第幾天的成績還沒算（或傳 {} 照舊）：照 ④b
+            if pr is not None and pr[0] is False:                     # VER 27：參數一動就不成立
+                cand.append({**c, "edge": e, "st": st, "why": "param", "pdims": pr[1], "cell": None})
+                return
             fe = (OOS.est_x(r, d, x["xk"], T) if x else OOS.est(r, d, T)) if T else None
             g, ok = _robust(fe)
-            put({**c, "edge": e, "st": st, "fe": fe, "g": g, "ok": ok, "age": False})
+            put({**c, "edge": e, "st": st, "fe": fe, "g": g, "ok": ok, "age": False, "pn": pn})
             return
         cl = AG.cell(A, r["id"], hz, now.get("ck"))
         passed, w, ce = AG.ok_cell(cl, d)
@@ -1599,9 +1617,12 @@ def listing(rows: list[dict], on: dict, mk: str, acts: dict | None = None, xon: 
         if not passed:
             cand.append({**c, "edge": e, "st": st, "why": w, "cell": cl, "ce": ce})
             return
+        if pr is not None and pr[0] is False:                         # VER 27：參數一動就不成立 → 進行中
+            cand.append({**c, "edge": e, "st": st, "why": "param", "pdims": pr[1], "cell": cl, "ce": ce})
+            return
         es = AG.est(A, d, int(c["H"]), int(cst["n"]), float(ce), bool(x))
         fe = {"hit": cst["hit"], "base": cst["base"], "fh": cst["base"] + es["g"], **es}
-        put({**c, "edge": ce, "st": cst, "cell": cl, "fe": fe, "g": es["g"], "ok": es["g"] >= S.LIST_GAP, "age": True})
+        put({**c, "edge": ce, "st": cst, "cell": cl, "fe": fe, "g": es["g"], "ok": es["g"] >= S.LIST_GAP, "age": True, "pn": pn})
 
     def xinfo(r: dict, k: str, X: dict) -> dict:
         return {"H": X["H"], "th": X["th"], "up": X["up"], "warn": X["warn"], "H0": r["H"], "xk": k, "ak": xkey(r["id"], k),
@@ -1649,10 +1670,13 @@ def today(rows: list[dict], on: dict, mk: str, acts: dict | None = None, xon: di
        "pend": {邊: [進行中…]}}。"""
     from . import sigage as AG
     from . import sigoos as OOS
+    from . import sigrobust as RBM
     T = OOS.load() if T is None else T
     pend: list = []
-    fams = listing(rows, on, mk, acts, xon, T, gone=gone, pend=pend)
-    return {"ok": True, "fwd": bool(T), "age": AG.load() is not None, **{s: [f for f in fams if f["side"] == s] for s in ("up", "warn")},
+    RB = robust_index(RBM.load())
+    fams = listing(rows, on, mk, acts, xon, T, gone=gone, pend=pend, RB=RB)
+    return {"ok": True, "fwd": bool(T), "age": AG.load() is not None, "param": RB is not None,
+            **{s: [f for f in fams if f["side"] == s] for s in ("up", "warn")},
             "pend": {s: [p for p in pend if p["side"] == s] for s in ("up", "warn")}}
 
 
@@ -1664,9 +1688,11 @@ def board(rows: list[dict], on: dict, mk: str, acts: dict | None = None, xon: di
        "up": [...], "warn": [...], "pend": {邊: [進行中…]}}]}。進行中不算溫度計。"""
     from . import sigage as AG
     from . import sigoos as OOS
+    from . import sigrobust as RBM
     T = OOS.load() if T is None else T
     pend: list = []
-    fams = listing(rows, on, mk, acts, xon, T, gone=gone, pend=pend)
+    RB = robust_index(RBM.load())
+    fams = listing(rows, on, mk, acts, xon, T, gone=gone, pend=pend, RB=RB)
     th = []
     for k, name, h in S.THERMO_HZ:
         L = {s: [f for f in fams if f["hz"] == k and f["side"] == s] for s in ("up", "warn")}
@@ -1676,8 +1702,8 @@ def board(rows: list[dict], on: dict, mk: str, acts: dict | None = None, xon: di
         lean = None if share is None else "up" if share >= S.THERMO_LEAN else "warn" if share <= 1 - S.THERMO_LEAN else "even"
         th.append({"k": k, "name": name, "h": h, "H": S.THERMO_H[k], "n": n, "share": share, "lean": lean, **L,
                    "pend": {s: [p for p in pend if p["hz"] == k and p["side"] == s] for s in ("up", "warn")}})
-    return {"ok": True, "fwd": bool(T), "age": AG.load() is not None, "up": [f for f in fams if f["side"] == "up"],
-            "warn": [f for f in fams if f["side"] == "warn"], "thermo": th}
+    return {"ok": True, "fwd": bool(T), "age": AG.load() is not None, "param": RB is not None,
+            "up": [f for f in fams if f["side"] == "up"], "warn": [f for f in fams if f["side"] == "warn"], "thermo": th}
 
 
 # ── 每天建頁：景氣頁的 B → 這個市場現在有沒有效（存在程序裡給訊號總覽沿用） ──────────
