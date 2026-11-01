@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/11/01 06:47",
+  "as_of": "2026/11/01 10:54",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [],
@@ -59,13 +59,6 @@
           "source": "中時新聞網",
           "date": "2026-10-30 18:20",
           "datetime": "2026-10-30T18:20:47+08:00"
-        },
-        {
-          "title": "00981A大跌又反彈！他想換00998A曝最新配置 內行人同感：最好賺的一段已經結束",
-          "url": "https://tw.stock.yahoo.com/news/00981a%E5%A4%A7%E8%B7%8C%E5%8F%88%E5%8F%8D%E5%BD%88-%E4%BB%96%E6%83%B3%E6%8F%9B00998a%E6%9B%9D%E6%9C%80%E6%96%B0%E9%85%8D%E7%BD%AE-%E5%85%A7%E8%A1%8C%E4%BA%BA%E5%90%8C%E6%84%9F-%E6%9C%80%E5%A5%BD%E8%B3%BA%E7%9A%84-%E6%AE%B5%E5%B7%B2%E7%B6%93%E7%B5%90%E6%9D%9F-131500636.html",
-          "source": "Yahoo股市",
-          "date": "2026-10-29 21:15",
-          "datetime": "2026-10-29T21:15:00+08:00"
         }
       ]
     },
@@ -115,13 +108,6 @@
           "source": "觀傳媒",
           "date": "2026-10-30 11:50",
           "datetime": "2026-10-30T11:50:58+08:00"
-        },
-        {
-          "title": "AI股拉回，下一筆資金怎麼布局？00418A建倉時點受關注",
-          "url": "https://tw.stock.yahoo.com/news/ai%E8%82%A1%E6%8B%89%E5%9B%9E-%E4%B8%8B-%E7%AD%86%E8%B3%87%E9%87%91%E6%80%8E%E9%BA%BC%E5%B8%83%E5%B1%80-00418a%E5%BB%BA%E5%80%89%E6%99%82%E9%BB%9E%E5%8F%97%E9%97%9C%E6%B3%A8-220808075.html",
-          "source": "Yahoo股市",
-          "date": "2026-10-30 06:08",
-          "datetime": "2026-10-30T06:08:08+08:00"
         }
       ]
     },
@@ -423,9 +409,16 @@
   "social": [
     {
       "platform": "fundhot",
+      "board": "資產配置",
+      "title": "最新規劃的資產配置",
+      "url": "https://fundhot.com/forum/%E8%B3%87%E7%94%A2%E9%85%8D%E7%BD%AE/%E6%9C%80%E6%96%B0%E8%A6%8F%E5%8A%83%E7%9A%84%E8%B3%87%E7%94%A2%E9%85%8D%E7%BD%AE/14037",
+      "date": "2026-11-01"
+    },
+    {
+      "platform": "fundhot",
       "board": "其他",
-      "title": "金管會出手堵「四貸同堂」，借錢投資先查你總共欠多少",
-      "url": "https://fundhot.com/forum/%E5%85%B6%E4%BB%96/%E9%87%91%E7%AE%A1%E6%9C%83%E5%87%BA%E6%89%8B%E5%A0%B5%E3%80%8C%E5%9B%9B%E8%B2%B8%E5%90%8C%E5%A0%82%E3%80%8D%EF%BC%8C%E5%80%9F%E9%8C%A2%E6%8A%95%E8%B3%87%E5%85%88%E6%9F%A5%E4%BD%A0%E7%B8%BD%E5%85%B1%E6%AC%A0%E5%A4%9A%E5%B0%91/14036",
+      "title": "金管會開始抓「四貸同堂」了，借錢投資先查你總共欠多少",
+      "url": "https://fundhot.com/forum/%E5%85%B6%E4%BB%96/%E9%87%91%E7%AE%A1%E6%9C%83%E9%96%8B%E5%A7%8B%E6%8A%93%E3%80%8C%E5%9B%9B%E8%B2%B8%E5%90%8C%E5%A0%82%E3%80%8D%E4%BA%86%EF%BC%8C%E5%80%9F%E9%8C%A2%E6%8A%95%E8%B3%87%E5%85%88%E6%9F%A5%E4%BD%A0%E7%B8%BD%E5%85%B1%E6%AC%A0%E5%A4%9A%E5%B0%91/14036",
       "date": "2026-10-31"
     },
     {
@@ -471,19 +464,12 @@
       "first_seen": "2026-10-29"
     },
     {
-      "platform": "fundhot",
-      "board": "其他",
-      "title": "關於強AI連買五天是包括假日嗎？",
-      "url": "https://fundhot.com/forum/%E5%85%B6%E4%BB%96/%E9%97%9C%E6%96%BC%E5%BC%B7AI%E9%80%A3%E8%B2%B7%E4%BA%94%E5%A4%A9%E6%98%AF%E5%8C%85%E6%8B%AC%E5%81%87%E6%97%A5%E5%97%8E%EF%BC%9F/14028",
-      "first_seen": "2026-10-29"
-    },
-    {
       "platform": "youtube",
       "title": "別再盲目存 00929！0056、00878 與 00713 終極對決：誰才是真正跌不倒、配得穩的「養老真防守」？ #00878 #0056 #00713 #00929 #高股息ETF",
       "channel": "财富底层逻辑",
       "url": "https://www.youtube.com/watch?v=gYyMwEhSwdM",
       "date": "2026-10-26",
-      "views": 3307
+      "views": 3312
     },
     {
       "platform": "youtube",
@@ -491,7 +477,7 @@
       "channel": "夏之戀",
       "url": "https://www.youtube.com/watch?v=xaP__cQ9sac",
       "date": "2026-10-26",
-      "views": 2684
+      "views": 2685
     },
     {
       "platform": "youtube",
@@ -499,7 +485,7 @@
       "channel": "懶得變有錢",
       "url": "https://www.youtube.com/shorts/CmPUJsZF66c",
       "date": "2026-10-30",
-      "views": 1254,
+      "views": 1263,
       "short": true
     },
     {
@@ -508,7 +494,7 @@
       "channel": "風傳媒 The Storm Media",
       "url": "https://www.youtube.com/watch?v=q4n751SOzSA",
       "date": "2026-10-29",
-      "views": 210565,
+      "views": 212936,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -518,7 +504,7 @@
       "channel": "瘋狂股市福利社Free Free Free!",
       "url": "https://www.youtube.com/watch?v=RxPRvqYjVKc",
       "date": "2026-10-30",
-      "views": 154241,
+      "views": 157403,
       "peer": true,
       "cat": "市值型"
     },
@@ -528,7 +514,7 @@
       "channel": "理財達人秀 EBCmoneyshow",
       "url": "https://www.youtube.com/watch?v=BOnMxB8Xh6M",
       "date": "2026-10-28",
-      "views": 131386,
+      "views": 131403,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -538,7 +524,7 @@
       "channel": "葉芷娟",
       "url": "https://www.youtube.com/watch?v=vNmwEEWgWuA",
       "date": "2026-10-28",
-      "views": 117377,
+      "views": 118344,
       "peer": true,
       "cat": "主動式"
     },
@@ -548,7 +534,7 @@
       "channel": "賺錢放大術",
       "url": "https://www.youtube.com/watch?v=8-Szt70v4xY",
       "date": "2026-10-30",
-      "views": 109015,
+      "views": 112709,
       "peer": true,
       "cat": "綜合"
     },
@@ -558,7 +544,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=KdZ-l9pChOs",
       "date": "2026-10-28",
-      "views": 99686,
+      "views": 100201,
       "peer": true,
       "cat": "高股息"
     },
@@ -568,7 +554,7 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/watch?v=qaDZXiyg5SU",
       "date": "2026-10-27",
-      "views": 72034,
+      "views": 72860,
       "peer": true,
       "cat": "綜合"
     },
@@ -578,7 +564,7 @@
       "channel": "午後檔案",
       "url": "https://www.youtube.com/watch?v=ZRtvgX91bLA",
       "date": "2026-10-27",
-      "views": 64475,
+      "views": 64489,
       "peer": true,
       "cat": "基金"
     },
@@ -588,7 +574,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/gyebmmVJdN4",
       "date": "2026-10-27",
-      "views": 63028,
+      "views": 63648,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -599,14 +585,14 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=E-tt9_An4pA",
       "date": "2026-10-30",
-      "views": 56909,
+      "views": 57394,
       "peer": true,
       "cat": "高股息"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00418A（詳下方新聞標籤）",
-    "社群聲量最高：金管會出手堵「四貸同堂」，借錢投資先查你總共欠多少（0 推）",
-    "YouTube 熱片：【理財】台股抄底時間到了？卡位下一波大漲，高手加碼必看「這3個關鍵」！ft.股海老牛｜下班經濟學797｜謝哲青、張瓊方（風傳媒 The Storm Media・210,565 次觀看）"
+    "社群聲量最高：最新規劃的資產配置（0 推）",
+    "YouTube 熱片：【理財】台股抄底時間到了？卡位下一波大漲，高手加碼必看「這3個關鍵」！ft.股海老牛｜下班經濟學797｜謝哲青、張瓊方（風傳媒 The Storm Media・212,936 次觀看）"
   ]
 }
