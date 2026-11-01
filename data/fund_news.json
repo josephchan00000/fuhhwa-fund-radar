@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/11/01 10:54",
+  "as_of": "2026/11/01 12:55",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [],
@@ -18,6 +18,20 @@
           "source": "今周刊",
           "date": "2026-10-30 22:56",
           "datetime": "2026-10-30T22:56:00+08:00"
+        },
+        {
+          "title": "2026 年 11 月 ETF 配息入帳懶人包：0056、00922、00929 等 19 檔，一張最高領 2,500 元",
+          "url": "https://applealmondrealty.com/posts/54287",
+          "source": "果仁家",
+          "date": "2026-10-29 12:26",
+          "datetime": "2026-10-29T12:26:03+08:00"
+        },
+        {
+          "title": "00929兩年只賺9％！0050同期大漲103％ 綠角揭高股息代價",
+          "url": "https://udn.com/news/story/123006/9843835",
+          "source": "UDN",
+          "date": "2026-10-29 09:06",
+          "datetime": "2026-10-29T09:06:19+08:00"
         }
       ]
     },
@@ -469,7 +483,7 @@
       "channel": "财富底层逻辑",
       "url": "https://www.youtube.com/watch?v=gYyMwEhSwdM",
       "date": "2026-10-26",
-      "views": 3312
+      "views": 3316
     },
     {
       "platform": "youtube",
@@ -477,7 +491,7 @@
       "channel": "夏之戀",
       "url": "https://www.youtube.com/watch?v=xaP__cQ9sac",
       "date": "2026-10-26",
-      "views": 2685
+      "views": 2686
     },
     {
       "platform": "youtube",
@@ -494,7 +508,7 @@
       "channel": "風傳媒 The Storm Media",
       "url": "https://www.youtube.com/watch?v=q4n751SOzSA",
       "date": "2026-10-29",
-      "views": 212936,
+      "views": 215132,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -504,7 +518,7 @@
       "channel": "瘋狂股市福利社Free Free Free!",
       "url": "https://www.youtube.com/watch?v=RxPRvqYjVKc",
       "date": "2026-10-30",
-      "views": 157403,
+      "views": 158218,
       "peer": true,
       "cat": "市值型"
     },
@@ -514,7 +528,7 @@
       "channel": "理財達人秀 EBCmoneyshow",
       "url": "https://www.youtube.com/watch?v=BOnMxB8Xh6M",
       "date": "2026-10-28",
-      "views": 131403,
+      "views": 131425,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -524,7 +538,7 @@
       "channel": "葉芷娟",
       "url": "https://www.youtube.com/watch?v=vNmwEEWgWuA",
       "date": "2026-10-28",
-      "views": 118344,
+      "views": 119374,
       "peer": true,
       "cat": "主動式"
     },
@@ -534,7 +548,7 @@
       "channel": "賺錢放大術",
       "url": "https://www.youtube.com/watch?v=8-Szt70v4xY",
       "date": "2026-10-30",
-      "views": 112709,
+      "views": 115450,
       "peer": true,
       "cat": "綜合"
     },
@@ -544,7 +558,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=KdZ-l9pChOs",
       "date": "2026-10-28",
-      "views": 100201,
+      "views": 100818,
       "peer": true,
       "cat": "高股息"
     },
@@ -554,7 +568,7 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/watch?v=qaDZXiyg5SU",
       "date": "2026-10-27",
-      "views": 72860,
+      "views": 73456,
       "peer": true,
       "cat": "綜合"
     },
@@ -564,7 +578,7 @@
       "channel": "午後檔案",
       "url": "https://www.youtube.com/watch?v=ZRtvgX91bLA",
       "date": "2026-10-27",
-      "views": 64489,
+      "views": 64587,
       "peer": true,
       "cat": "基金"
     },
@@ -574,7 +588,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/gyebmmVJdN4",
       "date": "2026-10-27",
-      "views": 63648,
+      "views": 63996,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -585,7 +599,7 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=E-tt9_An4pA",
       "date": "2026-10-30",
-      "views": 57394,
+      "views": 58100,
       "peer": true,
       "cat": "高股息"
     }
@@ -593,6 +607,6 @@
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00418A（詳下方新聞標籤）",
     "社群聲量最高：最新規劃的資產配置（0 推）",
-    "YouTube 熱片：【理財】台股抄底時間到了？卡位下一波大漲，高手加碼必看「這3個關鍵」！ft.股海老牛｜下班經濟學797｜謝哲青、張瓊方（風傳媒 The Storm Media・212,936 次觀看）"
+    "YouTube 熱片：【理財】台股抄底時間到了？卡位下一波大漲，高手加碼必看「這3個關鍵」！ft.股海老牛｜下班經濟學797｜謝哲青、張瓊方（風傳媒 The Storm Media・215,132 次觀看）"
   ]
 }
