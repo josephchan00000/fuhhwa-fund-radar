@@ -187,3 +187,6 @@
 
 ## [2026-11-01] 收錄 | 拿掉沒在跑的舊本機流程（體檢第 7 條）
 - 使用者確認舊流程「沒在跑了」、臉書抓取留著。拿掉 117 個檔（腳本 16 支、模組與 `arm/copy/`、`connectors/brokers/`、專用測試 14 支、設定與舊資料、`reports/intel/`）；`arm/connectors/social/` 只留 `facebook`、`base`、`filters`、`__init__`。`.claude/rules/calendar.md` 拿掉 `arm/calendar.py`。改了 `env/git-history.md`、`main/etf-holdings.md`、`main/fund-returns.md`。
+
+## [2026-11-01] 收錄 | 拿掉舊本機流程剩下的零件（體檢第 7 條第二步）
+- `arm/config.py` 的 `distributions()`、`connectors/issuers` 只給舊流程用的 `load_holdings`、`competitor_peers` 與 `base.py`、`connectors/etfinfo.py` 的 `latest_market`、`dividends`、`active_flow`、`connectors/tdcc.py` 的受益人數週增與 `arm/db.py`。正式流程用到的 `config.product`、`issuers/pcf.py`、`etfinfo.fetch_etf`／`holdings_fresh`／`list_etfs`、`tdcc._fetch_csv` 都留著。
