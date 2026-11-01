@@ -16,7 +16,7 @@
   CI 每天抓規模／殖利率就在打同一 API，可達性已被證實數週。
 - **副來源 Yahoo 股市持股頁**（Tier B）：`tw.stock.yahoo.com/quote/{code}.TW/holding` SSR 內嵌 JSON（`parse_embedded_json`；代號帶 .TW/.TWO 字尾已在 `_row_from_mapping` 去尾）。
   **MoneyDJ 已試過並移除**（2026-07-29 實測：basic0007 頁 table×0、SSR 表格已不存在）。
-- **本家三檔（00991A/00998A/00986D）走復華官網 assetsExcel（Tier A 第一手）**：`config/products.json` 對映 `fund_id`（ETF23/24/25），舊管線 `arm/pipeline.py` 本就以此抓三檔（含前後快照 diff、**排除期貨避險列**——沿用此慣例）。
+- **本家三檔（00991A/00998A/00986D）走復華官網 assetsExcel（Tier A 第一手）**：`config/products.json` 對映 `fund_id`（ETF23/24/25），舊管線 `arm/pipeline.py`（2026-11-01 拿掉）本就以此抓三檔（含前後快照 diff、**排除期貨避險列**——沿用此慣例）。
   順序＝fhtrust → etfinfo（同為每日 PCF 基準，**且兩源快照日相同時**做真正的權重驗證「🟢 雙源相符」，否則只驗構成）→ Yahoo。外股 ticker（'C US'）與債券（面額）原生支援；
   海外持股「個股當日漲跌/貢獻」原本因無台股報價顯示 —（誠實降級；2026-10-21 起改用 Yahoo 已收盤價）。
 - **已排進每日循環（2026-07-30 使用者指示）**：本 job 抓持股後**直接重建儀表板＋commit＋打 Deploy Hook**——當日貢獻當晚上線，不等隔日早上；早上 daily.yml 重建時亦自然帶入 main 上最新持股檔。

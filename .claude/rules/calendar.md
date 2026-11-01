@@ -1,7 +1,6 @@
 ---
 paths:
   - "arm/twholidays.py"
-  - "arm/calendar.py"
   - "arm/calfill.py"
   - "arm/calsrc.py"
   - "scripts/run_calfill.py"
