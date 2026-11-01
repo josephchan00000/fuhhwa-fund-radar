@@ -185,6 +185,7 @@ EXTRA: dict[str, tuple[str, str]] = {
     "lessons": ("跨主題的教訓", "踩過不只一次、換個地方還會再踩的事；一條一句，細節連到出處頁。"),
     "lab/signals-versions-early": ("訊號總覽：版本紀錄 VER 1～16", "從 lab/signals-versions 拆出來的早期版本紀錄。"),
     "lab/signals-quality": ("訊號計算核對與參數鄰近", "第二套算法、截斷重建、資料來源比對、每週核對；參數鄰近檢查。"),
+    "lab/signals-today": ("今天的清單、進行中與溫度計", "市場頁今天的訊號列哪些、拿掉的放哪裡、每一條的原因；溫度計怎麼算。"),
 }
 
 

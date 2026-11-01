@@ -8,8 +8,9 @@ paths:
   - "scripts/run_thermo.py"
   - "scripts/run_sim.py"
 ---
-改訊號判定、溫度計或訊號頁之前，先讀 `wiki/lab/signals.md`（版本紀錄 `wiki/lab/signals-versions.md`、`wiki/lab/signals-versions-early.md`）。
+改訊號判定、溫度計或訊號頁之前，先讀 `wiki/lab/signals.md`（版本紀錄 `wiki/lab/signals-versions.md`、`wiki/lab/signals-versions-early.md`）；今天的清單、進行中、溫度計看 `wiki/lab/signals-today.md`，計算核對與參數鄰近看 `wiki/lab/signals-quality.md`。
 - 規格 `sigspec.py` 先改、先 commit，才重跑研究；升版看要不要動 `RES_VER`。
 - 狀態型每一天一樣重（VER 22），不要改回每一段平均；跌幅一律列最差一次（VER 24）。
 - 後一段研究改掉前一段決定的前提時，先回頭問使用者。
 - 市場頁（景氣頁）要在 sigpage 之前、同一個程序裡建（sigpage 讀它存的研究卡與指標）。
+- 今天的清單（VER 26～27）：今天落的那一格也要過、參數一動就不成立的不列，拿掉的放進行中；格子與參數鄰近只拿掉、不多列、不換參數。

@@ -152,3 +152,7 @@
 
 ## [2026-11-01] 收錄 | EMA 賣壓與天數衰減（C 段）
 - emaspec VER 1、decayspec VER 1（都在算結果之前 commit）；`arm/lab/sigema.py`、`arm/lab/sigdecay.py`、`scripts/run_ema.py`、`scripts/run_decay.py`。兩個都沒有比現在好，照規則不換。第 26 版分支併進來、sigage／thermo 研究檔重算，`sigverify.check_thermo` 改比 VER 25 的票。改了 `lab/signals-quality.md`（規劃第 13 節）。
+
+## [2026-11-01] 收錄 | 今天的清單接上第 26～27 版、第二套算法補齊（D 段）
+- sigspec VER 27（頁面之前 commit）：參數一動就不成立的不列、放進行中，法人訊號加一句。`sigcat.listing` 接上參數鄰近（`robust_index`、`RB`）；`sigverify.check_age`、`thermo2` 補第 26 版格子與溫度計新票的第二套算法，抓到 S&P 500 2003-10-22 收盤等於月線的浮點誤差並修好（`sigage._sgn`），五個市場 0 個不一致。頁面：每一條寫原因（那一格的數字、出現日、過了幾天、條件、今天看到的那一筆）、進行中（預設收起）、訊號總覽多一欄「今天進場」。新頁 `lab/signals-today.md`（`lab/signals.md` 快到長度上限，今天的清單一節搬過去）；改了 `lab/signals.md`、`lab/signals-quality.md`、`.claude/rules/signals.md`（規劃 `docs/lab_signal_quality_plan.md` 第 14 節、`docs/lab_signal_listing_plan.md` 第 10 節）。
+

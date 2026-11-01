@@ -2,7 +2,7 @@
 
 > 訊號算得對不對（第二套算法、截斷重建、資料來源比對、手算案例、每週核對）與參數會不會只是剛好（參數鄰近檢查）；EMA 與頁面是後面的段落。
 > 原始資料：規劃 `docs/lab_signal_quality_plan.md`；程式：`arm/lab/sigverify.py`、`arm/lab/truncheck.py`、`arm/lab/srccheck.py`、`arm/lab/nbrspec.py`、`arm/lab/sigrobust.py`
-> 最後更新：2026-11-01（C 段）
+> 最後更新：2026-11-01（D 段）
 
 ## 現在怎麼運作
 
@@ -13,7 +13,7 @@
 - 每週六 13:17 `verify.yml`（main 上）先更新官方公布日表再核對；不一致標紅、推播、不擋發佈——見[籌碼雷達介面](chip-ui.md)「每週計算核對」。
 - 月／季資料照官方實際公布日（`arm/lab/reldates.py`）——見[台股景氣頁](heat-tw.md)、[美股景氣頁](heat-us.md)。
 
-### 參數鄰近檢查（B 段，2026-11-01；還沒接上頁面）
+### 參數鄰近檢查（B 段，2026-11-01；D 段接上今天的清單）
 
 - 規格 `arm/lab/nbrspec.py`（VER 1，`tests/test_nbrspec.py` 鎖住）；程式 `arm/lab/sigrobust.py`；研究檔 `data/lab/robust_research.json`＝
   `TZ=Asia/Taipei python3 scripts/run_robust.py`（約 6 分鐘，只讀落檔；跟著 `run_sig.py` 重跑）。
@@ -22,7 +22,7 @@
 - 鄰近一律用正式程式重算：暫時換規格常數（`sigrobust.patched`；百分位比較期間 `sigrobust.windows`）；技術事件的參數是 heattech 函式的預設值，
   換常數沒有用，另外明寫傳參（`sigrobust.tech_events`）。
 - 原本參數重算要和 `data/lab/sig_research.json` 一模一樣（`sigrobust.selfcheck`＋每一組的次數、命中率、平常），不一樣就停、不出結果。
-- 2026-11-01：2,794 組穩定 74%；自營商連續 10 天賣超穩定，三大法人連續 10 天賣超只在這個參數成立。使用者的決定 D2 a（不穩定的不列）第 D 段才接上頁面。
+- 2026-11-01：2,794 組穩定 74%；自營商連續 10 天賣超穩定，三大法人連續 10 天賣超只在這個參數成立。使用者的決定 D2 a（不穩定的不列）：sigspec VER 27 起不穩定的放進行中——見[今天的清單、進行中與溫度計](signals-today.md)。
 
 ### EMA 賣壓與天數衰減（C 段，2026-11-01；都沒有比現在好，照規則不換）
 
@@ -31,8 +31,14 @@
   和合計、連續買賣超都差不多（區間碰到 0）。三種法人訊號列出來之後的下一年平均都沒有比平常好。
 - 天數衰減：規格 `arm/lab/decayspec.py`（VER 1），程式 `arm/lab/sigdecay.py`，研究檔 `data/lab/decay_research.json`＝`scripts/run_decay.py`（約 6 分鐘）。
   自己的成績 × 0.5^(第幾天 ÷ 半衰期)，半衰期同一類一起估；和第 26 版的格子比（同 thermocal.compare），列得多 44% 但平均準度低 0.5 點，維持格子。
-- 第 26 版（`claude/signal-listing` 第一、二段）已併進這個分支；`sigverify.check_thermo` 改和 thermocal 另存的 VER 25 票比，
-  第 26 版的格子與新票的第二套算法第 D 段上線前補。
+- 第 26 版（`claude/signal-listing` 第一、二段）已併進這個分支。
+
+### 第 26 版格子與溫度計新票的第二套算法（D 段，2026-11-01）
+
+- `sigverify.age2`／`check_age`（格子、逐年紀錄）、`thermo2`／`check_thermo`（溫度計兩版的每週票數、今年的票、分組判定），照規格文字重寫、不呼叫 sigage；
+  `scripts/run_verify.py` 每週一起跑。故意改壞（條件晚一天、分段差一天）一定抓得到（`tests/test_verify.py`）。
+- 抓到一個錯、修好：S&P 500 2003-10-22 收盤剛好等於 20 日均線，原本平均出來多 1e-13 而算成「在月線下面」；`sigage._sgn` 改成浮點誤差內＝相等，
+  重算 `sigage_research.json`（只動到 S&P 500 跌破月線）。修好之後五個市場 0 個不一致（格子 5,824 組、逐年紀錄 44,075 組）。
 
 ## 不能改的規則
 
@@ -41,4 +47,4 @@
 
 ## 歷史
 
-- 2026-10-31 A 段（A-1～A-3）；2026-11-01 B 段。順序（使用者決定 D1）：先正確性、再參數鄰近與 EMA、最後頁面（第 D 段），之後整理程式（ponytail）。
+- 2026-10-31 A 段（A-1～A-3）；2026-11-01 B、C、D 段。順序（使用者決定 D1）：先正確性、再參數鄰近與 EMA、最後頁面（第 D 段），之後整理程式（ponytail）。
