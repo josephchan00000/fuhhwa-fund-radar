@@ -2,7 +2,7 @@
 
 > FactSet 與 Yahoo 資料、目標價的用字例外、產業比較、頁面。
 > 原始資料：CLAUDE.md「籌碼雷達」段「法人預估與產業比較」；規劃 `docs/lab_forward_plan.md`；程式：`arm/lab/fcst.py`、`arm/lab/industry.py`、`arm/lab/copage.py`；測試 `tests/test_fcst.py`（用真實快訊：解析、去重、一檔一行寫檔、Yahoo 0 值、頁面接線、禁用字）、`tests/test_industry.py`
-> 最後更新：2026-10-29
+> 最後更新：2026-11-01
 > 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
@@ -14,7 +14,7 @@
 - 鉅亨網「台股預估」分類 `api.cnyes.com/media/api/v1/newslist/category/tw_forecast?startAt=&endAt=&limit=30`＝FactSet 調查快訊，共識預估有變動才發一則。
   EPS 快訊（家數、主要年度 EPS 中位數前值→新值、最高最低、當時的預估股價；內文兩張表＝三年 EPS、三年營收千元）、預估股價快訊（中位數前值→新值、幅度、最高最低、評等 積極樂觀／保持中立／保守悲觀）。
   存 `data/lab/fcst/factset.json`（一檔一行、newsId 去重、只有最新一則 EPS 快訊留三年表格）。2026-10-16 回補：217 檔、9,863 則，2023-01 起（再往前 8 週都沒有＝到底）。
-- Yahoo quoteSummary（`fc.yahoo.com` 拿 cookie＋`/v1/test/getcrumb`；上市 `.TW`、上櫃 `.TWO`）：家數、預估股價平均／中位／高／低、今明年 EPS 與營收預估、30／90 天前 EPS、近 30 天上修下修、評等分布。存 `data/lab/fcst/yahoo.json` 一天一次（平日只抓有分析師的、週一重掃全部，全掃約 76 秒），每週封存一份到 `data/lab/fcst_y/`。
+- Yahoo quoteSummary（`fc.yahoo.com` 拿 cookie＋`/v1/test/getcrumb`；上市 `.TW`、上櫃 `.TWO`）：家數、預估股價平均／中位／高／低、今明年 EPS 與營收預估、30／90 天前 EPS、近 30 天上修下修、評等分布。存 `data/lab/fcst/yahoo.json` 一天一次（平日只抓有分析師的、週一重掃全部，全掃約 76 秒），每週封存一份到 `data/lab/fcst_y/`。上市櫃名單（`company.listed_now`）是空的、或這次一家都沒有分析師資料而舊檔有 → 不寫、回 `err`（2026-11-01，體檢第 6 條）。
 - 每日：`afterhours_refresh.yml` 在 fetch_lab 後跑 `scripts/fetch_fcst.py`（timeout 420；快訊每班補到現在、Yahoo 一天一次）。回補：`.ping/lab` 第一行 `fcfill`（快訊 260 週＋Yahoo 全掃）。
 - 來源怎麼挑在 `fcst.view` 決定、頁面不判斷：
   FactSet 最新一則在 `STALE_DAYS`=120 天內用 FactSet，否則用 Yahoo（每天更新），都沒有才用舊 FactSet、標「M/D 的資料，之後沒有更新」（舊資料不進飆股段小字）。

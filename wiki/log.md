@@ -190,3 +190,6 @@
 
 ## [2026-11-01] 收錄 | 拿掉舊本機流程剩下的零件（體檢第 7 條第二步）
 - `arm/config.py` 的 `distributions()`、`connectors/issuers` 只給舊流程用的 `load_holdings`、`competitor_peers` 與 `base.py`、`connectors/etfinfo.py` 的 `latest_market`、`dividends`、`active_flow`、`connectors/tdcc.py` 的受益人數週增與 `arm/db.py`。正式流程用到的 `config.product`、`issuers/pcf.py`、`etfinfo.fetch_etf`／`holdings_fresh`／`list_etfs`、`tdcc._fetch_csv` 都留著。
+
+## [2026-11-01] 收錄 | 三個算出來的檔，來源讀不到時不寫成空的（體檢第 6 條）
+- `arm/lab/usfin.py` 的 `save`（一家季報都沒有而舊檔有 → 不寫）、`arm/lab/mratio.py` 的 `update_series`（算出 0 筆而舊序列有 → 不寫）、`arm/lab/fcst.py` 的 `update_yahoo`（上市櫃名單是空的、或一家都沒有分析師資料而舊檔有 → 不寫）。測試 `tests/test_usfin.py`、`tests/test_mratio.py`、`tests/test_fcst.py`。改了 `lab/cfg-research.md`、`lab/expert.md`、`lab/forecast.md`。

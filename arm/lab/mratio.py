@@ -160,6 +160,9 @@ def update_series() -> int:
     shards = {d: doc for d, doc in store.load("mkt", since=end) if d > end} if end else {}
     new = build_series(agg, margin, shards)
     old = HD.load(SERIES)
+    if old and not new:                          # 融資餘額序列讀不到 → 算出 0 筆：保留舊序列（體檢第 6 條）
+        print("[mratio] ⚠ 這次算出 0 筆（融資餘額序列讀不到？），保留舊的維持率序列")
+        return 0
     n = sum(1 for k, v in new.items() if old.get(k) != v) + sum(1 for k in old if k not in new)
     if n:
         HD.save(SERIES, "finmind+mkt", new)
