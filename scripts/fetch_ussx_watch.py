@@ -35,9 +35,10 @@ def main() -> None:
     if not (L.get("now") or {}).get("hold"):
         print("[美股三成] 還沒有每週紀錄的持股，不檢查")
     else:
-        W = QM.watch(L, fetch=fetch)
+        W = QM.watch(L, fetch=fetch, prev=QM.load_watch())
         ch = QM.save_watch(W)
-        print(f"[美股三成] 持股 {len(W['hold'])} 檔、資料到 {W.get('d')}（{'有更新' if ch else '沒有變'}）："
+        print(f"[美股三成] 持股 {len(W['hold'])} 檔、資料到 {W.get('d')}"
+              f"（{'每一檔都抓不到，不寫檔、留著上一次的檢查' if QM.watch_failed(W) else '有更新' if ch else '沒有變'}）："
               + ("、".join(f"{x['c']} {x['trig']} 收盤跌破 50 日線→{x['on']} 開盤賣" for x in W["sell"]) or "沒有跌破 50 日線的"))
         for e in W["err"]:
             print(f"  ⚠ {e['c']}：{e['msg']}")

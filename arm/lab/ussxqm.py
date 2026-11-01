@@ -636,14 +636,18 @@ def watch_one(h: dict, base: str, s: dict | None) -> dict:
     return out
 
 
-def watch(L: dict | None = None, fetch=None, made: str | None = None) -> dict:
-    """最新一週紀錄的持股，逐檔抓 Yahoo 日線（ussxdata.fetch_since，從買進前約 150 天起）檢查。只是頁面提醒，帳以每週重跑為準。"""
+def watch(L: dict | None = None, fetch=None, made: str | None = None, prev: dict | None = None) -> dict:
+    """最新一週紀錄的持股，逐檔抓 Yahoo 日線（ussxdata.fetch_since，從買進前約 150 天起）檢查。只是頁面提醒，帳以每週重跑為準。
+    prev＝上一次的檢查（load_watch）：同一週紀錄、這一檔這次抓不到 → 沿用上一次那一檔（含已經觸發的賣出），標 carried；
+    日期 d 留上一次的（過期標記）。docs/code_ponytail_audit.md 第 2 條。"""
     from datetime import timedelta
     from . import ussxdata as UD
     L = L if L is not None else load_live()
     now = L.get("now") or {}
     fetch = fetch or (lambda c, st: UD.fetch_since(c, st, timeout=20))    # 每天的檢查最多 8 檔：一檔最多等 20 秒（整支 180 秒內跑完）
     out = {"ver": X.VER, "made": made or date.today().isoformat(), "base": now.get("d"), "hold": [], "sell": [], "err": []}
+    same = bool(prev) and prev.get("base") == now.get("d")
+    last = {w["c"]: w for w in (prev or {}).get("hold") or [] if same and not w.get("err")}
     for h in now.get("hold") or []:
         start = (date.fromisoformat(h["ent"]) - timedelta(days=150)).isoformat()
         try:
@@ -653,6 +657,8 @@ def watch(L: dict | None = None, fetch=None, made: str | None = None) -> dict:
         w = watch_one(h, now.get("d") or "", s)
         if w.get("err"):
             out["err"].append({"c": h["c"], "msg": msg if msg != "ok" else w["err"]})
+            if h["c"] in last:
+                w = {**last[h["c"]], "carried": True}
         out["hold"].append(w)
         if w.get("trig"):
             out["sell"].append({"c": h["c"], "trig": w["trig"], "on": w["on"]})
@@ -661,7 +667,15 @@ def watch(L: dict | None = None, fetch=None, made: str | None = None) -> dict:
     return out
 
 
+def watch_failed(W: dict) -> bool:
+    """每一檔都抓不到日線（沿用上一次的也算）。"""
+    return bool(W.get("hold")) and len(W.get("err") or []) >= len(W["hold"])
+
+
 def save_watch(W: dict, path: Path | None = None) -> bool:
+    """每一檔都抓不到＝不寫，留著上一次的檢查（鐵則：非空的落檔不覆寫成空）。"""
+    if watch_failed(W):
+        return False
     return save(W, path or WATCH)
 
 
