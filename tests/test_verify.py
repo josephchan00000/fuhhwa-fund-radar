@@ -1,0 +1,469 @@
+"""計算正確性的兩道核對（docs/lab_signal_quality_plan.md 第 5、8 節，A 段）：
+第二套算法（arm/lab/sigverify.py）——手算的例子對、亂數資料上和網頁用的程式一樣、整個市場的比對抓得到故意改壞的地方；
+截斷重建（arm/lab/truncheck.py）——截斷規則對、抓得到「當時還拿不到的資料」、乾淨的不會誤報。"""
+from datetime import date, timedelta
+
+import numpy as np
+import pytest
+
+from arm.lab import heat as H
+from arm.lab import heatpos as HP
+from arm.lab import heattech as TT
+from arm.lab import hotch as HCH
+from arm.lab import hotdd as HDD
+from arm.lab import sigcat as G
+from arm.lab import sigspec as S
+from arm.lab import sigverify as V
+from arm.lab import truncheck as TC
+from arm.lab.heatrel import heat_events
+
+
+def _cal(T):
+    d, out = date(2001, 1, 1), []
+    while len(out) < T:
+        if d.weekday() < 5:
+            out.append(d.isoformat())
+        d += timedelta(days=1)
+    return out
+
+
+def _we(cal):
+    return [i for i in range(len(cal)) if i == len(cal) - 1 or
+            date.fromisoformat(cal[i + 1]).isocalendar()[:2] != date.fromisoformat(cal[i]).isocalendar()[:2]]
+
+
+def _walk(rng, T, head=40, holes=5):
+    """0～100、會回到 50 的隨機走勢（常常進出過熱、過冷），開頭沒有值、中間幾個洞。"""
+    x = np.empty(T)
+    v = 50.0
+    for t in range(T):
+        v = min(100.0, max(0.0, 50 + 0.985 * (v - 50) + rng.normal(0, 5)))
+        x[t] = v
+    x[:head] = np.nan
+    x[rng.choice(np.arange(head, T), size=holes, replace=False)] = np.nan
+    return x
+
+
+def _px(rng, T):
+    return 100 * np.exp(np.cumsum(rng.normal(0.0003, 0.012, T)))
+
+
+# ── 手算的例子 ────────────────────────────────────────────────────────────────
+
+def test_hand_examples():
+    x = np.array([50.0] * 20 + [85.0, 90.0])
+    assert V._zone_events(x, "hot") == [20]                        # 前 20 天都有值而且 < 80，今天 ≥ 80
+    x[3] = np.nan
+    assert V._zone_events(x, "hot") == []                           # 前 20 天有一天沒有值
+    w = np.array([85.0, 85.0, 85.0, 85.0, 70.0, 85.0, 85.0, 85.0, 70.0])
+    we = list(range(len(w)))
+    assert V._exits(w, we, True) == [4]                             # 連 4 週之後離開；只連 3 週不算
+    w2 = np.array([85.0, 85.0, np.nan, 85.0, 85.0, 70.0])
+    assert V._exits(w2, list(range(6)), True) == []                 # 沒有值的週末讓週數歸零
+    amt = np.array([1.0, -1, -1, -1, 1, -1, -1, -1, -1, np.nan, -1])
+    assert V._runs(amt, -1, 3) == [3, 7]                            # 第 3 天連續才算一次，同一段不重複
+    p = np.array([100.0, 100.0 + 1e-13, 99.0, np.nan])
+    q = np.array([100.0, 100.0, 100.0, 100.0])
+    assert V._side(p, q) == [0, 0, -1, None]                        # 浮點誤差＝相等
+    s = V._sma(np.array([1.0, 2.0, np.nan, 4.0, 5.0, 6.0]), 2)
+    assert np.isnan(s[0]) and s[1] == 1.5 and np.isnan(s[2]) and np.isnan(s[3]) and s[4] == 4.5 and s[5] == 5.5
+    px = np.array([100.0, 100.0, 110.0, 99.0, 105.0, 104.0])        # LAG＝1：第 t 天的訊號第 t＋1 天收盤進場
+    up, wn = V.outcomes(px, 3, 0.08)
+    assert S.LAG == 1 and up[0] == 1.0 and wn[0] == 1.0             # 100→105 上漲；110→99 跌 10% ≥ 8%
+    assert up[1] == 0.0 and wn[1] == 1.0                            # 110→104
+    assert np.isnan(up[2]) and np.isnan(wn[2])                      # 窗口還沒走完
+    assert V._dedupe([5, 6, 30, 31, 52], 20) == [5, 30, 52]
+
+
+# ── 亂數資料上和網頁用的程式一樣 ──────────────────────────────────────────────
+
+def test_detectors_match_production_on_random_series():
+    for seed in range(6):
+        rng = np.random.default_rng(seed)
+        T = 1200
+        cal = _cal(T)
+        we = _we(cal)
+        x = _walk(rng, T)
+        xl = G._lst(x)
+        for k in ("hot", "cold"):
+            assert V._zone_events(x, k) == heat_events(xl, k)
+        assert V._exits(x, we, True) == HDD.exits(xl, we, S.EXIT_MIN)
+        assert V._exits(x, we, False) == G.cold_exits(xl, we, S.EXIT_MIN)
+        a, b = V._streak13(x, we), HCH.streak_days(xl, we)
+        assert all((np.isnan(u) and v is None) or u == v for u, v in zip(a, b))
+        amt = rng.normal(0, 1, T)
+        amt[rng.choice(T, 20, replace=False)] = np.nan
+        for sign in (-1, 1):
+            for n in S.INST_RUN:
+                assert V._runs(amt, sign, n) == G.run_days(amt, sign, n)
+
+
+def test_outcomes_dedupe_and_tech_match_production():
+    for seed in range(4):
+        rng = np.random.default_rng(100 + seed)
+        T = 1500
+        px = _px(rng, T)
+        px[rng.choice(np.arange(300, T), 6, replace=False)] = np.nan
+        for h in (20, 60):
+            th = G.warn_th("spx", h)
+            u1, w1 = V.outcomes(px, h, th)
+            u2, w2, _ = G.outcomes(px, h, th)
+            assert np.array_equal(np.isnan(u1), np.isnan(u2)) and np.allclose(np.nan_to_num(u1), np.nan_to_num(u2))
+            assert np.allclose(np.nan_to_num(w1), np.nan_to_num(w2))
+        days = sorted(rng.choice(T, 80, replace=False).tolist())
+        assert V._dedupe(days, 20) == G.dedupe(days, 20)
+        px = _px(rng, T)                                            # 技術事件：沒有洞的收盤
+        ev = TT.all_events([float(p) for p in px])
+        for sd in V._tech("spx", px):
+            k = sd["id"].split(":")[2]
+            assert sd["days"] == [t for t in ev[k] if t >= S.EV_START], k
+
+
+# ── 整個市場的比對 ────────────────────────────────────────────────────────────
+
+def _frame(mk="spx", T=1600, seed=7):
+    """一個市場的人工 frame（sigcat.frame 的欄位）：景氣項目、大跌風險項目、面向、法人、邊際變化、泡沫月資料。"""
+    rng = np.random.default_rng(seed)
+    cal = _cal(T)
+    dims = ["fund", "liq", "tech", "sent"] if mk != "tw" else ["fund", "chip", "gliq", "tliq", "tech"]
+    var = lambda k, grp, H=60: {"key": k, "name": k, "grp": grp, "H": H, "x": _walk(rng, T)}
+    F = {"mk": mk, "cal": cal, "px": _px(rng, T), "we": _we(cal), "wes": HP.done_week_ends(cal), "dims": dims,
+         "comp": {d: _walk(rng, T) for d in dims},
+         "vars": [var("A1", "fund"), var("B2", "liq")], "cvars": [var("W1", "crash", 120)], "bvars": [var("BD1", "bd")],
+         "deriv": [{"key": "A1", "name": "A1", "kind": "grow",
+                    "x": rng.integers(1, 5, T).astype(float), "have": np.r_[np.zeros(60, bool), np.ones(T - 60, bool)]}],
+         "deriv_words": {"grow": ["加速", "趨緩", "加劇", "收斂"]}, "IB": None, "ivars": [], "r0": G.recent_from(cal)}
+    if mk == "tw":
+        F["ivars"] = [{"key": "fi20", "who": "fi", "w": 20, "name": "外資 20 日", "H": 60, "x": _walk(rng, T)},
+                      {"key": "fi1", "who": "fi", "w": 1, "name": "外資單日", "H": 20,
+                       "x": rng.uniform(0, 100, T), "amt": rng.normal(0, 1, T)}]
+    me = {}
+    for i, d in enumerate(cal):
+        me[d[:7]] = d
+    F["bub"] = [{"d": d, "L": int(rng.integers(0, 5)), **{k: bool(rng.random() < 0.3) for k in ("P1", "P2", "P3", "E", "G", "F", "V")}}
+                for d in list(me.values())[:-1]]
+    return F
+
+
+def test_check_market_agrees_on_synthetic_frames():
+    for mk in ("spx", "tw"):
+        r = V.check_market(_frame(mk))
+        assert r["bad"] == [], r["bad"][:5]
+        assert r["checked"] == r["n"] - len(r["skip"]) and r["checked"] >= 50
+        assert all(s.split(":")[2] in V.TECH_SKIP for s in r["skip"])
+
+
+def test_check_market_catches_a_broken_detector(monkeypatch):
+    """故意把第二套的「過熱結束」改成晚一週：比對一定要報出來（證明比對不是空轉）。"""
+    real = V._exits
+    monkeypatch.setattr(V, "_exits", lambda x, we, hot: [we[we.index(i) + 1] for i in real(x, we, hot) if i != we[-1]])
+    bad = V.check_market(_frame("spx"))["bad"]
+    assert any(b[0].endswith(":hot_out") and b[1] == "出現日不同" for b in bad)
+
+
+# ── 截斷重建 ──────────────────────────────────────────────────────────────────
+
+def test_cut_rules():
+    D = {"2025-11-10": 1, "2025-11-30": 2, "2025-09": 3, "2025-10": 4, "2025-11": 5, "2025-Q3": 6, "2024": 7, "note": 8}
+    c = TC.cut(D, "2025-11-20", (1, 16))
+    assert set(c) == {"2025-11-10", "2025-09", "2025-10", "2025-Q3", "2024", "note"}   # 10 月 11/16 公布、11 月 12/16
+    assert set(TC.cut(D, "2025-11-20")) == {"2025-11-10", "2025-09", "2025-10", "2025-Q3", "2024", "note"}
+    assert "2025-10" not in TC.cut(D, "2025-11-15", (1, 16))
+    assert TC.cut([1, 2], "2025-01-01") == [1, 2]
+    q = TC.cut_q({"2025-Q3": 1, "2025-Q4": 2, "x": 3}, "2025-09-01")                  # 第 3 季調查 8/31 公布
+    assert set(q) == {"2025-Q3", "x"}
+
+
+def _toy(ser, cal, leak):
+    """月資料 → 每天拿得到的最新一個月（公布時間差 (1, 16)）。leak＝缺一個月時用前後兩個月平均補，
+    而且補出來的月份照它自己的月份算公布日（補值其實要等下一個月公布才有）。"""
+    s = dict(ser)
+    if leak:
+        ks = sorted(s)
+        for a, b in zip(ks, ks[1:]):
+            m = f"{int(a[:4]) + int(a[5:]) // 12:04d}-{int(a[5:]) % 12 + 1:02d}"
+            if m < b:
+                s[m] = (s[a] + s[b]) / 2
+    return {"cal": cal, "hc": {"X": H.asof_monthly(cal, s, (1, 16))}, "comp": {}}
+
+
+def test_truncation_flags_value_known_only_later():
+    cal = [(date(2025, 8, 1) + timedelta(days=i)).isoformat() for i in range(200)]
+    ser = {"2025-07": 100.0, "2025-08": 101.0, "2025-10": 105.0, "2025-11": 106.0}    # 9 月缺
+    day = "2025-10-20"                                                               # 9 月本來 10/16 公布、10 月要到 11/16
+    for leak in (False, True):
+        full = _toy(ser, cal, leak)
+        cut = _toy(TC.cut(ser, day, (1, 16)), [d for d in cal if d <= day], leak)
+        r = TC.compare(full, cut, day)
+        if leak:
+            assert r["bad"] and r["bad"][0][0] == "hc:X" and r["bad"][0][1] == "2025-10-16"
+        else:
+            assert r["bad"] == [] and r["items"] == 1
+
+
+def test_compare_bub_rows():
+    rows = [{"d": "2025-09-30", "L": 1, "P1": True}, {"d": "2025-10-31", "L": 2, "P1": False},
+            {"d": "2025-11-28", "L": 3, "P1": True}]
+    Xf = {"spx": {"_C": {"rows": rows}}}
+    same = TC.compare_bub(Xf, {"spx": {"_C": {"rows": [dict(r) for r in rows[:2]]}}}, "2025-11-15")
+    assert same["spx"] == {"rows": 2, "bad": []}                                      # 11 月底在截斷之後，不比
+    diff = TC.compare_bub(Xf, {"spx": {"_C": {"rows": [rows[0], {**rows[1], "L": 1}]}}}, "2025-11-15")
+    assert diff["spx"]["bad"] == [["2025-10-31", ["L"]]]
+    gone = TC.compare_bub(Xf, {"spx": {"_C": {"rows": rows[:1]}}}, "2025-11-15")
+    assert gone["spx"]["bad"] == [["2025-10-31", "截斷之後沒有這個月"]]
+
+
+def test_cut_frame_slices_and_drops_unfinished_week():
+    F = _frame("spx", T=300)
+    F["IB"] = {"cal": list(F["cal"]), "px": F["px"].copy(), "sig": {"vix": np.arange(300.0), "c5floor": 12.0}}
+    day = next(d for d in F["cal"][200:] if date.fromisoformat(d).weekday() == 2)    # 星期三：那一週還沒過完
+    c = F["cal"].index(day) + 1
+    G2 = TC.cut_frame(F, day)
+    assert G2["cal"][-1] == day and len(G2["px"]) == c and len(G2["vars"][0]["x"]) == c
+    assert len(G2["comp"]["fund"]) == c and len(G2["IB"]["sig"]["vix"]) == c and G2["IB"]["sig"]["c5floor"] == 12.0
+    assert G2["we"][-1] == c - 1                                     # 顯示用：最新一天當週末
+    assert G2["wes"] and G2["wes"][-1] < c - 1 and set(G2["wes"]) <= set(F["we"])   # 訊號用：那一週還沒過完不算
+    assert all(r["d"] <= day for r in G2["bub"])
+    assert G2["vars"][0]["key"] == F["vars"][0]["key"] and len(F["px"]) == 300                # 原本的不動
+
+
+def test_sig_check_clean_and_catches_peeking(monkeypatch):
+    F = _frame("spx")
+    real = HDD.exits
+    x, we = G._lst(F["vars"][0]["x"]), F["we"]
+    nxt = dict(zip(we, we[1:]))
+    ev = [i for i in real(x, we, S.EXIT_MIN) if i in nxt and nxt[i] < len(x) - 1 and not x[nxt[i]] >= S.HOT]
+    assert ev
+    day = F["cal"][ev[0]]                                           # 截在一個「過熱結束」的週末
+    assert TC.sig_check(F, day)["bad"] == []
+
+    def peek(x, we, n=S.EXIT_MIN):                                  # 故意偷看：下一個週末也不在過熱才算結束
+        nx = dict(zip(we, we[1:]))
+        return [i for i in real(x, we, n) if i in nx and not (x[nx[i]] is not None and x[nx[i]] >= S.HOT)]
+    monkeypatch.setattr(HDD, "exits", peek)
+    bad = TC.sig_check(F, day)["bad"]
+    assert any(b[0].endswith(":hot_out") for b in bad)
+
+
+# ── A-1b：逐年檢查、溫度計票數、產業泡沫 ─────────────────────────────────────────
+
+def test_oos_and_thermo_agree_on_synthetic_frame():
+    """十幾年的人工資料（含法人的成對事件與過冷過熱失效）：逐年紀錄、每週票數、分組比例都要和網頁的程式一樣。"""
+    F = _frame("tw", T=3800)
+    r = V.check_oos(F)
+    assert r["n"] > 500 and r["nbad"] == 0, r["bad"][:3]
+    t = V.check_thermo(F)
+    assert t["n"] > 500 and t["bad"] == [], t["bad"][:3]
+
+
+def test_age_days_hand_example():
+    """第 5.1 節（第二套）手算：事件 10、14 出現（看 10 天、18 那天相反的讀數），樣本從 0 開始；條件第 11 天起斷、第 15 天又成立。
+    10～13 屬第 10 天那一次、14～17 屬第 14 天那一次（去重：14 − 10 ≤ 10 → 算進 10 那一次），18 起失效。"""
+    T = 40
+    cx = np.zeros(T, dtype=bool)
+    cx[15:] = True
+    sd = {"id": "x", "kind": "event", "samp": np.arange(T), "days": [10, 14], "exp": [18]}
+    D = V._age_days(sd, T, 10, cx)
+    assert D["t"].tolist() == list(range(10, 18))
+    assert D["k"].tolist() == [0, 1, 2, 3, 0, 1, 2, 3]
+    assert [V._ck(c) for c in D["cid"].tolist()] == ["0o", "1x", "1x", "1x", "0o", "1o", "1o", "1o"]
+    assert D["cl"].tolist() == [0] * 8 and D["s"].all()
+    st = {"id": "y", "kind": "state", "samp": np.array([2, 4, 6, 8, 10, 12]), "state": np.array([1, 1, 0, 1, 1, 1], dtype=bool)}
+    Ds = V._age_days(st, 20, 60, None)                      # 分段（EP_GAP）：段裡相隔 < EP_GAP 個樣本的同一段
+    eps = V._episodes(st)
+    assert Ds["t"].tolist() == [t for e in eps for t in e]
+    assert Ds["k"].tolist() == [t - e[0] for e in eps for t in e] and set(V._ck(c)[-1] for c in Ds["cid"].tolist()) == {"-"}
+    mo = {"id": "z", "kind": "state", "samp": np.array([3, 8, 13]), "state": np.array([1, 1, 0], dtype=bool), "monthly": True}
+    Dm = V._age_days(mo, 15, 250, None)                     # 月資料：月底到下一個月底前都同一格
+    assert Dm["t"].tolist() == list(range(3, 13)) and Dm["k"].tolist() == [0] * 5 + [5] * 5
+    assert Dm["s"].tolist() == [True] + [False] * 4 + [True] + [False] * 4
+
+
+def test_age_cells_and_votes_agree_on_synthetic_frame():
+    """VER 26 的格子、逐年紀錄、溫度計的票（第二套）和網頁用的 sigage／thermocal 一樣；而且真的有比到東西（條件已斷的格、今年的票）。"""
+    F = _frame("tw", T=3800)
+    r = V.check_age(F)
+    assert r["n"] > 150 and r["nrec"] > 300 and r["nbad"] == 0, r["bad"][:3]
+    rows, agg = V.age2(F)
+    cks = {ck for hz in rows.values() for R in hz.values() for ck in R["c"]}
+    assert any(ck.endswith("x") for ck in cks) and any(ck.endswith("o") for ck in cks) and any(ck.endswith("-") for ck in cks)
+    from arm.lab import thermocal as TCL
+    B = V.thermo2(F, {sd["id"]: TCL.item_of(sd) for sd in G.signals(F)})
+    assert B["votes26"] and sum(sum(h["u"]) + sum(h["w"]) for h in B["hist26"].values()) > 0
+    assert all(a <= b for k in B["hist"] for c in "uw" for a, b in zip(B["hist26"][k][c], B["hist"][k][c]))   # 格子只會拿掉
+
+
+def test_check_age_catches_broken_condition_and_bucket(monkeypatch):
+    """故意把第二套改壞（條件晚一天才看、分段邊界差一天）：比對一定要報出來。"""
+    F = _frame("tw", T=2600)
+    real = V._carry
+    monkeypatch.setattr(V, "_carry", lambda flag, ok: np.r_[False, real(flag, ok)[:-1]])
+    assert V.check_age(F)["nbad"] > 0
+    monkeypatch.setattr(V, "_carry", real)
+    monkeypatch.setattr(V, "_age_bucket", lambda k: max(0, __import__("bisect").bisect_right(S.AGE_B, k + 1) - 1))
+    r = V.check_age(F)
+    assert r["nbad"] > 0 and any(b[0] != "逐年" for b in r["bad"])
+
+
+def test_ind_agrees_on_synthetic_industries(monkeypatch):
+    from arm.lab import bubind as BI
+    rng = np.random.default_rng(3)
+    months = [f"{y}-{m:02d}" for y in range(2000, 2016) for m in range(1, 13)]
+    Sx = {}
+    for code in ("A", "B", "C"):
+        v = 100 * np.exp(np.cumsum(rng.normal(0.005, 0.06, len(months))))
+        lv = np.clip(np.round(np.cumsum(rng.normal(0, 0.6, len(months)))), 0, 4)
+        Sx[code] = {"me": {m: float(x) for m, x in zip(months, v)},
+                    "rows": [{"d": m, "P1": None if i < 6 else bool(rng.random() < 0.3), "P2": None if i < 6 else bool(rng.random() < 0.3),
+                              "L": None if i < 8 else int(lv[i])} for i, m in enumerate(months)]}
+    monkeypatch.setattr(BI, "conditions", lambda S_, T: {"rows": S_["rows"]})     # 等級是輸入
+    r = V.check_ind({"tw": {"S": Sx}, "us": {"S": Sx}})
+    assert r["n"] == 4 and r["bad"] == [], r["bad"]
+
+
+def test_done_weeks_two_implementations_and_live_rule():
+    """訊號用的週末（docs/lab_signal_quality_plan.md 第 9 節）：最新一天不是星期五就不算；兩套一樣。"""
+    cal = _cal(40)
+    for end in range(25, 40):
+        c = cal[:end]
+        assert V._done_weeks(c) == HP.done_week_ends(c)
+        last_fri = date.fromisoformat(c[-1]).weekday() == 4
+        assert (len(c) - 1 in HP.done_week_ends(c)) == last_fri and len(c) - 1 in HP.week_ends(c)
+
+
+def test_done_weeks_friday_holiday_counts_on_thursday():
+    """週五休市（官方休市表）：週四當天就算週末——回測（完整日曆）和網頁（只看到週四）一致（2026-10-31 A-3 截斷重建查到）。"""
+    thu = ["2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02"]                 # 2026-04-03（五）兩邊都休市
+    for mk in ("tw", "spx"):
+        cl = HP.market_closed(mk)
+        assert cl(date(2026, 4, 3)) is True and cl(date(2026, 4, 2)) is False
+        assert HP.done_week_ends(thu, cl) == [3] == V._done_weeks(thu, cl)
+        assert HP.done_week_ends(thu) == [] == V._done_weeks(thu)                    # 沒給休市表：照舊等下一週
+        assert HP.done_week_ends(thu + ["2026-04-07"], cl) == [3] == HP.week_ends(thu + ["2026-04-07"])[:1]
+    wed = ["2026-04-01"]                                                          # 週四開市：週三不算
+    assert HP.done_week_ends(wed, HP.market_closed("tw")) == [] == V._done_weeks(wed, HP.market_closed("tw"))
+    assert HP.market_closed("tw")(date(1990, 4, 6)) is None                       # 休市表沒涵蓋＝不知道 → 當成開市
+    assert HP.done_week_ends(["1990-04-05"], lambda d: None) == []
+
+
+# ── A-3a：每週 CI、推播一行、頁面紅字（docs/lab_signal_quality_plan.md 第 11 節） ──────────────────────
+
+def _rv():
+    import importlib.util
+    from pathlib import Path
+    p = Path(__file__).resolve().parents[1] / "scripts" / "run_verify.py"
+    spec = importlib.util.spec_from_file_location("run_verify", p)
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+def test_cap_keeps_examples_and_total():
+    """存檔只留前 CAP 個例子、另記 nbad；已經截過的（check_oos 自帶 nbad）照它的總數。"""
+    RV = _rv()
+    R = {"bad": list(range(120)), "second": {"tw": {"bad": [1, 2]}}, "oos": {"tw": {"bad": list(range(50)), "nbad": 300}}}
+    out = RV.cap(R)
+    assert len(out["bad"]) == RV.CAP and out["nbad"] == 120
+    assert out["second"]["tw"] == {"bad": [1, 2]} and "nbad" not in out["second"]["tw"]
+    assert RV.nbad(out["oos"]["tw"]) == 300 and RV.nbad({"bad": [1]}) == 1
+
+
+def test_verify_workflow_weekly_on_main_commits_and_goes_red():
+    from pathlib import Path
+    wf = (Path(__file__).resolve().parents[1] / ".github" / "workflows" / "verify.yml").read_text(encoding="utf-8")
+    assert "schedule:" in wf and 'cron: "17 5 * * 6"' in wf and "workflow_dispatch:" in wf
+    assert "ref: main" in wf and "python3 scripts/run_verify.py" in wf and "numpy" in wf
+    assert "git add -f data/lab/verify_status.json data/lab/heat/reldates.json.gz" in wf and "git push origin HEAD:main" in wf
+    i_rel, i_run = wf.find("python3 scripts/fetch_reldates.py"), wf.find("python3 scripts/run_verify.py")
+    assert 0 < i_rel < i_run and "|| echo" in wf[i_rel:i_run]                       # 先更新官方公布日表，抓不到不擋核對
+    i_commit, i_red = wf.find("commit 結果"), wf.find("有不一致就讓這一輪變紅")
+    assert 0 < i_commit < i_red and "sys.exit(0 if d.get('ok') else 1)" in wf   # 先入 main，再變紅（不擋發佈）
+
+
+def _vfile(tmp_path, monkeypatch, drop=(), **kw):
+    import json
+    from arm.lab import store
+    monkeypatch.setattr(store, "LAB", tmp_path)
+    doc = {"ver": 2, "made": "2026-10-31 13:40", "n": {"second": 100, "sig": 50}, "bad": [], "nbad": 0, "ok": True, **kw}
+    doc = {k: v for k, v in doc.items() if k not in drop}
+    (tmp_path / "verify_status.json").write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
+
+
+def test_verify_state_line_and_note(tmp_path, monkeypatch):
+    from datetime import datetime
+    from arm.lab import valog as VL
+    now = datetime(2026, 11, 2, 6, 40)
+    _vfile(tmp_path, monkeypatch)
+    st = VL.verify_state(now)
+    assert st == {"d": "2026-10-31", "ok": True, "nbad": 0, "n": 150, "old": False}
+    assert VL.verify_line(st) is None and VL.verify_note(st) == ""
+    # 超過 15 天沒跑：推播一行、頁面不放
+    st = VL.verify_state(datetime(2026, 11, 16, 6, 40))
+    assert st["old"] and VL.verify_line(st) == "計算核對：上次是 10/31，已經超過兩週沒有跑，看一下 GitHub 的 verify.yml。"
+    assert VL.verify_note(st) == ""
+    # 不一致：推播一行＋頁面紅字＋例子（舊格式沒有 nbad 也照算）
+    _vfile(tmp_path, monkeypatch, drop=("nbad",), ok=False, bad=[["第二套", "tw", "B8:hot", "2020-01-02", "x"]] * 3)
+    st = VL.verify_state(now)
+    assert not st["ok"] and st["nbad"] == 3 and st["ex"][0] == "第二套・tw・B8:hot・2020-01-02・x"
+    assert VL.verify_line(st).startswith("計算核對：10/31 有 3 項不一致")
+    assert 'class="vfy"' in VL.verify_note(st) and "3 項不一致" in VL.verify_note(st)
+    # 推播：放在策略驗證那一行之前
+    rec = {"todo": {"d": "2026-11-02", "items": []}, "vfy": st, "ev": [{"txt": "資料過期：最新資料 10/30"}]}
+    out = VL.push_lines(rec)
+    assert out[0] == "11/2（一）沒有排定的買賣。" and out[1].startswith("計算核對：") and out[2].startswith("策略驗證：")
+    # 讀不到檔案：沒有狀態、沒有紅字
+    (tmp_path / "verify_status.json").unlink()
+    assert VL.verify_state(now) is None and VL.page_note() == ""
+
+
+def test_finish_puts_note_under_top_bar():
+    from arm.lab import appnav
+    page = ('<html><head><style>.a{}</style></head><body><div class="top">' + appnav.bar("mkt") + appnav.BACK +
+            '</div><main>x</main></body></html>')
+    plain, noted = appnav.finish(page), appnav.finish(page, note='<div class="vfy">N</div>')
+    assert '<div class="vfy">' not in plain
+    assert appnav.BACK + '</div><div class="vfy">N</div><main>' in noted
+    assert noted.replace('<div class="vfy">N</div>', "") == plain
+
+
+# ── A-3c：資料來源比對（arm/lab/srccheck.py） ────────────────────────────────
+
+def test_srccheck_compare_and_inst_missing_day():
+    from arm.lab import srccheck as SC
+    r = SC.compare("x", {"d1": 1.0, "d2": 2.0, "d3": None}, {"d1": 1.05, "d2": 2.5}, 0.1)
+    assert r["n"] == 2 and r["bad"] == [["x", "d2", 2.0, 2.5, 0.5]]
+    assert SC.compare("x", {"d1": 100.0}, {"d1": 100.4}, 0.005, rel=True)["bad"] == []
+    D = {"2026-10-29": {"total": 1.0e8, "Foreign_Investor": 2.0e8, "Investment_Trust": 0, "Dealer_self": -1.0e8, "Dealer_Hedging": 0},
+         "2026-10-31": {"total": 1.0e8}}
+    M = {"inst_total": {"2026-10-29": 1.0, "2026-10-30": 5.0, "2026-10-31": 1.3}, "inst_foreign": {"2026-10-29": 2.0},
+         "inst_trust": {"2026-10-29": 0.0}, "inst_dealer": {"2026-10-29": -1.0}}
+    r = SC.inst(D, M)
+    assert [b[:2] for b in r["bad"]] == [["法人・inst_total", "2026-10-31"], ["法人・FinMind 缺日", "2026-10-30"]]
+
+
+def test_srccheck_jumps_known_and_nonpositive():
+    from arm.lab import srccheck as SC
+    S = {"a": {"2020-01-01": 100.0, "2020-01-02": 50.0, "2020-01-03": 51.0, "2020-01-06": 0.0}}
+    r = SC.jumps(load=lambda n: S[n], thr={"a": 0.15}, known={})
+    assert [b[:2] for b in r["bad"]] == [["值 ≤ 0", "2020-01-06"], ["單日跳動", "2020-01-02"]]
+    assert [b[1] for b in SC.jumps(load=lambda n: S[n], thr={"a": 0.15}, known={"a": ("2020-01-02",)})["bad"]] == ["2020-01-06"]
+
+
+def test_srccheck_taiex_monthly_and_yields():
+    from arm.lab import srccheck as SC
+    tx = {f"2020-01-{d:02d}": 100.0 for d in range(1, 21)} | {f"2020-02-{d:02d}": 110.0 for d in range(1, 21)} | {"2020-03-02": 1.0}
+    r = SC.taiex(tx, {"2020-01": 100.0, "2020-02": 120.0, "2020-03": 1.0})
+    assert r["n"] == 2 and [b[1] for b in r["bad"]] == ["2020-02"]          # 最後一個月（還沒過完）不比
+    r = SC.yields({"d": [1.0, 2.0, 3.0]}, {"d": [1.0, 1.0, 2.0, 3.1]})
+    assert r["n"] == 2 and [b[0] for b in r["bad"]] == ["美債 10 年"]
+
+
+def test_srccheck_real_data_clean():
+    """入庫的資料現在應該全部一致（2026-10-31 實測：約 12 萬筆、0 不一致）。"""
+    from arm.lab import heatdata as HD
+    from arm.lab import srccheck as SC
+    if not HD.load("inst") or not HD.load("taiex"):
+        pytest.skip("沒有落檔")
+    R = SC.run_all()
+    assert {k: r["bad"] for k, r in R.items() if r["bad"]} == {}
+    assert sum(r["n"] for r in R.values()) > 50_000

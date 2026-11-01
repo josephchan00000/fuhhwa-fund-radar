@@ -392,13 +392,37 @@ def _row(r: dict, keys: dict | None = None) -> list:
             _stat(r.get("buy")), r.get("a"), r.get("z"), x]
 
 
+def _on_cells(V: dict) -> dict:
+    """現在成立的市場層級訊號：今天那一格（sigspec 第 5.1 節，訊號自己的看多久）→ {id: {"c": [次數, 偏多 %, 警示 %], "cn": 白話}}。
+    第幾天的研究檔沒有就空的（欄位顯示 —）。"""
+    from . import sigage as AG
+    A = AG.load()
+    if not A:
+        return {}
+    rows = {r["id"]: r for r in V["rows"]}
+    out = {}
+    for k, v in V["on"].items():
+        r = rows.get(k)
+        if r is None or not v.get("ck") or r.get("cat") in ("stock", "strat", "ind"):
+            continue
+        c = AG.cell(A, k, G.horizon(r), v["ck"])
+        if not c:
+            continue
+        pc = lambda x: None if x is None else round(100.0 * x, 1)   # noqa: E731
+        out[k] = {"c": [c["n"], pc(c["up"]["hit"]), pc(c["warn"]["hit"])],
+                  "cn": age_cell_name(v["ck"], r.get("kind") == "state")}
+    return out
+
+
 def page_json(V: dict) -> str:
     on = {}
+    cells = _on_cells(V)
     for k, v in V["on"].items():
         if "live" in v:
             on[k] = {"live": len(v["live"])}
         else:
-            on[k] = {kk: v[kk] for kk in ("since", "n", "left", "event", "buy", "sell", "rem") if kk in v}
+            on[k] = {kk: v[kk] for kk in ("since", "n", "left", "event", "buy", "sell", "rem", "k", "st", "nb", "ns") if kk in v}
+            on[k].update(cells.get(k) or {})
     keys: dict = {}
     out = {"rows": [_row(r, keys) for r in V["rows"]], "on": on, "mk": MK_NAMES, "cat": G.CAT_NAMES,
            "asof": V["asof"], "tiers": {t: [S.TIER_MARK[t], S.TIER_NAMES[t]] for t in S.TIERS},
@@ -518,9 +542,19 @@ def _line(r: dict) -> str:
 
 def tq_stats(r: dict) -> str:
     """今天的訊號一列的數字（sigspec 第 5 節 ④b，VER 23；看什麼寫在清單標題）：過去的機率（任一天）、報酬中位（偏多、買點，
-    訊號自己的看多久才有）、最大跌幅（最慘一次，VER 24）；次數少才寫次數（docs/lab_ia_v5_plan.md 第 3 節②）。"""
+    訊號自己的看多久才有）、最大跌幅（最慘一次，VER 24）；次數少才寫次數（docs/lab_ia_v5_plan.md 第 3 節②）。
+    VER 26（第 5.1 節）：有今天那一格（r["age"]）就全部用那一格——「過去這樣進場」的機率、那一格每一天的報酬中位與最大跌幅最慘一次
+    （跨期間的列也有，因為格子是用那支溫度計的看多久量的）。"""
     d = r["d"]
     st = r.get("st") or r[d]
+    cell = r.get("cell") if r.get("age") else None
+    if cell:
+        out = f'過去這樣進場 <b>{st["hit"] * 100:.0f}%</b>（任一天 {st["base"] * 100:.0f}%）'
+        if d != "warn" and cell.get("rmed") is not None:
+            out += f'・報酬中位 {_sgn(cell["rmed"])}'
+        if cell.get("ddw") is not None:
+            out += f'・最大跌幅 {round(100.0 * cell["ddw"]):.0f}%' + (f'（{dday(cell["ddw_d"])} 那次）' if cell.get("ddw_d") else "")
+        return out + (f'・次數 {st["n"]}' if st["n"] < S.STAR_N else "")
     out = f'過去 <b>{st["hit"] * 100:.0f}%</b>（任一天 {st["base"] * 100:.0f}%）'
     if d != "warn":
         med = _med(r) if not r.get("xk") else None                  # 跨期間的列只有機率（報酬是訊號自己看多久的）
@@ -528,6 +562,37 @@ def tq_stats(r: dict) -> str:
             out += f'・報酬中位 {_sgn(med)}'
     out += _dd_txt(r)
     return out + (f'・次數 {st["n"]}' if st["n"] < S.STAR_N else "")
+
+
+def age_head(n: dict, ref: str | None, state: bool) -> str:
+    """今天這一筆的狀況（sigspec 第 5.1 節，每一條列著的原因）：「10/21 出現・過了 5 天・條件已斷」；狀態型「10/2 起成立・過了 21 天」；
+    出現當天不寫過了幾天（第 0 天一定還成立，也不寫條件）。"""
+    k = n.get("k")
+    out = f'{_dy(n.get("since"), ref)} {"起成立" if state else "出現"}'
+    if k:
+        out += f"・過了 {k} 天"
+        stn = S.AGE_ST_NAMES.get(n.get("st") or "-")
+        if stn:
+            out += f"・{stn}"
+    return out
+
+
+def age_cell_name(ck: str | None, state: bool) -> str:
+    """今天那一格的白話（滑過提示）：「出現後 5～9 天、條件已斷」；剛出現的那一格「剛出現」（狀態型「剛開始」）。"""
+    if not ck:
+        return ""
+    b, c = int(ck[:-1]), ck[-1]
+    if b == 0:
+        return "剛開始" if state else "剛出現"
+    cond = {"o": S.AGE_ST_NAMES["on"], "x": S.AGE_ST_NAMES["off"]}.get(c)
+    return ("開始後 " if state else "出現後 ") + S.AGE_NAMES[b] + (f"、{cond}" if cond else "")
+
+
+def age_trade(n: dict, ref: str | None) -> str:
+    """照規則的那一筆（sigspec 第 5.1 節，VER 26）：今天看到、下一個交易日收盤進場、再看多久那一天收盤出場。"""
+    if n.get("nb") and n.get("ns"):
+        return f'{_dy(n["nb"], ref)} 收盤進場・持有到 {_dy(n["ns"], ref)}'
+    return ""
 
 
 def dd_worst(r: dict) -> tuple | None:
@@ -1184,6 +1249,8 @@ function hz(r){ const c = r[I.cat]; if (c === 'buy') return '3 個月'; if (c ==
 function nowTxt(r){ const n = ON[r[I.id]]; if (!n) return '';
   if (n.xs != null) return n.xs;
   if (n.live != null) return '今天 ' + n.live + ' 檔';
+  if (n.nb && n.ns) return mdy(n.since) + (n.left != null || n.event ? ' 出現' : ' 起成立') + (n.k ? '・過了 ' + n.k + ' 天' : '') +   // VER 26：今天看到、下一個交易日收盤進場
+    '；' + mdy(n.nb) + ' 收盤進場・持有到 ' + mdy(n.ns);
   if (n.buy && n.sell) return mdy(n.buy) + ' 收盤進場・持有到 ' + mdy(n.sell);
   if (n.left != null) return mdy(n.since) + ' 出現・還有 ' + n.left + ' 天';
   return mdy(n.since) + (n.event ? ' 出現' : ' 起成立'); }
@@ -1387,7 +1454,8 @@ const TIP = {
   rmed: '持有到這一天收盤的報酬，由小到大排在正中間的那一個（一半比它好、一半比它差）。',
   fwd: '上面的機率是過去的成績，之後通常會往下修。每年 1 月 1 日只用之前的資料看，同一類訊號（方向、看多久、出現過幾次、過去比平常高幾點）之後那一年平均留下多少優勢；預估之後＝隨便挑一天 ＋ 留下來的比例 ×（過去 − 隨便挑一天）。報酬多賺同樣算。只當參考。',
   rhalf: '報酬由小到大排，中間一半落在這個範圍（25%～75%）。',
-  rdd: '持有期間從最高收盤跌到之後最低收盤的幅度（先漲再跌也算，和大跌同一個算法）；列過去每一次裡最慘的那一次。'};
+  rdd: '持有期間從最高收盤跌到之後最低收盤的幅度（先漲再跌也算，和大跌同一個算法）；列過去每一次裡最慘的那一次。',
+  today: '現在成立的訊號：過去在同樣的時間點進場（出現後第幾天、條件還成立或已斷）同一欄成立的比例與次數；今天的清單只列這一格也比任一天高的。'};
 if (EMB) { Object.keys(TIP).forEach(k => { TIP[k] = anyw(TIP[k]); });
   TIP.prob = '這個訊號過去出現之後，「看什麼」那一欄成立的比例；小字是任一天的比例。';
   TIP.rmed = '偏多：持有到期的報酬，由小到大排在正中間的那一個。警示：期間最大回撤的中位數。'; }
@@ -1508,22 +1576,26 @@ function luckTxt(s, r){ if (!s || s[9] == null || (s[6] !== 'good' && s[6] !== '
   const few = s[0] < SG.lfn, th = few ? SG.lpf : SG.lp;            // sigspec VER 14：個股訊號次數少於 15 次的門檻 10%
   const note = stk ? '（' + th + '% 以下才算好訊號' + (few ? '；次數少於 ' + SG.lfn + ' 次的門檻' : '') + '）' : '（只當參考；2026-10-22 起不參與判定）';
   return '<small title="' + t + note + '">亂排 ' + (s[9] < 1 ? s[9].toFixed(1) : Math.round(s[9])) + '%</small>'; }
+function todayCell(r, d){ const n = ON[r[I.id]], c = n && n.c;    // sigspec 第 5.1 節：今天落的那一格（訊號自己的看多久）
+  if (!c) return '<td class="mu" data-h="今天進場">—</td>';
+  const h = d === 'warn' ? c[2] : c[1];
+  return '<td data-h="今天進場" title="' + esc(n.cn || '') + '"><b>' + pc(h) + '</b><small>' + esc(n.cn || '') + '・次數 ' + c[0] + '</small></td>'; }
 function sigTable(x){
   const head = '<thead><tr><th class="l">訊號</th><th class="l">看什麼 ' + ii('what') + '</th><th>機率 ' + ii('prob') + '</th><th>隨便挑一天 ' + ii('base') + '</th>' +
-    '<th>多幾個百分點 ' + ii('edge') + '</th><th>報酬中位數・最大跌幅 ' + ii('rmed') + '</th><th>近 10 年也成立嗎 ' + ii('r10') + '</th><th>出現過幾次 ' + ii('n') + '</th><th>判定 ' + ii('tier') + '</th></tr></thead>';
+    '<th>多幾個百分點 ' + ii('edge') + '</th><th>今天進場 ' + ii('today') + '</th><th>報酬中位數・最大跌幅 ' + ii('rmed') + '</th><th>近 10 年也成立嗎 ' + ii('r10') + '</th><th>出現過幾次 ' + ii('n') + '</th><th>判定 ' + ii('tier') + '</th></tr></thead>';
   const body = x.sig.map(r => { const ds = dirsOf(r), on = ON[r[I.id]];
     return '<tbody class="sgsb' + (on ? ' on' : '') + (SEL === r ? ' sel' : '') + '" data-id="' + esc(r[I.id]) + '">' + ds.map((d, i) => { const s = stat(r, d), e = dEdge(s);
       const w = what(r, d) + (d === 'warn' ? '<small>最大回撤 ' + r[I.th] + '% 以上</small>' : '');
       return '<tr>' + (i ? '' : '<td class="l nm" rowspan="' + ds.length + '"><b>' + esc(label(r)) + '</b><small>看 ' + esc(hz(r)) +
           (on ? '・<span class="sgon">現在成立</span>' : '') + '</small></td>') +
         '<td class="l wt"><span class="sgd sgd-' + d + '">' + w + '</span></td><td data-h="機率"><b>' + (s ? pc(s[1]) : '—') + '</b>' + (feOf(r, d) ? '<small>預估之後 ' + pc(feOf(r, d)[0]) + '</small>' : '') + '</td><td data-h="隨便挑一天">' + (s ? pc(s[2]) : '—') + '</td>' +
-        '<td data-h="多幾個百分點">' + (e == null ? '—' : (e >= 0 ? '+' : '−') + Math.abs(Math.round(e))) + '</td>' +
+        '<td data-h="多幾個百分點">' + (e == null ? '—' : (e >= 0 ? '+' : '−') + Math.abs(Math.round(e))) + '</td>' + todayCell(r, d) +
         '<td data-h="報酬中位數・最大跌幅">' + (r[I.cat] === 'strat' ? '—' : medCell(r, d, s)) + '</td>' +
         '<td class="r10" data-h="近 10 年">' + r10(s, d, r[I.cat] === 'stock') + '</td><td data-h="出現">' + (s ? s[0] : '—') + '</td>' +
         '<td data-h="判定">' + mark(s ? s[6] : 'few', r) + luckTxt(s, r) + '</td></tr>'; }).join('') + '</tbody>'; }).join('');
   return '<div class="sgwrap sgsw"><table class="sgst2">' + head + body + '</table></div>'; }
 function sigTableP(x){
-  const head = '<thead><tr><th class="l">訊號</th><th class="l">看什麼</th><th>過去 ' + ii('prob') + '</th><th>報酬中位・最大跌幅 ' + ii('rdd') + '</th><th>次數 ' + ii('n') + '</th></tr></thead>';
+  const head = '<thead><tr><th class="l">訊號</th><th class="l">看什麼</th><th>過去 ' + ii('prob') + '</th><th>今天進場 ' + ii('today') + '</th><th>報酬中位・最大跌幅 ' + ii('rdd') + '</th><th>次數 ' + ii('n') + '</th></tr></thead>';
   const body = x.sig.map(r => { const ds = dirsOf(r), on = ON[r[I.id]];
     return '<tbody class="sgsb' + (on ? ' on' : '') + (SEL === r ? ' sel' : '') + '" data-id="' + esc(r[I.id]) + '">' + ds.map((d, i) => { const s = stat(r, d), m = (r[I.x] || {}).med;
       const w = d === 'warn' ? '之後回撤 ' + r[I.th] + '% 以上' : d === 'buy' ? '買進之後上漲' : '之後上漲';
@@ -1533,7 +1605,7 @@ function sigTableP(x){
       return '<tr>' + (i ? '' : '<td class="l nm" rowspan="' + ds.length + '"><b>' + esc(label(r)) + '</b><small>看 ' + esc(hz(r)) +
           (on ? '・<span class="sgon">現在成立</span>' : '') + '</small></td>') +
         '<td class="l wt"><span class="sgd sgd-' + d + '">' + w + '</span></td>' +
-        '<td data-h="過去"><b>' + (s ? pc(s[1]) : '—') + '</b>' + (s && s[2] != null ? '<small>任一天 ' + pc(s[2]) + '</small>' : '') + '</td>' +
+        '<td data-h="過去"><b>' + (s ? pc(s[1]) : '—') + '</b>' + (s && s[2] != null ? '<small>任一天 ' + pc(s[2]) + '</small>' : '') + '</td>' + todayCell(r, d) +
         '<td data-h="報酬中位・最大跌幅">' + med + '</td><td data-h="次數">' + (s ? s[0] : '—') + '</td></tr>'; }).join('') + '</tbody>'; }).join('');
   return '<div class="sgwrap sgsw"><table class="sgst2 sgst3">' + head + body + '</table></div>'; }
 function panelHtml(x){

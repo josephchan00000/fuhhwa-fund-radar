@@ -130,3 +130,35 @@
 
 ## [2026-10-31] 收錄 | 個股報告官方文件包第二段（報告怎麼用、檢查怎麼擋）
 - 規劃 `docs/lab_eq_docs_plan.md` 第 12 節：技能步驟 0／1／3、`eqreport.docs_issues`（2026-10-31 起的台股報告）、`data/eq_docs_log.json` 與 `eqdocs.d2`（隔天重試）、`eqpage.docs_box`、Routine ⑦ prompt。改了 `lab/equity-report.md`、`ops/routines.md`。
+
+## [2026-10-31] 收錄 | 計算正確性核對 A-1（第二套算法＋截斷重建）
+- `arm/lab/sigverify.py`、`arm/lab/truncheck.py`、`scripts/run_verify.py` → `data/lab/verify_status.json`；第二套 1,896 個訊號 0 不同，截斷只找到美國 CPI 補缺月偷看（18 條），另查到停擺延後公布、週訊號週中暫定。改了 `lab/heat-us.md`、`lab/heat-tw.md`、`lessons.md`（規劃 `docs/lab_signal_quality_plan.md` 第 9 節）。
+
+## [2026-10-31] 收錄 | 計算正確性 A-1b、A-2（第二套補齊、停擺公布日修正、週訊號等那一週過完）
+- 第二套算法補齊研究列、大跌後買點、逐年檢查、溫度計、產業泡沫、型態類技術事件，全部 0 不同；heatspec VER 11、heatspec_us VER 4（補出來的月份等缺口後第一個月、停擺照官方日期、用前月 CPI 的項目同樣），判定 0 個改變；週訊號改用 `heatpos.done_week_ends`。改了 `lab/heat-us.md`、`lab/heat-tw.md`、`lessons.md`（規劃第 10 節）。
+
+## [2026-10-31] 收錄 | 計算核對每週自動跑（A-3a）
+- 新增 `.github/workflows/verify.yml`（週六 13:17 跑 `scripts/run_verify.py`、commit `data/lab/verify_status.json`）；不一致時市場頁與研究紀錄頁紅字、後台列例子、推播多一行，過期只推播，不擋發佈。改了 `lab/chip-ui.md`、`ops/schedule.md`、`ops/daily-update.md`（9⑨ 多一行）與 CLAUDE.md 9⑨（規劃第 11 節）。
+
+## [2026-10-31] 收錄 | 資料來源比對（A-3c）與手算固定案例（A-3d）
+- `arm/lab/srccheck.py`（法人與融資 FinMind vs 證交所、美債財政部 vs H.15、加權指數 Yahoo vs 證交所／國發會、指數 vs ETF、單日跳動；約 12 萬筆 0 不一致）接進每週核對；`tests/test_golden.py`（歷史收盤值、自營商連 10 天、年線事件）。改了 `lab/chip-ui.md`、`lab/heat-tw.md`（規劃第 11.3、11.4 節）。
+
+## [2026-10-31] 收錄 | 月／季資料照官方實際公布日（A-3b）
+- heatspec VER 12、heatspec_us VER 5、bubspec VER 5（含兩次算結果之前的補充）：美國 CPI、就業報告、Z.1 照官方實際公布日（`arm/lab/reldates.py`、`scripts/fetch_reldates.py`，每週跟 `verify.yml` 更新），沒有官方日期的年份照同月份歷年最晚；GDP、企業獲利停擺改期；台灣月資料改保守時程；月營收照申報期限。邊際變化（`heatpos`、`heatreg`）與 CAPE 參考讀數補上實際拿得到的日子；截斷重建也比邊際變化、加 6 個核對日。改了 `lab/heat-tw.md`、`lab/heat-us.md`、`lab/bubble.md`、`lab/chip-ui.md`、`ops/schedule.md`、`lessons.md`（規劃第 11.2 節）。
+- 截斷重建新核對日 2026-04-02 查到週訊號的週末在週五休市那一週回測比網頁早一天 → `heatpos.done_week_ends` 與第二套 `sigverify._done_weeks` 改照官方休市表（`market_closed`）；研究檔不變。改了 `lab/chip-ui.md`、`lessons.md`。
+
+## [2026-11-01] 收錄 | 參數鄰近檢查（B 段）
+- nbrspec VER 1（算結果之前 commit）、`arm/lab/sigrobust.py`、`scripts/run_robust.py` → `data/lab/robust_research.json`：每一組過列出門檻的（訊號, 方向, 看多久）一次動一個參數、往上往下各一個值，每個參數各自至少一半也過才算穩定。2,794 組穩定 74%；原本參數重算和研究檔一模一樣。還沒接上頁面（第 D 段）。新頁 `lab/signals-quality.md`（核對與參數鄰近；`lab/signals.md` 已到長度上限），`lab/chip-ui.md` 連過去（規劃第 12 節）。
+
+## [2026-11-01] 收錄 | EMA 賣壓與天數衰減（C 段）
+- emaspec VER 1、decayspec VER 1（都在算結果之前 commit）；`arm/lab/sigema.py`、`arm/lab/sigdecay.py`、`scripts/run_ema.py`、`scripts/run_decay.py`。兩個都沒有比現在好，照規則不換。第 26 版分支併進來、sigage／thermo 研究檔重算，`sigverify.check_thermo` 改比 VER 25 的票。改了 `lab/signals-quality.md`（規劃第 13 節）。
+
+## [2026-11-01] 收錄 | 今天的清單接上第 26～27 版、第二套算法補齊（D 段）
+- sigspec VER 27（頁面之前 commit）：參數一動就不成立的不列、放進行中，法人訊號加一句。`sigcat.listing` 接上參數鄰近（`robust_index`、`RB`）；`sigverify.check_age`、`thermo2` 補第 26 版格子與溫度計新票的第二套算法，抓到 S&P 500 2003-10-22 收盤等於月線的浮點誤差並修好（`sigage._sgn`），五個市場 0 個不一致。頁面：每一條寫原因（那一格的數字、出現日、過了幾天、條件、今天看到的那一筆）、進行中（預設收起）、訊號總覽多一欄「今天進場」。新頁 `lab/signals-today.md`（`lab/signals.md` 快到長度上限，今天的清單一節搬過去）；改了 `lab/signals.md`、`lab/signals-quality.md`、`.claude/rules/signals.md`（規劃 `docs/lab_signal_quality_plan.md` 第 14 節、`docs/lab_signal_listing_plan.md` 第 10 節）。
+
+
+## [2026-11-01] 查詢 | 綜合指標要不要用 EMA／衰減（查證＋不看報酬的數字，等決定）
+- 使用者問「各項綜合指標是不是更應該參考EMA或是衰退期的概念」。新規劃 `docs/lab_time_weight_plan.md`：文獻（均線種類不重要、景氣指標讀數普遍加平均／緩衝／持續條件、等權難打敗、小樣本往整體拉）＋翻動次數（溫度計約 4～5 週換一次讀數、第 26 版比第 25 版多換 20%；今天 94 類裡 44 類靠不到 15 次的格子）。選項 T1～T3 等使用者決定。改了 `lab/signals-quality.md`。
+
+## [2026-11-01] 查詢 | 每天看要靈敏又要準：讀數「證據夠才換」與準度現況（等決定）
+- 使用者：「我會希望我的訊號是更靈敏的因為我是每天看…而且我希望是要有高的準確度」。`docs/lab_time_weight_plan.md` 加第 9 節（取代第 6、7 節）：每天看的讀數一年換 30 次以上、七成多 5 天內換回、約六成只差一項；「多兩類撐著才換」7～8.5 次、兩成換回、晚約 1 天；準度現況警示 10／15、偏多 0／15。步驟 S1～S5 等使用者決定。改了 `lab/signals-quality.md`。

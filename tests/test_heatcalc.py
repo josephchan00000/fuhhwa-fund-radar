@@ -137,7 +137,7 @@ def test_monthly_items_and_release_alignment():
     assert abs(M["B5"]["1983-03"] - 100 * ((64 + 63 + 62) / (52 + 51 + 50) - 1)) < 1e-9
     assert set(M["B6"]) == {"2013-03", "2013-04", "2013-05"} and abs(M["B6"]["2013-03"] - 10.0) < 1e-9
     assert M["L1"] == {"2001-01": 2.5} and M["L2"] == {"2001-01": 6.5}
-    assert S.RELEASE["B5"] == (2, 28) and S.RELEASE["B6"] == (1, 11)
+    assert S.RELEASE["B5"] == (3, 1) and S.RELEASE["B6"] == (1, 11)              # heatspec VER 12：國發會 (2,28)→(3,1)
 
 
 def test_sample_idx_month_ends_for_fund():

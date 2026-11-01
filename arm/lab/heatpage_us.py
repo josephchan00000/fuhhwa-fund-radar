@@ -292,7 +292,7 @@ def split_sgd(sgd: str, default: str = DEFAULT) -> tuple[str, dict]:
 def assemble(pages: dict, default: str = DEFAULT) -> tuple[str, dict]:
     """pages＝{指數: index_page(...)} → (整頁, {x9mup 檔名: 內容})。頁面只放預設指數的內容（細項面板另放）；每個指數一個檔＝
     細項面板（tpl），預設以外的指數另放整份內容（main）與全部指標的列（sg）。"""
-    from . import appnav
+    from . import appnav, valog
     from . import heatviz as VZ
     j = lambda x: json.dumps(x, ensure_ascii=False, separators=(",", ":"), sort_keys=True).replace("</", "<\\/")  # noqa: E731
     G = HP.page_parts([k for k in U.INDEX_ORDER if k in pages])
@@ -304,7 +304,7 @@ def assemble(pages: dict, default: str = DEFAULT) -> tuple[str, dict]:
             .replace("{{IX}}", default).replace("{{LIVE}}", _content(pages[default]))
             .replace("{{METAS}}", j({k: P["meta"] for k, P in pages.items()}))
             .replace("{{SWITCH_JS}}", SWITCH_JS).replace("{{JS}}", VZ.JS + HP._JS)
-            .replace("{{SGJS}}", G["js"] + G["bjs"]))
+            .replace("{{SGJS}}", G["js"] + G["bjs"]), note=valog.page_note())
     out = {}
     for k in U.INDEX_ORDER:
         if k in pages:

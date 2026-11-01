@@ -9,7 +9,7 @@
 from __future__ import annotations
 
 import bisect
-from datetime import date
+from datetime import date, timedelta
 
 from . import heat as H
 from . import heatcalc as C
@@ -35,6 +35,45 @@ def week_ends(cal: list[str]) -> list[int]:
         if i == len(cal) - 1 or date.fromisoformat(cal[i + 1]).isocalendar()[:2] != date.fromisoformat(d).isocalendar()[:2]:
             out.append(i)
     return out
+
+
+def done_week_ends(cal: list[str], closed=None) -> list[int]:
+    """已經過完的週末（訊號用；docs/lab_signal_quality_plan.md 第 9、11 節）：同 week_ends，但最新一天不是星期五（或星期六）就不算
+    ——那一週還沒過完，當成週末會讓「過熱結束」這類週訊號週中先出現、週五又不見（回測只看真正的週末）。
+    closed＝這個市場的休市判斷（market_closed；官方休市表事先公布）：最新一天之後到星期五都休市＝這一週已經過完，當天就算週末
+    （2026-10-31 A-3 截斷重建查到：週五休市的那一週，回測當天就是週末，網頁卻要晚一個交易日——兩邊不一致）。
+    休市表沒涵蓋的日子當成開市（寧可晚一天）。"""
+    we = week_ends(cal)
+    if we and we[-1] == len(cal) - 1:
+        d = date.fromisoformat(cal[-1])
+        if d.weekday() < 4 and not rest_closed(d, closed):
+            we = we[:-1]
+    return we
+
+
+def rest_closed(d: date, closed) -> bool:
+    """d 之後到那一週的星期五都休市（closed 回 True）；closed 沒給或不知道（None）＝沒有。"""
+    if closed is None:
+        return False
+    x = d + timedelta(days=1)
+    while x.weekday() < 5:
+        if closed(x) is not True:
+            return False
+        x += timedelta(days=1)
+    return True
+
+
+def market_closed(mk: str | None):
+    """市場的休市判斷 → (date) → True 休市／False 開市／None 休市表沒涵蓋：台股＝證交所表（含颱風停市，twholidays），
+    美股四個指數＝NYSE 休市表（usnews._US_MKT_HOLIDAYS，涵蓋的年份才知道）。其他回 None（不判斷）。"""
+    if mk == "tw":
+        from .. import twholidays as TH
+        return TH.is_closed
+    if mk in ("spx", "ixic", "ndx", "sox"):
+        from ..usnews import _US_MKT_HOLIDAYS as US
+        years = {d.year for d in US}
+        return lambda d: True if (d in US or d.weekday() >= 5) else (False if d.year in years else None)
+    return None
 
 
 def _pct(past: list, x: float) -> float | None:
@@ -302,6 +341,12 @@ def _daily_d(N: dict, spec: dict) -> tuple[dict, dict]:
     return ({d: v for d, v in zip(ks, d1) if v is not None}, {d: v for d, v in zip(ks, d2) if v is not None})
 
 
+def late(B: dict, k: str) -> dict | None:
+    """月資料 k 實際拿得到的日子（heatcalc.prep 的 D["late"]：補缺月、停擺改期、官方公布日；heatspec VER 11～12）。
+    邊際變化和分數用同一份（2026-10-31 A-3b 查到這裡原本只照 RELEASE）。"""
+    return ((B.get("D") or {}).get("late") or {}).get(k)
+
+
 def deriv(B: dict, k: str) -> dict:
     """核心訊號 k 的邊際變化：
     native＝(一階 dict, 二階 dict)（來源日期或月份上）；
@@ -310,11 +355,11 @@ def deriv(B: dict, k: str) -> dict:
     cal = B["cal"]
     if S.FREQ_OF[k] == "m":
         d1, d2 = _monthly_d(B["mraw"][k], spec)
-        rel = S.RELEASE[k]
-        a1, a2 = H.asof_monthly(cal, d1, rel), H.asof_monthly(cal, d2, rel)
+        rel, lt = S.RELEASE[k], late(B, k)
+        a1, a2 = H.asof_monthly(cal, d1, rel, lt), H.asof_monthly(cal, d2, rel, lt)
         ks = sorted(d2)
         p = H.pct_series([d2[m] for m in ks], S.DERIV_PCT_WIN["m"], S.DERIV_PCT_MIN["m"])
-        acc = H.asof_monthly(cal, {m: H.to_heat(x, S.HOT[k]) for m, x in zip(ks, p) if x is not None}, rel)
+        acc = H.asof_monthly(cal, {m: H.to_heat(x, S.HOT[k]) for m, x in zip(ks, p) if x is not None}, rel, lt)
     else:
         d1, d2 = _daily_d(B["nat"][k], spec)
         stale = S.STALE.get(k, 7)
