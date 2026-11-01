@@ -27,6 +27,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from arm.clock import today_tw  # noqa: E402
 from arm.lab import secfin as SF  # noqa: E402
 
 UA_WEB = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
@@ -133,7 +134,7 @@ def sec() -> None:
     h = {"User-Agent": SF._ua(email)}
     bases = ["https://www.sec.gov/files/structureddata/data/insider-transactions-data-sets/{q}_form345.zip",
              "https://www.sec.gov/files/structureddata/data/form-345-data-sets/{q}_form345.zip"]
-    today = date.today()
+    today = today_tw()
     qs = ["2006q1", "2015q2"]
     y, q = today.year, (today.month - 1) // 3 + 1
     for _ in range(3):

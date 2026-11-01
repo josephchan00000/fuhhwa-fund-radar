@@ -14,12 +14,12 @@ import argparse
 import json
 import sys
 import time
-from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from arm.clock import today_tw  # noqa: E402
 from arm.lab import heatdata as HD  # noqa: E402
 from arm.lab import mratio as M  # noqa: E402
 from arm.lab import store  # noqa: E402
@@ -32,7 +32,7 @@ def log(msg: str) -> None:
 def build_universe() -> dict:
     """要做的代號：[(代號, 證交所上市起日或 None, 終止上市日或 None)]，依現在的融資張數由大到小（已終止上市的排最後）。"""
     pacer = M.Pacer()
-    today = date.today().isoformat()
+    today = today_tw().isoformat()
     info = M.fm_list("TaiwanStockInfo", pacer)
     dl = M.fm_list("TaiwanStockDelisting", pacer)
     twse_off = M.twse_delisted()

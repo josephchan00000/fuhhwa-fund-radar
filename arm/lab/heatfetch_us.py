@@ -42,6 +42,7 @@ import urllib.parse
 import urllib.request
 from datetime import date, datetime, timedelta, timezone
 
+from ..clock import today_tw
 from . import heatdata as HD
 from .heatfetch import BROWSER, BLS, DBN, _get, _merge, _post_json, _replace, _twca_ctx, parse_dbnomics
 from .market import log
@@ -438,7 +439,7 @@ def parse_bls(doc: dict) -> dict:
 
 def bls(y0: int, y1: int | None = None) -> int:
     """API v1（不用金鑰）：POST 一次最多 10 年；三條序列一起抓。"""
-    y1 = y1 or date.today().year
+    y1 = y1 or today_tw().year
     out: dict = {}
     a = y0
     while a <= y1:

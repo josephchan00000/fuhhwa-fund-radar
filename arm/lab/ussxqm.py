@@ -18,6 +18,7 @@ from pathlib import Path
 
 import numpy as np
 
+from ..clock import today_tw
 from .. import fileio
 from . import corespec as CS
 from . import ussxbook as BK
@@ -263,7 +264,7 @@ def research(C: dict, log=print, mask: np.ndarray | None = None, desc: bool = Tr
     m = qm_mask(C["cols"]["f"]) if mask is None else mask
     sig = signals(C, m)
     spx_idle = C["PQ"]["spx"]["idle"]
-    out = {"ver": X.VER, "spec": X.SPEC_DATE, "made": date.today().isoformat(), "last": cal[-1], "a": cal[a], "eval": cal[a14],
+    out = {"ver": X.VER, "spec": X.SPEC_DATE, "made": today_tw().isoformat(), "last": cal[-1], "a": cal[a], "eval": cal[a14],
            "rule": {"qm": X.QM, "slots": X.QM_SLOTS, "exit": X.QM_EXIT}, "weeks": int(sum(1 for i in sig if i > a)),
            "signals": int(sum(len(v) for i, v in sig.items() if i > a))}
     R = {(mk, ck): run(C, sig, mk, c) for mk in X.QM_PLANS for ck, c in (("main", X.COST["stk"]), ("alt", X.COST["stk_alt"]))}
@@ -563,7 +564,7 @@ def live_update(C: dict, r: dict, sig: dict[int, list], L: dict | None = None, m
                "buy_next": [x["c"] for x in _trades_between(C, r, i, i + 1) if x["act"] == "buy"] if i + 1 < T else None}
         rec["sell_next"] = [h["c"] for h in rec["hold"] if h["sell"]]
         if d not in weeks:
-            weeks[d] = {**rec, "made": made or date.today().isoformat()}
+            weeks[d] = {**rec, "made": made or today_tw().isoformat()}
         else:
             old = weeks[d]
             if [h["c"] for h in old.get("hold") or []] != [h["c"] for h in rec["hold"]] or \
@@ -643,7 +644,7 @@ def watch(L: dict | None = None, fetch=None, made: str | None = None, prev: dict
     L = L if L is not None else load_live()
     now = L.get("now") or {}
     fetch = fetch or (lambda c, st: UD.fetch_since(c, st, timeout=20))    # 每天的檢查最多 8 檔：一檔最多等 20 秒（整支 180 秒內跑完）
-    out = {"ver": X.VER, "made": made or date.today().isoformat(), "base": now.get("d"), "hold": [], "sell": [], "err": []}
+    out = {"ver": X.VER, "made": made or today_tw().isoformat(), "base": now.get("d"), "hold": [], "sell": [], "err": []}
     same = bool(prev) and prev.get("base") == now.get("d")
     last = {w["c"]: w for w in (prev or {}).get("hold") or [] if same and not w.get("err")}
     for h in now.get("hold") or []:

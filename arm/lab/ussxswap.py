@@ -5,10 +5,10 @@
 """
 from __future__ import annotations
 
-from datetime import date
 
 import numpy as np
 
+from ..clock import today_tw
 from . import core as CO
 from . import corespec as CS
 from . import ussxspec as X
@@ -52,7 +52,7 @@ def plan_ctx(mk: str) -> dict:
 
 def research(P: dict, ctx: dict | None = None) -> dict:
     from . import xstrat as XT
-    out = {"ver": X.VER, "spec": X.SPEC_DATE, "made": date.today().isoformat(), "plans": {}}
+    out = {"ver": X.VER, "spec": X.SPEC_DATE, "made": today_tw().isoformat(), "plans": {}}
     for mk, etfs in X.SWAP.items():
         Q = (ctx or {}).get(mk) or plan_ctx(mk)
         cal, px, tot, rf, F = Q["cal"], Q["px"], Q["tot"], Q["rf"], Q["F"]

@@ -20,6 +20,7 @@ from pathlib import Path
 
 import numpy as np
 
+from ..clock import today_tw
 from .. import fileio
 from . import candspec as CS
 
@@ -847,7 +848,7 @@ class Ctx:
 def evaluate(it: dict, X: Ctx | None = None, today: str | None = None) -> dict:
     """一條候選 → 研究檔的一筆（v＝判定或 need／err／peek）。"""
     X = X or Ctx()
-    base = {"id": it["id"], "spec": CS.VER, "sha": it.get("sha"), "dig": digest(it), "made": today or date.today().isoformat(),
+    base = {"id": it["id"], "spec": CS.VER, "sha": it.get("sha"), "dig": digest(it), "made": today or today_tw().isoformat(),
             "engine": it["engine"], "mk": it["mk"], "kind": it["kind"]}
     if it.get("need") is not None:
         return {**base, "v": "need"}
@@ -957,14 +958,14 @@ def compute(ids: list[str] | None = None, *, force: bool = False, X: Ctx | None 
         try:
             res = evaluate(it, X)
         except Exception as e:                            # noqa: BLE001
-            res = {"id": it["id"], "spec": CS.VER, "sha": it.get("sha"), "dig": digest(it), "made": date.today().isoformat(),
+            res = {"id": it["id"], "spec": CS.VER, "sha": it.get("sha"), "dig": digest(it), "made": today_tw().isoformat(),
                    "engine": it.get("engine"), "mk": it.get("mk"), "kind": it.get("kind"), "v": "err",
                    "err": f"{type(e).__name__}: {e}"}
         R["items"][it["id"]] = res
         done.append(it["id"])
         log(f"[候選] {it['id']} {it.get('name')}：{CS.VERDICT.get(res['v'], res['v'])}"
             + (f"（{res.get('err')}）" if res.get("err") else "") + (f"；{res['peek'][0]}" if res.get("peek") else ""))
-    R["ver"], R["made"] = CS.VER, date.today().isoformat()
+    R["ver"], R["made"] = CS.VER, today_tw().isoformat()
     return R, done
 
 

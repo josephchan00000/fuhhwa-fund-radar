@@ -24,6 +24,7 @@ import time
 from bisect import bisect_right
 from datetime import date
 
+from ..clock import today_tw
 from . import heatdata as HD
 from . import store
 from .market import log
@@ -336,7 +337,7 @@ def backfill(universe: list[tuple[str, str | None, str | None]], *, end: str, bu
     agg_doc["end"] = end
     agg = agg_doc.setdefault("d", {})
     pacer = Pacer(per_hour)
-    z = today or date.today().isoformat()
+    z = today or today_tw().isoformat()
     st = {"done": 0, "empty": 0, "fail": 0, "quota": False, "req": 0}
     todo = [u for u in universe if u[0] not in done["codes"] and u[0] not in done["skip"]]
     k = 0

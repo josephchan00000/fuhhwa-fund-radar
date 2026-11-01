@@ -29,6 +29,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from arm.clock import today_tw  # noqa: E402
 from arm.http import get_bytes  # noqa: E402
 from arm.lab import heatdata as HD  # noqa: E402
 from arm.lab.heatfetch import BROWSER  # noqa: E402
@@ -129,7 +130,7 @@ def z1_quarter(rel: str) -> str:
 def _save(d: dict, src: dict) -> None:
     """每抓完一個來源就存一次（CI 那一步有時間上限，後面的來源逾時也不會連前面的一起丟掉）。"""
     d["_src"] = dict(src)
-    d["_asof"] = date.today().isoformat()
+    d["_asof"] = today_tw().isoformat()
     HD.save("reldates", "bls,frb,alfred", d)
 
 

@@ -14,6 +14,7 @@ from datetime import date
 
 import numpy as np
 
+from ..clock import today_tw
 from . import usstratspec as S
 
 
@@ -299,6 +300,6 @@ def research(P: dict | None = None) -> dict:
         verdict[k] = v
     cover = {cal[m][:4]: [int((P["M"][m] & np.isfinite(P["C"][m])).sum()), int(P["M"][m].sum())]
              for m in period_ends(cal, "m") if cal[m][5:7] == "06"}
-    return {"ver": S.VER, "spec": S.SPEC_DATE, "made": date.today().isoformat(), "last": cal[-1], "cal": cal,
+    return {"ver": S.VER, "spec": S.SPEC_DATE, "made": today_tw().isoformat(), "last": cal[-1], "cal": cal,
             "runs": runs, "bench": bench, "neighbors": nb, "verdict": verdict, "cover": cover,
             "events": {"weeks": len(ev), "n": sum(len(v) for v in ev.values())}}

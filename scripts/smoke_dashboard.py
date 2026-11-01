@@ -25,7 +25,7 @@ from __future__ import annotations
 import os
 import re
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 REQUIRED_IDS = ["overview", "etf-upcoming", "etfwatch", "etf-detail", "fundnews", "macro-data", "freshness"]
 MIN_BYTES = 300_000          # 正常 ~790KB；低於此值＝疑似截斷/半成品
@@ -119,7 +119,7 @@ def browser_check(path: str) -> tuple[list[str], bool]:
             else:
                 try:
                     dt = datetime.strptime(gen, "%Y/%m/%d %H:%M")
-                    age = datetime.now() - dt  # CI 端 TZ=Asia/Taipei，與產表時戳同時區
+                    age = datetime.now(timezone(timedelta(hours=8))).replace(tzinfo=None) - dt  # 台北牆上時間（同 arm/clock.TW_TZ），與產表時戳同時區、不靠執行環境的 TZ
                     if age > timedelta(minutes=int(os.environ.get("SMOKE_MAX_AGE_MIN", MAX_GEN_AGE_MIN))):
                         probs.append(f"產表時戳 {gen} 距今 {age}——建表後立跑的煙測不該看到舊時戳")
                 except ValueError:

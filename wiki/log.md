@@ -60,3 +60,6 @@
 
 ## [2026-11-01] 收錄 | 拿掉沒人用的小東西（體檢第 8 條）
 - 12 個函式＋連帶的 `heatviz._kcard`／`_key_line`／`_verd`／`KEY_SHOW`、9 個常數、8 個 import、7 個區域變數、8 個 f 字串、3 個參數（`ussxmine.mine_fold` 的 `ix_of`、`hotdd.now` 的 `R_mk`、`cnyesfund.search_all` 的 `max_pages`）。研究規格與研究模組裡沒用到的常數（`bubspec`、`crashspec`、`nbrspec`、`superx`、`optim`、`sepa`、`packtest`、`fwd`）照留；`printview.LANE_ORDER` 的說明搬到 `fund_dashboard` 組報告順序那一行。
+
+## [2026-11-01] 收錄 | 直接取今天的地方改用台北時間函式（體檢第 9 條）
+- `arm/`、`scripts/` 裡 `date.today()`／`datetime.now()` 換成 `arm/clock.py` 的 `today_tw()`／`now_tw()`（28 個檔）；CI 本來就設台北時區，輸出不變。`tests/test_heatfetch.py` 改換 `today_tw`。改了 `env/container.md`。
