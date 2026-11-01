@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/11/01 12:55",
+  "as_of": "2026/11/01 14:29",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [],
@@ -110,11 +110,11 @@
       ],
       "items": [
         {
-          "title": "市場回檔、新資金找機會！00418A進入建倉階段 為後續行情布局",
-          "url": "https://www.watchmedia01.com/archives/564371",
-          "source": "警政時報",
-          "date": "2026-10-30 11:56",
-          "datetime": "2026-10-30T11:56:52+08:00"
+          "title": "台股急跌逾1500點 00418A迎建倉時機、逢低布局受關注",
+          "url": "https://www.watchmedia01.com/archives/564368",
+          "source": "觀傳媒",
+          "date": "2026-10-30 11:54",
+          "datetime": "2026-10-30T11:54:28+08:00"
         },
         {
           "title": "台股大跌00418A迎建倉階段 「9倍女王」下一步受關注",
@@ -122,6 +122,13 @@
           "source": "觀傳媒",
           "date": "2026-10-30 11:50",
           "datetime": "2026-10-30T11:50:58+08:00"
+        },
+        {
+          "title": "台股震盪考驗選股功力00418A雙經理人掌握建倉良機10/27最後買進日",
+          "url": "https://enn.tw/798563/",
+          "source": "ENN台灣電報",
+          "date": "2026-10-27 12:13",
+          "datetime": "2026-10-27T12:13:57+08:00"
         }
       ]
     },
@@ -483,7 +490,7 @@
       "channel": "财富底层逻辑",
       "url": "https://www.youtube.com/watch?v=gYyMwEhSwdM",
       "date": "2026-10-26",
-      "views": 3316
+      "views": 3321
     },
     {
       "platform": "youtube",
@@ -491,7 +498,7 @@
       "channel": "夏之戀",
       "url": "https://www.youtube.com/watch?v=xaP__cQ9sac",
       "date": "2026-10-26",
-      "views": 2686
+      "views": 2687
     },
     {
       "platform": "youtube",
@@ -499,7 +506,7 @@
       "channel": "懶得變有錢",
       "url": "https://www.youtube.com/shorts/CmPUJsZF66c",
       "date": "2026-10-30",
-      "views": 1263,
+      "views": 1272,
       "short": true
     },
     {
@@ -508,7 +515,7 @@
       "channel": "風傳媒 The Storm Media",
       "url": "https://www.youtube.com/watch?v=q4n751SOzSA",
       "date": "2026-10-29",
-      "views": 215132,
+      "views": 216530,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -518,7 +525,7 @@
       "channel": "瘋狂股市福利社Free Free Free!",
       "url": "https://www.youtube.com/watch?v=RxPRvqYjVKc",
       "date": "2026-10-30",
-      "views": 158218,
+      "views": 158593,
       "peer": true,
       "cat": "市值型"
     },
@@ -538,7 +545,7 @@
       "channel": "葉芷娟",
       "url": "https://www.youtube.com/watch?v=vNmwEEWgWuA",
       "date": "2026-10-28",
-      "views": 119374,
+      "views": 120271,
       "peer": true,
       "cat": "主動式"
     },
@@ -548,7 +555,7 @@
       "channel": "賺錢放大術",
       "url": "https://www.youtube.com/watch?v=8-Szt70v4xY",
       "date": "2026-10-30",
-      "views": 115450,
+      "views": 116871,
       "peer": true,
       "cat": "綜合"
     },
@@ -558,7 +565,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=KdZ-l9pChOs",
       "date": "2026-10-28",
-      "views": 100818,
+      "views": 101250,
       "peer": true,
       "cat": "高股息"
     },
@@ -568,7 +575,7 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/watch?v=qaDZXiyg5SU",
       "date": "2026-10-27",
-      "views": 73456,
+      "views": 73863,
       "peer": true,
       "cat": "綜合"
     },
@@ -578,7 +585,7 @@
       "channel": "午後檔案",
       "url": "https://www.youtube.com/watch?v=ZRtvgX91bLA",
       "date": "2026-10-27",
-      "views": 64587,
+      "views": 64662,
       "peer": true,
       "cat": "基金"
     },
@@ -588,7 +595,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/gyebmmVJdN4",
       "date": "2026-10-27",
-      "views": 63996,
+      "views": 64324,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -599,7 +606,7 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=E-tt9_An4pA",
       "date": "2026-10-30",
-      "views": 58100,
+      "views": 58654,
       "peer": true,
       "cat": "高股息"
     }
@@ -607,6 +614,6 @@
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00418A（詳下方新聞標籤）",
     "社群聲量最高：最新規劃的資產配置（0 推）",
-    "YouTube 熱片：【理財】台股抄底時間到了？卡位下一波大漲，高手加碼必看「這3個關鍵」！ft.股海老牛｜下班經濟學797｜謝哲青、張瓊方（風傳媒 The Storm Media・215,132 次觀看）"
+    "YouTube 熱片：【理財】台股抄底時間到了？卡位下一波大漲，高手加碼必看「這3個關鍵」！ft.股海老牛｜下班經濟學797｜謝哲青、張瓊方（風傳媒 The Storm Media・216,530 次觀看）"
   ]
 }
