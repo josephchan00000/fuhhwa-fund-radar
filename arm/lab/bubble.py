@@ -1037,7 +1037,3 @@ def now_for(mk: str, D: dict) -> dict | None:
 def last(mk: str) -> dict | None:
     """這個程序裡最近一次算好的市場結果（泡沫頁建頁時沿用景氣頁算過的）。"""
     return _CACHE.get(("last", mk))
-
-
-def clear_cache() -> None:
-    _CACHE.clear()

@@ -561,7 +561,6 @@ def _var_signals(F: dict, v: dict, cat: str) -> list[dict]:
     from . import hotdd as HDD
     from .heatrel import heat_events
     x = v["x"]
-    T = len(x)
     have = ~np.isnan(x)
     samp = np.nonzero(have)[0]
     xl = _lst(x)

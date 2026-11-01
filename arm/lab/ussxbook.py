@@ -161,7 +161,7 @@ def curve_stats(cal: list[str], r: np.ndarray, a: int, b: int) -> dict:
         eh = nav(x0, x1)
         hs.append({"a": cal[x0], "b": cal[x1 - 1], "cagr": cagr(cal, eh, x0, x1), "mdd": mdd(eh), "m": float(eh[-1])})
     out["halves"] = hs
-    yrs, base, prev_y = {}, 1.0, None
+    yrs, base = {}, 1.0
     for k in range(a, b):
         y = cal[k][:4]
         yrs[y] = float(e[k - a] / base - 1)

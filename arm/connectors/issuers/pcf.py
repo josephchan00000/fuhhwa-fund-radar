@@ -510,11 +510,6 @@ def sample_rows(rows: list[dict], k: int = 4) -> str:
         f"(w={r.get('weight')},s={r.get('shares')})" for r in rows[:k])
 
 
-def fetch_one(code: str, issuer: str) -> tuple[list[dict], str, list[Probe]]:
-    """單檔 ETF：依序試候選來源，回 (持股列, 來源名, 全部探針)。"""
-    return _fetch_cands(code, _cands(code, issuer))
-
-
 def _fetch_cands(code: str, cands: list[tuple[str, str]]) -> tuple[list[dict], str, list[Probe]]:
     """依序試給定候選：取得 → 通用解析 → 假陽性驗證；失敗時把診斷寫進 Probe。"""
     probes: list[Probe] = []

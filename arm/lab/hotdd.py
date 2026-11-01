@@ -573,9 +573,9 @@ def instance(cal: list[str], px: np.ndarray, i: int, t: int) -> dict:
     return out
 
 
-def now(B: dict, R_mk: dict | None) -> dict:
+def now(B: dict) -> dict:
     """今天（日曆最後一天）：過熱中的面向與項目（已連續幾週、這一次進入過熱與連續滿 N 週之後 3 個月的最大回撤，
-    不到 3 個月的算到今天）、最近 60 個交易日內剛結束過熱的、同時過熱的面向數。R_mk＝研究檔裡這個市場的結果。"""
+    不到 3 個月的算到今天）、最近 60 個交易日內剛結束過熱的、同時過熱的面向數。"""
     from . import heatpos as P
     cal, px = B["cal"], _arr(B["px"])
     T = len(cal)

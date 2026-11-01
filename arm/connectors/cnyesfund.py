@@ -176,7 +176,7 @@ def _walk_items(node, out: list[dict]) -> None:
             _walk_items(v, out)
 
 
-def search_all(keyword: str = "復華", max_pages: int = 0) -> list[dict]:
+def search_all(keyword: str = "復華") -> list[dict]:
     """抓搜尋頁 HTML → __NEXT_DATA__ → 遞迴挖基金物件。失敗時印足夠診斷：
     pageProps keys／頁內 cnyes API URL 線索／flight（App Router）標記／資料鍵出現次數。"""
     for tmpl in SEARCH_PAGES:

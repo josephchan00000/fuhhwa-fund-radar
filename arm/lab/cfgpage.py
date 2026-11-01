@@ -725,7 +725,7 @@ def ytd_html(Y: dict | None, mk: str) -> str:
                  f'24 種挑法今年的報酬：最低 {_ypc(rg["min"])}、中間 {_ypc(rg["med"])}、最高 {_ypc(rg["max"])}'
                  + (f'——固定的這一種今年剛好排第 {Y["rank_yr"]} 名，換一種挑法差很多，看中間那個數字比較接近一般的情況'
                     if Y.get("rank_yr", 99) <= 3 else f'——固定的這一種今年排第 {Y.get("rank_yr", "—")} 名') + "。</div>")
-    return (f'<h2 class="cfh">今年<span class="sub">每個月、每一筆</span></h2>' + head + tbl
+    return ('<h2 class="cfh">今年<span class="sub">每個月、每一筆</span></h2>' + head + tbl
             + f'<div class="cfq">{_e(how)}</div>' + extra + ytd_trades(Y, mk))
 
 
@@ -967,7 +967,7 @@ def us_money(G: dict, N: dict | None) -> str:
     全部持股放現金時（警訊）只剩長抱（美股 VER 4 長抱 0%，所以整個帳戶都是現金）。"""
     cash_mode = bool(N) and N["now"] < 0.99
     d0 = G["d"] or (N or {}).get("d")
-    head = f'<h2 class="cfh">現在的錢<span class="sub">美股' + (f'・{_e(_md(d0))} 收盤' if d0 else '') + '</span></h2>'
+    head = '<h2 class="cfh">現在的錢<span class="sub">美股' + (f'・{_e(_md(d0))} 收盤' if d0 else '') + '</span></h2>'
     if G["on"] and not G["n"]:
         return head + '<div class="cfmo"><p class="cfwhy">強勢品質股每週六更新的持股紀錄還沒產生，持股要等紀錄出來才算得出來。</p></div>'
     segs = []                                                # (名稱, 占全部資金, 顏色槽)：顏色照順序

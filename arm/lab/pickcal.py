@@ -45,11 +45,6 @@ def nth_day(mk: str, d: str, n: int) -> str:
     return next_days(mk, d, n)[-1]
 
 
-def on_or_after(mk: str, d: str) -> str:
-    x = date.fromisoformat(d)
-    return d if not _closed(mk, x) else next_day(mk, d)
-
-
 def week_ends(mk: str, a: str, b: str) -> list[str]:
     """(a, b] 之間每週的最後一個交易日（那一週的交易日都還在 b 之前或當天）。"""
     out, x = [], date.fromisoformat(a) + timedelta(days=1)

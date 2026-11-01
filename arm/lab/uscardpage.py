@@ -122,7 +122,7 @@ def why_html(c: str, n: dict, rank: tuple | None, hold: bool) -> str:
                  "而且營業利益增加的比營收增加的多（賣資產這類一次性收入撐起來的），那一季不算。")
     if hold:
         note += "買進以後只看 50 日線，這幾個數字變差也照樣拿著。"
-    return (f'<h3>為什麼選它' + (f'<span class="sub">{_e(sub)}</span>' if sub else "") + "</h3>"
+    return ('<h3>為什麼選它' + (f'<span class="sub">{_e(sub)}</span>' if sub else "") + "</h3>"
             + ('<p class="st">這週的五個數字還沒有（每週六更新）。</p>' if empty else
                f'<div class="tw"><table class="ucfv">{head}{body}</table></div><p class="note">{_e(note)}</p>'))
 

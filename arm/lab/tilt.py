@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import bisect
 import json
-import math
 import zlib
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -24,7 +23,6 @@ from . import practsim as PS
 from . import practspec as PSS
 from . import tiltspec as S
 from . import xstrat as XT
-from . import xstratspec as XS
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "data" / "lab" / "tilt_research.json"
@@ -435,7 +433,6 @@ def load(path: Path | None = None) -> dict | None:
 
 # ── 前瞻（網頁每天算；只呈現） ─────────────────────────────────────────────────
 LIVE_START = "2026-10-23"          # 「200 日均線上加碼」放上網頁那天（tiltspec 第 8 節：前瞻驗證中）
-LIVE_MIN_DAYS = 63                 # 滿 3 個月才寫成績
 
 
 def ma_state(px: np.ndarray, cal: list[str]) -> dict:

@@ -240,19 +240,6 @@ def daily() -> int:
     return 1
 
 
-def ratio_arrays(cal: list[str]) -> tuple[list, list, list, list, list, list]:
-    """對到日曆的 (上漲, 下跌, 上漲成交金額, 下跌成交金額, 上漲點數, 下跌點數)；沒有＝nan。"""
-    b = HD.load(NAME)
-    nan = float("nan")
-    cols = [[], [], [], [], [], []]
-    for d in cal:
-        r = b.get(d)
-        vals = (r[0], r[1], r[3], r[4], r[5], r[6]) if r else (nan,) * 6
-        for j in range(6):
-            cols[j].append(float(vals[j]))
-    return tuple(cols)
-
-
 def gap_days(cal: list[str], b: dict) -> list[str]:
     """日曆上 us_breadth 缺的日子（給頁面寫資料缺口；最早一天以前不算）。"""
     if not b:

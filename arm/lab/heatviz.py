@@ -25,7 +25,6 @@ DD_MIN = 0.20          # 地形圖的大跌期間：高點到低點跌幅門檻
 SWING_TW = 0.10        # 雷達底下的波段高低點：收盤從高點回落 10% 才確認高點（低點反彈 10%）；
                        # 美股換算成和台股一樣常見＝crashspec.TH 的 60 日門檻（docs/lab_heatviz_v2_plan.md 第 1 節）
 SWING_N = 8            # 最近幾個已確認的轉折點
-KEY_SHOW = 4           # 關鍵狀態先列幾個
 MOVE_FLAT = 3          # 這週變化：面向分數動 ±3 分以內收成「其他沒什麼變」（docs/lab_heatviz_v2_plan.md 第 4 節）
 MOVE_WHY = 2           # 每個面向列幾個主要原因（拉動最多的項目）
 MOVE_WHY_MIN = 1.0     # 拉動不到 1 分的項目不算主要原因
@@ -291,53 +290,6 @@ def _vt(v) -> str:
     return f'<span class="vt {v}">{_e(S.VERDICT[v])}</span>' if v in ("weak", "strong") else ""
 
 
-def _verd(a: dict) -> str:
-    by: dict[str, list] = {}
-    for h in a["hs"]:
-        by.setdefault(a["verdict"][h], []).append(h)
-    return "".join(f'<span class="vt {v}">{_e(S.VERDICT[v])}（{"、".join(str(x) for x in hs)} 日）</span>'
-                   for v, hs in by.items())
-
-
-def _key_line(a: dict) -> str:
-    cur, al = a["cur"], a["all"]
-    unit = HP._unit(a["freq"])
-    yrs = HP._yrs(cur.get("yrs"))
-    where = f"，出現在 {yrs} 年" if yrs else ""
-    up = f'、上漲 {cur["up"]:.0f}%' if cur.get("up") is not None else ""
-    allt = f'；所有時候 {_pct(al.get("avg"))}' if al.get("avg") is not None else ""
-    return (f'過去在「{_e(a["band"])}」時，之後 {a["h"]} 日{_e(HP.MK["px"])}平均 <b>{_e(_pct(cur.get("avg")))}</b>'
-            f'{up}（{cur["n"]:,} {unit}{_e(where)}）{_e(allt)}。')
-
-
-def _kcard(a: dict, full: bool) -> str:
-    did = f'dim:{a["k"]}' if a["kind"] == "dim" else f'item:{a["k"]}'
-    kind = "面向" if a["kind"] == "dim" else S.DSHORT[a["dim"]]
-    wk = f'<span class="kw">已連續 {a["weeks"]} 週</span>' if a["weeks"] else ""
-    z = _zc(a["heat"])
-    head = (f'<div class="kt"><b>{_e(a["name"])}</b><span class="kk">{_e(kind)}</span>'
-            f'<span class="kv zt{z}">{HP.n0(a["heat"])} {_e(a["band"])}</span>{wk}</div>')
-    if not full:
-        return (f'<li><button type="button" class="kmini" data-open="{did}">{head}<span class="ke">{_verd(a)}</span></button></li>')
-    return (f'<article class="kcard" data-open="{did}" tabindex="0" role="button" aria-label="{_e(a["name"])}：打開細節">{head}'
-            f'<div class="ke">{_verd(a)}</div><p class="kp">{_key_line(a)}</p>'
-            f'{zone_svg(a["bands"], a["band"], a["all"])}</article>')
-
-
-def key_html(ks: list[dict]) -> str:
-    if not ks:
-        return ('<section class="kstate card" id="key"><div class="khd"><h2>關鍵狀態</h2></div>'
-                '<p class="note">現在沒有「研究顯示有穩定關係、而且正在過熱或過冷」的項目。</p></section>')
-    cards = "".join(_kcard(a, True) for a in ks[:KEY_SHOW])
-    more = ""
-    if len(ks) > KEY_SHOW:
-        more = (f'<details class="kmore"><summary>還有 {len(ks) - KEY_SHOW} 個</summary><ul class="klist">'
-                + "".join(_kcard(a, False) for a in ks[KEY_SHOW:]) + "</ul></details>")
-    return (f'<section class="kstate card" id="key"><div class="khd"><h2>關鍵狀態</h2><span class="kn">{len(ks)} 個</span></div>'
-            '<p class="ksub">研究顯示有穩定關係、而且現在在過熱或過冷；長條＝過去在各區之後的平均漲跌，虛線＝所有時候。只當參考。</p>'
-            f'{cards}{more}</section>')
-
-
 def _nmb(k: str, name: str) -> str:
     return f'<button type="button" class="nmb" data-k="{_e(k)}">{_e(name)}</button>'
 
@@ -416,7 +368,7 @@ def moves_html(V: dict) -> str:
     rows.sort(key=lambda r: (r[0], r[1]))
     body = "".join(r[2] for r in rows)
     if flat:
-        body += (f'<li class="wfl"><span class="wtag">其他沒什麼變</span>' + "、".join(flat) + "</li>")
+        body += ('<li class="wfl"><span class="wtag">其他沒什麼變</span>' + "、".join(flat) + "</li>")
     rec = []
     for d, L in V["dims"].items():
         for it in L["items"]:
@@ -432,23 +384,6 @@ def moves_html(V: dict) -> str:
     return (f'<section class="wchg card" id="wchg"><div class="khd"><h2>這週變化</h2><span class="kn">和 '
             f'{_e(HP._md(V.get("viz", {}).get("t0")))}比</span></div>'
             f'<ul>{body}</ul></section>')
-
-
-def items_table(V: dict) -> str:
-    rows = []
-    for d, L in V["dims"].items():
-        for it in _item_order(L):
-            h, a = it["heat"], it["ago"]
-            ch = "—" if h is None or a is None else HP._sgn(h - a, 0)
-            hv = "—" if h is None else HP.n0(h)
-            av = "—" if a is None else HP.n0(a)
-            pl = "—" if it["pull"] is None else HP._sgn(it["pull"])
-            sh = "—" if it["share"] is None else f'{it["share"]:.0f}%'
-            rows.append(f'<tr><td class="l">{_nmb(it["k"], it["name"])}</td><td class="l">{_e(S.DSHORT[d])}</td>'
-                        f'<td><b class="zt{_zc(h)}">{hv}</b></td><td>{av}</td><td>{ch}</td><td>{pl}</td><td>{sh}</td>'
-                        f'<td class="l">{_e(it["val"])}</td></tr>')
-    return ('<div class="tw itab" id="itab" hidden><table><tr><th class="l">項目</th><th class="l">面向</th><th>0～100</th>'
-            '<th>上週</th><th>變化</th><th>拉動</th><th>佔比</th><th class="l">現值</th></tr>' + "".join(rows) + "</table></div>")
 
 
 def _radar_card(V: dict | None = None) -> str:

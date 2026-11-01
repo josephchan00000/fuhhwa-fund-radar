@@ -24,7 +24,6 @@ from . import sigspec as S
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "data" / "lab" / "thermo_research.json"
-SIDES = ("up", "warn")
 GROUPS = ("lo", "mid", "hi")
 
 

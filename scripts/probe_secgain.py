@@ -19,7 +19,7 @@ import sys
 import tempfile
 import time
 import zipfile
-from collections import Counter, defaultdict
+from collections import Counter
 from datetime import date
 from pathlib import Path
 

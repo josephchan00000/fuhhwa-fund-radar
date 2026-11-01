@@ -29,7 +29,7 @@ MK_NAMES = {"tw": "台股", "spx": "S&P 500", "ixic": "那斯達克", "ndx": "�
 PX_NAMES = {"tw": "加權指數", "spx": "S&P 500", "ixic": "那斯達克", "ndx": "那斯達克 100", "sox": "費半"}
 STATE_WEEKS = {"H1": 1, "H4": 4, "H13": 13, "H26": 26}
 LIST_MAX = 20
-TL_MIN_DAYS = 63                                               # 前瞻滿 3 個月才寫成績（同 tilt.LIVE_MIN_DAYS）
+TL_MIN_DAYS = 63                                               # 前瞻滿 3 個月才寫成績
 MONEY_RULES = ("A1", "A2", "A3", "A4", "B1", "M1", "M2")       # 會調整持股的做法（D1＝偏多全部照做，幾乎一直拿滿，只當對照）
 MONEY_NAMES = {"bh": "一直抱著", "A1": "溫度計：短線警示多就減半", "A2": "溫度計：中線警示多就減半", "A3": "溫度計：長線警示多就減半",
                "A4": "溫度計：兩支以上警示多就減半", "B1": "溫度計：短線偏多多才拿滿", "D1": "溫度計：偏多有東西就拿滿（幾乎一直拿滿）",
@@ -415,7 +415,6 @@ def money_card(mk: str, X: dict | None) -> tuple[str, tuple | str]:
     rw = X["rows"]
     bh = rw["bh"]
     yr = X["start"][:4]
-    a1, m2 = rw.get("A1"), rw.get("M2")
     pick = [("bh", bh)] + [(k, rw[k]) for k in ("A1", "M2") if rw.get(k)]
     mx_v = max(v[0] for _, v in pick) * 1.05
     mx_d = max(v[1] for _, v in pick) * 1.15

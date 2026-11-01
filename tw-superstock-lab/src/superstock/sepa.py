@@ -151,17 +151,6 @@ def statuses(m, F: dict, S9: np.ndarray, PP: tuple, TG: tuple) -> dict[str, np.n
 
 
 # ---------------------------------------------------------------------------------------------- 排序
-def industry_counts(stocks: list[str], ind: dict, S9: np.ndarray) -> np.ndarray:
-    """每天每檔：同產業有幾檔在名單上（含自己若在名單上）。"""
-    names = sorted({ind[c] for c in stocks if c in ind})
-    code = {n: i for i, n in enumerate(names)}
-    g = np.array([code.get(ind.get(c), -1) for c in stocks])
-    out = np.zeros(S9.shape, dtype=np.int16)
-    has = g >= 0
-    for t in range(S9.shape[0]):
-        cnt = np.bincount(g[S9[t] & has], minlength=len(names))
-        out[t, has] = cnt[g[has]]
-    return out
 
 
 def scores(ev: np.ndarray, F: dict, rsl_new, bno, maup, rnha, s1, ud, indn) -> np.ndarray:
@@ -213,30 +202,6 @@ def outcomes(m) -> dict[str, np.ndarray]:
         B = np.where(np.isnan(fm250) | np.isnan(e), np.nan, (fm250 >= 2.0 * e).astype(float))
         r20, r60 = fwd_c(20) / e - 1, fwd_c(60) / e - 1
     return {"e": e, "A": A, "B": B, "r20": r20, "r60": r60}
-
-
-def stop_first(m, cells: list[tuple[int, int]], e: np.ndarray, stop: np.ndarray, n: int = 60, up: float = 0.2) -> list:
-    """每格：60 日內先跌破停損價（還沒漲到 +20%）→ 1；先漲到 +20% 或都沒碰到 → 0；資料不夠 → None。"""
-    out = []
-    T = m.n
-    for t, j in cells:
-        px, sp = e[t, j], stop[t, j]
-        if px != px or sp != sp or t + n >= T:
-            out.append(None)
-            continue
-        if px <= sp:
-            out.append(1)
-            continue
-        res = 0
-        for k in range(t + 1, t + n + 1):
-            lo, hi = m.l[k, j], m.h[k, j]
-            if lo == lo and lo <= sp:
-                res = 1
-                break
-            if hi == hi and hi >= px * (1 + up):
-                break
-        out.append(res)
-    return out
 
 
 def dedup(mask: np.ndarray, gap: int = DEDUP) -> np.ndarray:

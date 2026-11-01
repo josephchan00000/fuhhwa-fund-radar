@@ -670,26 +670,6 @@ def strip_text(st: dict) -> str:
     return "；".join(parts)
 
 
-def _strips(V: dict) -> str:
-    rows = []
-    for dim, L in V["dims"].items():
-        st = (V.get("strips") or {}).get(dim) or {}
-        cells = "".join(f'<i class="{BAND_CLS.get(b, "na") if b else "na"}" title="{_e(_ymd(d))}　{"—" if v is None else n0(v)}"></i>'
-                        for d, v, b in st.get("cells") or [])
-        sc = st.get("score")
-        cls = BAND_CLS.get(st.get("band"), "b2")
-        num = (f'<b class="sc {cls}">{n0(sc)}</b><em class="bn {cls}">{_e(st["band"])}</em>' if sc is not None else
-               '<b class="sc mu">—</b><em class="bn mu">沒有分數</em>')
-        rows.append(f'<a class="sr" href="#c-{dim}"><span class="sr-n"><b>{_e(S.DSHORT[dim])}</b><i>{_e(L["span"])}</i></span>'
-                    f'<span class="sr-c" role="img" aria-label="{_e(S.DSHORT[dim])}近 {S.STRIP_WEEKS} 週的熱度">{cells}</span>'
-                    f'<span class="sr-v">{num}</span><span class="sr-t">{_e(strip_text(st))}</span></a>')
-    lg = "".join(f'<span><i class="{BAND_CLS[nm]}"></i>{_e(nm)}</span>' for _, _, nm in S.BANDS)
-    return (f'<section class="hd" id="top"><p class="sum">{_e(V.get("summary") or "")}</p>'
-            f'<div class="strips">{"".join(rows)}</div>'
-            f'<div class="srl">{lg}<span class="mu">每格一週（每週最後一個交易日），最右邊是最新的一週，往左共 {S.STRIP_WEEKS} 週；'
-            f'滑過格子看日期與分數，點一列跳到那個面向。</span></div></section>')
-
-
 def _ddw(b: dict) -> str:
     """五區的最大跌幅最慘一次（sigspec VER 24：從最高收盤跌到之後最低收盤）＋日期；舊研究檔沒有就「—」。"""
     if b.get("ddw") is None:
