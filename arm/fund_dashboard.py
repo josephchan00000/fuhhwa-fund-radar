@@ -1162,7 +1162,9 @@ def _div_cell(i: dict) -> str:
     est = i.get("est_div")
     if est is not None:
         tip = "投信於配息月公告之預計配息金額，非正式配息金額（實際以除息公告為準）"
-        main += (f'<div class="estdivln"><span class="estdiv" title="{tip}">預估 '
+        if i.get("est_src") == "news":
+            tip = f"主流媒體報導的投信預估配息（{i.get('est_from') or '新聞'}），非正式配息金額（實際以除息公告為準）"
+        main += (f'<div class="estdivln"><span class="estdiv" title="{_esc(tip)}">預估 '
                  f'{_fmt_num(est, 4)}<sup>*</sup></span></div>')
     elif i.get("est_pend"):
         try:
@@ -1892,7 +1894,7 @@ def _etfwatch_view(doc: dict | None, holdings_doc: dict | None = None) -> str:
         '當月預估配息 ← <a href="https://www.twse.com.tw/zh/announcement/ex-right/twt48u.html" '
         'target="_blank" rel="noopener">證交所</a>／<a href="https://www.tpex.org.tw/web/stock/exright/'
         'preAnnounce/prepost.php?l=zh-tw" target="_blank" rel="noopener">櫃買</a>除權除息預告表、'
-        '<a href="https://mops.twse.com.tw" target="_blank" rel="noopener">MOPS 公開資訊觀測站</a>。<br>'
+        '<a href="https://mops.twse.com.tw" target="_blank" rel="noopener">MOPS 公開資訊觀測站</a>；兩者都還沒有金額時，取主流媒體報導的投信預估金額（同樣標 *）。<br>'
         f'　資料時間：規模／年化配息率抓取基準 {_esc(doc.get("as_of") or "—")}；'
         f'過去一週／一月報酬基準 {_esc(doc.get("perf_asof") or "—")}'
         '（成立日期為固定值；來源當日未更新時沿用最近可得值並標明基準日）・'
