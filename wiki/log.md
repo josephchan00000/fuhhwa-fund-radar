@@ -190,3 +190,6 @@
 
 ## [2026-11-01] 收錄 | 拿掉舊本機流程剩下的零件（體檢第 7 條第二步）
 - `arm/config.py` 的 `distributions()`、`connectors/issuers` 只給舊流程用的 `load_holdings`、`competitor_peers` 與 `base.py`、`connectors/etfinfo.py` 的 `latest_market`、`dividends`、`active_flow`、`connectors/tdcc.py` 的受益人數週增與 `arm/db.py`。正式流程用到的 `config.product`、`issuers/pcf.py`、`etfinfo.fetch_etf`／`holdings_fresh`／`list_etfs`、`tdcc._fetch_csv` 都留著。
+
+## [2026-11-01] 收錄 | 美股內部人季資料解析出 0 筆時跳過、不記做完（體檢第 5 條）
+- `arm/lab/insider.py` 的 `do_quarters`：一季解析出 0 筆合格的 Form 4 → 不換掉那三個月、不記做完、印警告，下次重抓。測試 `tests/test_insider.py`。改了 `lab/heat-us.md`。
