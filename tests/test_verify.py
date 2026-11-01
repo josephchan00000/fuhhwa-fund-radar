@@ -256,6 +256,55 @@ def test_oos_and_thermo_agree_on_synthetic_frame():
     assert t["n"] > 500 and t["bad"] == [], t["bad"][:3]
 
 
+def test_age_days_hand_example():
+    """第 5.1 節（第二套）手算：事件 10、14 出現（看 10 天、18 那天相反的讀數），樣本從 0 開始；條件第 11 天起斷、第 15 天又成立。
+    10～13 屬第 10 天那一次、14～17 屬第 14 天那一次（去重：14 − 10 ≤ 10 → 算進 10 那一次），18 起失效。"""
+    T = 40
+    cx = np.zeros(T, dtype=bool)
+    cx[15:] = True
+    sd = {"id": "x", "kind": "event", "samp": np.arange(T), "days": [10, 14], "exp": [18]}
+    D = V._age_days(sd, T, 10, cx)
+    assert D["t"].tolist() == list(range(10, 18))
+    assert D["k"].tolist() == [0, 1, 2, 3, 0, 1, 2, 3]
+    assert [V._ck(c) for c in D["cid"].tolist()] == ["0o", "1x", "1x", "1x", "0o", "1o", "1o", "1o"]
+    assert D["cl"].tolist() == [0] * 8 and D["s"].all()
+    st = {"id": "y", "kind": "state", "samp": np.array([2, 4, 6, 8, 10, 12]), "state": np.array([1, 1, 0, 1, 1, 1], dtype=bool)}
+    Ds = V._age_days(st, 20, 60, None)                      # 分段（EP_GAP）：段裡相隔 < EP_GAP 個樣本的同一段
+    eps = V._episodes(st)
+    assert Ds["t"].tolist() == [t for e in eps for t in e]
+    assert Ds["k"].tolist() == [t - e[0] for e in eps for t in e] and set(V._ck(c)[-1] for c in Ds["cid"].tolist()) == {"-"}
+    mo = {"id": "z", "kind": "state", "samp": np.array([3, 8, 13]), "state": np.array([1, 1, 0], dtype=bool), "monthly": True}
+    Dm = V._age_days(mo, 15, 250, None)                     # 月資料：月底到下一個月底前都同一格
+    assert Dm["t"].tolist() == list(range(3, 13)) and Dm["k"].tolist() == [0] * 5 + [5] * 5
+    assert Dm["s"].tolist() == [True] + [False] * 4 + [True] + [False] * 4
+
+
+def test_age_cells_and_votes_agree_on_synthetic_frame():
+    """VER 26 的格子、逐年紀錄、溫度計的票（第二套）和網頁用的 sigage／thermocal 一樣；而且真的有比到東西（條件已斷的格、今年的票）。"""
+    F = _frame("tw", T=3800)
+    r = V.check_age(F)
+    assert r["n"] > 150 and r["nrec"] > 300 and r["nbad"] == 0, r["bad"][:3]
+    rows, agg = V.age2(F)
+    cks = {ck for hz in rows.values() for R in hz.values() for ck in R["c"]}
+    assert any(ck.endswith("x") for ck in cks) and any(ck.endswith("o") for ck in cks) and any(ck.endswith("-") for ck in cks)
+    from arm.lab import thermocal as TCL
+    B = V.thermo2(F, {sd["id"]: TCL.item_of(sd) for sd in G.signals(F)})
+    assert B["votes26"] and sum(sum(h["u"]) + sum(h["w"]) for h in B["hist26"].values()) > 0
+    assert all(a <= b for k in B["hist"] for c in "uw" for a, b in zip(B["hist26"][k][c], B["hist"][k][c]))   # 格子只會拿掉
+
+
+def test_check_age_catches_broken_condition_and_bucket(monkeypatch):
+    """故意把第二套改壞（條件晚一天才看、分段邊界差一天）：比對一定要報出來。"""
+    F = _frame("tw", T=2600)
+    real = V._carry
+    monkeypatch.setattr(V, "_carry", lambda flag, ok: np.r_[False, real(flag, ok)[:-1]])
+    assert V.check_age(F)["nbad"] > 0
+    monkeypatch.setattr(V, "_carry", real)
+    monkeypatch.setattr(V, "_age_bucket", lambda k: max(0, __import__("bisect").bisect_right(S.AGE_B, k + 1) - 1))
+    r = V.check_age(F)
+    assert r["nbad"] > 0 and any(b[0] != "逐年" for b in r["bad"])
+
+
 def test_ind_agrees_on_synthetic_industries(monkeypatch):
     from arm.lab import bubind as BI
     rng = np.random.default_rng(3)

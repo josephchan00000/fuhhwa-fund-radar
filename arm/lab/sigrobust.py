@@ -621,8 +621,8 @@ def impact(base: dict, rows: list[dict], out: list[dict]) -> dict:
         acts: dict = {}
         xon: dict = {}
         on = G.now_market(F[mk], acts, xon)
-        b0 = G.board(rows, on, mk, acts, xon)
-        b1 = G.board(rows2, on, mk, acts, xon)
+        b0 = G.board(rows, on, mk, acts, xon, RB=None)          # 兩邊都照 VER 26 的清單（不看參數鄰近的研究檔，比的就是它）
+        b1 = G.board(rows2, on, mk, acts, xon, RB=None)
 
         def keys(b, members=True):
             out = {}

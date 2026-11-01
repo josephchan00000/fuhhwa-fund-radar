@@ -886,7 +886,7 @@ AGE_VER = 26                     # data/lab/sigage_research.json 版本 ≥ 這�
 # ·寫這一版之前已經看過的：參數鄰近的結果與「今天的清單會少哪些」的預覽（規劃第 12.2、13.4 節）、C 段的法人結果。
 ROBUST_VER = 1                   # data/lab/robust_research.json 版本 ≥ 這個才用（＝nbrspec.VER）
 PARAM_WHY = "參數一動就不比平常好"
-PARAM_NA = "參數檢查看不出來（次數太少）"
+PARAM_NA = "參數一動次數就不夠，比不出來"   # 2026-11-01 寫頁面時改字（原本「參數檢查看不出來（次數太少）」含主頁面不能用的「看不出」）；只改字
 PARAM_MISS = "參數還沒檢查"
 PARAM_NONE = "參數檢查還沒算"
 INST_NOTE = "法人訊號：過去挑出來的，之後多半沒有比平常好"

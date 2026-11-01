@@ -7,6 +7,8 @@
   outcomes(...)    偏多、警示、最大回撤（逐筆迴圈）
   ev_stats／st_stats  次數、命中率、平常（第 3.4 節：事件去重；狀態分段、每一天一樣重）
   check_market(F)  和 sigcat 比對 → {"n", "checked", "bad": [...], "skip": [...]}
+  check_rows／check_buy／check_oos／check_thermo／check_age／check_ind  研究列、買點、逐年檢查、溫度計（第 25、26 版的票）、
+                   第幾天進場的格子與逐年紀錄（sigspec 第 5.1 節，不呼叫 sigage）、產業泡沫
 """
 from __future__ import annotations
 
@@ -1006,9 +1008,343 @@ def _vote(st: dict | None) -> str:
                    and st[d]["hit"] - st[d]["base"] >= S.THERMO_EDGE)
 
 
+# ── VER 26：第幾天進場的格子（第二套，sigspec 第 5.1 節） ─────────────────────────────
+# 照規格文字重寫，不呼叫 sigage（cond、days、buy_days、table、Prefix、walk、passes）；大跌後買點的事件與那一段大跌（bottom）
+# 是輸入（同 check_buy）。格＝(分段, 條件)：分段 AGE_B 的位置、條件 0 還成立／1 已斷／2 不分；鍵＝位置＋"o"／"x"／"-"。
+
+AGE_CK = "ox-"
+NC = len(S.AGE_B) * 3
+
+
+def _ck(cid: int) -> str:
+    return f"{cid // 3}{AGE_CK[cid % 3]}"
+
+
+def _carry(flag, ok) -> np.ndarray:
+    """沒有讀數的日子照最近一個有讀數的那天（第一個讀數之前＝不成立）。"""
+    out = np.zeros(len(flag), dtype=bool)
+    last = False
+    for t in range(len(flag)):
+        if ok[t]:
+            last = bool(flag[t])
+        out[t] = last
+    return out
+
+
+def _cond2(F: dict, sid: str, cache: dict) -> np.ndarray | None:
+    """第 5.1 節 AGE_COND（第二套）：這個訊號每一天觸發條件還成立；不在 AGE_COND（或找不到變數）＝None（只分第幾天）。"""
+    p = sid.split(":")
+    key = f"tech:{p[2]}" if p[1] == "tech" else (f"{p[1]}:{p[3]}" if len(p) > 3 else "")
+    kind = S.AGE_COND.get(key)
+    if kind is None:
+        return None
+    T = len(F["cal"])
+    if kind in ("ge_hot", "lt_cold"):                     # 那天 0～100 ≥ HOT（進入過熱、進入大賣超）／< COLD
+        src = {"heat": "vars", "crash": "cvars", "bd": "bvars", "inst": "ivars"}[p[1]]
+        v = next((v for v in F.get(src) or [] if v["key"] == p[2]), None)
+        if v is None:
+            return None
+        x = np.asarray(v["x"], dtype=float)
+        ok = ~np.isnan(x)
+        xx = np.where(ok, x, 50.0)
+        return _carry((xx >= S.HOT) if kind == "ge_hot" else (xx < S.COLD), ok)
+    if kind == "multi":                                   # 那天同時兩個以上面向過熱中（第 4.2 節）
+        if "multi" not in cache:
+            hot, have = np.zeros(T, dtype=int), np.zeros(T, dtype=int)
+            for d in F["dims"]:
+                c = np.asarray(F["comp"][d], dtype=float)
+                hot += (~np.isnan(c) & (np.nan_to_num(c, nan=-1) >= S.HOT)).astype(int)
+                have += (~np.isnan(c)).astype(int)
+            cache["multi"] = _carry(hot >= S.MULTI_K, have >= S.MULTI_MIN_DIMS)
+        return cache["multi"]
+    if kind == "run":                                     # 那天同一邊連續買超（賣超）已經 ≥ N 天（沒有資料或 0 算中斷）
+        v = next((v for v in F.get("ivars") or [] if v["key"] == p[2] and v.get("amt") is not None), None)
+        if v is None:
+            return None
+        amt = np.asarray(v["amt"], dtype=float)
+        sign = -1 if p[3].startswith("sell") else 1
+        n = int(p[3].rsplit("run", 1)[1])
+        run, c = np.zeros(T, dtype=bool), 0
+        for t in range(T):
+            c = c + 1 if (_fin(amt[t]) and amt[t] * sign > 0) else 0
+            run[t] = c >= n
+        return _carry(run, ~np.isnan(amt))
+    if "sides" not in cache:                              # side：收盤對月線、季線、年線，月線對季線，季線對前一天
+        px = np.asarray(F["px"], dtype=float)
+        M = {n: _sma(px, n) for n in (20, 60, 240)}
+        cache["sides"] = {"ma20": _side(px, M[20]), "ma60": _side(px, M[60]), "ma240": _side(px, M[240]),
+                          "x": _side(M[20], M[60]), "s60": [None] + _side(M[60][1:], M[60][:-1])}
+    e = p[2]
+    sd_ = cache["sides"]["x" if e.startswith("x_") else e.rsplit("_", 1)[0]]
+    want = -1 if (e.endswith("_dn") or e == "x_dead") else 1
+    return _carry([x == want for x in sd_], [x is not None for x in sd_])
+
+
+def _age_bucket(k: int) -> int:
+    return bisect.bisect_right(S.AGE_B, k) - 1
+
+
+def _age_arr(rows: list) -> dict:
+    a = lambda i, dt: np.asarray([r[i] for r in rows], dtype=dt)
+    return {"t": a(0, np.int64), "k": a(1, np.int64), "cid": a(2, np.int64), "cl": a(3, np.int64), "s": a(4, bool)}
+
+
+def _ev_rows(D: list, ends: list, kept: list, T: int, cx, sset: set) -> list:
+    """事件型（第二套）：每一天找最近一次出現 D[j]（D[j] ≤ 那天 < D[j＋1]），那天 < 那一次的有效到才算現在有效；
+    第幾天＝那天 − D[j]；算哪一次＝去重後、D[j] 前面最近一次算進去的（沒有＝−1）；條件第 0 天一定成立。"""
+    rows = []
+    for j, d in enumerate(D):
+        stop = min(ends[j], D[j + 1] if j + 1 < len(D) else T, T)
+        cl = bisect.bisect_right(kept, d) - 1
+        for t in range(d, stop):
+            k = t - d
+            c = 2 if cx is None else (0 if (k == 0 or cx[t]) else 1)
+            rows.append((t, k, _age_bucket(k) * 3 + c, cl, t in sset))
+    return rows
+
+
+def _age_days(sd: dict, T: int, H: int, cx) -> dict:
+    """第 5.1 節（第二套）：這個訊號在看 H 天的溫度計現在有效的每一天 → {"t", "k", "cid", "cl", "s"}（依日期）。
+    事件型：樣本開始以後的每一次出現都算「最近一次」；有效到 min(出現＋H, 之後第一個相反讀數)（VER 20）；
+    去重用這支溫度計的 H。狀態型：第 3.4 節的分段（VER 20 遇到相反的極端切開），第幾天＝那天 − 這一段第一天；
+    月資料＝月底那一天到下一個月底前都是同一格（第幾天＝這個月底 − 這一段第一個月底）。"""
+    samp = [int(x) for x in sd["samp"]]
+    if not samp:
+        return _age_arr([])
+    sset = set(samp)
+    if sd["kind"] == "state":
+        rows = []
+        pos = {d: i for i, d in enumerate(samp)}
+        for j, ep in enumerate(_episodes(sd)):
+            for d in ep:
+                k = d - ep[0]
+                stop = (samp[pos[d] + 1] if pos[d] + 1 < len(samp) else T) if sd.get("monthly") else d + 1
+                rows += [(t, k, _age_bucket(k) * 3 + 2, j, t in sset) for t in range(d, stop)]
+        return _age_arr(rows)
+    D = sorted(int(x) for x in sd["days"] if x >= samp[0])
+    ex = sorted(int(x) for x in sd.get("exp", []))
+    ends = []
+    for d in D:
+        i = bisect.bisect_right(ex, d)
+        ends.append(min(d + H, ex[i]) if i < len(ex) else d + H)
+    return _age_arr(_ev_rows(D, ends, _dedupe([d for d in D if d in sset], H), T, cx, sset))
+
+
+def _buy_days2(I: dict, sd: dict, mk: str) -> dict:
+    """大跌後買點（第二套）：訊號日＝買進日 − LAG，出現後 H_BUY 個交易日內、而且那一段大跌還在進行才算現在有效
+    （5 日急跌＝那一次還是最近一次、出現後 SIG_WIN 個交易日內；從 60 日高點跌 10%＝那一段還沒結束）。大跌事件與那一段是輸入。"""
+    from . import bottom as BO
+    from . import bottomspec as BS
+    px = np.asarray(I["px"], dtype=float)
+    T = len(px)
+    samp = [int(x) for x in sd["samp"]]
+    if not sd["buys"] or not samp:
+        return _age_arr([])
+    if sd["ev"] == "E5":
+        e5 = [int(a) for a in BO.events_e5(px, BS.E5_TH[mk])]
+        alive = {a: min(a + BS.SIG_WIN + 1, e5[i + 1] if i + 1 < len(e5) else T) for i, a in enumerate(e5)}
+    else:
+        alive = {int(a): (T if z is None else int(z)) for a, z in BO.e10_segments(px)}
+    sig = sorted((int(b) - S.LAG, alive.get(int(te), int(te))) for te, b, _, _ in sd["buys"])
+    D = [d for d, _ in sig]
+    sset = set(samp)
+    return _age_arr(_ev_rows(D, [min(d + S.H_BUY, z) for d, z in sig], _dedupe([d for d in D if d in sset], S.H_BUY),
+                             T, None, sset))
+
+
+def _median(v: list) -> float | None:
+    s = sorted(v)
+    n = len(s)
+    if not n:
+        return None
+    return float(s[n // 2]) if n % 2 else (s[n // 2 - 1] + s[n // 2]) / 2.0
+
+
+def _age_sel(Dd: dict, Yu: np.ndarray, Yw: np.ndarray) -> np.ndarray:
+    """算進格子的日子：樣本日、窗口完整（偏多與警示都有結果）、算得到哪一次。"""
+    t = Dd["t"]
+    return Dd["s"] & ~np.isnan(Yu[t]) & ~np.isnan(Yw[t]) & (Dd["cl"] >= 0)
+
+
+def _age_table(Dd: dict, Yu, Yw, R, Dm, samp, cal: list) -> dict:
+    """全部資料的每一格（第 5.1 節）→ {"b": [平常偏多, 平常警示, 平常漲跌中位數], "c": {格: [次數, 天數, 偏多, 警示,
+    漲跌中位數, 最大跌幅最差一次, 那一天]}}；每一天一樣重；次數＝有日子落在這一格的不同的「次」。"""
+    sel = _age_sel(Dd, Yu, Yw)
+    ts, cid, cl = Dd["t"][sel].tolist(), Dd["cid"][sel].tolist(), Dd["cl"][sel].tolist()
+    samp = [int(t) for t in samp]
+    out = {"b": [_base(Yu, samp), _base(Yw, samp), _median([float(R[t]) for t in samp if not np.isnan(R[t])])], "c": {}}
+    by: dict = {}
+    for t, c, q in zip(ts, cid, cl):
+        by.setdefault(c, []).append((t, q))
+    for c in sorted(by):
+        days = [t for t, _ in by[c]]
+        w = _worst([float(Dm[t]) for t in days], days, cal)
+        out["c"][_ck(c)] = [len({q for _, q in by[c]}), len(days), float(sum(Yu[t] for t in days)) / len(days),
+                            float(sum(Yw[t] for t in days)) / len(days),
+                            _median([float(R[t]) for t in days if not np.isnan(R[t])]), w[0] if w else None, w[1] if w else None]
+    return out
+
+
+def _age_prep(Dd: dict, Yu, Yw, samp) -> dict:
+    sel = _age_sel(Dd, Yu, Yw)
+    sp = np.asarray(samp, dtype=np.int64)
+    return {"t": Dd["t"][sel], "cid": Dd["cid"][sel], "cl": Dd["cl"][sel], "samp": sp,
+            "bt": sp[~(np.isnan(Yu[sp]) | np.isnan(Yw[sp]))]}
+
+
+def _age_cells(P: dict, a: int, b: int, Yu, Yw) -> dict | None:
+    """日子在 [a, b) 的每一格：次數（有日子在裡面的不同的「次」）、天數、偏多、警示比例；平常＝同一段期間窗口完整的樣本日。
+    沒有平常＝None。"""
+    bm = (P["bt"] >= a) & (P["bt"] < b)
+    nb = int(bm.sum())
+    if not nb:
+        return None
+    m = (P["t"] >= a) & (P["t"] < b)
+    cid, cl, t = P["cid"][m], P["cl"][m], P["t"][m]
+    cnt = np.bincount(cid, minlength=NC).astype(float)
+    n = np.zeros(NC, dtype=int)
+    if len(cid):
+        u = np.unique(np.stack([cid, cl], axis=1), axis=0)
+        n = np.bincount(u[:, 0], minlength=NC)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        hu = np.bincount(cid, weights=Yu[t], minlength=NC) / cnt
+        hw = np.bincount(cid, weights=Yw[t], minlength=NC) / cnt
+    bt = P["bt"][bm]
+    return {"n": n, "m": cnt, "up": hu, "warn": hw, "bu": float(Yu[bt].sum()) / nb, "bw": float(Yw[bt].sum()) / nb}
+
+
+def _age_train(P: dict, cut: int, H: int, Yu, Yw) -> dict | None:
+    """每年 1 月 1 日（cut）的訓練：窗口在 cut 之前走完的日子（t＋LAG＋H < cut）；訊號在那之前的樣本日少於 CAL_MIN_SAMP＝None。"""
+    lim = cut - S.LAG - H
+    if int((P["samp"] < lim).sum()) < S.CAL_MIN_SAMP:
+        return None
+    return _age_cells(P, -1, lim, Yu, Yw)
+
+
+def _age_pass(P: dict | None, side: str) -> np.ndarray:
+    """每一格這一邊（"u" 偏多、"w" 警示）會不會列：次數 ≥ N_MIN、命中率 − 平常 ≥ THERMO_EDGE。"""
+    if P is None:
+        return np.zeros(NC, dtype=bool)
+    h, b = (P["warn"], P["bw"]) if side == "w" else (P["up"], P["bu"])
+    with np.errstate(invalid="ignore"):
+        return (P["n"] >= S.N_MIN) & ~np.isnan(h) & (h - b >= S.THERMO_EDGE)
+
+
+def _age_keys(p: str, d: str, H: int, n: int, e: float) -> list[str]:
+    """之後也成立的格子鍵（第 4.14 節 ②，前面加 AGE_XP）：方向|看多久|次數分組|優勢分組、次數合併、正負。"""
+    b, g = bisect.bisect_right(S.FWD_NB, n), bisect.bisect_right(S.FWD_EB, e)
+    return [f"{p}{d}|{H}|{b}|{g}", f"{p}{d}|{H}|*|{g}", f"{p}{d}|{H}|*|{'n' if e < 0 else 'p'}"]
+
+
+def _age_walk(agg: dict, mk: str, P: dict, Yu, Yw, H: int, cuts: list, dirs: tuple, p: str) -> None:
+    """逐年紀錄（第 5.1 節之後也成立）：一筆＝格 × 方向 × 年，訓練次數 ≥ N_MIN、那一年這一格至少一天；
+    e＝訓練的命中率 − 訓練的平常、o＝那一年的命中率 − 那一年的平常 → agg[鍵][(市場, 年)]＝[筆數, Σe, Σo]。"""
+    for yr, c, c2, _ in cuts:
+        tr = _age_train(P, c, H, Yu, Yw)
+        if tr is None:
+            continue
+        te = _age_cells(P, c, c2, Yu, Yw)
+        if te is None:
+            continue
+        for cid in range(NC):
+            if tr["n"][cid] < S.N_MIN or not te["m"][cid]:
+                continue
+            for d in dirs:
+                w = "warn" if d == "warn" else "up"
+                e = float(tr[w][cid] - tr["bw" if w == "warn" else "bu"])
+                o = float(te[w][cid] - te["bw" if w == "warn" else "bu"])
+                for key in _age_keys(p, d, H, int(tr["n"][cid]), e):
+                    r = agg.setdefault(key, {}).setdefault((mk, int(yr)), [0, 0.0, 0.0])
+                    r[0] += 1
+                    r[1] += e
+                    r[2] += o
+
+
+def age2(F: dict) -> tuple[dict, dict]:
+    """第 5.1 節的研究（第二套，同 sigage.market）：每個市場層級訊號 × 溫度計（自己的看多久＋跨期間）、每條大跌後買點的
+    全部資料格子 → (列 {訊號: {溫度計: {"H", "b", "c"}}}, 逐年紀錄 {鍵: {(市場, 年): [筆數, Σe, Σo]}})。"""
+    from . import sigcat as G
+    from . import sigoos as OO
+    mk, cal = F["mk"], list(F["cal"])
+    T = len(cal)
+    px = np.asarray(F["px"], dtype=float)
+    sds = detect(F)[0]
+    _expire(F, sds)
+    cuts = _cuts(cal)
+    cache: dict = {}
+    agg: dict = {}
+    rows: dict = {}
+    Y: dict = {}
+    for sd in sds:
+        cat = _cat(sd)
+        if cat not in OO.MARKET_CATS:                     # 範圍是規格（第 5.1 節＝第 4.14 節的範圍）
+            continue
+        cx = _cond2(F, sd["id"], cache)
+        for hz, H in S.THERMO_H.items():
+            x = H != sd["H"]
+            if x and cat not in S.THERMO_X_CATS:
+                continue
+            if H not in Y:
+                Y[H] = (*outcomes(px, H, G.warn_th(mk, H)), *fwd(px, H))
+            Yu, Yw, R, _, Dm = Y[H]
+            Dd = _age_days(sd, T, H, cx)
+            rows.setdefault(sd["id"], {})[hz] = {"H": H, **_age_table(Dd, Yu, Yw, R, Dm, sd["samp"], cal)}
+            _age_walk(agg, mk, _age_prep(Dd, Yu, Yw, sd["samp"]), Yu, Yw, H, cuts, ("up", "warn"), S.AGE_XP[1 if x else 0])
+    I, bsd = G.buy_signals(F)                              # 買進日由 bottom 偵測（同 check_buy）
+    if I is not None:
+        H = S.H_BUY
+        bpx = np.asarray(I["px"], dtype=float)
+        Yu, Yw = outcomes(bpx, H, G.warn_th(mk, H))
+        R, _, Dm = fwd(bpx, H)
+        bcal = list(I["cal"])
+        bc = _cuts(bcal)
+        hz = next(k for k, h in S.THERMO_H.items() if h == H)
+        for sd in bsd:
+            Dd = _buy_days2(I, sd, mk)
+            rows.setdefault(sd["id"], {})[hz] = {"H": H, **_age_table(Dd, Yu, Yw, R, Dm, sd["samp"], bcal)}
+            _age_walk(agg, mk, _age_prep(Dd, Yu, Yw, sd["samp"]), Yu, Yw, H, bc, ("buy",), S.AGE_XP[0])
+    return rows, agg
+
+
+def check_age(F: dict) -> dict:
+    """第幾天的格子（sigspec 第 5.1 節，VER 26）：網頁用的 sigage.market 和第二套 age2 比——每個訊號 × 溫度計的平常與每一格
+    （次數、天數、偏多、警示、漲跌中位數、最大跌幅最差一次與日期），以及逐年紀錄每個格子鍵 × 市場 × 年的筆數、Σe、Σo。"""
+    from collections import defaultdict
+    from . import sigage as AG
+    agg_a: dict = defaultdict(dict)
+    ra, _, _ = AG.market(F, agg_a)
+    rb, agg_b = age2(F)
+    bad = []
+    for sid in sorted(set(ra) | set(rb)):
+        if sid not in ra or sid not in rb:
+            bad.append([sid, "只有一邊有這個訊號", "網頁" if sid in ra else "第二套"])
+            continue
+        for hz in sorted(set(ra[sid]) | set(rb[sid])):
+            a, b = ra[sid].get(hz), rb[sid].get(hz)
+            if a is None or b is None:
+                bad.append([sid, hz, "只有一邊有這支溫度計"])
+                continue
+            diff = ["H"] if a["H"] != b["H"] else []
+            diff += [f"b[{i}]" for i in range(3) if not _same(a["b"][i], b["b"][i])]
+            diff += [f"c.{ck}" for ck in sorted(set(a["c"]) | set(b["c"]))
+                     if ck not in a["c"] or ck not in b["c"] or not _same(list(a["c"][ck]), list(b["c"][ck]))]
+            if diff:
+                bad.append([sid, hz, *diff[:6]])
+    nrec = 0
+    for key in sorted(set(agg_a) | set(agg_b)):
+        x, y = agg_a.get(key) or {}, agg_b.get(key) or {}
+        for g in sorted(set(x) | set(y), key=str):
+            nrec += 1
+            if g not in x or g not in y or not _same(list(x[g]), list(y[g])):
+                bad.append(["逐年", key, *g])
+    return {"mk": F["mk"], "n": sum(len(v) for v in ra.values()), "nrec": nrec, "bad": bad[:50], "nbad": len(bad)}
+
+
 def thermo2(F: dict, items: dict) -> dict:
-    """溫度計（第二套，同 thermocal.weekly＋market）：每年 1 月 1 日只用之前走完的窗口決定每個訊號投哪一邊，
-    那一年每個週末兩邊各有幾個項目有效；位置（和之前最近 CAL_RANK_W 週比）、分組、之後的比例、區塊重抽。items＝{訊號: 項目}。"""
+    """溫度計（第二套，同 thermocal._weekly＋market）：每年 1 月 1 日只用之前走完的窗口決定每個訊號投哪一邊，
+    那一年每個週末兩邊各有幾個項目有效；位置（和之前最近 CAL_RANK_W 週比）、分組、之後的比例、區塊重抽。items＝{訊號: 項目}。
+    VER 25 的票（"hist"、"votes"、"hz"：只看訊號自己的成績）與 VER 26 的票（"hist26"、"votes26"、"hz26"：另外要那天落的那一格
+    這一邊也過，格子只用 cut 之前走完的日子；今年的票＝{訊號: {"i", "v": {溫度計: {格: 邊}}}}）。"""
     from . import sigcat as G
     mk, cal = F["mk"], F["cal"]
     T = len(cal)
@@ -1019,26 +1355,59 @@ def thermo2(F: dict, items: dict) -> dict:
     Y = {k: outcomes(px, H, G.warn_th(mk, H)) for k, H in S.THERMO_H.items()}
     acts = {k: [_active(sd, T, H) for sd in sds] for k, H in S.THERMO_H.items()}
     preps = {k: [_prep(sd, H) for sd in sds] for k, H in S.THERMO_H.items()}
+    cache: dict = {}
+    cxs = [_cond2(F, sd["id"], cache) for sd in sds]
+    amap: dict = {}
+    aprep: dict = {}
+    for k, H in S.THERMO_H.items():
+        amap[k], aprep[k] = [], []
+        for sd, cx in zip(sds, cxs):
+            Dd = _age_days(sd, T, H, cx)
+            m = np.full(T, -1, dtype=np.int64)
+            m[Dd["t"]] = Dd["cid"]
+            amap[k].append(m)
+            aprep[k].append(_age_prep(Dd, *Y[k], sd["samp"]))
     cuts = _cuts(cal)
     y1 = int(cal[-1][:4])
     hist = {k: {"t": [], "u": [], "w": []} for k in S.THERMO_H}
+    hist26 = {k: {"t": [], "u": [], "w": []} for k in S.THERMO_H}
     votes: dict = {}
+    votes26: dict = {}
     for yr, cut, nxt, _ in cuts:
         wk = we[(we >= cut) & (we < nxt)]
         if not len(wk) and yr != y1:
             continue
         for k, H in S.THERMO_H.items():
             on = {"u": {}, "w": {}}
+            on26 = {"u": {}, "w": {}}
             for i, sd in enumerate(sds):
                 v = _vote(_pstats(preps[k][i], H, cut, 0, *Y[k], S.CAL_MIN_SAMP))
-                if yr == y1 and v:
-                    votes.setdefault(sd["id"], {"i": items[sd["id"]], "v": {}})["v"][k] = v
+                if not v:
+                    continue
+                it = items[sd["id"]]
+                if yr == y1:
+                    votes.setdefault(sd["id"], {"i": it, "v": {}})["v"][k] = v
+                a = acts[k][i][wk]
+                P = _age_train(aprep[k][i], cut, H, *Y[k])
+                cw = amap[k][i][wk]
                 for c in v:
-                    it = items[sd["id"]]
-                    on[c][it] = on[c].get(it, np.zeros(len(wk), dtype=bool)) | acts[k][i][wk]
-            hist[k]["t"] += [int(t) for t in wk]
-            for c in ("u", "w"):
-                hist[k][c] += [int(sum(int(arr[j]) for arr in on[c].values())) for j in range(len(wk))]
+                    on[c][it] = on[c].get(it, np.zeros(len(wk), dtype=bool)) | a
+                    ok = _age_pass(P, c)
+                    on26[c][it] = on26[c].get(it, np.zeros(len(wk), dtype=bool)) | (a & (cw >= 0) & ok[np.maximum(cw, 0)])
+                    if yr == y1 and ok.any():
+                        vv = votes26.setdefault(sd["id"], {"i": it, "v": {}})["v"].setdefault(k, {})
+                        for cid in np.flatnonzero(ok).tolist():
+                            vv[_ck(cid)] = "".join(x for x in "uw" if x in vv.get(_ck(cid), "") + c)
+            for h, o in ((hist, on), (hist26, on26)):
+                h[k]["t"] += [int(t) for t in wk]
+                for c in ("u", "w"):
+                    h[k][c] += [int(sum(int(arr[j]) for arr in o[c].values())) for j in range(len(wk))]
+    return {"hist": hist, "votes": votes, "hz": _hz2(hist, Y, cal),
+            "hist26": hist26, "votes26": votes26, "hz26": _hz2(hist26, Y, cal)}
+
+
+def _hz2(hist: dict, Y: dict, cal: list) -> dict:
+    """每支溫度計：每週和之前最近 CAL_RANK_W 週比的位置 → 三組、之後的比例、有沒有關係，最後 CAL_RANK_W＋1 個週末的票數。"""
     hz = {}
     for k, H in S.THERMO_H.items():
         h = hist[k]
@@ -1056,7 +1425,7 @@ def thermo2(F: dict, items: dict) -> dict:
         keep = S.CAL_RANK_W + 1
         res["wk"], res["u"], res["w"] = [cal[t] for t in h["t"][-keep:]], h["u"][-keep:], h["w"][-keep:]
         hz[k] = res
-    return {"hist": hist, "votes": votes, "hz": hz}
+    return hz
 
 
 def _verdict(gs: list[int], ys: list[float]) -> dict:
@@ -1085,32 +1454,35 @@ def _verdict(gs: list[int], ys: list[float]) -> dict:
 
 
 def check_thermo(F: dict) -> dict:
-    """溫度計：網頁用的 thermocal（weekly 的每週票數、今年的票、market 的分組比例與重抽判定）和第二套 thermo2 比。
-    項目鍵（同一個項目算一票）是命名規則，照 sigcat.item_key。
-    sigspec VER 26（票另外要今天落的那一格也過）併進來之後：第二套照的是 VER 25 的票，所以和 thermocal 另存的 VER 25（market 的 "v25"）比；
-    VER 26 的格子與票還沒有第二套（第 D 段上線前補，docs/lab_signal_quality_plan.md 第 13 節）。"""
+    """溫度計：網頁用的 thermocal（_weekly 的每週票數、market 的今年的票、分組比例與重抽判定）和第二套 thermo2 比。
+    項目鍵（同一個項目算一票）是命名規則，照 sigcat.item_key。兩版都比：VER 25（market 的 "v25"，實戰模擬、期貨加碼用）
+    與 VER 26（網頁的溫度計與「過去讀數這樣的時候」：另外要那天落的那一格也過；今年的票細到格子）。"""
     from . import sigcat as G
     from . import thermocal as TC
     items = {sd["id"]: TC.item_of(sd) for sd in G.signals(F)}
-    W, M, B = TC.weekly(F), TC.market(F), thermo2(F, items)
-    M = M.get("v25") or M
+    W, M, B = TC._weekly(F, age=True), TC.market(F), thermo2(F, items)
     bad = []
-    for k in S.THERMO_H:
-        for c in ("t", "u", "w"):
-            a, b = W["hist"][k][c], B["hist"][k][c]
-            if a != b:
-                j = next((i for i, (x, y) in enumerate(zip(a, b)) if x != y), min(len(a), len(b)))
-                bad.append([k, f"每週票數 {c}", len(a), len(b), j])
-        for side in ("up", "warn"):
-            va, vb = M["hz"][k][side], B["hz"][k][side]
-            diff = [f for f in ("all", "d", "ci", "v") if not _same(va.get(f), vb.get(f))]
-            diff += [f"g.{g}" for g in ("lo", "mid", "hi") if not _same(va["g"][g], vb["g"][g])]
-            if diff:
-                bad.append([k, side, *diff])
-    va = {sid: x["v"] for sid, x in (M.get("votes") or {}).items()}
-    vb = {sid: x["v"] for sid, x in B["votes"].items()}
-    if va != vb:
-        bad.append(["今年的票", len(va), len(vb), sorted(set(va) ^ set(vb))[:5]])
+    for tag, hw, mz, mv, sfx in (("VER 25", W["hist"], M["v25"]["hz"], M["v25"]["votes"], ""),
+                                 ("VER 26", W["hist26"], M["hz"], M["votes"], "26")):
+        hb, bz, bv = B["hist" + sfx], B["hz" + sfx], B["votes" + sfx]
+        for k in S.THERMO_H:
+            for c in ("t", "u", "w"):
+                a, b = hw[k][c], hb[k][c]
+                if a != b:
+                    j = next((i for i, (x, y) in enumerate(zip(a, b)) if x != y), min(len(a), len(b)))
+                    bad.append([tag, k, f"每週票數 {c}", len(a), len(b), j])
+            for side in ("up", "warn"):
+                va, vb = mz[k][side], bz[k][side]
+                diff = [f for f in ("all", "d", "ci", "v") if not _same(va.get(f), vb.get(f))]
+                diff += [f"g.{g}" for g in ("lo", "mid", "hi") if not _same(va["g"][g], vb["g"][g])]
+                if diff:
+                    bad.append([tag, k, side, *diff])
+            if not (mz[k]["wk"] == bz[k]["wk"] and mz[k]["u"] == bz[k]["u"] and mz[k]["w"] == bz[k]["w"]):
+                bad.append([tag, k, "最後幾週的票數"])
+        va = {sid: x["v"] for sid, x in (mv or {}).items()}
+        vb = {sid: x["v"] for sid, x in bv.items()}
+        if va != vb:
+            bad.append([tag, "今年的票", len(va), len(vb), sorted(i for i in set(va) | set(vb) if va.get(i) != vb.get(i))[:5]])
     return {"mk": F["mk"], "n": sum(len(W["hist"][k]["t"]) for k in S.THERMO_H), "bad": bad}
 
 

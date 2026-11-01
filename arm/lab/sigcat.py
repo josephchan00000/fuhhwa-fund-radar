@@ -1368,7 +1368,8 @@ def now_market(F: dict, acts: dict | None = None, xon: dict | None = None, gone:
     xon＝給了就填跨期間（sigspec 第 5 節 ③a，VER 15）：{訊號 id: {溫度計: 同上的現在狀態}}，只列原本那個看多久以外、現在有效的；
     acts 同時填 xkey(id, 溫度計)＝那支溫度計的看多久下出現的日子。
     gone＝給了就填事件型「之後出現相反的讀數而不算了、但照規則那一筆還沒出場」的（VER 26 進行中）：
-    {訊號 id: {溫度計: {"since", "n", "k", "exp": 相反讀數那天, buy／sell／rem}}}。"""
+    {訊號 id: {溫度計: {"since", "n", "k", "exp": 相反讀數那天, buy／sell／rem}}}。
+    事件型與買點另有 "chg"：照規則那一筆（出現隔天收盤進場）到資料最後一天的漲跌（還沒進場＝沒有；只呈現，進行中那一列用）。"""
     from . import sigage as AG
     cal = F["cal"]
     T = len(cal)
@@ -1376,6 +1377,14 @@ def now_market(F: dict, acts: dict | None = None, xon: dict | None = None, gone:
     stale = set(F.get("stale") or ())                  # VER 20：資料過期的項目不算現在有效
     mk = F.get("mk")
     trd = (lambda t, H: trade_dates(mk, cal, t, H)) if mk else (lambda t, H: {})   # noqa: E731（沒有市場代號＝不排交易日）
+    pxa = np.asarray(F["px"], dtype=float) if F.get("px") is not None else None
+
+    def chg(t: int) -> dict:
+        """出現在第 t 天：第 t＋LAG 天收盤進場到最後一天的漲跌（只呈現）。"""
+        e = t + S.LAG
+        if pxa is None or e > T - 1 or not (pxa[e] > 0) or not (pxa[T - 1] > 0):
+            return {}
+        return {"chg": float(pxa[T - 1] / pxa[e] - 1.0)}
     cache: dict = {}
     for sd in signals(F):
         if stale and sd["cat"] in ("heat", "deriv") and sd.get("var") in stale:
@@ -1408,7 +1417,7 @@ def now_market(F: dict, acts: dict | None = None, xon: dict | None = None, gone:
                 continue
             cx = AG.cond(F, sd, cache)
             stc = "-" if cx is None else ("on" if k0 == 0 or cx[T - 1] else "off")
-            cur = {"since": cal[ds[-1]], "n": k0, "k": k0, "st": stc, "ck": AG.ck_now(k0, stc)}
+            cur = {"since": cal[ds[-1]], "n": k0, "k": k0, "st": stc, "ck": AG.ck_now(k0, stc), **chg(ds[-1])}
             if not alive:
                 if gone is not None:
                     ex = np.asarray(sd.get("exp"), dtype=np.int64)
@@ -1445,7 +1454,7 @@ def now_market(F: dict, acts: dict | None = None, xon: dict | None = None, gone:
                             continue
                         tr = trd(j, S.H_BUY)
                         cur = {"n": T - 1 - j, "k": T - 1 - j, "st": "-", "ck": AG.ck_now(T - 1 - j, "-"),
-                               **_today_trade(trd(T - 1, S.H_BUY))}
+                               **_today_trade(trd(T - 1, S.H_BUY)), **chg(j)}
                     for ev in evs:
                         out[f"{F['mk']}:buy:{ev}:{k}"] = {"since": v["d"], "event": a["t"], **tr, **cur}
     return out
@@ -1552,6 +1561,9 @@ def _robust(fe: dict | None) -> tuple[float | None, bool]:
     return g, g >= S.LIST_GAP
 
 
+_LOAD = object()                     # listing／today／board 的 RB 沒給＝讀參數鄰近的研究檔
+
+
 def robust_index(R: dict | None) -> dict | None:
     """參數鄰近研究檔（sigrobust）→ {(訊號 id, 方向, 跨期間的溫度計或 None): (ok, 不穩定的參數)}；研究檔沒有＝None（sigspec 第 5.2 節，VER 27）。"""
     if not R:
@@ -1562,7 +1574,7 @@ def robust_index(R: dict | None) -> dict | None:
 
 def listing(rows: list[dict], on: dict, mk: str, acts: dict | None = None, xon: dict | None = None,
             T: dict | None = None, A: dict | None = None, gone: dict | None = None, pend: list | None = None,
-            RB: dict | None = None) -> list[dict]:
+            RB=_LOAD) -> list[dict]:
     """第 5 節 ④c 列出來的規則（VER 26；④b 是 VER 23）：這個市場現在有效的市場層級訊號（MARKET_CATS 與大跌後買點），
     訊號自己的成績次數 ≥ N_MIN、過去的命中率比平常高 THERMO_EDGE 以上（訊號自己的看多久＝研究列的統計；跨期間＝xon 現在有效、xh 的統計），
     而且今天落的那一格（sigage 第 5.1 節：第幾天 × 條件，now 的 "ck"）也一樣過；同一個項目同一支溫度計一邊留一個（那一格 e 最大的）、
@@ -1574,13 +1586,13 @@ def listing(rows: list[dict], on: dict, mk: str, acts: dict | None = None, xon: 
     pend＝給了就放進行中（第 5.1 節）：訊號自己會列、但今天那一格沒過（"why" few／weak）或之後出現相反的讀數（gone，"why" exp），
     同一支溫度計、同一邊、同一個項目已經列了就不放，同一個項目只留一個（訊號自己的 e 最大的）。
     VER 27（第 5.2 節）：會列的再查參數鄰近 RB（robust_index；沒給就讀研究檔）：只在這個參數成立＝不列、放進行中（"why" param，"pdims"
-    哪幾個參數）；看不出來／研究檔裡沒有這一組＝照列，"pn"＝PARAM_NA／PARAM_MISS；研究檔沒有（RB 是 None）＝照 VER 26，"pn"＝PARAM_NONE。"""
+    哪幾個參數）；看不出來／研究檔裡沒有這一組＝照列，"pn"＝PARAM_NA／PARAM_MISS；研究檔沒有（RB＝None）＝照 VER 26，"pn"＝PARAM_NONE。"""
     from . import sigage as AG
     from . import sigoos as OOS
     from . import sigrobust as RBM
     T = OOS.load() if T is None else T
     A = AG.load() if A is None else A
-    RB = robust_index(RBM.load()) if RB is None else RB
+    RB = robust_index(RBM.load()) if RB is _LOAD else RB
     best: dict = {}
     cand: list = []
 
@@ -1664,7 +1676,7 @@ def listing(rows: list[dict], on: dict, mk: str, acts: dict | None = None, xon: 
 
 
 def today(rows: list[dict], on: dict, mk: str, acts: dict | None = None, xon: dict | None = None,
-          T: dict | None = None, gone: dict | None = None) -> dict:
+          T: dict | None = None, gone: dict | None = None, RB=_LOAD) -> dict:
     """訊號總覽「今天有效的訊號」（sigspec 第 5 節 ④c，VER 26）：同 listing 的規則，偏多、警示兩邊各依 _frank 排序。
     → {"ok": True, "fwd": 預估之後的研究檔有沒有, "age": 第幾天的研究檔有沒有, "up": [...], "warn": [...],
        "pend": {邊: [進行中…]}}。"""
@@ -1673,7 +1685,7 @@ def today(rows: list[dict], on: dict, mk: str, acts: dict | None = None, xon: di
     from . import sigrobust as RBM
     T = OOS.load() if T is None else T
     pend: list = []
-    RB = robust_index(RBM.load())
+    RB = robust_index(RBM.load()) if RB is _LOAD else RB          # VER 27；None＝照 VER 26（參數鄰近的研究自己比新舊用）
     fams = listing(rows, on, mk, acts, xon, T, gone=gone, pend=pend, RB=RB)
     return {"ok": True, "fwd": bool(T), "age": AG.load() is not None, "param": RB is not None,
             **{s: [f for f in fams if f["side"] == s] for s in ("up", "warn")},
@@ -1681,7 +1693,7 @@ def today(rows: list[dict], on: dict, mk: str, acts: dict | None = None, xon: di
 
 
 def board(rows: list[dict], on: dict, mk: str, acts: dict | None = None, xon: dict | None = None,
-          T: dict | None = None, gone: dict | None = None) -> dict:
+          T: dict | None = None, gone: dict | None = None, RB=_LOAD) -> dict:
     """景氣頁「今天的重點」（sigspec 第 5 節 ④c，VER 26）：listing 的每一類依溫度計分三段，每段偏多、警示兩張清單（_frank 排序）；
     溫度計＝每一支、每一邊的類數（一類算 1），偏多占比 ≥ THERMO_LEAN 偏多、≤ 1 − THERMO_LEAN 偏警示、其他差不多，兩邊都沒有＝中性。
     → {"ok", "fwd", "age", "up": [...], "warn": [...], "thermo": [{"k", "name", "h", "H", "n": {side: 類數}, "share", "lean",
@@ -1691,7 +1703,7 @@ def board(rows: list[dict], on: dict, mk: str, acts: dict | None = None, xon: di
     from . import sigrobust as RBM
     T = OOS.load() if T is None else T
     pend: list = []
-    RB = robust_index(RBM.load())
+    RB = robust_index(RBM.load()) if RB is _LOAD else RB          # VER 27；None＝照 VER 26（參數鄰近的研究自己比新舊用）
     fams = listing(rows, on, mk, acts, xon, T, gone=gone, pend=pend, RB=RB)
     th = []
     for k, name, h in S.THERMO_HZ:

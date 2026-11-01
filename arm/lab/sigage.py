@@ -60,14 +60,22 @@ def _ffill(c: np.ndarray, ok: np.ndarray) -> np.ndarray:
     return np.where(i >= 0, c[np.maximum(i, 0)], False)
 
 
+def _sgn(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    """+1／−1／0（算不出＝NaN）；差距在浮點誤差內＝相等（0，不在上面也不在下面）：收盤剛好等於均線的那天，平均的加總順序
+    不同會差 1e-12（S&P 500 2003-10-22 收盤 1030.36＝20 日均線，原本算成在月線下面；2026-11-01 第二套核對抓到，同 sigverify._side）。"""
+    d = a - b
+    with np.errstate(invalid="ignore"):
+        tie = np.abs(d) <= 1e-9 * np.maximum(np.abs(a), np.abs(b))
+    return np.where(np.isnan(d), np.nan, np.where(tie, 0.0, np.sign(d)))
+
+
 def _sides(px: np.ndarray) -> dict:
     """heattech.all_events 用的逐日狀態（+1／−1／0；算不出＝NaN）：收盤對月線、季線、年線，月線對季線，季線對前一天。"""
     from . import heattech as TT
     M = {n: np.array([np.nan if v is None else v for v in TT.mas([None if np.isnan(p) else float(p) for p in px])[n]],
                      dtype=float) for n in (20, 60, 240)}
-    s60 = np.concatenate([[np.nan], M[60][1:] - M[60][:-1]])
-    return {"ma20": np.sign(px - M[20]), "ma60": np.sign(px - M[60]), "ma240": np.sign(px - M[240]),
-            "x": np.sign(M[20] - M[60]), "s60": np.sign(s60)}
+    s60 = np.concatenate([[np.nan], _sgn(M[60][1:], M[60][:-1])])
+    return {"ma20": _sgn(px, M[20]), "ma60": _sgn(px, M[60]), "ma240": _sgn(px, M[240]), "x": _sgn(M[20], M[60]), "s60": s60}
 
 
 def cond(F: dict, sd: dict, cache: dict | None = None) -> np.ndarray | None:

@@ -5,7 +5,8 @@
 
 三道檢查，只讀資料、不改任何計算與研究檔：
   ① 第二套算法（arm/lab/sigverify.py）：五個市場的每一個市場層級訊號（含型態類技術事件）的出現日、狀態、去重、分段、次數、命中率、平常；
-     研究列（之後怎麼走的報酬表、近 10 年、最大跌幅、判定）、大跌後買點、逐年檢查、溫度計每週票數、產業泡沫——都要和網頁用的一樣；
+     研究列（之後怎麼走的報酬表、近 10 年、最大跌幅、判定）、大跌後買點、逐年檢查、溫度計每週票數（第 25、26 版）、
+     第幾天進場的格子與它的逐年紀錄（sigspec 第 5.1 節）、產業泡沫——都要和網頁用的一樣；
   ② 截斷重建（arm/lab/truncheck.py）：原始資料截到某一天整條重算，那天以前的景氣頁 0～100、泡沫頁每月條件、訊號都要一樣
      （不一樣＝那天其實還拿不到的資料被用到了）；
   ③ 資料來源比對（arm/lab/srccheck.py，A-3c）：法人與融資 FinMind vs 證交所、美債財政部 vs H.15、加權指數 Yahoo vs 國發會、
@@ -75,8 +76,9 @@ def run() -> dict:
           "、".join(f"{mk} {r['checked']}/{r['n']} 不同 {len(r['bad'])}" for mk, r in second.items()), flush=True)
     more = {"rows": {mk: V.check_rows(F[mk]) for mk in F}, "buy": {mk: V.check_buy(F[mk]) for mk in F},
             "oos": {mk: V.check_oos(F[mk]) for mk in F}, "thermo": {mk: V.check_thermo(F[mk]) for mk in F},
+            "age": {mk: V.check_age(F[mk]) for mk in F},
             "ind": {"all": V.check_ind()}, "src": SC.run_all()}
-    print(f"[verify] 研究列、買點、逐年檢查、溫度計、產業泡沫、資料來源 {time.time() - t0:.0f}s：" +
+    print(f"[verify] 研究列、買點、逐年檢查、溫度計、第幾天的格子、產業泡沫、資料來源 {time.time() - t0:.0f}s：" +
           "、".join(f"{k} 不同 {sum(len(r['bad']) for r in per.values())}" for k, per in more.items()), flush=True)
     days = cut_days(F["tw"]["cal"])
     full = {"tw": BT, **BA}

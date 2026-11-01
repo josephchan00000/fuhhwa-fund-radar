@@ -192,3 +192,15 @@ def test_research_file_covers_markets():
             assert Y["H"] == S.THERMO_H[hz] and len(Y["b"]) == 3
             assert all(len(c) == 7 and c[0] >= 1 and c[1] >= c[0] for c in Y["c"].values())
     assert any(k.startswith(S.AGE_XP[0]) for k in R["cells"]) and any(k.startswith(S.AGE_XP[1]) for k in R["cells"])
+
+
+def test_sides_float_tie_is_on_the_line():
+    """收盤剛好等於均線（只差浮點誤差）＝0，不算在下面也不算在上面（S&P 500 2003-10-22：1030.36 vs 20 日均線 1030.3600000000001；
+    2026-11-01 第二套核對抓到，同 sigverify._side）；真的差一點點還是照分上下。"""
+    a = np.array([1030.36, 1030.36, 100.0, np.nan])
+    b = np.array([1030.3600000000001, 1030.37, 100.0, 1.0])
+    s = A._sgn(a, b)
+    assert s[0] == 0 and s[1] == -1 and s[2] == 0 and np.isnan(s[3])
+    px = np.r_[np.full(19, 10.0), 10.0, 9.0]                        # 第 20 天收盤＝前 20 天平均（全部 10）
+    sd = A._sides(px)
+    assert sd["ma20"][19] == 0 and sd["ma20"][20] == -1

@@ -311,7 +311,7 @@ def test_ver27_param_gating_and_inst_note():
     """VER 27（2026-11-01）：參數一動就不成立的不列、法人訊號加註；研究檔版本都不動。"""
     from arm.lab import nbrspec as N
     assert X.ROBUST_VER == N.VER == 1
-    assert X.PARAM_WHY == "參數一動就不比平常好" and X.PARAM_NA == "參數檢查看不出來（次數太少）"
+    assert X.PARAM_WHY == "參數一動就不比平常好" and X.PARAM_NA == "參數一動次數就不夠，比不出來"
     assert X.PARAM_MISS == "參數還沒檢查" and X.PARAM_NONE == "參數檢查還沒算"
     assert X.INST_NOTE == "法人訊號：過去挑出來的，之後多半沒有比平常好"
     assert X.RES_VER == 24 and X.FWD_VER == 25 and X.CAL_VER == 26 and X.AGE_VER == 26

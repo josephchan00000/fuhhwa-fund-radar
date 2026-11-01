@@ -1503,7 +1503,7 @@ function boVfy(V){if(!V)return '';                     // 每週計算核對（v
   const st=V.ok?(V.old?'全部一樣，但已經超過兩週沒有重跑':'全部一樣'):`<b>不一致 ${V.nbad} 項</b>`;
   return `<h4 class=sh>每週計算核對</h4><div class="${V.ok&&!V.old?'card bop':'vfy'}" style="margin:4px 0">${md(V.d)} 核對 ${(V.n||0).toLocaleString()} 項：${st}。`+
     ((V.ex||[]).length?`<ul>${V.ex.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'')+`</div>`+
-    `<div class=note>每週六用另一套算法重算市場層級的訊號、研究表、溫度計、產業泡沫，再把原始資料截到幾個日子整條重算，和網頁用的比對（不一樣＝算錯，或用到那一天還拿不到的資料）。不一致時市場頁與研究紀錄頁最上面標紅、06:35 推播多一行，不擋任何更新；完整結果在 data/lab/verify_status.json。</div>`;}
+    `<div class=note>每週六用另一套算法重算市場層級的訊號、研究表、溫度計、第幾天進場的格子、產業泡沫，再把原始資料截到幾個日子整條重算，和網頁用的比對（不一樣＝算錯，或用到那一天還拿不到的資料）。不一致時市場頁與研究紀錄頁最上面標紅、06:35 推播多一行，不擋任何更新；完整結果在 data/lab/verify_status.json。</div>`;}
 function boToday(){if(VL.err)return sec('bo-today','今日驗證','今天的驗證','',`<div class=st>驗證紀錄錯誤：${esc(VL.err)}</div>`);
   const T=VL.today||{},E=T.ev||[],S=T.st||{},ks=Object.keys(S);
   const fn=ks.reduce((a,k)=>a+(S[k].fn||0),0),full=ks.filter(k=>S[k].fn>=S[k].need).length;
