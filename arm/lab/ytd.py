@@ -12,6 +12,7 @@ import json
 import os
 from datetime import date
 
+from .. import fileio
 from . import store
 from . import ytdspec as S
 
@@ -182,9 +183,10 @@ def _m(x, k):
     return None if x is None else x * k
 
 
-def load_live() -> dict:
-    """上線後的紀錄；版本不同就從頭記（LIVE_KEEP 的版本沿用：ytdspec VER 2 只換不偷看那一欄，紀錄方式沒變）。"""
-    doc = store.read_json(LIVE_FILE, {}) or {}
+def load_live(strict: bool = False) -> dict:
+    """上線後的紀錄；版本不同就從頭記（LIVE_KEEP 的版本沿用：ytdspec VER 2 只換不偷看那一欄，紀錄方式沒變）。
+    strict（record_tw 寫回前）：檔案在但讀不起來就停下報錯，不當成空的從頭記（arm/fileio.read_json）。"""
+    doc = (fileio.read_json(store.LAB / LIVE_FILE, {}, strict=True) if strict else store.read_json(LIVE_FILE, {})) or {}
     ok = isinstance(doc, dict) and (doc.get("ver") == S.VER or doc.get("ver") in S.LIVE_KEEP)
     return {"ver": S.VER, "tw": dict(doc.get("tw") or {})} if ok else {"ver": S.VER, "tw": {}}
 
@@ -206,7 +208,7 @@ def record_tw(day: str | None, pos: dict | None, core: float, path=None, force: 
     TW_LIVE_FROM 以前不記。"""
     if (os.environ.get("GITHUB_ACTIONS") != "true" and not force) or not day or day < S.TW_LIVE_FROM or not pos:
         return False
-    L = load_live()
+    L = load_live(strict=True)
     w = weights_of(pos, core)
     if L["tw"].get(day) == w:
         return False
@@ -214,7 +216,7 @@ def record_tw(day: str | None, pos: dict | None, core: float, path=None, force: 
     p = path or (store.LAB / LIVE_FILE)
     rows = ",\n".join(json.dumps(d, ensure_ascii=False) + ":" + json.dumps(v, ensure_ascii=False, sort_keys=True)
                       for d, v in sorted(L["tw"].items()))
-    p.write_text('{"ver":' + str(S.VER) + ',"tw":{\n' + rows + "\n}}\n", encoding="utf-8")
+    fileio.write_text(p, '{"ver":' + str(S.VER) + ',"tw":{\n' + rows + "\n}}\n")
     return True
 
 

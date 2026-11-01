@@ -31,6 +31,7 @@ import urllib.parse
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from . import fileio
 from .clock import TW_TZ, stamp_tw
 from .connectors import gnews
 from .http import get_bytes
@@ -337,8 +338,7 @@ def _seen_load() -> dict:
 
 
 def _seen_save(seen: dict) -> None:
-    SEEN_OUT.parent.mkdir(parents=True, exist_ok=True)
-    SEEN_OUT.write_text(json.dumps(seen, ensure_ascii=False, indent=1), encoding="utf-8")
+    fileio.write_text(SEEN_OUT, json.dumps(seen, ensure_ascii=False, indent=1))
 
 
 def _from_iso(s: str) -> datetime | None:
@@ -1405,7 +1405,7 @@ def save(doc: dict) -> tuple[Path, bool]:
         return OUT, False
     _carry_social(doc, prev)
     _stamp_first_seen(doc, prev)
-    OUT.write_text(json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8")
+    fileio.write_text(OUT, json.dumps(doc, ensure_ascii=False, indent=2))
     return OUT, True
 
 

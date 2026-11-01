@@ -20,7 +20,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from arm import clock, twholidays  # noqa: E402
+from arm import clock, fileio, twholidays  # noqa: E402
 from arm.lab import store  # noqa: E402
 from arm.lab import sxlivespec as S  # noqa: E402
 
@@ -77,7 +77,7 @@ def save(y: int, rec: dict) -> None:
     p = store.LAB / S.RULES_FILE
     doc = json.loads(p.read_text(encoding="utf-8")) if p.exists() else {"ver": 1, "years": {}}
     doc.setdefault("years", {})[str(y)] = rec
-    p.write_text(json.dumps(doc, ensure_ascii=False, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+    fileio.write_text(p, json.dumps(doc, ensure_ascii=False, indent=1, sort_keys=True) + "\n")
 
 
 def main() -> int:

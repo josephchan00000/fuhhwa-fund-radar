@@ -25,7 +25,7 @@ import urllib.request
 from datetime import date, timedelta
 from pathlib import Path
 
-from . import clock, factcheck
+from . import clock, factcheck, fileio
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA_FP = ROOT / "data" / "macro_chips.json"
@@ -631,8 +631,7 @@ def save(doc: dict) -> None:
             and any((old.get("series") or {}).get(k) for k in ALL_KEYS):
         print("  ⚠ 本次全指標皆空、既有落檔非空 → 不覆寫")
         return
-    DATA_FP.parent.mkdir(parents=True, exist_ok=True)
-    DATA_FP.write_text(json.dumps(doc, ensure_ascii=False, indent=1), encoding="utf-8")
+    fileio.write_text(DATA_FP, json.dumps(doc, ensure_ascii=False, indent=1))
 
 
 # ── 儀表板取數（最新值／日變化／N 日變化・累計／走勢點列） ─────────────

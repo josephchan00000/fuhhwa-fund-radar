@@ -16,7 +16,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from arm import config, fundnav             # noqa: E402
+from arm import config, fileio, fundnav     # noqa: E402
 from arm.clock import now_tw                 # noqa: E402  台北時間（UTC 容器/CI 防跨日錯置）
 from arm.connectors import fhfund            # noqa: E402
 
@@ -79,8 +79,7 @@ def run(ids: list[str]) -> list[dict]:
         if _keep_holdings(doc, OUT / f"{fid}.json"):
             print(f"  ↺ {fid}：持股頁這次抓不到（{doc['holdings_error']}），持股沿用上一次（持股基準 {doc.get('as_of')}）")
         docs.append(doc)
-        (OUT / f"{fid}.json").write_text(
-            json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8")
+        fileio.write_text(OUT / f"{fid}.json", json.dumps(doc, ensure_ascii=False, indent=2))
         n = len(doc.get("top_holdings") or [])
         print(f"  ✓ {fid} {doc.get('name','')[:22]}｜NAV {doc.get('nav')} "
               f"({doc.get('nav_date')})｜十大 {n} 檔｜持股基準 {doc.get('as_of')}")
@@ -127,9 +126,8 @@ def _write_index(fetched: list[dict]) -> None:
     order = [str(f["id"]) for f in config.funds()]
     merged = [old[i] for i in order if i in old]
     merged += [e for i, e in old.items() if i not in order]      # 已移出清單者仍保留
-    fp.write_text(json.dumps({"as_of": now_tw().strftime("%Y-%m-%d %H:%M"),
-                              "funds": merged}, ensure_ascii=False, indent=2),
-                  encoding="utf-8")
+    fileio.write_text(fp, json.dumps({"as_of": now_tw().strftime("%Y-%m-%d %H:%M"),
+                                      "funds": merged}, ensure_ascii=False, indent=2))
 
 
 def main() -> None:

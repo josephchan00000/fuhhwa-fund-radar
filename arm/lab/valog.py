@@ -36,6 +36,7 @@ import os
 import statistics
 from datetime import date, datetime, timedelta
 
+from .. import fileio
 from . import store
 
 FP = "val_log.json"
@@ -469,8 +470,9 @@ def push_lines(rec: dict) -> list[str]:
 
 # ── 讀寫 ────────────────────────────────────────────────────────────────
 
-def read() -> dict:
-    doc = store.read_json(FP, {}) or {}
+def read(strict: bool = False) -> dict:
+    """strict（要寫回時）：檔案在但讀不起來就停下報錯，不當成空的從頭記（arm/fileio.read_json）。"""
+    doc = (fileio.read_json(store.LAB / FP, {}, strict=True) if strict else store.read_json(FP, {})) or {}
     days = doc.get("days") if isinstance(doc, dict) else None
     return {"v": 1, "days": days if isinstance(days, dict) else {}}
 
@@ -488,8 +490,7 @@ def write(log: dict) -> bool:
     txt = _dump(log)
     if p.exists() and p.read_text(encoding="utf-8") == txt:
         return False
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(txt, encoding="utf-8")
+    fileio.write_text(p, txt)
     return True
 
 
@@ -503,7 +504,7 @@ def update(data: dict, write_file: bool | None = None, now: datetime | None = No
         write_file = os.environ.get("GITHUB_ACTIONS") == "true"
     now = now or clock.now_tw()
     last = adv["last"]
-    log = read()
+    log = read(strict=write_file)
     days = log["days"]
     prev_d = max((d for d in days if d < last), default=None)
     prev = (days.get(prev_d) or {}).get("st") if prev_d else None

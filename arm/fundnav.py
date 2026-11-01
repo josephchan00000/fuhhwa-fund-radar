@@ -19,6 +19,8 @@ import json
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
+from . import fileio
+
 ROOT = Path(__file__).resolve().parent.parent
 PATH = ROOT / "data" / "fund_nav_history.json"
 
@@ -32,27 +34,23 @@ def _parse_date(s: str | None) -> date | None:
     return None
 
 
-def load() -> dict[str, dict[str, float]]:
-    if not PATH.exists():
-        return {}
-    try:
-        d = json.loads(PATH.read_text(encoding="utf-8"))
-        return d if isinstance(d, dict) else {}
-    except Exception:
-        return {}
+def load(strict: bool = False) -> dict[str, dict[str, float]]:
+    """strict（要寫回時）：檔案在但讀不起來就停下報錯，不當成空的從頭記（arm/fileio.read_json）。"""
+    d = fileio.read_json(PATH, {}, strict=strict)
+    return d if isinstance(d, dict) else {}
 
 
 def save(hist: dict[str, dict[str, float]]) -> None:
     PATH.parent.mkdir(parents=True, exist_ok=True)
     out = {fid: dict(sorted(ser.items())) for fid, ser in sorted(hist.items())}
-    PATH.write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
+    fileio.write_text(PATH, json.dumps(out, ensure_ascii=False, indent=1))
 
 
 def record(docs: list[dict]) -> int:
     """把基金 doc（含 fund_id/nav/nav_date）的當日 NAV 併入歷史並落檔。
     回傳新增筆數；全空輸入不動既有落檔（防呆：抓取全失敗時不得清史）。"""
     added = 0
-    hist = load()
+    hist = load(strict=True)
     for d in docs or []:
         fid, nav = str(d.get("fund_id") or d.get("id") or ""), d.get("nav")
         dt = _parse_date(d.get("nav_date"))
@@ -82,7 +80,7 @@ def backfill_official(docs: list[dict], fetch_history) -> int:
     自我修復設計：每日抓取後呼叫，新加入追蹤清單的基金當天即補齊近 90 天史，
     不必再手動跑回填腳本；單檔失敗只跳過、不影響其他檔。回傳新增筆數。"""
     added = 0
-    hist = load()
+    hist = load(strict=True)
     for d in docs or []:
         fid = str(d.get("fund_id") or d.get("id") or "")
         if not fid or not needs_backfill(hist.get(fid)):
