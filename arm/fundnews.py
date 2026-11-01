@@ -855,9 +855,10 @@ YT_SEARCH = "https://www.googleapis.com/youtube/v3/search"
 YT_VIDEOS = "https://www.googleapis.com/youtube/v3/videos"
 YT_PLAYLIST = "https://www.googleapis.com/youtube/v3/playlistItems"
 YT_CHANNELS = "https://www.googleapis.com/youtube/v3/channels"
-# search.list 每次 100 單位（日限 10000）：相關 4 組＋市場熱門 5 組＝9 組×100
-# ＋playlistItems 2＋channels 1＋videos.list 分批數單位 ≈ 每輪 907、日多輪仍 <3000
+# search.list 每次 100 單位（日限 10000，台北 15~16 時重置）：相關 4 組＋市場熱門 7 組＝11 組×100
+# ＋playlistItems 2＋channels 1＋videos.list 分批數單位 ≈ 每輪 1,110
 #（2026-08-14 使用者要求擴編市場熱門；勿再隨意加組——加組前先算這筆帳）。
+# shortcut: 每輪固定搜 11 組，一天跑超過 9 輪 daily.yml 搜尋就被拒（2026-08-17 撞過；10/28 整輪跑了 10 次）。升級：一天常態超過 7 輪、或日誌出現「日配額耗盡」→ 同一天的重跑沿用上一輪的搜尋結果，只重抓官方頻道。
 YT_QUERIES = ["復華投信", "復華 基金", "復華 ETF", "00929"]
 # 三層清單（2026-08-06 使用者規劃；2026-08-14 第三層擴編）：官方全收／相關（非官方）
 # 取 3／市場熱門依分類配額取至多 6。
