@@ -27,7 +27,7 @@ from arm.lab import heat as H  # noqa: E402
 from arm.lab import heatdata as HD  # noqa: E402
 from arm.lab import heatfetch as F  # noqa: E402
 from arm.lab import crashfetch as CF  # noqa: E402
-from arm.clock import now_tw  # noqa: E402
+from arm.clock import now_tw, today_tw  # noqa: E402
 
 NAMES = ["margin", "inst", "futi", "opti", "mtxoi", "pcr", "vixtw", "taiex", "vix", "hyg", "ief", "turnover",
          "usdtwd", "money", "ndc", "ndc_first", "exports", "pmi", "orders", "twcpi", "effr", "fedtgt", "uscpi", "ust",
@@ -76,7 +76,7 @@ def due_month(name: str, today: date) -> bool:
 
 
 def daily() -> None:
-    today = date.today()
+    today = today_tw()
     st = HD.load("_state")
     ok = dict(st)
 

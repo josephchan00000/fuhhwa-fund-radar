@@ -40,6 +40,7 @@ import zipfile
 from datetime import date, timedelta
 from pathlib import Path
 
+from ..clock import today_tw
 from ..http import _CTX, get_bytes
 from . import heatdata as HD
 from .market import log, post_bytes
@@ -90,7 +91,7 @@ def _post_json(url: str, body: dict, timeout: int = 60) -> dict:
 
 
 def _finmind(ds: str, did: str, a: str, z: str | None = None) -> list[dict]:
-    url = FM.format(ds=ds, did=f"&data_id={did}" if did else "", a=a, z=z or date.today().isoformat())
+    url = FM.format(ds=ds, did=f"&data_id={did}" if did else "", a=a, z=z or today_tw().isoformat())
     doc = json.loads(_get(url, timeout=120).decode("utf-8"))
     if str(doc.get("status")) != "200":
         raise RuntimeError(f"FinMind {ds} {did} status={doc.get('status')} {str(doc.get('msg'))[:80]}")
@@ -178,7 +179,7 @@ def _skip_month(have: dict, y: int, m: int, z: date) -> bool:
 
 
 def taifex_pcr(a: date, z: date | None = None, budget_s: float = 600) -> int:
-    z = z or date.today()
+    z = z or today_tw()
     out: dict = {}
     t0 = time.time()
     have = _have_months("pcr")
@@ -214,7 +215,7 @@ def taifex_pcr(a: date, z: date | None = None, budget_s: float = 600) -> int:
 def taifex_vix(months: int = 4) -> int:
     """台指 VIX 月檔（只保留近幾個月；更早的回 404 頁）。欄位：日期、時間、指數、收盤前 1 分鐘平均。"""
     out: dict = {}
-    t = date.today()
+    t = today_tw()
     for k in range(months):
         y, m = t.year, t.month - k
         while m <= 0:
@@ -258,7 +259,7 @@ def yahoo_adj(name: str, sym: str, start: str) -> int:
 
 def twse_turnover(a: date, z: date | None = None, budget_s: float = 1500) -> int:
     """FMTQIK：每月一請求，每日成交金額與加權指數（民國日期）。"""
-    z = z or date.today()
+    z = z or today_tw()
     out: dict = {}
     t0 = time.time()
     have = _have_months("turnover")
@@ -365,7 +366,7 @@ def ndc() -> int:
     if not first:      # 第一次抓：現有月份都已是修正後的值，記成「回補」、不當作第一次公布的值
         _merge("ndc_first", "ndc", {ym: [None, "回補"] for ym in out})
     else:
-        today = date.today().isoformat()
+        today = today_tw().isoformat()
         _merge("ndc_first", "ndc", {ym: [v[6], today] for ym, v in out.items() if v[6] is not None and ym not in first})
     return n
 
@@ -465,7 +466,7 @@ NYFED_START = "2016-03-01"
 
 
 def nyfed_effr(a: str = NYFED_START) -> int:
-    doc = json.loads(_get(NYFED.format(a=a, z=date.today().isoformat()), timeout=90).decode("utf-8"))
+    doc = json.loads(_get(NYFED.format(a=a, z=today_tw().isoformat()), timeout=90).decode("utf-8"))
     eff, tgt = {}, {}
     for r in doc.get("refRates") or []:
         d = str(r.get("effectiveDate") or "")[:10]
@@ -496,7 +497,7 @@ def dbn_effr(before: str = NYFED_START) -> int:
 
 def bls_cpi(y0: int, y1: int | None = None) -> int:
     """勞工統計局 API v1（不用金鑰）：POST 一次最多 10 年；GET 不吃年份參數。"""
-    y1 = y1 or date.today().year
+    y1 = y1 or today_tw().year
     out: dict = {}
     a = y0
     while a <= y1:
@@ -532,7 +533,7 @@ def parse_treasury(txt: str) -> dict:
 
 
 def treasury(y0: int, y1: int | None = None) -> int:
-    y1 = y1 or date.today().year
+    y1 = y1 or today_tw().year
     out: dict = {}
     for y in range(y0, y1 + 1):
         try:
@@ -774,7 +775,7 @@ def sfb_flow() -> int:
 
 
 def months_from(a: str, z: date | None = None) -> list[str]:
-    z = z or date.today()
+    z = z or today_tw()
     y, m = int(a[:4]), int(a[5:7])
     out = []
     while (y, m) <= (z.year, z.month):

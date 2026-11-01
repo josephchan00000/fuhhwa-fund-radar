@@ -22,9 +22,9 @@ import tempfile
 import time
 import urllib.request
 import zipfile
-from datetime import date
 from pathlib import Path
 
+from ..clock import today_tw
 from . import ussxdata as UD
 
 TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
@@ -153,7 +153,7 @@ def run(syms: list[str] | None = None) -> dict:
         _log(f"沒有設 {ENV}（GitHub secret），SEC 這一段跳過")
         return {"skip": "no-secret"}
     meta = load_meta()
-    today = date.today().isoformat()
+    today = today_tw().isoformat()
     if meta.get("asof") == today:
         return {"skip": "today"}
     t0 = time.time()

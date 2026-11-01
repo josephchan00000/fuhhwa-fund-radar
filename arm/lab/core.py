@@ -16,6 +16,7 @@ from pathlib import Path
 
 import numpy as np
 
+from ..clock import today_tw
 from .. import fileio
 from . import corespec as S
 
@@ -403,7 +404,7 @@ def market_inputs(mk: str, B: dict | None = None) -> dict:
 
 
 def research() -> dict:
-    out = {"ver": S.VER, "spec": S.SPEC_DATE, "made": date.today().isoformat(), "mk": {}}
+    out = {"ver": S.VER, "spec": S.SPEC_DATE, "made": today_tw().isoformat(), "mk": {}}
     for mk in S.MARKETS:
         M = market_inputs(mk)
         cal, px, tot, rf = M["cal"], M["px"], M["tot"], M["rf"]
@@ -538,7 +539,7 @@ def boom_share(mk: str = "tw") -> float:
 def stk_from_adv(A: dict, asof: str | None = None, boom: dict | None = None) -> dict:
     """個股頁的 advice 結果 → 台股機動：★ 策略（照頁面順序）、每條手上的股票、接下來 45 天要做的事；
     boom＝新飆股那本帳現在的狀態（sxlive.plan_state；VER 5＝N8 那一本）。"""
-    asof = asof or date.today().isoformat()
+    asof = asof or today_tw().isoformat()
     book = [b for b in A.get("book") or [] if b.get("tier") == S.SLEEVE_TIER]
     ks = [b["k"] for b in book]
     hold: dict[str, list] = {k: [] for k in ks}

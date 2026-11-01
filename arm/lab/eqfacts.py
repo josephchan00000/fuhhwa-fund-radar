@@ -16,6 +16,7 @@ import re
 from datetime import date
 from pathlib import Path
 
+from ..clock import today_tw
 from . import eqspec as S
 from . import store
 
@@ -543,7 +544,7 @@ def tw_pack(code: str, D=None, pos=None, asof: str | None = None, peers: list[st
         nxt = next_quarter(qs[-1]["q"])
         nq = {"q": nxt, "dl": deadline(nxt)}
     return {"ver": VER, "spec": S.VER, "mk": "tw", "code": code, "name": co.get("n"), "asof": asof,
-            "made": date.today().isoformat(), "ind": co.get("ind"), "intro": _intro(code),
+            "made": today_tw().isoformat(), "ind": co.get("ind"), "intro": _intro(code),
             "src_d": {"co": co.get("asof"), "x9t": t.get("d"), "x9f": (_read(DASH / "x9f.json", {}) or {}).get("d")},
             "px": dly.get("px"), "cap": my.get("cap"), "shares": (mo[-1].get("sh") if mo else None),
             "my": {k: my.get(k) for k in ("rs", "d52h", "r120", "ry", "ry3", "racc", "ey", "eacc", "gm", "om", "roe",
@@ -704,7 +705,7 @@ def ind_pack_tw(chain_id: str, bub: dict | None = None) -> dict:
     pb = S.band([m["pb"] for m in members if m["pb"] is not None and 0 < m["pb"] <= S.BAND_PB_MAX])
     ry = S.band([m["ry3"] for m in members if m["ry3"] is not None])
     out = {"ver": VER, "kind": "ind", "mk": "tw", "key": f"tw-{chain_id}", "chain": chain_id, "name": ch.get("n"),
-           "asof": t.get("d"), "made": date.today().isoformat(), "nodes": nodes, "members": members,
+           "asof": t.get("d"), "made": today_tw().isoformat(), "nodes": nodes, "members": members,
            "n_members": len(members), "cap_total": _r(sum(m["cap"] or 0 for m in members), 1), "rev_agg": agg,
            "pe": {k: _r(v, 2) for k, v in pe.items()} if pe else None,
            "pb": {k: _r(v, 2) for k, v in pb.items()} if pb else None,

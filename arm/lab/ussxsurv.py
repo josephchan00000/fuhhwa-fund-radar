@@ -12,6 +12,7 @@ from datetime import date
 
 import numpy as np
 
+from ..clock import today_tw
 from . import ussxpanel as UP
 from . import ussxspec as X
 
@@ -133,7 +134,7 @@ def research(P: dict | None = None) -> dict:
     etf["PIT"] = X.SURV["pit"]
     mid = len(pers) // 2
     halves = ((0, mid), (mid, len(pers)))
-    out = {"ver": X.VER, "spec": X.SPEC_DATE, "made": date.today().isoformat(), "a": cal[pers[0][0]], "b": cal[pers[-1][1]],
+    out = {"ver": X.VER, "spec": X.SPEC_DATE, "made": today_tw().isoformat(), "a": cal[pers[0][0]], "b": cal[pers[-1][1]],
            "months": len(pers), "groups": {}}
     for g in list(G) + ["PIT"]:
         e = etf[g]

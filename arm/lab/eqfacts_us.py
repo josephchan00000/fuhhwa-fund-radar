@@ -18,6 +18,7 @@ import re
 from datetime import date
 from pathlib import Path
 
+from ..clock import today_tw
 from . import eqfacts as E
 from . import eqspec as S
 
@@ -378,7 +379,7 @@ def us_pack(code: str, asof: str | None = None) -> dict:
         val["range_how"] = f"本公司近 {S.BAND_YEARS} 年每月淨值比與同業現在淨值比（市值 ÷ 股東權益），第 25～75 百分位取最寬"
     ed = an.get("ed") or []
     return {"ver": VER, "spec": S.VER, "mk": "us", "code": code, "name": me["n"], "asof": asof,
-            "made": date.today().isoformat(), "ind": g[2], "sector": sector, "index": g[0], "intro": E._intro(code),
+            "made": today_tw().isoformat(), "ind": g[2], "sector": sector, "index": g[0], "intro": E._intro(code),
             "src_d": {"sec": fin.get("sec"), "scr": fin.get("scr"), "gics": fin.get("gics"), "card": card_all.get("d"),
                       "an": card.get("an_at"), "fwd": fwd.get("d")},
             "px": dl["px"], "cap": cap, "shares": sh_now, "fy_end": fy_end_m, "my": my,
@@ -417,7 +418,7 @@ def ind_pack_us(key: str) -> dict:
     for c in mem:
         q = (fwd.get("q") or {}).get(c)
         r = rows.get(c)
-        px, fpe = _fwd_pe(fwd, c, asof or date.today().isoformat())
+        px, fpe = _fwd_pe(fwd, c, asof or today_tw().isoformat())
         cd = (card_all.get("s") or {}).get(c)
         if fpe is None and cd and cd.get("an"):          # 預估表沒有、選股頁美股卡有（同為 Yahoo、同一個加權法）→ 和個股報告一致
             cl = closes(cd, card_all.get("cal") or [])
@@ -432,7 +433,7 @@ def ind_pack_us(key: str) -> dict:
     pe = S.band([m["pe"] for m in out if m["pe"] is not None and 0 < m["pe"] <= S.BAND_PE_MAX])
     fpe = S.band([m["fpe"] for m in out if m["fpe"] is not None and 0 < m["fpe"] <= S.BAND_PE_MAX])
     return {"ver": VER, "kind": "ind", "mk": "us", "key": key, "name": g0[2], "sector": g0[1], "asof": asof,
-            "made": date.today().isoformat(), "members": out, "n_members": len(out), "n_cap": len(caps),
+            "made": today_tw().isoformat(), "members": out, "n_members": len(out), "n_cap": len(caps),
             "cap_total": round(sum(caps), 1) if caps else None, "pe": {k: _r(v, 2) for k, v in pe.items()} if pe else None,
             "fpe": {k: _r(v, 2) for k, v in fpe.items()} if fpe else None, "rev_agg": [], "nodes": [], "bubble": [],
             "src_d": {"gics": (_read(LAB / "ussx_gics.json", {}) or {}).get("d"), "fwd": fwd.get("d"), "scr": fin.get("scr")}}

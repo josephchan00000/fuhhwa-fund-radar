@@ -7,7 +7,7 @@
 
 ## 現在怎麼運作
 
-- **時區**：本機/CI/雲端容器多為 UTC，台北清晨執行時 `date.today()` 會差一天。程式內一律用 `arm/clock.py` 的 `today_tw()/now_tw()/stamp_tw()`；
+- **時區**：本機/CI/雲端容器多為 UTC，台北清晨執行時 `date.today()` 會差一天。程式內一律用 `arm/clock.py` 的 `today_tw()/now_tw()/stamp_tw()`（2026-11-01 體檢第 9 條把 `arm/`、`scripts/` 裡直接取今天的 54 處（28 個檔）都換掉了；`smoke_dashboard.py` 不載 arm，自己用 UTC+8 算）；
   跑腳本時帶 `TZ=Asia/Taipei` 雙保險。
 - **雲端 Claude 容器的網路政策會擋部分站點**（曾實測被擋：`fhtrust.com.tw`、Google News RSS、PTT；proxy 回 CONNECT 403）。
   資料抓取一律交給正式區 `daily.yml`（見 [全部更新](../ops/daily-update.md) 的效率原則）。被擋時各支腳本的反應：

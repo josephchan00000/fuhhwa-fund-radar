@@ -9,10 +9,10 @@
 from __future__ import annotations
 
 import bisect
-from datetime import date
 
 import numpy as np
 
+from ..clock import today_tw
 from . import ussxdata as UD
 from . import ussxspec as X
 
@@ -122,7 +122,7 @@ def earnings(years: range | None = None) -> dict[str, list]:
     """usstk 的財報行事曆 → {Yahoo 代號: [[公布日, 實際 EPS, 預估 EPS, 預估家數, 季度], ...]}（依公布日排序）。"""
     from . import usstk as U
     UD.point_usstk()
-    years = years or range(int(U.EARN_START[:4]), date.today().year + 1)
+    years = years or range(int(U.EARN_START[:4]), today_tw().year + 1)
     out: dict[str, list] = {}
     for y in years:
         for d, rows in (U.load_earn(y).get("rows") or {}).items():

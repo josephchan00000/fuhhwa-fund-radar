@@ -26,6 +26,7 @@ import time
 import urllib.parse
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from ..clock import today_tw
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -109,7 +110,7 @@ def calendar_symbols() -> list[str]:
     from . import usstk
     point_usstk()
     out = set()
-    for y in range(int(usstk.EARN_START[:4]), date.today().year + 1):
+    for y in range(int(usstk.EARN_START[:4]), today_tw().year + 1):
         for rows in (usstk.load_earn(y).get("rows") or {}).values():
             for r in rows:
                 if r and r[0]:
@@ -511,7 +512,7 @@ def fetch_screen() -> dict:
 def update_screen() -> int:
     """篩選器一天抓一次（三個交易所都要有才寫）。"""
     meta = load_meta()
-    today = date.today().isoformat()
+    today = today_tw().isoformat()
     if meta.get("screen") == today:
         return 0
     got = fetch_screen()

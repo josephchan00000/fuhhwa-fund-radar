@@ -11,7 +11,6 @@ import argparse
 import json
 import secrets
 import sys
-from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -77,12 +76,12 @@ def main() -> int:
     idx = {"id": rid, "at": f"{now_tw():%Y-%m-%d %H:%M}", "codes": {}}
     for c in codes:
         code = c.split(":", 1)[1]
-        t0 = datetime.now()
+        t0 = now_tw()
         pk = E.build(code, today_tw(), post, get)
         (out / f"tw-{code}.json").write_text(json.dumps(pk, ensure_ascii=False), encoding="utf-8")
         (out / f"tw-{code}.md").write_text(E.render_md(pk), encoding="utf-8")
         idx["codes"][c] = E.index(pk)
-        print(f"[eqdocs] {c} {pk.get('name')}：{pk['st']}（{(datetime.now() - t0).seconds}s）", flush=True)
+        print(f"[eqdocs] {c} {pk.get('name')}：{pk['st']}（{(now_tw() - t0).seconds}s）", flush=True)
     (out / "index.json").write_text(json.dumps(idx, ensure_ascii=False, indent=1), encoding="utf-8")
     return 0
 
