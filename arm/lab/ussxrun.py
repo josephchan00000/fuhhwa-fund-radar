@@ -6,7 +6,6 @@ books(P)  建樣本（ussxfeat）→ 五本帳逐年找規則（ussxmine）→ �
 from __future__ import annotations
 
 import json
-import math
 import multiprocessing as mp
 import time
 from datetime import date

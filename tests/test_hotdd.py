@@ -243,7 +243,7 @@ def _fake_B(n=700, seed=4):
 
 def test_now_state():
     B, dims = _fake_B()
-    st = K.now(B, None)
+    st = K.now(B)
     ks = [r["k"] for r in st["hot"]]
     assert ks[0] == "tech" and "C1" in ks                       # 面向在前
     r = next(r for r in st["hot"] if r["k"] == "tech")

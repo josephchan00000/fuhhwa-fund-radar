@@ -26,7 +26,6 @@ from . import analyze
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "dashboard" / "x9.html"
 OUT_SER = ROOT / "dashboard" / "x9s.json"      # 個股走勢序列；三支 workflow 的 git add 要跟 x9.html 一起帶
-SLUG = "x9.html"
 _LAST: dict = {}                               # build() 建好的資料，給 finish() 用今天的警訊讀數重建配置頁
 
 

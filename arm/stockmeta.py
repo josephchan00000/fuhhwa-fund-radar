@@ -40,7 +40,6 @@ IND_CODE = {
     "38": "居家生活", "39": "航太工業", "80": "管理股票",
 }
 
-UNCLASSIFIED = "未分類"
 
 _CODE_RE = re.compile(r"^\d{4}[A-Z]?$")
 _CODE_KEY = re.compile(r"代號|代碼|Code|code")

@@ -186,7 +186,7 @@ def simulate_fixed(tot, rf, share: float, a: int, b: int, sl=None, swc=None, cor
 
 def _years(cal: list[str], a: int, b: int, nav) -> list[list]:
     """[[年, 報酬, 交易日數]]：每一年最後一個交易日對前一年最後一個交易日（第一年對起點）。"""
-    out, last_y, base = [], None, 1.0
+    out, base = [], 1.0
     end = {}
     cnt: dict[str, int] = {}
     for k in range(a, b):
@@ -196,7 +196,7 @@ def _years(cal: list[str], a: int, b: int, nav) -> list[list]:
     for y in sorted(end):
         v = nav[end[y] - a]
         out.append([y, v / base - 1, cnt[y]])
-        base, last_y = v, y
+        base = v
     return out
 
 

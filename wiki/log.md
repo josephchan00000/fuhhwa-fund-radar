@@ -57,3 +57,6 @@
 
 ## [2026-11-01] 搬家 | 日誌 10 月的部分搬到 `docs/wiki_log/2026-10.md`
 - 日誌到 1.5 萬字上限，使用者選「按月封存」；內容一字不改。`scripts/wiki_facts.py` 的 `dropped()` 也讀封存檔的「- 刪：」行。
+
+## [2026-11-01] 收錄 | 拿掉沒人用的小東西（體檢第 8 條）
+- 12 個函式＋連帶的 `heatviz._kcard`／`_key_line`／`_verd`／`KEY_SHOW`、9 個常數、8 個 import、7 個區域變數、8 個 f 字串、3 個參數（`ussxmine.mine_fold` 的 `ix_of`、`hotdd.now` 的 `R_mk`、`cnyesfund.search_all` 的 `max_pages`）。研究規格與研究模組裡沒用到的常數（`bubspec`、`crashspec`、`nbrspec`、`superx`、`optim`、`sepa`、`packtest`、`fwd`）照留；`printview.LANE_ORDER` 的說明搬到 `fund_dashboard` 組報告順序那一行。

@@ -3606,6 +3606,7 @@ def render() -> str:
                       (f"台股{pm_title}", premkt_md, tw_date),
                       ("全球・昨夜美股總覽", _extract_overview(us_head), us_date,
                        printview.us_trade_note(us_md))],
+        # 報告順序＝使用者列舉的「總經、台股、全球」；同分時依此排（printview.pick_cards）
         "lanes": [("macro", "總經", macro_md), ("tw", "台股", tw_md), ("us", "美股", us_md)],
         "rows_tw": rows_tw, "rows_gl": rows_gl, "marks": leaders, "etf_doc": etf_doc,
     })

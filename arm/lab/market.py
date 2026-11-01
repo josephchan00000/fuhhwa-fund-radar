@@ -454,7 +454,6 @@ def fetch_part(part: str, d: str):
 
 ALL_PARTS = ("q_tw", "q_tp", "i_tw", "i_tp", "m_tw", "m_tp", "l_tw", "x_tw")
 PX_PARTS = ("q_tw", "q_tp")
-FLOW_PARTS = ("i_tw", "i_tp", "m_tw", "m_tp", "l_tw", "x_tw")
 
 
 # ── 集保股權分散表（每週） ───────────────────────────────────────────
@@ -1087,7 +1086,7 @@ def probe_v3b() -> None:
     _peek("FinMind 股票清單", "https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInfo")
     _peek("櫃買除權息（舊站）2013", "https://www.tpex.org.tw/web/stock/exright/dailyquo/exDailyQ_result.php?l=zh-tw&d=102/01/01&ed=102/12/31&o=json")
     doc = _peek("FinMind 外資持股 6488（2014-01）", "https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockShareholding"
-                f"&data_id=6488&start_date=2014-01-01&end_date=2014-01-10")
+                "&data_id=6488&start_date=2014-01-01&end_date=2014-01-10")
     if isinstance(doc, dict) and doc.get("data"):
         log(f"[v3探針b]   外資持股欄位 {list(doc['data'][0])}")
     log(f"[v3探針b] 完成 {today}")

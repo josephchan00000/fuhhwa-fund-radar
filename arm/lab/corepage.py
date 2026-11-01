@@ -670,7 +670,7 @@ def todo_html(mk: str, N: dict, stk: dict | None, qm: dict | None = None) -> str
     else:
         rows = ('<div class="plnw">平常</div><div class="plnt">' + ("全部拿著指數" if core_w(mk) <= 0 else "機動也買同一個指數")
                 + '，不用動，只要看下面的警訊。</div>')
-    return f'<h4 class="plnh">接下來要做的事</h4>' + (f'<div class="plntodo">{rows}</div>' if rows else "") + _fam_html(mk, N)
+    return '<h4 class="plnh">接下來要做的事</h4>' + (f'<div class="plntodo">{rows}</div>' if rows else "") + _fam_html(mk, N)
 
 
 def _fam_html(mk: str, N: dict) -> str:

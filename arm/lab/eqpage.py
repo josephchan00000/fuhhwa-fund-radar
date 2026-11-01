@@ -609,7 +609,6 @@ def _data_list(pack: dict) -> str:
 
 
 def appendix(pack: dict, ctx: dict) -> str:
-    sd = pack.get("src_d") or {}
     hist = ctx.get("hist") or []
     hrows = [[h["made"], escape(h.get("rating") or ""), f(h.get("tp")), f(h.get("px")),
               sg(h.get("since")) if h.get("since") is not None else "—", f"第 {h.get('spec') or 1} 版"] for h in hist]
