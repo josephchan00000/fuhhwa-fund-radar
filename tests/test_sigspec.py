@@ -24,7 +24,7 @@ from arm.lab import sigspec as X
 
 
 def test_sig_spec_v1_is_locked():
-    assert X.VER == 26 and X.SPEC_DATE == "2026-10-31"
+    assert X.VER == 27 and X.SPEC_DATE == "2026-11-01"
     assert BS.VER == 4 and "C9" in BS.SIG_MK["tw"] and "C8" in BS.SIG_MK["spx"]   # VER 13：大跌後買點的規則跟著 bottomspec VER 4
     assert X.H_BUY == 60                                                  # VER 10：大跌後買點看買進後 3 個月有沒有漲
     assert X.MARKETS == ("tw", "spx", "ixic", "ndx", "sox")
@@ -284,11 +284,11 @@ def test_sig_spec_v26_listing_by_age_is_locked():
     （0／1～4／5～9／10～19／20～59／60 以上）× 觸發條件還成立或已斷；訊號自己的成績照 ④b 會列、而且今天那一格也過才列（格子只拿掉、
     不多列）；拿掉的放「進行中」；狀態型也分第幾天；買點也只到出現後 H_BUY 天。門檻不變；sig_research、sigoos_research 不動；
     thermo_research 重跑並另存 VER 25 的票（實戰模擬、期貨加碼照舊）。"""
-    assert X.VER == 26 and X.SPEC_DATE == "2026-10-31"
+    assert X.VER == 27 and X.SPEC_DATE == "2026-11-01"
     assert X.RES_VER == 24 and X.FWD_VER == 25 and X.CAL_VER == 26 and X.AGE_VER == 26
     assert X.AGE_B == (0, 1, 5, 10, 20, 60) and len(X.AGE_NAMES) == len(X.AGE_B)
     assert X.AGE_ST == ("on", "off", "-") and set(X.AGE_ST_NAMES) == set(X.AGE_ST)
-    assert X.AGE_WHY == ("few", "weak", "exp") and X.AGE_XP == ("a:", "ax:") and X.FWD_XP not in X.AGE_XP
+    assert X.AGE_WHY == ("few", "weak", "exp", "param") and X.AGE_XP == ("a:", "ax:") and X.FWD_XP not in X.AGE_XP
     # 條件：0～100 的進入過熱／過冷（含法人位階的進入大賣超／大買超）、同時兩個面向過熱、法人連續、均線類技術事件
     assert set(X.AGE_COND.values()) == {"ge_hot", "lt_cold", "multi", "run", "side"} and len(X.AGE_COND) == 23
     for c in ("heat", "crash", "bd", "inst"):
@@ -305,3 +305,14 @@ def test_sig_spec_v26_listing_by_age_is_locked():
     assert X.N_MIN == 5 and X.THERMO_EDGE == 0.05 and X.LIST_GAP == 0.03 and X.H_BUY == 60
     assert X.THERMO_H == {"short": 20, "mid": 60, "long": 250} and max(X.AGE_B) < max(X.THERMO_H.values())
     assert X.THERMO_CLS == ("up", "buy", "risk") and X.CAL_MIN_SAMP == 50
+
+
+def test_ver27_param_gating_and_inst_note():
+    """VER 27（2026-11-01）：參數一動就不成立的不列、法人訊號加註；研究檔版本都不動。"""
+    from arm.lab import nbrspec as N
+    assert X.ROBUST_VER == N.VER == 1
+    assert X.PARAM_WHY == "參數一動就不比平常好" and X.PARAM_NA == "參數檢查看不出來（次數太少）"
+    assert X.PARAM_MISS == "參數還沒檢查" and X.PARAM_NONE == "參數檢查還沒算"
+    assert X.INST_NOTE == "法人訊號：過去挑出來的，之後多半沒有比平常好"
+    assert X.RES_VER == 24 and X.FWD_VER == 25 and X.CAL_VER == 26 and X.AGE_VER == 26
+
