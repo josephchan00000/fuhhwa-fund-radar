@@ -1155,7 +1155,8 @@ def _fmt_num(v, digits: int = 2) -> str:
 
 
 def _div_cell(i: dict) -> str:
-    """最近一次配息欄：實際配息金額；若投信已公告當月『預計配息』，加註 X*（非正式）。"""
+    """最近一次配息欄：實際配息金額；若投信已公告當月『預計配息』，加註 X*（非正式）；
+    交易所預告表已排好這個月的除息日、表上還沒有金額時，加註「M/D 除息・金額待公告」。"""
     ld = i.get("last_div")
     main = _fmt_num(ld, 4) if ld is not None else '<span class="na">—</span>'
     est = i.get("est_div")
@@ -1163,6 +1164,14 @@ def _div_cell(i: dict) -> str:
         tip = "投信於配息月公告之預計配息金額，非正式配息金額（實際以除息公告為準）"
         main += (f'<div class="estdivln"><span class="estdiv" title="{tip}">預估 '
                  f'{_fmt_num(est, 4)}<sup>*</sup></span></div>')
+    elif i.get("est_pend"):
+        try:
+            d = date.fromisoformat(i["est_pend"])
+        except (TypeError, ValueError):
+            return main
+        tip = "證交所／櫃買預告表已排定除息日，表上還沒有這次的配息金額（投信公告後交易所會補上）"
+        main += (f'<div class="estdivln"><span class="estdiv" title="{tip}">'
+                 f'{d.month}/{d.day} 除息・金額待公告</span></div>')
     return main
 
 
@@ -1857,6 +1866,9 @@ def _etfwatch_view(doc: dict | None, holdings_doc: dict | None = None) -> str:
                 if has_est else
                 '　<b>最近一次配息金額</b>為最近一次「實際」除息之每單位配息金額；當投信於配息月公告該月'
                 '<b>預計配息金額</b>時，會於此欄加註「預估 X*」（非正式配息金額，實際以除息公告為準）。<br>')
+    if any(i.get("est_div") is None and i.get("est_pend") for i in items):
+        est_note += ('　標 <b>M/D 除息・金額待公告</b> 者＝證交所／櫃買的除權除息預告表已排定這個月的除息日，'
+                     '表上還沒有這次的配息金額；交易所補上後自動改成「預估 X*」。<br>')
     parts.append(
         '<div class="etfnote">'
         '<b>資料來源（可點擊人工驗證）</b>：'
@@ -1877,8 +1889,10 @@ def _etfwatch_view(doc: dict | None, holdings_doc: dict | None = None) -> str:
         'rel="noopener">Yahoo奇摩股市</a>個股頁對照——報酬取自 Yahoo 即與此連結同源，取自其他源則於代碼旁小標；'
         '每格報酬下方「<b>起算 MM/DD 收 價格</b>」標明用哪一天的收盤當基準'
         '（滑鼠移上顯示完整算式），方便逐檔人工驗證。'
-        '當月預估配息 ← 投信官方公告／<a href="https://mops.twse.com.tw" target="_blank" '
-        'rel="noopener">MOPS 公開資訊觀測站</a>。<br>'
+        '當月預估配息 ← <a href="https://www.twse.com.tw/zh/announcement/ex-right/twt48u.html" '
+        'target="_blank" rel="noopener">證交所</a>／<a href="https://www.tpex.org.tw/web/stock/exright/'
+        'preAnnounce/prepost.php?l=zh-tw" target="_blank" rel="noopener">櫃買</a>除權除息預告表、'
+        '<a href="https://mops.twse.com.tw" target="_blank" rel="noopener">MOPS 公開資訊觀測站</a>。<br>'
         f'　資料時間：規模／年化配息率抓取基準 {_esc(doc.get("as_of") or "—")}；'
         f'過去一週／一月報酬基準 {_esc(doc.get("perf_asof") or "—")}'
         '（成立日期為固定值；來源當日未更新時沿用最近可得值並標明基準日）・'

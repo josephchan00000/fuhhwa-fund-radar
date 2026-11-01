@@ -6,6 +6,9 @@ import pytest
 from datetime import date, timedelta
 
 from arm import etfwatch, fund_dashboard
+from arm.connectors import tpex, twse
+
+_REAL_EXDIV = (twse.fetch_exdiv, tpex.fetch_exdiv)    # 模組載入時的真函式（autouse fixture 之後會換掉）
 
 
 # ── 數值解析與規模單位正規化 ─────────────────────────────────
@@ -81,21 +84,111 @@ def test_mops_parse_handles_4_5_6_digit_codes_and_roc_dates():
                                                      "announced": None}
 
 
-def test_announced_est_fallback_when_etfinfo_and_mops_empty(monkeypatch):
-    # etfinfo/MOPS 都沒預估 → 用投信已公告人工清單 ANNOUNCED_EST（本月、除息未到）
+_NO_RET = {"ret_1w": None, "ret_1m": None, "perf_date": None, "ret_src": None}
+
+
+def _exch(monkeypatch, twse_rows=(), tpex_rows=()):
+    """證交所／櫃買除權除息預告表的假回應（列＝parse_exdiv 的輸出）；傳例外類別＝那一邊抓不到。"""
+
+    def _f(rows):
+        def go():
+            if isinstance(rows, type) and issubclass(rows, Exception):
+                raise rows("CONNECT 403")
+            return list(rows)
+        return go
+    monkeypatch.setattr(twse, "fetch_exdiv", _f(twse_rows))
+    monkeypatch.setattr(tpex, "fetch_exdiv", _f(tpex_rows))
+
+
+def _quiet_sources(monkeypatch, today, prev=None, mops_rows=None):
+    """etfinfo 沒有預估、報酬抓不到、MOPS 照給的值；只看預估配息這一段。"""
     import arm.connectors.mops as mops
-    today = date(2026, 7, 6)
-    monkeypatch.setattr(etfwatch, "load", lambda: None)
-    monkeypatch.setattr(etfwatch, "_fetch_market", lambda code: {})       # etfinfo 無配息/預估
-    monkeypatch.setattr(etfwatch, "_fetch_returns",
-                        lambda code: {"ret_1w": None, "ret_1m": None, "perf_date": None, "ret_src": None})
+    monkeypatch.setattr(etfwatch, "load", lambda: prev)
+    monkeypatch.setattr(etfwatch, "_fetch_market", lambda code: {})
+    monkeypatch.setattr(etfwatch, "_fetch_returns", lambda code, **k: dict(_NO_RET))
     monkeypatch.setattr(etfwatch.clock, "today_tw", lambda: today)
-    monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})    # MOPS 空
-    monkeypatch.setattr(etfwatch, "ANNOUNCED_EST",
-                        {"00991A": {"amount": 0.77, "ex_date": "2026-07-21"}})
+    monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: dict(mops_rows or {}))
+
+
+def test_exchange_tables_fill_estimate_and_pending(monkeypatch):
+    # 2026-11-01 拿掉人工清單 ANNOUNCED_EST（使用者：「不可能手動補啦要抓公告」）：etfinfo 沒有預估時看
+    # 證交所／櫃買除權除息預告表——有金額＝預估配息；這個月排好除息日、金額還沒公告＝「金額待公告」
+    _quiet_sources(monkeypatch, date(2026, 11, 2))
+    monkeypatch.setattr(etfwatch, "_fetch_market", lambda code: {"aum_raw": 1e10})   # etfinfo 有規模、沒預估
+    _exch(monkeypatch,
+          twse_rows=[("00406A", "2026-11-03", 0.138),       # 有金額 → 預估配息
+                     ("00400A", "2026-11-06", None),        # 金額待公告
+                     ("00401A", "2026-12-04", None),        # 下個月 → 不收
+                     ("0056", "2026-10-21", 1.0),           # 已經過了 → 不收
+                     ("2330", "2026-11-13", 5.0)],          # 不在追蹤清單
+          tpex_rows=[("00986D", "2026-10-21", 0.09),       # 櫃買表也列已經過的 → 取今天以後的那次
+                     ("00986D", "2026-11-18", 0.08)])
+    doc = etfwatch.fetch()
+    by = {i["code"]: i for i in doc["items"]}
+    assert (by["00406A"]["est_div"], by["00406A"]["est_div_date"], by["00406A"]["est_src"]) == \
+        (0.138, "2026-11-03", "exch")
+    assert by["00406A"]["est_pend"] is None
+    assert by["00400A"]["est_div"] is None and by["00400A"]["est_pend"] == "2026-11-06"
+    assert by["00401A"]["est_pend"] is None and by["00401A"]["est_div"] is None
+    assert by["0056"]["est_div"] is None and by["0056"]["est_pend"] is None
+    assert (by["00986D"]["est_div"], by["00986D"]["est_div_date"]) == (0.08, "2026-11-18")
+    assert "證交所／櫃買除權除息預告表" in doc["source"] and "1 檔金額待公告" in doc["source"]
+
+
+def test_exchange_table_comes_before_mops(monkeypatch):
+    # 兩邊都有金額 → 用交易所的；交易所只排了日期、MOPS 有金額 → 用 MOPS，就不再標待公告
+    _quiet_sources(monkeypatch, date(2026, 7, 6),
+                   mops_rows={"0056": {"ex_date": "2026-07-16", "amount": 0.75},
+                              "00929": {"ex_date": "2026-07-21", "amount": 0.38}})
+    _exch(monkeypatch, twse_rows=[("0056", "2026-07-16", 0.8), ("00929", "2026-07-21", None)])
     by = {i["code"]: i for i in etfwatch.fetch()["items"]}
-    assert by["00991A"]["est_div"] == 0.77 and by["00991A"]["est_div_date"] == "2026-07-21"
-    assert by["00991A"]["est_src"] == "announced"
+    assert (by["0056"]["est_div"], by["0056"]["est_src"]) == (0.8, "exch")
+    assert (by["00929"]["est_div"], by["00929"]["est_src"], by["00929"]["est_pend"]) == (0.38, "mops", None)
+
+
+def test_exchange_down_keeps_old_pending_until_due(monkeypatch):
+    # 交易所這輪抓不到 → 沿用舊的「待公告」，但過了除息日就拿掉；抓得到而表上沒有 → 拿掉
+    prev = {"items": [{"code": "0056", "est_pend": "2026-11-06"},
+                      {"code": "00929", "est_pend": "2026-10-30"}]}
+    _quiet_sources(monkeypatch, date(2026, 11, 2), prev=prev)
+    _exch(monkeypatch, twse_rows=RuntimeError, tpex_rows=[])
+    by = {i["code"]: i for i in etfwatch.fetch()["items"]}
+    assert by["0056"]["est_pend"] == "2026-11-06" and by["00929"]["est_pend"] is None
+    _exch(monkeypatch, twse_rows=[], tpex_rows=[])
+    assert {i["code"]: i for i in etfwatch.fetch()["items"]}["0056"]["est_pend"] is None
+
+
+def test_exdiv_parsers_read_both_exchange_formats():
+    # 2026-11-01 CI 探針看到的實際格式：證交所 OpenAPI 民國緊湊日期、金額空白＝未公告；
+    # 櫃買 {tables:[{fields, data}]}、民國斜線日期、「尚未公告」
+    rows = [{"Date": "1151106", "Code": "00400A", "Name": "主動國泰動能高息", "Exdividend": "息", "CashDividend": ""},
+            {"Date": "1151103", "Code": "00406A", "Name": "主動中信台灣收益", "Exdividend": "息", "CashDividend": "0.138000"},
+            {"Date": "1151110", "Code": "1101", "Name": "台泥", "Exdividend": "權", "CashDividend": ""},
+            {"Date": "115/11/06", "Code": "00939", "Exdividend": "息"}, "壞列", None]
+    assert twse.parse_exdiv(rows) == [("00400A", "2026-11-06", None), ("00406A", "2026-11-03", 0.138)]
+    doc = {"stat": "ok", "tables": [{"title": "", "fields": ["除權息日期", "代號", "名稱", "除權息", "每股無償配股率",
+                                                                  "現金增資配股率", "現金增資認購價", "現金股利"],
+                                     "data": [["115/10/21", "00986D", "主動復華金融債息", "除息", "0", "0", "0", "0.09000000"],
+                                              ["115/11/03", "00950B", "凱基A級公司債", "除息", "0", "0", "0", "尚未公告"],
+                                              ["115/11/05", "6488", "環球晶", "除權", "0.1", "0", "0", "0"],
+                                              ["短列"]]},
+                                    {"fields": ["別的表"], "data": [["x"]]}]}
+    assert tpex.parse_exdiv(doc) == [("00986D", "2026-10-21", 0.09), ("00950B", "2026-11-03", None)]
+    assert tpex.parse_exdiv(None) == [] and twse.parse_exdiv(None) == []
+
+
+def test_exdiv_fetch_rejects_wrong_shape(monkeypatch):
+    # 回應形狀不對要丟例外（呼叫端才會沿用舊的待公告），不能當成「表上沒東西」把待公告洗掉
+    real_twse, real_tpex = _REAL_EXDIV
+    monkeypatch.setattr(twse, "get_json", lambda *a, **k: {"stat": "error"})
+    monkeypatch.setattr(tpex, "get_json", lambda *a, **k: [])
+    with pytest.raises(ValueError):
+        real_twse()
+    with pytest.raises(ValueError):
+        real_tpex()
+    monkeypatch.setattr(twse, "get_json", lambda *a, **k: [])                       # 空表＝正常（沒有要除息的）
+    monkeypatch.setattr(tpex, "get_json", lambda *a, **k: {"tables": [], "stat": "ok"})
+    assert real_twse() == [] and real_tpex() == []
 
 
 def test_yield_uses_estimate_when_announced(monkeypatch):
@@ -103,7 +196,7 @@ def test_yield_uses_estimate_when_announced(monkeypatch):
     import arm.connectors.mops as mops
     today = date(2026, 7, 6)
     monkeypatch.setattr(etfwatch, "load", lambda: None)
-    # etfinfo 給收盤價與頻率，但不給預估；預估來自 ANNOUNCED_EST
+    # etfinfo 給收盤價與頻率，但不給預估；預估來自證交所除權除息預告表
     monkeypatch.setattr(etfwatch, "_fetch_market",
                         lambda code: {"close_px": 30.78, "freq": "月配", "yield_pct": 10.1,
                                       "last_div": 0.26, "aum_raw": 1e10})
@@ -111,22 +204,13 @@ def test_yield_uses_estimate_when_announced(monkeypatch):
                         lambda code: {"ret_1w": None, "ret_1m": None, "perf_date": None, "ret_src": None})
     monkeypatch.setattr(etfwatch.clock, "today_tw", lambda: today)
     monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
-    monkeypatch.setattr(etfwatch, "ANNOUNCED_EST",
-                        {"00929": {"amount": 0.38, "ex_date": "2026-07-21"}})
+    _exch(monkeypatch, twse_rows=[("00929", "2026-07-21", 0.38)])
     i = {x["code"]: x for x in etfwatch.fetch()["items"]}["00929"]
     assert i["est_div"] == 0.38 and i["yield_is_est"] is True
     assert i["yield_pct"] == round(0.38 / 30.78 * 12 * 100, 2)   # ≈ 14.81%（新聞報 14.8%）
     # 無預估的檔維持實際年化、不標估
     j = {x["code"]: x for x in etfwatch.fetch()["items"]}["00878"]
     assert j["yield_is_est"] is False
-
-
-def test_announced_est_dict_entries_are_valid():
-    # 維護清單格式檢查：金額為正、除息日為 ISO
-    for code, e in etfwatch.ANNOUNCED_EST.items():
-        assert code in {c for c, *_ in etfwatch.WATCHLIST}
-        assert isinstance(e["amount"], (int, float)) and e["amount"] > 0
-        assert date.fromisoformat(e["ex_date"])
 
 
 def test_fetch_fills_estimate_from_mops_for_current_month(monkeypatch):
@@ -137,12 +221,11 @@ def test_fetch_fills_estimate_from_mops_for_current_month(monkeypatch):
     monkeypatch.setattr(etfwatch, "_fetch_returns", lambda code, **k: {"ret_1w": None, "ret_1m": None,
                                                                   "perf_date": None, "ret_src": None})
     monkeypatch.setattr(etfwatch.clock, "today_tw", lambda: today)
-    monkeypatch.setattr(etfwatch, "ANNOUNCED_EST", {})   # 隔離：本測試只驗 MOPS 來源
     monkeypatch.setattr(mops, "etf_distributions",
                         lambda *a, **k: {"0056": {"ex_date": "2026-07-16", "amount": 0.80}})
     by = {i["code"]: i for i in etfwatch.fetch()["items"]}
     assert by["0056"]["est_div"] == 0.80 and by["0056"]["est_div_date"] == "2026-07-16"
-    assert by["0056"]["est_src"] == "mops"               # MOPS 優先於人工清單
+    assert by["0056"]["est_src"] == "mops"               # 交易所表沒有這檔 → MOPS
     assert by["00929"].get("est_div") is None            # 該來源無公告者不填
 
 
@@ -363,6 +446,7 @@ def _no_network_day_quotes(monkeypatch):
     「官方表不可得」，需要它的測試自行 setattr 覆寫。
     """
     monkeypatch.setattr(etfwatch, "_official_day_quotes", lambda: {})
+    _exch(monkeypatch)                     # 證交所／櫃買除權除息預告表（2026-11-01 起 fetch() 會抓）也回空
 
 
 def _down_both(monkeypatch):
@@ -452,6 +536,11 @@ def test_div_cell_shows_estimate_with_asterisk():
     assert "0.72" in cell and "預估" in cell and "*" in cell and "estdiv" in cell
     plain = fund_dashboard._div_cell({"last_div": 0.72, "est_div": None})
     assert "0.72" in plain and "預估" not in plain
+    pend = fund_dashboard._div_cell({"last_div": 0.72, "est_div": None, "est_pend": "2026-11-06"})
+    assert "0.72" in pend and "11/6 除息・金額待公告" in pend and "預估" not in pend
+    both = fund_dashboard._div_cell({"last_div": 0.72, "est_div": 0.8, "est_pend": "2026-11-06"})
+    assert "待公告" not in both                          # 有金額就只顯示預估
+    assert fund_dashboard._div_cell({"last_div": 0.72, "est_pend": "壞日期"}) == "0.72"
 
 
 # ── 即將登場的新 ETF（募集／掛牌前瞻）─────────────────────────
