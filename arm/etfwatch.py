@@ -136,6 +136,42 @@ def _this_month_ahead(iso: str | None, today: date) -> bool:
     return bool(d and (d.year, d.month) == (today.year, today.month) and d >= today)
 
 
+# 預估配息的新聞備援（2026-11-01 使用者：「預估是在正式配息前投信會提早公告一個金額…你找不到嗎」、
+# 「你找大一點的來源新聞應該不會有誤 反正本來就有打星號」）。投信第一階段公告的預估金額只在投信官網、
+# 觀測站重大訊息與新聞；交易所表要等第二階段才填（探針：觀測站以 ETF 代號查不到、證交所 etfDiv 與集保也沒有）。
+# 只查「交易所表這個月已排除息、還沒有金額」的那幾檔；標題要有代號＋明確金額、來源是主流媒體、
+# 發稿在上一次除息之後、不帶問號（「能配 1.1 元？」這種猜測不收）；兩家寫的金額不一樣就不收。
+NEWS_MAJOR = ("經濟日報", "聯合", "工商時報", "中時", "中央社", "鉅亨", "自由", "Yahoo", "MoneyDJ", "ETtoday",
+              "今周刊", "商業周刊", "Newtalk", "新頭殼", "TVBS", "三立", "FTNN", "民視", "東森")
+_NEWS_AMT = re.compile(r"(?:擬配|配發|預估配|配息|配)\s*([0-9]+\.[0-9]+)\s*元")
+_CODE_RE = re.compile(r"00\d{2,4}[A-Z]?")
+
+
+def news_estimate(code: str, ex_date: str, after: str | None) -> dict | None:
+    """主流媒體新聞標題裡的預估配息 → {"ex_date", "amount", "source", "url", "date"}；找不到或各家不一致回 None。
+    after＝上一次實際除息日（只收這天之後發的稿，免得把上個月那次當成這次）。"""
+    from .connectors import gnews
+    got: dict[float, list[dict]] = {}
+    for it in gnews.search(f"{code} 配息", days=30, limit=10):
+        t, src = it.get("title") or "", it.get("source") or ""
+        if "富聯網" in src or not any(k in src for k in NEWS_MAJOR) or "？" in t or "?" in t:
+            continue
+        if after and (it.get("date") or "")[:10] <= after:
+            continue
+        i = t.find(code)
+        m = _NEWS_AMT.search(t, i + len(code)) if i >= 0 else None
+        if not m or _CODE_RE.search(t, i + len(code), m.start()):   # 金額前面夾著別檔代號＝不是這檔的
+            continue
+        got.setdefault(float(m.group(1)), []).append(it)
+    if len(got) != 1:
+        if got:
+            print(f"  ⚠ {code} 預估配息新聞各家金額不一（{sorted(got)}），不採用")
+        return None
+    amt, its = next(iter(got.items()))
+    return {"ex_date": ex_date, "amount": amt, "source": its[0].get("source"), "url": its[0].get("url"),
+            "date": (its[0].get("date") or "")[:10]}
+
+
 # 「即將登場」的新 ETF（前瞻資訊）。**條目自 2026-08-10 起存 `data/etf_upcoming.json`**（本檔只留
 # 載入器與機制）：使用者要求「找到募集資訊主動更新、一週一次」——每週「ETF 募集週掃」Routine
 # 只改資料檔＋push，daily.yml 併檔段（驗證＋as_of 比新舊）就會自動帶進 main 重建上線，
@@ -888,6 +924,7 @@ def fetch() -> dict:
                 "est_div": old.get("est_div"),                # 當月「預估」配息金額（投信公告，非正式）
                 "est_div_date": old.get("est_div_date"),
                 "est_pend": old.get("est_pend"),              # 交易所已排除息日、金額待公告（ISO 日期）
+                "est_from": None, "est_url": None,            # 預估取自新聞時：媒體名稱與連結（est_src="news"）
                 "yield_pct": _pick(old, base, "yield_pct"),
                 "freq": _pick(old, base, "freq"),
                 # 當日漲跌（2026-07-29 使用者需求）：與報酬同源、由收盤序列末兩點自算。
@@ -1065,7 +1102,7 @@ def fetch() -> dict:
                     got_chg_l1 += 1
 
         # ③ 當月預估配息（僅取本月、除息日尚未到期者）：etfinfo 未揭露預告時，
-        #    依序補 證交所／櫃買除權除息預告表 → MOPS 公告（2026-11-01 拿掉人工清單，改全自動）。
+        #    依序補 證交所／櫃買除權除息預告表 → MOPS 公告 → 主流媒體新聞（2026-11-01 拿掉人工清單，改全自動）。
         # 沿用舊檔的預估值也要重新驗期（審查 2026-07-18）：etfinfo 斷源期間跨過除息日/跨月時，
         # 過期的「預估 X*」不得繼續顯示（docstring 承諾「過月自動失效」）。
         if item.get("est_div") is not None and not _this_month_ahead(item.get("est_div_date"), today):
@@ -1078,6 +1115,21 @@ def fetch() -> dict:
                     item["est_div"], item["est_div_date"], item["est_src"] = amt, ex, src_name
                     got_est += 1
                     break
+        # 交易所表這個月已排除息、還沒有金額 → 主流媒體新聞的預估金額（投信第一階段公告）。
+        # 新聞這輪查不到（連線出錯）而舊檔是同一次除息的新聞預估 → 沿用。
+        if (item.get("est_div") is None and exch and exch.get("amount") is None
+                and _this_month_ahead(exch.get("ex_date"), today)):
+            from .connectors import gnews
+            f0 = gnews.FAILS
+            nw = news_estimate(code, exch["ex_date"], item.get("last_div_date"))
+            if nw is None and gnews.FAILS > f0 and old.get("est_src") == "news" \
+                    and old.get("est_div_date") == exch["ex_date"] and old.get("est_div") is not None:
+                nw = {"ex_date": exch["ex_date"], "amount": old["est_div"],
+                      "source": old.get("est_from"), "url": old.get("est_url")}
+            if nw:
+                item["est_div"], item["est_div_date"], item["est_src"] = nw["amount"], nw["ex_date"], "news"
+                item["est_from"], item["est_url"] = nw.get("source"), nw.get("url")
+                got_est += 1
         # 「金額待公告」：交易所表上這個月已排好除息日、還沒有金額。
         # 交易所這輪沒抓到（且表上沒這檔）→ 沿用舊值；一樣只留這個月、還沒過的。
         if exch is not None:
@@ -1117,7 +1169,7 @@ def fetch() -> dict:
         (load() or {}).get("as_of") or clock.today_tw().isoformat()
     cnt = "，另 ".join(x for x in (f"{got_est} 檔" if got_est else "",
                                     f"{got_pend} 檔金額待公告" if got_pend else "") if x)
-    est_note = f"；當月預估配息 ← 證交所／櫃買除權除息預告表、MOPS（{cnt}）" if cnt else ""
+    est_note = f"；當月預估配息 ← 證交所／櫃買除權除息預告表、MOPS、主流媒體新聞（{cnt}）" if cnt else ""
     if got_ret:
         src_note = ("規模／配息殖利率 ← etfinfo.tw（Tier B）；過去一週／一月報酬 ← Yahoo 還原收盤"
                     f"（總報酬口徑）／FinMind／TWSE 官方自算{est_note}。正式對外前以各投信官網核對")

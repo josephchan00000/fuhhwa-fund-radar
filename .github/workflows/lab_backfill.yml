@@ -169,6 +169,9 @@ jobs:
             # 檔案頁、2000 年以前的公布日表）、聯準會 Z.1 → data/lab/heat/reldates.json.gz（抓不到的來源記在 _src，不擋其他來源）；
             # 每個來源抓完就存，逾時也照樣 commit 已抓到的
             timeout 1500 python3 scripts/fetch_reldates.py || echo "[reldates] 沒有全部跑完（逾時或出錯），已抓到的照樣 commit"
+          elif [ "${MODE#divest}" != "$MODE" ]; then
+            # 預估配息金額（投信第一階段公告）的來源探針（使用者 2026-11-01：「預估…會提前講 你找不到嗎」）：只印不寫，結果 data/lab/_divest.txt
+            timeout 900 python3 scripts/probe_divest.py
           elif [ "${MODE#divprobe}" != "$MODE" ]; then
             # 預估配息與隔年休市表的來源探針（使用者 2026-11-01：不手動補，要抓公告或新聞）：只印不寫，結果 data/lab/_divprobe.txt
             timeout 900 python3 scripts/probe_divsrc.py

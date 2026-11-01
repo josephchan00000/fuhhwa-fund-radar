@@ -75,3 +75,6 @@
 
 ## [2026-11-01] 收錄 | 預估配息與隔年休市表改自動抓
 - 拿掉人工清單 `ANNOUNCED_EST`，預估配息改抓證交所／櫃買除權除息預告表，金額還沒公告時顯示「M/D 除息・金額待公告」；隔年休市表改抓證交所網站版 `NEXT_API`。改了 `main/etf-watch.md`、`main/calendar.md`、`user.md`；債務帳拿掉一列、改一列（規劃 `docs/etf_div_auto_plan.md`）。
+
+## [2026-11-01] 收錄 | 預估配息補新聞備援
+- 交易所表「金額待公告」的那幾檔，改從主流媒體新聞標題取投信第一階段公告的預估金額（`etfwatch.news_estimate`）；探針查過觀測站、證交所 etfDiv、集保都沒有預估金額。改了 `main/etf-watch.md`、`user.md`（規劃 `docs/etf_div_auto_plan.md` 第 5 節）。
