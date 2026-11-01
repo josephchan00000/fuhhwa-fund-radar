@@ -72,3 +72,6 @@
 
 ## [2026-11-01] 收錄 | 債務帳接進知識庫（ponytail 第五段）
 - 目錄「原始資料」加 `docs/code_debt.md`；`main/calendar.md`、`ops/deploy.md`、`lab/us-qm.md`、`main/fund-news.md`、`ops/schedule.md`、`main/etf-watch.md` 各加現況與升級時機；`user.md` 加「資料要自動抓，不靠人工清單」。使用者定調預估配息與隔年休市表都改自動抓（另外規劃）。
+
+## [2026-11-01] 收錄 | 預估配息與隔年休市表改自動抓
+- 拿掉人工清單 `ANNOUNCED_EST`，預估配息改抓證交所／櫃買除權除息預告表，金額還沒公告時顯示「M/D 除息・金額待公告」；隔年休市表改抓證交所網站版 `NEXT_API`。改了 `main/etf-watch.md`、`main/calendar.md`、`user.md`；債務帳拿掉一列、改一列（規劃 `docs/etf_div_auto_plan.md`）。

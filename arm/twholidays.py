@@ -8,7 +8,8 @@
 一個由搜尋摘要寫成、每天重寫的文字段在驅動控制面，是本專案「靜默失敗」的典型溫床。
 
 現在改為：**證交所官方表優先**（`openapi.twse.com.tw/v1/holidaySchedule/holidaySchedule`，
-年度公告；CI 每日抓入 `data/tw_holidays.json`），行事曆文字只在官方表未涵蓋的年份當後備。
+年度公告；CI 每日抓入 `data/tw_holidays.json`；OpenAPI 只給今年，隔年那張另抓證交所網站版 `NEXT_API`，
+公告前回 0 列），行事曆文字只在官方表未涵蓋的年份當後備。
 容器 proxy 擋 twse——抓取只在 CI；為了不必等 CI 首輪，2026 年以兩來源核對過的種子 `SEED`
 內建（官方表抓到後以官方為準，兩者不一致時 CI 日誌會印出差異）。
 颱風停止交易不在年度表上（2026-10-23 薔琵颱風踩坑）→ 查證過的日子寫進 `ADHOC`，任何呼叫端都算休市。
@@ -23,6 +24,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 PATH = ROOT / "data" / "tw_holidays.json"
 API = "https://openapi.twse.com.tw/v1/holidaySchedule/holidaySchedule"
+# 隔年的表（2026-11-01 探針：OpenAPI 只給今年；網站版帶 date=隔年 0101 才拿得到隔年，公告前回 0 列）
+NEXT_API = "https://www.twse.com.tw/rwd/zh/holidaySchedule/holidaySchedule?date={y}0101&response=json"
 MIN_ROWS_PER_YEAR = 5          # 官方表一年至少有這麼多個平日休市才採信（防半截回應洗掉種子）
 
 # 證交所「115 年有價證券集中交易市場開（休）市日期」中**無交易的平日**（含「無交易、僅辦理
@@ -58,7 +61,7 @@ SEED: dict[int, dict[str, str]] = {
 # `tests/test_twholidays.py` 守著：隔年 12/1 前還沒換成證交所表 → 紅。
 # 2027（116 年）：人事行政總處 2026-05-21 核定，全年放假 121 天、無補行上班日；
 # 週末 104 天＋平日 17 天＝121（自洽）。來源：dgpa.gov.tw 新聞稿（pid=12983）、中央社 2026-05-21。
-# shortcut: 隔年先用辦公日曆暫代；2027 年的證交所正式表還沒進來（CI 只抓到 2026），2026-12-01 起 tests/test_twholidays.py 會紅。升級：證交所公告 116 年開休市日後，CI 抓得到就自動解；抓不到就改成自動抓證交所的公告（使用者 2026-11-01：不手動補，規劃中）。
+# shortcut: 隔年先用人事行政總處辦公日曆暫代（手抄，只知道一定休市的日子）；證交所公告隔年的表後 CI 自動抓進來整年取代（NEXT_API，2026-11-01 起），到 12/1 還沒公告 tests/test_twholidays.py 會紅。升級：證交所 11 月底還沒公告就提醒使用者（可把期限延到 12/20）；暫代層要補 2028 年時（2027 年 5 月人事行政總處公告後）改成自動抓政府資料開放平臺的辦公日曆，不再手抄。
 PROVISIONAL: dict[int, dict[str, str]] = {
     2027: {
         "2027-01-01": "開國紀念日",
@@ -212,6 +215,22 @@ def upcoming(today: date, days: int = 10) -> list[tuple[date, str, bool]]:
                   if today <= d < today + timedelta(days=days))
 
 
+def _next_year_rows(get_json, log) -> list[dict]:
+    """隔年的表（證交所網站版）→ 和 OpenAPI 同形的 [{欄: 值}]。證交所每年 10～11 月才公告隔年，
+    公告前回 0 列＝正常；抓不到只印一行、不擋今年的表（隔年照用暫代層）。"""
+    from . import clock
+    y = clock.today_tw().year + 1
+    try:
+        doc = get_json(NEXT_API.format(y=y), retries=1, timeout=12)
+    except Exception as e:                                      # noqa: BLE001
+        log(f"[台股休市表] {y} 年的表抓取失敗（沿用暫代層）：{e}")
+        return []
+    if not isinstance(doc, dict):
+        return []
+    fields = doc.get("fields") or []
+    return [dict(zip(fields, r)) for r in doc.get("data") or [] if isinstance(r, list)]
+
+
 def fetch_and_save(log=print) -> bool:
     """CI 用：抓證交所官方表、依年份合併進落檔。抓不到／解析過少＝不覆寫（fail-open）；
     與內建種子不一致時印差異（以官方為準，種子日後再修）。回傳是否寫檔。"""
@@ -221,7 +240,9 @@ def fetch_and_save(log=print) -> bool:
     except Exception as e:                       # 不吞原因：被擋還是格式變了要看得出來
         log(f"[台股休市表] 官方表抓取失敗、沿用既有：{e}")
         return False
-    got = parse_api(rows)
+    rows = list(rows) if isinstance(rows, list) else []
+    nxt = _next_year_rows(get_json, log)
+    got = parse_api(rows + nxt)
     by_year: dict[int, dict[str, str]] = {}
     for k, n in got.items():
         by_year.setdefault(int(k[:4]), {})[k] = n
@@ -245,7 +266,8 @@ def fetch_and_save(log=print) -> bool:
         log(f"[台股休市表] 官方表解析 0 個可用年份（共 {len(got)} 筆）、沿用既有")
         return False
     from . import clock
-    PATH.write_text(json.dumps({"as_of": clock.stamp_tw(), "source": API, "years": years},
+    src = API + (f"；{NEXT_API.format(y=clock.today_tw().year + 1)}" if nxt else "")
+    PATH.write_text(json.dumps({"as_of": clock.stamp_tw(), "source": src, "years": years},
                                ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     log(f"[台股休市表] 已更新：{', '.join(f'{y} 年 {len(v)} 天' for y, v in sorted(years.items()))}")
     return True

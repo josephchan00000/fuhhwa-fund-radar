@@ -111,3 +111,30 @@ def fetch_basic_rows() -> list[dict]:
     """
     rows = get_json(BASIC_URL, cache_ttl=86400)
     return rows if isinstance(rows, list) else []
+
+
+EXDIV_URL = "https://openapi.twse.com.tw/v1/exchangeReport/TWT48U_ALL"   # 除權除息預告表（上市；ETF 也在上面）
+
+
+def parse_exdiv(rows) -> list[tuple[str, str, float | None]]:
+    """除權除息預告表（OpenAPI TWT48U_ALL）→ [(代號, 除息日 ISO, 每單位現金股利)]。
+
+    只收「息」；金額還沒上表時除息日會先排好、金額欄空白 → 金額回 None（頁面顯示「金額待公告」）。"""
+    out = []
+    for r in rows or []:
+        if not isinstance(r, dict) or "息" not in str(r.get("Exdividend") or ""):
+            continue
+        code, d = str(r.get("Code") or "").strip(), str(r.get("Date") or "").strip()
+        if not code or len(d) != 7 or not d.isdigit():
+            continue
+        amt = _num(str(r.get("CashDividend") or ""))
+        out.append((code, _roc_compact_to_iso(d), amt if amt and amt > 0 else None))
+    return out
+
+
+def fetch_exdiv() -> list[tuple[str, str, float | None]]:
+    """證交所除權除息預告表 → parse_exdiv 的列；抓不到或格式不對丟例外，由呼叫端決定怎麼退。"""
+    rows = get_json(EXDIV_URL, cache_ttl=3600)
+    if not isinstance(rows, list):
+        raise ValueError(f"證交所除權除息預告表格式不對：{str(rows)[:80]}")
+    return parse_exdiv(rows)
