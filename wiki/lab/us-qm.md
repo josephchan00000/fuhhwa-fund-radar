@@ -21,6 +21,7 @@
 - **美股飆股資料**只放資料分支 `claude/ussx-data`（約 135MB，**絕不合併進 main**）：Yahoo 開高低收量＋配息分割（5,194 檔，2006 起）、11 檔 ETF、那斯達克篩選器、SEC 第一次公布的財報（`arm/lab/ussxdata.py`、`secfin.py`、`scripts/backfill_ussx.py`；`lab_backfill.yml` mode `ussxfill` 只准在資料分支跑）。
   研究時 `git worktree add --detach <資料夾> origin/claude/ussx-data`、`USSX_DIR=<資料夾>/data/lab/ussx`（財報行事曆也跟著讀資料分支的 `data/lab/usstk`）。每週更新 `.github/workflows/ussx_weekly.yml`（週六台北 10:05，checkout 資料分支、只 push 回資料分支）：下市的公司當時就記下來。
   SEC 聯絡 email **只從 Actions secret `SEC_CONTACT_EMAIL` 讀**，程式、日誌、存檔都不出現（`tests/test_secfin.py` 守）。
+  每週更新會整份重寫 5,196 個價格檔（2026-11-01 抽樣估約 170 MB；壓縮檔 git 存不了差異）→ 資料分支歷史每週多約 170 MB、一年約 9 GB，GitHub 建議 repo 在 10 GB 以內，2027 年 6 月前要處理（債務帳 `docs/code_debt.md`）。
 - **S&P 500 歷史成分股**：`arm/lab/usstk.py`＋`scripts/backfill_usstk.py`＋`lab_backfill.yml` mode `usstkfill`（每 50 分鐘 commit、跑約 330 分鐘、沒做完自己再派一輪；`--status` 第一行 DONE／STUCK／LEFT）：2008 後在指數裡的，Yahoo 還原收盤 2006 起、那斯達克財報行事曆 2008 起逐日 → `data/lab/usstk/`（還原收盤以 1bp 精度差分存）。
   不用 SEC（要帶 email）。代號是現在的、已下市的多半沒有＝存活偏誤，做策略主要對照一律是同一批有股價的成分股等權。
 
