@@ -158,6 +158,17 @@ def test_exchange_down_keeps_old_pending_until_due(monkeypatch):
     assert {i["code"]: i for i in etfwatch.fetch()["items"]}["0056"]["est_pend"] is None
 
 
+def test_source_note_counts_estimates_and_pending(monkeypatch):
+    # 只有待公告、沒有交易所來的預估時，不寫「0 檔」（2026-11-01 第一輪 CI 看到「（0 檔，另 2 檔金額待公告）」）
+    _quiet_sources(monkeypatch, date(2026, 11, 2))
+    monkeypatch.setattr(etfwatch, "_fetch_market", lambda code: {"aum_raw": 1e10})
+    _exch(monkeypatch, twse_rows=[("00400A", "2026-11-06", None), ("00401A", "2026-11-13", None)])
+    src = etfwatch.fetch()["source"]
+    assert "預告表、MOPS（2 檔金額待公告）" in src and "0 檔" not in src
+    _exch(monkeypatch, twse_rows=[("00406A", "2026-11-03", 0.138)])
+    assert "預告表、MOPS（1 檔）" in etfwatch.fetch()["source"]
+
+
 def test_exdiv_parsers_read_both_exchange_formats():
     # 2026-11-01 CI 探針看到的實際格式：證交所 OpenAPI 民國緊湊日期、金額空白＝未公告；
     # 櫃買 {tables:[{fields, data}]}、民國斜線日期、「尚未公告」
