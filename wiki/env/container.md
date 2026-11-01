@@ -2,7 +2,7 @@
 
 > 時區、被擋的站與空轉、check_numbers 洗檔、git add 寫明路徑。
 > 原始資料：CLAUDE.md「已知環境限制與防呆」段的時區、網路政策、`check_numbers.py` 三條；程式：`arm/clock.py`、`fetch_holdings.py`、`fetch_fund_news.py`、`arm/fundnews.save()`。
-> 最後更新：2026-10-29
+> 最後更新：2026-11-01
 > 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
@@ -11,7 +11,8 @@
   跑腳本時帶 `TZ=Asia/Taipei` 雙保險。
 - **雲端 Claude 容器的網路政策會擋部分站點**（曾實測被擋：`fhtrust.com.tw`、Google News RSS、PTT；proxy 回 CONNECT 403）。
   資料抓取一律交給正式區 `daily.yml`（見 [全部更新](../ops/daily-update.md) 的效率原則）。被擋時各支腳本的反應：
-  - `fetch_holdings.py`：抓失敗跳過該檔、保留既有 `data/funds/*.json` 與 `_index.json`，勿手動清檔。
+  - `fetch_holdings.py`：抓失敗跳過該檔、保留既有 `data/funds/*.json` 與 `_index.json`，勿手動清檔；只有持股頁抓不到（出錯或解析 0 筆）時，
+    前十大、四種配置、持股基準日沿用上一次、淨值照新的（持股基準日不前進就是過期標記，另記 `holdings_error`；2026-11-01 起，之前會寫成空的）。
   - `fetch_fund_news.py`／`arm/fundnews.save()`：本次擷取「全空」且既有落檔非空 → 不覆寫。
   - NAV／持股快照抓不到就沿用既有快照，GitHub Actions（台北週一~六 07:15 cron；2026-07-20 前是 06:50）會自動補抓（[每日時點地圖](../ops/schedule.md)）。
   - 新聞查證用 WebSearch（伺服器端、不受 proxy 擋）；WebFetch 個別站點被擋就改用搜尋結果摘要。
