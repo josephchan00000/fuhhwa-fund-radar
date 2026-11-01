@@ -204,3 +204,64 @@ def test_sides_float_tie_is_on_the_line():
     px = np.r_[np.full(19, 10.0), 10.0, 9.0]                        # 第 20 天收盤＝前 20 天平均（全部 10）
     sd = A._sides(px)
     assert sd["ma20"][19] == 0 and sd["ma20"][20] == -1
+
+
+def _board(monkeypatch, R=None):
+    """④c＋VER 27 的清單畫出來（甲列著；乙那一格不比平常高、丙次數不夠、丁之後出現相反的讀數＝進行中）。"""
+    from arm.lab import sigrobust
+    monkeypatch.setattr(A, "load", lambda path=None: _age())
+    monkeypatch.setattr(sigrobust, "load", lambda path=None: R)
+    rows = _rows()
+    now = {"since": "2026-10-21", "n": 5, "k": 5, "st": "off", "ck": "2x", "left": 15, "nb": "2026-10-28", "ns": "2026-11-25"}
+    on = {r["id"]: dict(now) for r in rows[:3]}
+    gone = {"tw:heat:d:hot_in": {"short": {**now, "k": 12, "ck": "3o", "exp": "2026-10-27", "buy": "2026-10-22",
+                                           "sell": "2026-11-19", "chg": 0.0123}}}
+    return G.board(rows, on, "tw", T={}, gone=gone)
+
+
+def test_today_list_reason_trade_and_pending(monkeypatch):
+    """頁面（sigspec 第 5.1 節）：列著的寫今天那一格（「過去這樣進場」）、出現日、過了幾天、條件、今天看到下一個交易日收盤進場；
+    進行中預設收起來、每一列寫不列的原因（不比平常好／次數不夠／相反的讀數）與照規則那一筆到今天的漲跌；不算溫度計。"""
+    from arm.lab import heatviz as HV
+    B = _board(monkeypatch, {"ver": 1, "rows": [{"id": "tw:heat:a:hot_in", "d": "up", "k": None, "ok": True, "dims": {"hz": True}}]})
+    html = HV.today_core(B, "tw", "2026-10-27")
+    assert "過去這樣進場 <b>70%</b>（任一天 60%）・報酬中位 +1.0%・最大跌幅 5%（2020/1/2 那次）・次數 9" in html
+    assert "10/21 出現・過了 5 天・條件已斷；10/28 收盤進場・持有到 11/25" in html
+    assert 'title="過去出現後 5～9 天、條件已斷時進場"' in html
+    assert '<details class="tqpd"><summary>進行中 3 個（今天不列）</summary>' in html
+    assert "過去這樣進場 62%（任一天 60%），沒有比較好" in html and "過去這樣進場只有 3 次" in html
+    assert "10/27 出現相反的讀數，不算了" in html and "照規則那一筆 10/22 收盤進場・持有到 11/19・到今天 +1.2%" in html
+    assert "參數" not in html and 'class="tqnt"' not in html                    # 研究檔都有、甲穩定：沒有標註
+    short = next(t for t in B["thermo"] if t["k"] == "short")
+    assert short["n"]["up"] == 1                                              # 進行中不算溫度計
+
+
+def test_today_list_param_flags_and_notes(monkeypatch):
+    """VER 27：參數一動就不成立的放進行中、寫哪幾個參數；研究檔裡沒有這一組＝照列、標「參數還沒檢查」；研究檔沒有＝最上面一句。"""
+    from arm.lab import heatviz as HV
+    from arm.lab import sigspec as S
+    B = _board(monkeypatch, {"ver": 1, "rows": [{"id": "tw:heat:a:hot_in", "d": "up", "k": None, "ok": False,
+                                                 "dims": {"hz": False, "th": False, "win": True}}]})
+    html = HV.today_core(B, "tw", "2026-10-27")
+    assert "進行中 4 個" in html and f"{S.PARAM_WHY}（看多久、過熱／過冷線）" in html
+    B = _board(monkeypatch, {"ver": 1, "rows": [{"id": "tw:heat:x:hot_in", "d": "up", "k": None, "ok": True, "dims": {}}]})
+    html = HV.today_core(B, "tw", "2026-10-27")
+    assert f'<span class="tqpm">{S.PARAM_MISS}</span>' in html
+    B = _board(monkeypatch, None)
+    html = HV.today_core(B, "tw", "2026-10-27")
+    assert f'<p class="tqnt">{S.PARAM_NONE}</p>' in html and "tqpm" not in html
+
+
+def test_inst_note_and_pending_param_names():
+    """法人訊號列著的與進行中的都加一句（INST_NOTE）；泡沫與大跌後買點的參數寫白話，不寫程式代號。"""
+    from arm.lab import heatviz as HV
+    from arm.lab import sigspec as S
+    st = {"n": 20, "hit": 0.7, "base": 0.6}
+    r = {"id": "tw:inst:dl:sell_run10", "cat": "inst", "kind": "event", "name": "自營商・連續賣超 10 天", "d": "up", "hz": "short",
+         "side": "up", "st": st, "up": st, "now": {"since": "2026-10-21", "k": 2, "st": "on", "nb": "2026-10-28", "ns": "2026-11-25"},
+         "age": True, "cell": {"ck": "1o", "rmed": None, "ddw": None}}
+    html = HV.tq_item(r, "2026-10-27")
+    assert S.INST_NOTE in html and "10/21 出現・過了 2 天・條件還成立" in html
+    p = {**r, "why": "param", "pdims": ["e10", "c3lo", "psy", "c7g"]}
+    h2 = HV.tq_pend(p, "2026-10-27")
+    assert "（從 60 日高點跌幾 %、落底訊號的設定、價格連續爆發幾個月）" in h2 and S.INST_NOTE in h2

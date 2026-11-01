@@ -655,3 +655,22 @@ def test_now_cell_short_text_and_mobile_wrap():
     cell = re.search(r"^function nowCell\(.*?\n(?=function )", sigpage.JS, re.S | re.M).group(0)
     assert "nowShort(o)" in cell and "nowTxt(o)" not in cell
     assert ".sgmn{display:flex;flex-wrap:wrap" in sigpage.CSS
+
+
+def test_catalog_today_cell_column(monkeypatch):
+    """訊號總覽（sigspec 第 5.1 節）：現在成立的市場層級訊號帶今天那一格（自己的看多久）的次數與兩個方向的機率、白話；
+    進場日改成今天看到、下一個交易日收盤進場；表格多一欄「今天進場」。第幾天的研究檔沒有＝不帶（欄位 —）。"""
+    from arm.lab import sigage
+    A = {"ver": sigspec.AGE_VER, "cells": {}, "rows": {"tw:heat:C1:hot_in": {"mid": {
+        "H": 60, "b": [0.66, 0.29, 0.0], "c": {"2x": [9, 27, 0.78, 0.22, 0.01, 0.05, "2020-01-02"]}}}}}
+    monkeypatch.setattr(sigage, "load", lambda path=None: A)
+    V = _view()
+    V["on"]["tw:heat:C1:hot_in"].update({"k": 7, "st": "off", "ck": "2x", "nb": "2026-10-20", "ns": "2027-01-15"})
+    cells = sigpage._on_cells(V)
+    assert cells == {"tw:heat:C1:hot_in": {"c": [9, 78.0, 22.0], "cn": "出現後 5～9 天、條件已斷"}}
+    on = json.loads(sigpage.page_json(V))["on"]["tw:heat:C1:hot_in"]
+    assert on["c"] == [9, 78.0, 22.0] and on["cn"] == "出現後 5～9 天、條件已斷" and on["nb"] == "2026-10-20" and on["k"] == 7
+    monkeypatch.setattr(sigage, "load", lambda path=None: None)
+    assert sigpage._on_cells(V) == {}
+    src = (ROOT / "arm/lab/sigpage.py").read_text(encoding="utf-8")
+    assert src.count("+ todayCell(r, d) +") == 2 and src.count("<th>今天進場 ' + ii('today')") == 2
