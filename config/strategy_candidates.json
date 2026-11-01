@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-10-25",
+  "as_of": "2026-11-01",
   "note": "新策略候選（docs/lab_ia_v5_plan.md 第 6、24 節；框架規格 arm/lab/candspec.py）。一條一筆，程式在 arm/lab/cands/{編號}.py；寫定之後一字不改，要改就用新的編號（prev 指到舊的）。使用者的決定記在 config/strategy_board.json 的 cand。",
   "items": [
     {
@@ -146,6 +146,58 @@
       },
       "note": "價格是還原權息後的收盤（長歷史面板 2013 起，第一期約 2014 年初）；原論文是全球大型股，這裡只有台股大型股。",
       "sha": "e533ebbd9c72133483455fc7b477b7a2e43f65ce3619ef265dc707d9dd5249ba"
+    },
+    {
+      "id": "c004",
+      "found": "2026-11-01",
+      "name": "低總資產成長（大型股）",
+      "mk": "tw",
+      "engine": "tw_stock",
+      "kind": "per",
+      "how": "每季財報公布期限後，大型股依最近一季總資產比一年前的成長率排序，買成長最低的兩成，抱到下一次公布期限",
+      "src": [
+        {
+          "t": "Cooper, Gulen & Schill, Asset Growth and the Cross-Section of Stock Returns（Journal of Finance 2008，63(4)）",
+          "u": "https://econpapers.repec.org/RePEc:bla:jfinan:v:63:y:2008:i:4:p:1609-1651"
+        },
+        {
+          "t": "CXO Advisory：Asset Growth and the Cross-Section of Stock Returns",
+          "u": "https://cxoadvisory.com/fundamental-valuation/asset-growth-cross-section-stock-returns"
+        }
+      ],
+      "why": "總資產成長慢的公司之後報酬較高、成長快的較低（美國 1968–2003 年低成長組年化風險調整報酬約 9.1%、高成長組約 −10.4%），大型股也成立；作者認為是投資人對過去成長反應過度。頁面上的個股策略沒有資產成長這一類（c001 看獲利能力、c003 看波動）。原論文用年報資料；這裡改成每季財報公布期限後比較最近一季與 q 季前的總資產。",
+      "p": {
+        "q": 4
+      },
+      "grid": {
+        "q": [
+          2,
+          4,
+          8
+        ],
+        "pick": [
+          [
+            0.1,
+            5
+          ],
+          [
+            0.2,
+            5
+          ],
+          [
+            0.3,
+            5
+          ]
+        ]
+      },
+      "b": "L",
+      "pick": {
+        "top": 0.2,
+        "nmin": 5,
+        "asc": true
+      },
+      "note": "財報是公開資訊觀測站彙總表回補的數字（可能含之後的更正）；金融業資產負債表結構不同，成長率可比性較差但照樣排；後續研究指出此效應部分來自下市報酬缺漏，原論文未處理。",
+      "sha": "38028a70c14ecd8a9bfe1585b1f7b17c9cb96de1af0bc01e202b8242b781c340"
     }
   ]
 }
