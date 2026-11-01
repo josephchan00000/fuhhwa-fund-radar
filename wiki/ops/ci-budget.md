@@ -2,7 +2,7 @@
 
 > 2026-10-16 起 repo 公開、一般機器不計分鐘，額度問題解除；私有時期實測 10/1～10/16 約 1,670 分（免費 2,000 分），四個省分鐘的修法照留。
 > 原始資料：CLAUDE.md「每日固定時間自動更新」段的「GitHub Actions 額度實測」條；程式：`tests/test_ci_budget.py`、`.github/workflows/daily.yml`、`scripts/daily_fund.sh`。
-> 最後更新：2026-10-29
+> 最後更新：2026-11-01
 > 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
@@ -14,6 +14,7 @@
   2. `daily_fund.sh`／盤後的抓取全部加 `timeout`。
   3. 建頁拿掉白跑的 P1–P7 回測、重複讀檔改 `store.memo`（85 → 65 秒）。
   4. 頁面輸出固定順序（原本三處以集合當順序，同樣的資料每次建頁結果不同 → 每班多一筆 commit 與部署）。
+- **PR 測試 `tests.yml`（2026-11-01，體檢第 10 條）**：PR 進 main 之前自動跑全部測試（沒裝 playwright，要瀏覽器的兩支自動略過、改主頁面時照舊手動跑）；只讀不寫、不推送；紅了先修再合併。
 - **看用量**：帳單 API 的 `billable` 欄已停用（一律回 0），**正確數字只在 github.com/settings/billing**；
   額度依帳單週期重置（不一定是每月 1 號）。
 

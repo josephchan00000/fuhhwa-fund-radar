@@ -60,3 +60,6 @@
 
 ## [2026-11-01] 收錄 | 拿掉沒人用的小東西（體檢第 8 條）
 - 12 個函式＋連帶的 `heatviz._kcard`／`_key_line`／`_verd`／`KEY_SHOW`、9 個常數、8 個 import、7 個區域變數、8 個 f 字串、3 個參數（`ussxmine.mine_fold` 的 `ix_of`、`hotdd.now` 的 `R_mk`、`cnyesfund.search_all` 的 `max_pages`）。研究規格與研究模組裡沒用到的常數（`bubspec`、`crashspec`、`nbrspec`、`superx`、`optim`、`sepa`、`packtest`、`fwd`）照留；`printview.LANE_ORDER` 的說明搬到 `fund_dashboard` 組報告順序那一行。
+
+## [2026-11-01] 收錄 | PR 進 main 之前自動跑全部測試（體檢第 10 條）
+- 新 workflow `.github/workflows/tests.yml`（pull_request 到 main＋手動）：Python 3.12、台北時區，裝 pytest／numpy／pandas／pyyaml／certifi／pypdf／openpyxl，跑 `pytest -q`；沒裝 playwright，瀏覽器兩支自動略過。改了 `ops/ci-budget.md`。
