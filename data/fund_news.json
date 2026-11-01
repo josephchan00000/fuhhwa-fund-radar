@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/11/01 19:22",
+  "as_of": "2026/11/01 20:10",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [],
@@ -110,11 +110,11 @@
       ],
       "items": [
         {
-          "title": "台股急跌逾1500點 00418A迎建倉時機、逢低布局受關注",
-          "url": "https://www.watchmedia01.com/archives/564368",
-          "source": "觀傳媒",
-          "date": "2026-10-30 11:54",
-          "datetime": "2026-10-30T11:54:28+08:00"
+          "title": "市場回檔、新資金找機會！00418A進入建倉階段 為後續行情布局",
+          "url": "https://www.watchmedia01.com/archives/564371",
+          "source": "警政時報",
+          "date": "2026-10-30 11:56",
+          "datetime": "2026-10-30T11:56:52+08:00"
         },
         {
           "title": "台股大跌00418A迎建倉階段 「9倍女王」下一步受關注",
@@ -122,13 +122,6 @@
           "source": "觀傳媒",
           "date": "2026-10-30 11:50",
           "datetime": "2026-10-30T11:50:58+08:00"
-        },
-        {
-          "title": "台股震盪考驗選股功力00418A雙經理人掌握建倉良機10/27最後買進日",
-          "url": "https://enn.tw/798563/",
-          "source": "ENN台灣電報",
-          "date": "2026-10-27 12:13",
-          "datetime": "2026-10-27T12:13:57+08:00"
         }
       ]
     },
@@ -515,7 +508,7 @@
       "channel": "風傳媒 The Storm Media",
       "url": "https://www.youtube.com/watch?v=q4n751SOzSA",
       "date": "2026-10-29",
-      "views": 221352,
+      "views": 221940,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -525,7 +518,7 @@
       "channel": "瘋狂股市福利社Free Free Free!",
       "url": "https://www.youtube.com/watch?v=RxPRvqYjVKc",
       "date": "2026-10-30",
-      "views": 159896,
+      "views": 160197,
       "peer": true,
       "cat": "市值型"
     },
@@ -545,7 +538,7 @@
       "channel": "葉芷娟",
       "url": "https://www.youtube.com/watch?v=vNmwEEWgWuA",
       "date": "2026-10-28",
-      "views": 123609,
+      "views": 124076,
       "peer": true,
       "cat": "主動式"
     },
@@ -555,7 +548,7 @@
       "channel": "賺錢放大術",
       "url": "https://www.youtube.com/watch?v=8-Szt70v4xY",
       "date": "2026-10-30",
-      "views": 121376,
+      "views": 121873,
       "peer": true,
       "cat": "綜合"
     },
@@ -565,7 +558,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=KdZ-l9pChOs",
       "date": "2026-10-28",
-      "views": 102754,
+      "views": 103056,
       "peer": true,
       "cat": "高股息"
     },
@@ -575,7 +568,7 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/watch?v=qaDZXiyg5SU",
       "date": "2026-10-27",
-      "views": 74910,
+      "views": 75079,
       "peer": true,
       "cat": "綜合"
     },
@@ -585,7 +578,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/gyebmmVJdN4",
       "date": "2026-10-27",
-      "views": 65067,
+      "views": 65641,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -596,7 +589,7 @@
       "channel": "非凡商業台",
       "url": "https://www.youtube.com/watch?v=HpnqF8OLHTI",
       "date": "2026-10-30",
-      "views": 60505,
+      "views": 60930,
       "peer": true,
       "cat": "高股息"
     },
@@ -606,7 +599,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/85q4cU_U01M",
       "date": "2026-10-28",
-      "views": 44469,
+      "views": 44669,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -615,6 +608,6 @@
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00418A（詳下方新聞標籤）",
     "社群聲量最高：AI股跌深可以撿便宜嗎？大神點出反彈背後的隱憂（0 推）",
-    "YouTube 熱片：【理財】台股抄底時間到了？卡位下一波大漲，高手加碼必看「這3個關鍵」！ft.股海老牛｜下班經濟學797｜謝哲青、張瓊方（風傳媒 The Storm Media・221,352 次觀看）"
+    "YouTube 熱片：【理財】台股抄底時間到了？卡位下一波大漲，高手加碼必看「這3個關鍵」！ft.股海老牛｜下班經濟學797｜謝哲青、張瓊方（風傳媒 The Storm Media・221,940 次觀看）"
   ]
 }

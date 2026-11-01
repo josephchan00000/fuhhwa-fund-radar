@@ -164,9 +164,62 @@ def test_source_note_counts_estimates_and_pending(monkeypatch):
     monkeypatch.setattr(etfwatch, "_fetch_market", lambda code: {"aum_raw": 1e10})
     _exch(monkeypatch, twse_rows=[("00400A", "2026-11-06", None), ("00401A", "2026-11-13", None)])
     src = etfwatch.fetch()["source"]
-    assert "預告表、MOPS（2 檔金額待公告）" in src and "0 檔" not in src
+    assert "新聞（2 檔金額待公告）" in src and "0 檔" not in src
     _exch(monkeypatch, twse_rows=[("00406A", "2026-11-03", 0.138)])
-    assert "預告表、MOPS（1 檔）" in etfwatch.fetch()["source"]
+    assert "新聞（1 檔）" in etfwatch.fetch()["source"]
+
+
+def _news(monkeypatch, items, fail=False):
+    from arm.connectors import gnews
+
+    def search(q, **k):
+        if fail:
+            gnews.FAILS += 1
+            return []
+        return [dict(it) for it in items if q.startswith(it.get("_code", q.split()[0]))]
+    monkeypatch.setattr(gnews, "search", search)
+
+
+_TITLES = [  # 2026-11-01 探針看到的實際標題（＋造幾個該擋的）
+    {"title": "這檔「主動式」年化配息率飆19%超香！14檔ETF本周除息 00400A連5配0.12元再添近萬人搶息",
+     "source": "FTNN 新聞網", "url": "https://www.ftnn.com.tw/x", "date": "2026-11-01 12:10"},
+    {"title": "11/6 除息 00400A(主動國泰動能高息) 配息快報｜每單位配發 0.15 元-ETF股長",
+     "source": "CMoney投資網誌", "url": "https://cmoney.tw/x", "date": "2026-10-21 15:00"},       # 部落格不收
+    {"title": "00400A新一季能配0.2元？", "source": "今周刊", "url": "u", "date": "2026-10-29 15:00"},  # 問號不收
+    {"title": "00400A配息0.11元", "source": "經濟日報", "url": "u", "date": "2026-10-02 09:00"},       # 上次除息前不收
+    {"title": "00400A、00406A配息0.138元", "source": "自由財經", "url": "u", "date": "2026-11-01 12:09"},  # 夾別檔不收
+    {"title": "00400A配息0.3元", "source": "富聯網", "url": "u", "date": "2026-11-01 12:00"},          # 黑名單
+]
+
+
+def test_news_estimate_takes_major_media_after_last_ex_date(monkeypatch):
+    _news(monkeypatch, _TITLES)
+    nw = etfwatch.news_estimate("00400A", "2026-11-06", "2026-10-07")
+    assert (nw["amount"], nw["ex_date"], nw["source"]) == (0.12, "2026-11-06", "FTNN 新聞網")
+    _news(monkeypatch, _TITLES + [{"title": "00400A擬配0.13元", "source": "經濟日報", "url": "u",
+                                   "date": "2026-10-31 08:00"}])
+    assert etfwatch.news_estimate("00400A", "2026-11-06", "2026-10-07") is None   # 兩家金額不一 → 不收
+
+
+def test_fetch_fills_pending_from_news_and_carries_on_outage(monkeypatch):
+    # 交易所表排了 11/6、還沒有金額 → 用新聞的預估；新聞這輪連不上 → 沿用舊檔同一次除息的新聞預估
+    _quiet_sources(monkeypatch, date(2026, 11, 2))
+    monkeypatch.setattr(etfwatch, "_fetch_market",
+                        lambda code: {"last_div": 0.12, "last_div_date": "2026-10-07"} if code == "00400A" else {})
+    _exch(monkeypatch, twse_rows=[("00400A", "2026-11-06", None)])
+    _news(monkeypatch, _TITLES)
+    i = {x["code"]: x for x in etfwatch.fetch()["items"]}["00400A"]
+    assert (i["est_div"], i["est_div_date"], i["est_src"], i["est_from"]) == (0.12, "2026-11-06", "news", "FTNN 新聞網")
+    assert i["est_pend"] is None
+    cell = fund_dashboard._div_cell(i)
+    assert "預估 0.12" in cell and "FTNN" in cell
+    monkeypatch.setattr(etfwatch, "load", lambda: {"items": [i]})
+    _news(monkeypatch, [], fail=True)
+    j = {x["code"]: x for x in etfwatch.fetch()["items"]}["00400A"]
+    assert (j["est_div"], j["est_src"]) == (0.12, "news")
+    _news(monkeypatch, [])                          # 連得上但沒有新聞 → 回到「金額待公告」
+    k = {x["code"]: x for x in etfwatch.fetch()["items"]}["00400A"]
+    assert k["est_div"] is None and k["est_pend"] == "2026-11-06"
 
 
 def test_exdiv_parsers_read_both_exchange_formats():
@@ -458,6 +511,8 @@ def _no_network_day_quotes(monkeypatch):
     """
     monkeypatch.setattr(etfwatch, "_official_day_quotes", lambda: {})
     _exch(monkeypatch)                     # 證交所／櫃買除權除息預告表（2026-11-01 起 fetch() 會抓）也回空
+    from arm.connectors import gnews
+    monkeypatch.setattr(gnews, "search", lambda *a, **k: [])   # 預估配息的新聞備援也不打網路
 
 
 def _down_both(monkeypatch):
