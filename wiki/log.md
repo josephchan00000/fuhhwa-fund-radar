@@ -190,3 +190,6 @@
 
 ## [2026-11-01] 收錄 | 拿掉舊本機流程剩下的零件（體檢第 7 條第二步）
 - `arm/config.py` 的 `distributions()`、`connectors/issuers` 只給舊流程用的 `load_holdings`、`competitor_peers` 與 `base.py`、`connectors/etfinfo.py` 的 `latest_market`、`dividends`、`active_flow`、`connectors/tdcc.py` 的受益人數週增與 `arm/db.py`。正式流程用到的 `config.product`、`issuers/pcf.py`、`etfinfo.fetch_etf`／`holdings_fresh`／`list_etfs`、`tdcc._fetch_csv` 都留著。
+
+## [2026-11-01] 收錄 | Google 新聞查詢出錯時，那一組沿用上一次的新聞（體檢第 4 條）
+- `arm/connectors/gnews.py`：`search` 出錯時 `FAILS` 加一、只印第一次的原因；`arm/fundnews.py`：`fetch_funds`／`fetch_etf_products`／`assemble` 標出錯的組，`save` 經 `_carry_news` 併入上一次同組 7 天窗內的項目（比照 `_carry_social`）。測試 `tests/test_fundnews.py`。改了 `main/fund-news.md`、`.claude/rules/fundnews.md`。

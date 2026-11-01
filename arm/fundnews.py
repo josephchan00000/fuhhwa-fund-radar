@@ -422,6 +422,7 @@ def fetch_funds(funds: list[dict], days: int = WINDOW_DAYS, per_limit: int = 4) 
     無新聞的基金 items 為 []。"""
     out = []
     for g in fund_query_groups(funds):
+        f0 = gnews.FAILS
         items = gnews.search(f'"{g["base"]}"', days=days, limit=per_limit)
         if not items:                            # 精確片語沒中 → 放寬一次
             items = gnews.search(g["base"], days=days, limit=per_limit)
@@ -434,7 +435,10 @@ def fetch_funds(funds: list[dict], days: int = WINDOW_DAYS, per_limit: int = 4) 
                 continue
             seen.add(key)
             kept.append(i)
-        out.append({**g, "items": _clean_items(kept)})
+        grp = {**g, "items": _clean_items(kept)}
+        if not items and gnews.FAILS > f0:       # 查詢出錯、一則都沒拿到（≠沒新聞）→ save 時沿用上一次
+            grp["_gfail"] = True
+        out.append(grp)
     return out
 
 
@@ -492,6 +496,7 @@ def fetch_etf_products(days: int = WINDOW_DAYS, per_limit: int = 4) -> list[dict
         if not name:
             continue
         q = f'"{code}" OR "{name}"' if code else f'"{name}"'
+        f0 = gnews.FAILS
         items = gnews.search(q, days=days, limit=per_limit)
         if not items and code:                   # 引號片語沒中 → 放寬用純代碼再試一次
             items = gnews.search(code, days=days, limit=per_limit)
@@ -504,8 +509,11 @@ def fetch_etf_products(days: int = WINDOW_DAYS, per_limit: int = 4) -> list[dict
                 continue
             seen.add(key)
             kept.append(i)
-        out.append({"base": name, "code": code, "fund_ids": [],
-                    "short_names": [code] if code else [], "items": _clean_items(kept)})
+        grp = {"base": name, "code": code, "fund_ids": [],
+               "short_names": [code] if code else [], "items": _clean_items(kept)}
+        if not items and gnews.FAILS > f0:       # 同 fetch_funds：出錯≠沒新聞
+            grp["_gfail"] = True
+        out.append(grp)
     return out
 
 
@@ -1305,8 +1313,10 @@ def assemble(funds: list[dict], days: int = WINDOW_DAYS) -> dict:
     seen, state = _seen_load(), {"budget": VERIFY_BUDGET}
     feeds = _clean_items(fetch_feeds(days=days))
     brand_feeds = [f for f in feeds if "復華" in (f.get("title") or "")]  # 代碼命中者歸產品層
-    brand = merge_news(date_verify(fetch_brand(days=days), seen, state, days=days),
-                       brand_feeds)
+    f0 = gnews.FAILS
+    gbrand = fetch_brand(days=days)
+    brand_fail = not gbrand and gnews.FAILS > f0
+    brand = merge_news(date_verify(gbrand, seen, state, days=days), brand_feeds)
     groups = fetch_etf_products(days=days) + fetch_funds(funds, days=days)
     for g in groups:
         g["items"] = date_verify(g["items"], seen, state, days=days)
@@ -1322,6 +1332,12 @@ def assemble(funds: list[dict], days: int = WINDOW_DAYS) -> dict:
         "social": fetch_ptt() + fetch_fundhot(days) + fetch_youtube(days),
     }
     doc["highlights"] = auto_highlights(doc)
+    if gnews.FAILS > f0:
+        nfail = sum(1 for g in groups if g.get("_gfail")) + int(brand_fail)
+        print(f"[fundnews] Google 新聞 {gnews.FAILS - f0} 次查詢出錯，"
+              f"{nfail} 組一則都沒拿到（落檔時沿用上一次）")
+    if brand_fail:
+        doc["_gfail_brand"] = True
     return doc
 
 
@@ -1393,9 +1409,41 @@ def _carry_social(doc: dict, prev: dict | None) -> None:
         doc["highlights"] = auto_highlights(doc)
 
 
+def _carry_news(doc: dict, prev: dict | None) -> None:
+    """Google 新聞「來源級」防呆（比照 _carry_social；體檢第 4 條，docs/code_ponytail_audit.md）：
+    品牌或某一組（基金／自家 ETF）這次的 Google 查詢出錯、一則都沒拿到（assemble／fetch_* 標
+    _gfail）→ 併入既有落檔同一組還在時窗內的項目（來源異常≠查無新聞）。標記一律在這裡拿掉、不入檔。"""
+    brand_fail = doc.pop("_gfail_brand", False)
+    failed = [g for g in doc.get("funds") or [] if g.pop("_gfail", False)]
+    if not prev or not (brand_fail or failed):
+        return
+    win = doc.get("window_days") or WINDOW_DAYS
+    cutoff = (datetime.now(TW_TZ) - timedelta(days=win)).strftime("%Y-%m-%d")
+
+    def fresh(items: list[dict] | None) -> list[dict]:
+        return [i for i in items or [] if (i.get("date") or "")[:10] >= cutoff]
+
+    n = 0
+    if brand_fail:
+        before = len(doc.get("brand") or [])
+        doc["brand"] = merge_news(doc.get("brand") or [], fresh(prev.get("brand")))
+        n += len(doc["brand"]) - before
+    old = {(g.get("code"), g.get("base")): g.get("items") for g in prev.get("funds") or []}
+    for g in failed:
+        before = len(g.get("items") or [])
+        g["items"] = merge_news(g.get("items") or [],
+                                fresh(old.get((g.get("code"), g.get("base")))), limit=6)
+        n += len(g["items"]) - before
+    if n:
+        print(f"[fundnews] Google 新聞沒抓到的 {len(failed) + int(brand_fail)} 組沿用既有 {n} 則"
+              f"（來源異常≠查無新聞）")
+        doc["highlights"] = auto_highlights(doc)
+
+
 def save(doc: dict) -> tuple[Path, bool]:
     """落檔。防呆：本次擷取全空且既有落檔非空 → 保留舊檔不覆寫（回 saved=False）；
-    單一社群平台全空而既有非空 → 該平台沿用既有項目（_carry_social）。
+    單一社群平台全空而既有非空 → 該平台沿用既有項目（_carry_social）；
+    品牌或某組的 Google 新聞查詢出錯 → 該組沿用既有項目（_carry_news）。
 
     2026-07-04 教訓：雲端環境 Google News/PTT 被 proxy 政策擋下時，曾把非空的
     fund_news.json 覆寫成全空。全空結果一律視為「來源異常」而非「查無新聞」。"""
@@ -1404,6 +1452,7 @@ def save(doc: dict) -> tuple[Path, bool]:
     if is_empty(doc) and not is_empty(prev):
         return OUT, False
     _carry_social(doc, prev)
+    _carry_news(doc, prev)
     _stamp_first_seen(doc, prev)
     fileio.write_text(OUT, json.dumps(doc, ensure_ascii=False, indent=2))
     return OUT, True
