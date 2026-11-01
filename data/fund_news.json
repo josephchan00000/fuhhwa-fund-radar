@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/11/01 20:10",
+  "as_of": "2026/11/01 20:55",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [],
@@ -54,18 +54,18 @@
           "datetime": "2026-11-01T16:18:09+08:00"
         },
         {
-          "title": "科技股拉回，全球金融能防禦？詹璇依看數據：00998A逆勢漲1.06%",
-          "url": "https://sunmedia.tw/news/finance/%E7%A7%91%E6%8A%80%E8%82%A1%E6%8B%89%E5%9B%9E%EF%BC%8C%E5%85%A8%E7%90%83%E9%87%91%E8%9E%8D%E8%83%BD%E9%98%B2%E7%A6%A6%EF%BC%9F%E8%A9%B9%E7%92%87%E4%BE%9D%E7%9C%8B%E6%95%B8%E6%93%9A%EF%BC%9A00998A%E9%80%86%E5%8B%A2%E6%BC%B2106-1793510879509",
-          "source": "商傳媒",
-          "date": "2026-11-01 17:07",
-          "datetime": "2026-11-01T17:07:13+08:00"
-        },
-        {
           "title": "費半跌逾12%、金融股創高！存股達人：00998A配置全球 求穩、走得遠",
           "url": "https://tw.news.yahoo.com/%E8%B2%BB%E5%8D%8A%E8%B7%8C%E9%80%BE12-%E9%87%91%E8%9E%8D%E8%82%A1%E5%89%B5%E9%AB%98-%E5%AD%98%E8%82%A1%E9%81%94%E4%BA%BA-00998a%E9%85%8D%E7%BD%AE%E5%85%A8%E7%90%83-%E6%B1%82%E7%A9%A9-082436549.html",
           "source": "Yahoo新聞",
           "date": "2026-11-01 16:24",
           "datetime": "2026-11-01T16:24:36+08:00"
+        },
+        {
+          "title": "科技股拉回，全球金融能防禦？詹璇依看數據：00998A逆勢漲1.06%",
+          "url": "https://sunmedia.tw/news/finance/%E7%A7%91%E6%8A%80%E8%82%A1%E6%8B%89%E5%9B%9E%EF%BC%8C%E5%85%A8%E7%90%83%E9%87%91%E8%9E%8D%E8%83%BD%E9%98%B2%E7%A6%A6%EF%BC%9F%E8%A9%B9%E7%92%87%E4%BE%9D%E7%9C%8B%E6%95%B8%E6%93%9A%EF%BC%9A00998A%E9%80%86%E5%8B%A2%E6%BC%B2106-1793510879509",
+          "source": "商傳媒",
+          "date": "2026-11-01 17:07",
+          "datetime": "2026-11-01T17:07:13+08:00"
         },
         {
           "title": "大跌時誰撐得住？投資配置最強現身 全球型金融ETF不跌反漲 00998A上漲1.50%",
@@ -440,7 +440,7 @@
       "board": "其他",
       "title": "金管會開始抓「四貸同堂」了，借錢投資先查你總共欠多少",
       "url": "https://fundhot.com/forum/%E5%85%B6%E4%BB%96/%E9%87%91%E7%AE%A1%E6%9C%83%E9%96%8B%E5%A7%8B%E6%8A%93%E3%80%8C%E5%9B%9B%E8%B2%B8%E5%90%8C%E5%A0%82%E3%80%8D%E4%BA%86%EF%BC%8C%E5%80%9F%E9%8C%A2%E6%8A%95%E8%B3%87%E5%85%88%E6%9F%A5%E4%BD%A0%E7%B8%BD%E5%85%B1%E6%AC%A0%E5%A4%9A%E5%B0%91/14036",
-      "date": "2026-11-01"
+      "date": "2026-10-31"
     },
     {
       "platform": "fundhot",
@@ -483,7 +483,7 @@
       "channel": "财富底层逻辑",
       "url": "https://www.youtube.com/watch?v=gYyMwEhSwdM",
       "date": "2026-10-26",
-      "views": 3335
+      "views": 3337
     },
     {
       "platform": "youtube",
@@ -491,7 +491,7 @@
       "channel": "夏之戀",
       "url": "https://www.youtube.com/watch?v=xaP__cQ9sac",
       "date": "2026-10-26",
-      "views": 2690
+      "views": 2691
     },
     {
       "platform": "youtube",
@@ -508,7 +508,7 @@
       "channel": "風傳媒 The Storm Media",
       "url": "https://www.youtube.com/watch?v=q4n751SOzSA",
       "date": "2026-10-29",
-      "views": 221940,
+      "views": 222534,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -518,7 +518,7 @@
       "channel": "瘋狂股市福利社Free Free Free!",
       "url": "https://www.youtube.com/watch?v=RxPRvqYjVKc",
       "date": "2026-10-30",
-      "views": 160197,
+      "views": 160454,
       "peer": true,
       "cat": "市值型"
     },
@@ -528,7 +528,7 @@
       "channel": "理財達人秀 EBCmoneyshow",
       "url": "https://www.youtube.com/watch?v=BOnMxB8Xh6M",
       "date": "2026-10-28",
-      "views": 131615,
+      "views": 131954,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -538,7 +538,7 @@
       "channel": "葉芷娟",
       "url": "https://www.youtube.com/watch?v=vNmwEEWgWuA",
       "date": "2026-10-28",
-      "views": 124076,
+      "views": 124565,
       "peer": true,
       "cat": "主動式"
     },
@@ -548,7 +548,7 @@
       "channel": "賺錢放大術",
       "url": "https://www.youtube.com/watch?v=8-Szt70v4xY",
       "date": "2026-10-30",
-      "views": 121873,
+      "views": 122439,
       "peer": true,
       "cat": "綜合"
     },
@@ -558,7 +558,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=KdZ-l9pChOs",
       "date": "2026-10-28",
-      "views": 103056,
+      "views": 103336,
       "peer": true,
       "cat": "高股息"
     },
@@ -568,20 +568,9 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/watch?v=qaDZXiyg5SU",
       "date": "2026-10-27",
-      "views": 75079,
+      "views": 75198,
       "peer": true,
       "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "主動式ETF光環退燒？跌下去才知道這題有多殘酷😵｜ft.基金教母蕭碧燕、葉芷娟 #ETF投資 #主動式ETF #ETF錢滾錢",
-      "channel": "【CMoney理財寶】官方頻道",
-      "url": "https://www.youtube.com/shorts/gyebmmVJdN4",
-      "date": "2026-10-27",
-      "views": 65641,
-      "peer": true,
-      "short": true,
-      "cat": "主動式"
     },
     {
       "platform": "youtube",
@@ -589,7 +578,7 @@
       "channel": "非凡商業台",
       "url": "https://www.youtube.com/watch?v=HpnqF8OLHTI",
       "date": "2026-10-30",
-      "views": 60930,
+      "views": 61353,
       "peer": true,
       "cat": "高股息"
     },
@@ -599,15 +588,25 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/85q4cU_U01M",
       "date": "2026-10-28",
-      "views": 44669,
+      "views": 44855,
       "peer": true,
       "short": true,
       "cat": "市值型"
+    },
+    {
+      "platform": "youtube",
+      "title": "&#39;26.10.28【財經一路發】國泰投信陳韻竹談「2027美國總經、高收益債風險與投資策略」",
+      "channel": "九八新聞台",
+      "url": "https://www.youtube.com/watch?v=Naut37ybXso",
+      "date": "2026-10-28",
+      "views": 17829,
+      "peer": true,
+      "cat": "債券"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00418A（詳下方新聞標籤）",
     "社群聲量最高：AI股跌深可以撿便宜嗎？大神點出反彈背後的隱憂（0 推）",
-    "YouTube 熱片：【理財】台股抄底時間到了？卡位下一波大漲，高手加碼必看「這3個關鍵」！ft.股海老牛｜下班經濟學797｜謝哲青、張瓊方（風傳媒 The Storm Media・221,940 次觀看）"
+    "YouTube 熱片：【理財】台股抄底時間到了？卡位下一波大漲，高手加碼必看「這3個關鍵」！ft.股海老牛｜下班經濟學797｜謝哲青、張瓊方（風傳媒 The Storm Media・222,534 次觀看）"
   ]
 }
