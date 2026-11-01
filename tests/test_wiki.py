@@ -122,6 +122,20 @@ def test_every_page_starts_with_title_and_summary():
             assert head[2].startswith("> "), f"{f}：第 3 行要是一句話摘要"
 
 
+def test_dropped_reads_archived_logs():
+    """日誌按月封存（docs/wiki_log/）之後，封存檔裡「- 刪：」登記的記號照樣算（2026-11-01）。"""
+    arch = sorted((ROOT / "docs" / "wiki_log").glob("*.md"))
+    assert arch
+    got, n = WF.dropped(), 0
+    for f in arch:
+        for s in f.read_text("utf-8").split("\n"):
+            m = WF.DROP.match(s)
+            if m:
+                n += 1
+                assert {WF.norm(t) for t in WF.TICK.findall(m.group(1))} <= got, s
+    assert n
+
+
 def test_log_format_and_dates_in_order():
     rows = [s for s in (WIKI / "log.md").read_text("utf-8").split("\n") if s.startswith("## ")]
     assert rows
