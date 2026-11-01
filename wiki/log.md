@@ -191,5 +191,11 @@
 ## [2026-11-01] 收錄 | 拿掉舊本機流程剩下的零件（體檢第 7 條第二步）
 - `arm/config.py` 的 `distributions()`、`connectors/issuers` 只給舊流程用的 `load_holdings`、`competitor_peers` 與 `base.py`、`connectors/etfinfo.py` 的 `latest_market`、`dividends`、`active_flow`、`connectors/tdcc.py` 的受益人數週增與 `arm/db.py`。正式流程用到的 `config.product`、`issuers/pcf.py`、`etfinfo.fetch_etf`／`holdings_fresh`／`list_etfs`、`tdcc._fetch_csv` 都留著。
 
+## [2026-11-01] 收錄 | Google 新聞查詢出錯時，那一組沿用上一次的新聞（體檢第 4 條）
+- `arm/connectors/gnews.py`：`search` 出錯時 `FAILS` 加一、只印第一次的原因；`arm/fundnews.py`：`fetch_funds`／`fetch_etf_products`／`assemble` 標出錯的組，`save` 經 `_carry_news` 併入上一次同組 7 天窗內的項目（比照 `_carry_social`）。測試 `tests/test_fundnews.py`。改了 `main/fund-news.md`、`.claude/rules/fundnews.md`。
+
+## [2026-11-01] 收錄 | 美股內部人季資料解析出 0 筆時跳過、不記做完（體檢第 5 條）
+- `arm/lab/insider.py` 的 `do_quarters`：一季解析出 0 筆合格的 Form 4 → 不換掉那三個月、不記做完、印警告，下次重抓。測試 `tests/test_insider.py`。改了 `lab/heat-us.md`。
+
 ## [2026-11-01] 收錄 | 三個算出來的檔，來源讀不到時不寫成空的（體檢第 6 條）
 - `arm/lab/usfin.py` 的 `save`（一家季報都沒有而舊檔有 → 不寫）、`arm/lab/mratio.py` 的 `update_series`（算出 0 筆而舊序列有 → 不寫）、`arm/lab/fcst.py` 的 `update_yahoo`（上市櫃名單是空的、或一家都沒有分析師資料而舊檔有 → 不寫）。測試 `tests/test_usfin.py`、`tests/test_mratio.py`、`tests/test_fcst.py`。改了 `lab/cfg-research.md`、`lab/expert.md`、`lab/forecast.md`。

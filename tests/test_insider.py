@@ -141,3 +141,24 @@ def test_missing_daily_index_vs_rate_limit():
     assert I.no_index(404, b"") and I.no_index(403, b"<Error><Code>AccessDenied</Code></Error>")
     assert not I.no_index(403, b"<h1>Your Request Originates from an Undeclared Automated Tool</h1>Request Rate Threshold Exceeded")
     assert not I.no_index(500, b"") and not I.no_index(200, b"x")
+
+
+def test_quarter_parsed_empty_is_skipped_not_marked_done(monkeypatch, capsys):
+    """SEC 改了欄位名稱 → 解析出 0 筆：不換掉那三個月、不記做完（下次重抓），印警告；有資料的季照寫照記（體檢第 5 條）。"""
+    class C:
+        def get(self, url, timeout=120):
+            if url == I.DS_PAGE:
+                return 200, b'<a href="/files/2026q1_form345.zip">1</a><a href="/files/2026q2_form345.zip">2</a>'
+            return 200, b"PK" + url.encode()
+
+    monkeypatch.setattr(I, "parse_dataset",
+                        lambda b: {} if b"2026q1" in b else {"a1": ("2026-04-02", 1, "AAA", 10.0)})
+    wrote = []
+    monkeypatch.setattr(I, "write_rows",
+                        lambda rows, M, replace_months=None: wrote.append(sorted(replace_months)) or 1)
+    monkeypatch.setattr(I, "save_state", lambda st: None)
+    st: dict = {}
+    I.do_quarters(C(), {}, st, budget_s=60)
+    assert st["q"] == ["2026q2"]
+    assert wrote == [["2026-04", "2026-05", "2026-06"]]
+    assert "2026q1：解析出 0 筆" in capsys.readouterr().out
