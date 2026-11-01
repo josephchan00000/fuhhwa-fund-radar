@@ -2,7 +2,7 @@
 
 > x9.html 的研究紀錄身分與 x9r.html、全部策略表；原配置頁（2026-10-28 起內容在研究紀錄・交易計畫）的台股／美股版面、美股個股卡、今年逐月。
 > 原始資料：CLAUDE.md「配置頁」與「研究紀錄」段；`docs/lab_ia_v5_plan.md`、`docs/lab_cfg_v2_plan.md`、`docs/lab_review_plan.md`；`arm/lab/cfgpage.py`、`uscardpage.py`、`board.py`、`research_page.py`
-> 最後更新：2026-10-29
+> 最後更新：2026-11-01
 > 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
@@ -86,7 +86,7 @@
   · **公司**：簡介、Yahoo Finance 與 SEC 申報文件連結。
 - **每週資料**：每週紀錄 `now` 多 `met`（這一週手上、要買、名單前 20 名的五個條件，順序同 `ussxqm.KEYS`）與 `met0`（手上的股票**買進那一週**的五個條件＝為什麼選它；`met` 是現在的樣子，強度掉到 80 以下也照樣拿著）；
   `ussx_weekly.yml` dispatch 勾 `live_only`＝只重跑每週紀錄。**成長、獲利**：`arm/lab/usfin.py`＋`scripts/run_usfin.py`，每週六 `ussx_weekly.yml` 在每週紀錄之後跑（USSX_DIR 指到資料分支）
-  → `data/lab/ussx_fin.json`（配置頁會出現的＋名單前 20 名；每檔近 28 季的營收、毛利、營業利益、淨利、EPS、股東權益＋流通股數，SEC 第一次公布的數字，單季算法同選股：第四季＝全年減前三季）；
+  → `data/lab/ussx_fin.json`（配置頁會出現的＋名單前 20 名；每檔近 28 季的營收、毛利、營業利益、淨利、EPS、股東權益＋流通股數，SEC 第一次公布的數字，單季算法同選股：第四季＝全年減前三季；這次一家季報都沒有〔資料分支沒拉到〕而舊檔有就不寫，2026-11-01 體檢第 6 條）；
   頁面資料 `sigpage.core_data` 的 `qm["F"]` → `UCP.build(..., fin=)` → 每檔 `fin`＝`{g: 近 12 季, v: 估值, src}`。**GICS 細產業**＝維基百科 S&P 500／400／600 成分股表（`usfin.update_gics` → `data/lab/ussx_gics.json`，
   **只在 CI 抓**（`run_usfin.py` 每週六、`GITHUB_ACTIONS` 才抓；本容器擋維基百科）；一頁解析到的家數少於 `WIKI_MIN` 就沿用舊的；`.ping/lab` 第一行 `usgics`＝只抓這個）。
 - **每天資料**：`fetch_ussx_watch.py` 在 50 日線檢查之後跑 `arm/lab/uscard.py` → `data/lab/ussx_card.json`（`fund_intro.qm_codes` 那一批〔13 檔〕）：`uscard` VER 2 每天抓 5 年日線（一檔一個請求、和 50 日線檢查共用），

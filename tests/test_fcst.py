@@ -207,3 +207,17 @@ def test_company_card_and_wl_wiring():
         assert t.count("git add -f dashboard/x9f.json 2>/dev/null || true") == 2, wf   # 一般與重試迴圈各一
     t = (root / ".github/workflows/afterhours_refresh.yml").read_text("utf-8")
     assert "timeout 420 python3 scripts/fetch_fcst.py" in t                         # 每班補快訊、Yahoo 一天一次
+
+def test_update_yahoo_never_wipes_old_records(tmp_path, monkeypatch):
+    """上市櫃名單讀不到（空的）→ 不動舊紀錄；全部查到「沒有分析師」（Yahoo 格式變了）→ 也不寫（體檢第 6 條）。"""
+    monkeypatch.setattr(fcst.store, "LAB", tmp_path)
+    old = {"v": 1, "d": "2026-10-15", "full": "2026-10-12", "cover": ["1111", "2222"],
+           "s": {"1111": {"n": 1}, "2222": {"n": 2}}}
+    fcst.store.write_json(fcst.YH_FILE, old)
+    monkeypatch.setattr(fcst._Yahoo, "login", lambda self: True)
+    monkeypatch.setattr(fcst._Yahoo, "one", lambda self, sym: ("ok", None))
+    assert "err" in fcst.update_yahoo({}, today=date(2026, 10, 16))
+    assert fcst.load_yahoo() == old
+    st = fcst.update_yahoo({"1111": "tw", "2222": "tw"}, today=date(2026, 10, 16))
+    assert "err" in st and st["none"] == 2
+    assert fcst.load_yahoo() == old

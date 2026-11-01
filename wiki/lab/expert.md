@@ -2,7 +2,7 @@
 
 > xstratspec VER 1～6：短線、落底、季節性、風險控制、融資維持率、判定。
 > 原始資料：CLAUDE.md「大神策略」段；規劃 `docs/lab_expert_plan.md`、`docs/lab_nav_plan.md`、`docs/lab_practical_plan.md` 第 7、9.4 節；程式：`arm/lab/xstrat.py`
-> 最後更新：2026-10-29
+> 最後更新：2026-11-01
 > 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
@@ -30,7 +30,7 @@
 
 ### 資料
 
-- 台股大盤融資維持率 `arm/lab/mratio.py`：沒有官方每日序列，自己算＝上市證券（含 ETF）Σ 融資餘額張數 × 1000 × 收盤 ÷ 上市融資金額（heat margin 第一欄）；以「每張平均融資市值 × 官方融資張數」換算，涵蓋率 0.95～1.05 才算（FinMind 已下市公司的收盤 2004-02 才有→約 2004 起）。歷史＝FinMind 逐檔回補（融資＋原始收盤，約 1,600 檔 × 2 請求、未登入每小時 ≤ 280 個）：每做完一檔把每天的市值、張數加進 `data/lab/mratio/agg`（股票、ETF 分開），代號記在 `done`（只加一次，可分輪續做）；代號清單 `uni` 第一輪建好沿用——上市中以官方分片 m_tw 為準（FinMind 總覽的日期不可靠）、上櫃轉上市的上櫃那段不算（stockmeta 上市日）、已下市用證交所終止上市名單（265 檔）的日期。截止日 END 之後用官方分片 m_tw × q_tw。每天 `fetch_heat.py` 重算 `data/lab/heat/mratio`（{日期: [維持率%, 涵蓋率, 來源]}）。回補＝`lab_backfill.yml` 用 workflow_dispatch 帶 `mode=mgnfill`（`scripts/backfill_mratio.py`；每 50 分鐘存檔 commit、跑約 330 分鐘、沒做完自己再派一輪；`--status` 第一行 DONE／STUCK／LEFT n）。push（.ping/lab）與 dispatch 分兩個 concurrency 組，回補期間推 .ping/lab 照樣能跑。
+- 台股大盤融資維持率 `arm/lab/mratio.py`：沒有官方每日序列，自己算＝上市證券（含 ETF）Σ 融資餘額張數 × 1000 × 收盤 ÷ 上市融資金額（heat margin 第一欄）；以「每張平均融資市值 × 官方融資張數」換算，涵蓋率 0.95～1.05 才算（FinMind 已下市公司的收盤 2004-02 才有→約 2004 起）。歷史＝FinMind 逐檔回補（融資＋原始收盤，約 1,600 檔 × 2 請求、未登入每小時 ≤ 280 個）：每做完一檔把每天的市值、張數加進 `data/lab/mratio/agg`（股票、ETF 分開），代號記在 `done`（只加一次，可分輪續做）；代號清單 `uni` 第一輪建好沿用——上市中以官方分片 m_tw 為準（FinMind 總覽的日期不可靠）、上櫃轉上市的上櫃那段不算（stockmeta 上市日）、已下市用證交所終止上市名單（265 檔）的日期。截止日 END 之後用官方分片 m_tw × q_tw。每天 `fetch_heat.py` 重算 `data/lab/heat/mratio`（{日期: [維持率%, 涵蓋率, 來源]}）；算出 0 筆（融資餘額序列讀不到）而舊序列有內容就不寫（2026-11-01，體檢第 6 條）。回補＝`lab_backfill.yml` 用 workflow_dispatch 帶 `mode=mgnfill`（`scripts/backfill_mratio.py`；每 50 分鐘存檔 commit、跑約 330 分鐘、沒做完自己再派一輪；`--status` 第一行 DONE／STUCK／LEFT n）。push（.ping/lab）與 dispatch 分兩個 concurrency 組，回補期間推 .ping/lab 照樣能跑。
 - 維持率數字沒有算錯：和 TEJ 同一個算法（上市證券含 ETF），2020-03-19 135.80%／TEJ 135.73%、2025-04-09 都是 130.38%；2026-07-27 證交所公布整戶維持率約 175%、這裡 173.5%。媒體常引用的 CMoney 等推估低 10～30 個百分點（2024-08-05 CMoney 139.42%、這裡 148.04%；2026-07-27 媒體 143%），證交所 7/28 澄清、CMoney 7/29 下架——網路上的「跌破 140%」和這裡不是同一把尺（策略的 pnote、規則第一條、`mratio.py` 檔頭都寫了）。維持率最低那天幾乎就是指數收盤最低那天（2011-12-19、2015-08-24、2020-03-19、2024-08-05、2025-04-09），但那是事後才知道的。
 - 美股漲跌家數 `arm/lab/usbreadth.py`：unicorn.us.com 的 NYSE 檔憑證過期（不關憑證驗證就抓不到）→ S&P 500 歷史成分股（fja05680/sp500 `sp500_ticker_start_end.csv`，1996 起 1,209 個代號）× Yahoo 日線自算 → `data/lab/heat/us_breadth`（{日期: [上漲, 下跌, 平盤, 上漲成交金額, 下跌成交金額, 上漲點數, 下跌點數, 有資料檔數, 成分股數]}；成交金額＝收盤×成交量，分割前後不變；點數＝還原成當時價格的漲跌）。已下市、改名的代號 Yahoo 多半沒有＝早年存活偏誤（有資料的比例 1996 年 38%、2010 年 66%、2025 年 97%）。回補 `usfill:usbreadth`；之後每天 `fetch_heat_us.py` 用 Yahoo v7 報價（現在的維基成分股，4 個請求）補最近一個美股交易日（盤中不收、報價不到九成不收）。
 
