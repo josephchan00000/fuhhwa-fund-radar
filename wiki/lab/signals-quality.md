@@ -2,7 +2,7 @@
 
 > 訊號算得對不對（第二套算法、截斷重建、資料來源比對、手算案例、每週核對）與參數會不會只是剛好（參數鄰近檢查）；EMA 與頁面是後面的段落。
 > 原始資料：規劃 `docs/lab_signal_quality_plan.md`；程式：`arm/lab/sigverify.py`、`arm/lab/truncheck.py`、`arm/lab/srccheck.py`、`arm/lab/nbrspec.py`、`arm/lab/sigrobust.py`
-> 最後更新：2026-11-01
+> 最後更新：2026-11-01（C 段）
 
 ## 現在怎麼運作
 
@@ -23,6 +23,16 @@
   換常數沒有用，另外明寫傳參（`sigrobust.tech_events`）。
 - 原本參數重算要和 `data/lab/sig_research.json` 一模一樣（`sigrobust.selfcheck`＋每一組的次數、命中率、平常），不一樣就停、不出結果。
 - 2026-11-01：2,794 組穩定 74%；自營商連續 10 天賣超穩定，三大法人連續 10 天賣超只在這個參數成立。使用者的決定 D2 a（不穩定的不列）第 D 段才接上頁面。
+
+### EMA 賣壓與天數衰減（C 段，2026-11-01；都沒有比現在好，照規則不換）
+
+- EMA 賣壓：規格 `arm/lab/emaspec.py`（VER 1），程式 `arm/lab/sigema.py`，研究檔 `data/lab/ema_research.json`＝`scripts/run_ema.py`（約 1 分鐘）。
+  法人買賣超與成交金額各做指數平均（天數 5、20、60，和現在的合計平均落後天數一樣）；逐年用那時的成績比列出來之後準不準（sigoos.walk 的紀錄），
+  和合計、連續買賣超都差不多（區間碰到 0）。三種法人訊號列出來之後的下一年平均都沒有比平常好。
+- 天數衰減：規格 `arm/lab/decayspec.py`（VER 1），程式 `arm/lab/sigdecay.py`，研究檔 `data/lab/decay_research.json`＝`scripts/run_decay.py`（約 6 分鐘）。
+  自己的成績 × 0.5^(第幾天 ÷ 半衰期)，半衰期同一類一起估；和第 26 版的格子比（同 thermocal.compare），列得多 44% 但平均準度低 0.5 點，維持格子。
+- 第 26 版（`claude/signal-listing` 第一、二段）已併進這個分支；`sigverify.check_thermo` 改和 thermocal 另存的 VER 25 票比，
+  第 26 版的格子與新票的第二套算法第 D 段上線前補。
 
 ## 不能改的規則
 

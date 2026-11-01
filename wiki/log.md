@@ -149,3 +149,6 @@
 
 ## [2026-11-01] 收錄 | 參數鄰近檢查（B 段）
 - nbrspec VER 1（算結果之前 commit）、`arm/lab/sigrobust.py`、`scripts/run_robust.py` → `data/lab/robust_research.json`：每一組過列出門檻的（訊號, 方向, 看多久）一次動一個參數、往上往下各一個值，每個參數各自至少一半也過才算穩定。2,794 組穩定 74%；原本參數重算和研究檔一模一樣。還沒接上頁面（第 D 段）。新頁 `lab/signals-quality.md`（核對與參數鄰近；`lab/signals.md` 已到長度上限），`lab/chip-ui.md` 連過去（規劃第 12 節）。
+
+## [2026-11-01] 收錄 | EMA 賣壓與天數衰減（C 段）
+- emaspec VER 1、decayspec VER 1（都在算結果之前 commit）；`arm/lab/sigema.py`、`arm/lab/sigdecay.py`、`scripts/run_ema.py`、`scripts/run_decay.py`。兩個都沒有比現在好，照規則不換。第 26 版分支併進來、sigage／thermo 研究檔重算，`sigverify.check_thermo` 改比 VER 25 的票。改了 `lab/signals-quality.md`（規劃第 13 節）。
