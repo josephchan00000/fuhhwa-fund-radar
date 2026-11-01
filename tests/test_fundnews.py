@@ -1119,3 +1119,129 @@ def test_fundhot_ok_takes_any_fund_topic_but_not_junk():
     assert not fundnews.fundhot_ok("00929 套牢慘賠中")
     assert not fundnews.fundhot_ok("基金淨值表")
     assert not fundnews.fundhot_ok("推薦")                      # 過短
+
+
+# ── Google 新聞查詢出錯≠沒新聞（體檢第 4 條，docs/code_ponytail_audit.md）──────────────
+
+class _Resp:
+    def __init__(self, body: bytes):
+        self.body = body
+
+    def read(self):
+        return self.body
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+
+def test_gnews_search_counts_failures(monkeypatch, capsys):
+    """出錯回 [] 並把 FAILS 加一（只印第一次）；真的沒新聞回 [] 但不算出錯。"""
+    from arm.connectors import gnews
+    monkeypatch.setattr(gnews, "FAILS", 0)
+
+    def boom(*a, **k):
+        raise OSError("HTTP Error 503")
+
+    monkeypatch.setattr(gnews.urllib.request, "urlopen", boom)
+    assert gnews.search("復華投信") == [] and gnews.search("復華投信 基金") == []
+    assert gnews.FAILS == 2
+    assert capsys.readouterr().out.count("[gnews] 查詢出錯") == 1
+    monkeypatch.setattr(gnews.urllib.request, "urlopen",
+                        lambda *a, **k: _Resp(b"<rss><channel></channel></rss>"))
+    assert gnews.search("復華投信") == [] and gnews.FAILS == 2
+
+
+def test_fetch_funds_and_products_mark_failed_queries(monkeypatch):
+    """查詢出錯、一則都沒拿到的組才標 _gfail；查得到但沒新聞的組不標。"""
+    monkeypatch.setattr(fundnews.gnews, "FAILS", 0)
+
+    def fake_search(q, days=7, limit=4):
+        if "新星" in q or "00929" in q:
+            fundnews.gnews.FAILS += 1
+        return []
+
+    monkeypatch.setattr(fundnews.gnews, "search", fake_search)
+    funds = [{"fund_id": "29", "name": "復華美國新星基金-新臺幣", "short_name": "美國新星"},
+             {"fund_id": "03", "name": "復華高成長基金", "short_name": "高成長"}]
+    got = {g["base"]: g.get("_gfail", False) for g in fundnews.fetch_funds(funds)}
+    assert got == {"復華美國新星基金": True, "復華高成長基金": False}
+    monkeypatch.setattr(fundnews, "fh_products",
+                        lambda: [{"code": "00929", "name": "復華台灣科技優息"},
+                                 {"code": "00991A", "name": "主動復華未來50"}])
+    got = {g["code"]: g.get("_gfail", False) for g in fundnews.fetch_etf_products()}
+    assert got == {"00929": True, "00991A": False}
+
+
+def test_assemble_marks_brand_failure(monkeypatch, tmp_path, capsys):
+    """品牌兩組查詢都出錯 → doc 標 _gfail_brand、CI 日誌印出錯次數；沒出錯就不標。"""
+    monkeypatch.setattr(fundnews, "SEEN_OUT", tmp_path / "seen.json")
+    for f in ("fetch_feeds", "fetch_etf_products", "fetch_ptt", "fetch_youtube"):
+        monkeypatch.setattr(fundnews, f, lambda *a, **k: [])
+    monkeypatch.setattr(fundnews, "fetch_funds", lambda *a, **k: [])
+    monkeypatch.setattr(fundnews, "fetch_fundhot", lambda *a, **k: [])
+    monkeypatch.setattr(fundnews.gnews, "FAILS", 0)
+
+    def brand_down(days=7, limit=12):
+        fundnews.gnews.FAILS += 2
+        return []
+
+    monkeypatch.setattr(fundnews, "fetch_brand", brand_down)
+    doc = fundnews.assemble([])
+    assert doc["_gfail_brand"] is True
+    assert "[fundnews] Google 新聞 2 次查詢出錯，1 組一則都沒拿到" in capsys.readouterr().out
+    monkeypatch.setattr(fundnews, "fetch_brand", lambda days=7, limit=12: [])
+    assert "_gfail_brand" not in fundnews.assemble([])
+    assert "[fundnews] Google" not in capsys.readouterr().out
+
+
+def test_save_carries_google_news_when_query_failed(tmp_path, monkeypatch):
+    """出錯的組（品牌、某檔基金）沿用既有落檔時窗內的項目；查得到但沒新聞的組不沿用；
+    標記不入檔。情境＝Google 被限流、社群照常 → 整份不是全空、舊防呆擋不住。"""
+    import json
+    from datetime import datetime, timedelta
+    monkeypatch.setattr(fundnews, "OUT", tmp_path / "fund_news.json")
+    now = datetime.now(fundnews.TW_TZ)
+    d_new = now.strftime("%Y-%m-%d 09:00")
+    d_old = (now - timedelta(days=10)).strftime("%Y-%m-%d 09:00")
+
+    def it(t, d):
+        return {"title": t, "url": f"https://money.udn.com/{abs(hash(t))}", "source": "經濟日報",
+                "date": d, "datetime": d.replace(" ", "T") + ":00+08:00"}
+
+    old = {"window_days": 7,
+           "brand": [it("復華投信擴大布局主動式ETF", d_new), it("復華投信舊聞一則", d_old)],
+           "funds": [{"base": "復華美國新星基金", "fund_ids": ["29"], "short_names": ["美國新星"],
+                      "items": [it("復華美國新星基金加碼科技", d_new), it("美國新星舊稿", d_old)]},
+                     {"base": "復華高成長基金", "fund_ids": ["03"], "short_names": ["高成長"],
+                      "items": [it("復華高成長基金績效亮眼", d_new)]}],
+           "social": [{"platform": "fundhot", "title": "金複合討論", "url": "https://fundhot.com/f/1"}]}
+    fundnews.OUT.write_text(json.dumps(old, ensure_ascii=False), encoding="utf-8")
+    doc = {"window_days": 7, "brand": [], "_gfail_brand": True, "highlights": [],
+           "funds": [{"base": "復華美國新星基金", "fund_ids": ["29"], "short_names": ["美國新星"],
+                      "items": [], "_gfail": True},
+                     {"base": "復華高成長基金", "fund_ids": ["03"], "short_names": ["高成長"],
+                      "items": []}],
+           "social": [{"platform": "fundhot", "title": "金複合新討論", "url": "https://fundhot.com/f/2"}]}
+    path, saved = fundnews.save(doc)
+    assert saved
+    txt = fundnews.OUT.read_text(encoding="utf-8")
+    assert "_gfail" not in txt
+    got = json.loads(txt)
+    assert [i["title"] for i in got["brand"]] == ["復華投信擴大布局主動式ETF"]
+    assert [i["title"] for i in got["funds"][0]["items"]] == ["復華美國新星基金加碼科技"]
+    assert got["funds"][1]["items"] == []                # 查得到、真的沒新聞 → 不沿用
+    assert any("美國新星" in h for h in got["highlights"])
+
+
+def test_save_without_failure_marks_writes_doc_unchanged(tmp_path, monkeypatch):
+    """沒有出錯標記 → 照原樣落檔（正常情況輸出不變）。"""
+    import json
+    monkeypatch.setattr(fundnews, "OUT", tmp_path / "fund_news.json")
+    doc = {"window_days": 7, "brand": [{"title": "復華投信新稿", "source": "經濟日報"}],
+           "funds": [{"base": "復華高成長基金", "fund_ids": ["03"], "short_names": [], "items": []}],
+           "social": [], "highlights": ["x"]}
+    fundnews.save(json.loads(json.dumps(doc)))
+    assert json.loads(fundnews.OUT.read_text(encoding="utf-8")) == doc

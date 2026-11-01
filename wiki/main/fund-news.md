@@ -2,13 +2,13 @@
 
 > 「復華新聞・社群」區塊：新聞從哪抓、四層過濾、Google News 洗日期；社群 PTT、YouTube 三層清單與額度、強基金、分類篩選、落檔防呆。
 > 原始資料：CLAUDE.md「已知環境限制與防呆」段的復華新聞與社群各條；規劃 `docs/social_api_plan.md`；程式：`arm/fundnews.py`、`arm/connectors/gnews.py`。
-> 最後更新：2026-10-29
+> 最後更新：2026-11-01
 > 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 
 區塊叫「復華新聞・社群」（2026-08-12 前叫「基金相關新聞・社群」；nav、區塊標題、內層標題、鮮度列標籤同步改，section id `#fundnews` 不動）。
-抓取全在 CI（容器 proxy 擋 stockfeel、PTT、fundhot），落檔 `data/fund_news.json`，整份「全空不覆寫」只看 brand/funds/social 全空。
+抓取全在 CI（容器 proxy 擋 stockfeel、PTT、fundhot），落檔 `data/fund_news.json`，整份「全空不覆寫」只看 brand/funds/social 全空；單一社群平台全空、某組 Google 新聞查詢出錯，各自沿用上一次（見下方「落檔防呆」）。
 
 ### 新聞從哪抓
 
@@ -65,6 +65,7 @@
 ### 落檔防呆
 
 - **`_carry_social` 來源級沿用**：單一平台本次全空且既有落檔該平台非空 → 沿用舊項目（ISO 日期出 7 天窗剔除、看點重算），平台清單含 fundhot；只擋「單平台全空」（剩 1 支不觸發）、時窗檢查對「無 ISO 日期」一律豁免。
+- **`_carry_news` Google 新聞沿用（2026-11-01，體檢第 4 條）**：`gnews.search` 出錯時把 `gnews.FAILS` 加一（只印第一次的原因）；品牌或某一組（基金／自家 ETF）查詢出錯、一則都沒拿到 → `assemble`／`fetch_funds`／`fetch_etf_products` 標 `_gfail`，`save` 併入上一次同一組還在 7 天窗內的項目、看點重算，標記不入檔；CI 日誌印「Google 新聞 N 次查詢出錯」「沿用既有 N 則」。查得到、真的沒新聞的組不沿用。舊防呆只擋「整份全空」：Google 被限流但社群照常時，各組新聞會被寫成空的。
 - **儀表板 `_yt_watch_chip`**：social 段存在而 youtube 0 支 → 「網頁更新時間」列紅章，配 SOP 步驟 9⑦ 的每日驗證（根因與補救見 9⑦：push 觸發用舊分支 workflow 檔）。
 
 ## 不能改的規則
