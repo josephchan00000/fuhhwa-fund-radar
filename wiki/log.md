@@ -172,3 +172,6 @@
 
 ## [2026-11-01] 查詢 | ponytail 第一段：程式地圖（只讀）
 - 使用者說「好」開始 E 段。新文件 `docs/code_ponytail_map.md`：14 支 workflow、98 支腳本的分類、`arm/` 261 個模組誰在用、沒人用的函式 12 個、寫檔 176 處、外部資料來源 111 個；找到一套沒有 workflow 在跑的舊本機流程（約 6,200 行）。`docs/code_ponytail_plan.md` 加第 6 節。沒有改任何程式。
+
+## [2026-11-01] 查詢 | ponytail 第二段：體檢報告（只出報告）
+- 使用者確認舊的本機流程「沒在跑了」。新文件 `docs/code_ponytail_audit.md`：必修 2（`fetch_holdings.py` 持股頁抓不到寫空、`ussxqm.watch` 抓不到洗掉賣出提醒）、該修 5、可以更好 3；舊流程可拿掉 124 個檔約 7.2 萬行（含 `.claude/rules/calendar.md` 要一起改）。地圖補「腳本之間直接 import」（`run_ytd.py` → `run_sxlive_seed.py`）。沒有改任何程式。

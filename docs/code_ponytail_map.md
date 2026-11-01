@@ -52,7 +52,7 @@
 |---|---|---|
 | CI 會跑 | 50 | workflow 或 `daily_fund.sh` 直接跑 |
 | 排程／指令／技能／路徑規則提到 | 17 | 主會話或排程會話照指令跑 |
-| 手動研究 | 20 | 文件或知識庫寫怎麼跑（`run_sig.py`、`run_sigage.py`、`run_robust.py`、`run_decay.py`、`run_ema.py`、`run_tilt.py`、`run_xs.py`…），重跑研究檔用 |
+| 手動研究 | 20 | 文件或知識庫寫怎麼跑（`run_sig.py`、`run_sigage.py`、`run_robust.py`、`run_decay.py`、`run_ema.py`、`run_tilt.py`、`run_xs.py`…），重跑研究檔用；其中 `run_sxlive_seed.py` 也被 CI 的 `run_ytd.py` 直接載入，不能動 |
 | **舊的本機流程** | 10 | 見下面 |
 | 備援 | 1 | `fetch_etf_holdings_browser.py`（知識庫寫「保留為備援、不排程」） |
 
@@ -73,7 +73,7 @@
   `quality.py`、`navhist.py`、`calendar.py`、`firsthand.py`、`dashboard.py`（舊儀表板，1,042 行）、`arm/copy/`（7 個，文案層）。
   另有 13 支測試有測到它們（`test_copy.py`、`test_dashboard.py`、`test_ideas.py`…，974 行；有幾支也順便測到正式流程的模組，拿掉前要逐一看）。`arm/db.py`（SQLite）也被正式流程的 `connectors/tdcc.py` 用到，不算在內。
 - **動態載入（刪東西前要特別小心）**：ETF 連接器 `arm/connectors/*` 用名字載入（`fetch_etf_holdings.py`、`check_new_etfs.py`、`etfwatch.py`）；
-  策略候選 `arm/lab/cands/c00X.py` 由 `candrun.py` 用編號載入；測試用檔名載入十幾支腳本（`check_reports.py`、`run_verify.py`…）。
+  策略候選 `arm/lab/cands/c00X.py` 由 `candrun.py` 用編號載入；測試用檔名載入十幾支腳本（`check_reports.py`、`run_verify.py`…）；腳本之間也會把 `scripts/` 加進路徑後直接 import（例 `run_ytd.py` 載入 `run_sxlive_seed.py`）——第一版地圖的分析沒有抓到這一種，第二段補上。
 
 ## 4. 沒人用的程式（候選，第二段逐條確認）
 
