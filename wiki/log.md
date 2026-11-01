@@ -63,3 +63,6 @@
 
 ## [2026-11-01] 收錄 | 直接取今天的地方改用台北時間函式（體檢第 9 條）
 - `arm/`、`scripts/` 裡 `date.today()`／`datetime.now()` 換成 `arm/clock.py` 的 `today_tw()`／`now_tw()`（28 個檔）；CI 本來就設台北時區，輸出不變。`tests/test_heatfetch.py` 改換 `today_tw`。改了 `env/container.md`。
+
+## [2026-11-01] 收錄 | PR 進 main 之前自動跑全部測試（體檢第 10 條）
+- 新 workflow `.github/workflows/tests.yml`（pull_request 到 main＋手動）：Python 3.12、台北時區，裝 pytest／numpy／pandas／pyyaml／certifi／pypdf／openpyxl，跑 `pytest -q`；沒裝 playwright，瀏覽器兩支自動略過。改了 `ops/ci-budget.md`。
