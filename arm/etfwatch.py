@@ -1115,9 +1115,9 @@ def fetch() -> dict:
               f"——未來日或週末日，採信會汙染當日漲跌與週／月報酬（2026-09-21 踩坑）")
     as_of = max((i.get("as_of") or "" for i in items), default="") or \
         (load() or {}).get("as_of") or clock.today_tw().isoformat()
-    pend_note = f"，另 {got_pend} 檔金額待公告" if got_pend else ""
-    est_note = (f"；當月預估配息 ← 證交所／櫃買除權除息預告表、MOPS（{got_est} 檔{pend_note}）"
-                if got_est or got_pend else "")
+    cnt = "，另 ".join(x for x in (f"{got_est} 檔" if got_est else "",
+                                    f"{got_pend} 檔金額待公告" if got_pend else "") if x)
+    est_note = f"；當月預估配息 ← 證交所／櫃買除權除息預告表、MOPS（{cnt}）" if cnt else ""
     if got_ret:
         src_note = ("規模／配息殖利率 ← etfinfo.tw（Tier B）；過去一週／一月報酬 ← Yahoo 還原收盤"
                     f"（總報酬口徑）／FinMind／TWSE 官方自算{est_note}。正式對外前以各投信官網核對")
