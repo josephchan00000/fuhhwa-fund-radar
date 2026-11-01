@@ -3,7 +3,7 @@
 關鍵：復華自家 00998A（主動金融股息）、00986D（主動金融債息）與多檔債券/債競品
 （00679B/00772B/00773B/00937B…）皆為**上櫃**掛牌，TWSE openapi STOCK_DAY_ALL 抓不到，
 價量必須走 TPEx openapi。介面刻意對齊 arm.connectors.twse.fetch_today_all，
-讓 fetch_peers / firsthand 可把兩個交易所的當日價量合併使用（同一格式、同走 certifi 驗證）。
+讓 dayquotes 等可把兩個交易所的當日價量合併使用（同一格式、同走 certifi 驗證）。
 
 來源：tpex_mainboard_daily_close_quotes（上櫃主板每日收盤，官方、免金鑰）。
 """

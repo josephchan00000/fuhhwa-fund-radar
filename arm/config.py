@@ -1,4 +1,4 @@
-"""設定載入（Phase 0 用 JSON，避免 PyYAML 依賴；config/products.yaml 為人類可讀版）。"""
+"""設定載入（用 JSON，避免 PyYAML 依賴）。"""
 from __future__ import annotations
 
 import json

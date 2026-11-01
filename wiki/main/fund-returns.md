@@ -37,7 +37,6 @@
 - cnyesfund 的「釘選 cnyesId → 直取詳情頁」是 2026-07-15 歷經 6 輪 CI 收斂的**最終架構**，勿走回頭路（死路見下）。
 - **此容器 proxy 擋 cnyes（CONNECT 403）**——用 CI 日誌（`mcp__github__get_job_logs`）驗證與迭代，勿在本容器嘗試打 cnyes。
 - `data/cnyes_fund_map.json`、`data/fund_nav_history.json` 都要入庫；NAV 序列沒入庫的話 CI 從零開始，1週／1月會整片變 —（同 etf_watch 的坑，見 [ETF 數據追蹤表](etf-watch.md)）。
-- 舊 `arm/navhist.py` 是 ETF 管線的 sqlite 模組，與此無關、勿混用。
 
 ## 踩過的坑
 

@@ -102,7 +102,7 @@ tests/test_fund_tracker.py     新模組單測（fhfund 解析 / usnews / fund_i
 tests/test_insights.py         洞察層/台股新聞/儀表板單測
 ```
 
-`arm/http.py`（certifi TLS）、`arm/config.py`（設定載入）沿用。ETF 版遺留的行銷/籌碼/文案模組仍在庫中但非本版本主軸。
+`arm/http.py`（certifi TLS）、`arm/config.py`（設定載入）沿用。ETF 版遺留的行銷/籌碼/文案模組（舊的本機流程）2026-11-01 拿掉了，要看從 git 歷史找。
 
 ---
 

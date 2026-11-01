@@ -839,9 +839,9 @@ def fetch_fundhot(days: int = WINDOW_DAYS, limit: int = 8) -> list[dict]:
 
 
 # ── YouTube 相關影片（2026-08-06 使用者需求：社群討論加入 YouTube）──────────────
-# 與 ETF 產品線的 arm/connectors/social/youtube.py 分離（該層查主動式ETF、回 SocialMention）；
+# 與舊 ETF 產品線的 YouTube 抓取分離（arm/connectors/social/youtube.py，2026-11-01 拿掉）；
 # 本層查品牌／基金、回社群項目 dict。金鑰同一把：env YOUTUBE_API_KEY（Actions secret）
-# 或 ~/.fh_youtube_key（本機慣例，同 arm/dashboard._youtube_voice）。
+# 或 ~/.fh_youtube_key（本機慣例）。
 
 YT_SEARCH = "https://www.googleapis.com/youtube/v3/search"
 YT_VIDEOS = "https://www.googleapis.com/youtube/v3/videos"

@@ -184,3 +184,6 @@
 
 ## [2026-11-01] 收錄 | 寫檔先寫暫存檔再換名、前瞻紀錄讀到壞檔停下報錯（體檢第 3 條）
 - 新模組 `arm/fileio.py`（`write_text`／`write_bytes`／`read_json`）；七本前瞻紀錄要寫回時 strict 讀（`fundnav`、`core`、`valog`、`ytd`、`ussxqm`、`candrun`、`sxlive`，體檢寫四本，另外三本同樣的問題一起修）；會被 `timeout` 砍到的抓取程式寫跨天的檔改用它；`.gitignore` 加 `*.tmp`。測試 `tests/test_fileio.py`。改了 `env/container.md`。
+
+## [2026-11-01] 收錄 | 拿掉沒在跑的舊本機流程（體檢第 7 條）
+- 使用者確認舊流程「沒在跑了」、臉書抓取留著。拿掉 117 個檔（腳本 16 支、模組與 `arm/copy/`、`connectors/brokers/`、專用測試 14 支、設定與舊資料、`reports/intel/`）；`arm/connectors/social/` 只留 `facebook`、`base`、`filters`、`__init__`。`.claude/rules/calendar.md` 拿掉 `arm/calendar.py`。改了 `env/git-history.md`、`main/etf-holdings.md`、`main/fund-returns.md`。

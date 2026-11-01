@@ -675,7 +675,7 @@ def prior_block(titles: list[str], scope_label: str = "前一日日報") -> str:
             "也必須成卡重收，不受本清單略過規則約束）：\n" + items)
 
 
-# 否定詞：緊鄰禁用詞前方者視為合規揭露語（沿用 arm/copy/compliance.py 的 _NEG 慣例）。
+# 否定詞：緊鄰禁用詞前方者視為合規揭露語（沿用舊文案層 arm/copy/compliance.py 的 _NEG 慣例；該層 2026-11-01 拿掉）。
 _NEG = ("非", "不", "無", "未", "免")
 
 

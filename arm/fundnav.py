@@ -1,7 +1,7 @@
 """共同基金 NAV 歷史（data/fund_nav_history.json）——總覽表「近一週／近一月」報酬資料層。
 
 官網 /api/fund 的多期報酬只有 ytd/3m/6m/1y/2y/3y/since、**沒有 1週/1月**，故自建
-NAV 時間序列自算（與舊 ETF 管線的 arm/navhist.py〔sqlite〕無關，勿混用）：
+NAV 時間序列自算：
   · 結構：{fund_id: {"YYYY/MM/DD": nav, ...}}（日期＝官網 NAV 日、非抓取日）
   · 累積：scripts/fetch_holdings.py 每日抓完呼叫 record() 追加當日 NAV；
     首次由 scripts/backfill_fund_nav.py 走 git 歷史回填（_index.json 每日快照）。
