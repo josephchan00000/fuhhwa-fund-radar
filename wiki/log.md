@@ -197,5 +197,4 @@
 ## [2026-11-01] 收錄 | 美股內部人季資料解析出 0 筆時跳過、不記做完（體檢第 5 條）
 - `arm/lab/insider.py` 的 `do_quarters`：一季解析出 0 筆合格的 Form 4 → 不換掉那三個月、不記做完、印警告，下次重抓。測試 `tests/test_insider.py`。改了 `lab/heat-us.md`。
 
-## [2026-11-01] 收錄 | 三個算出來的檔，來源讀不到時不寫成空的（體檢第 6 條）
-- `arm/lab/usfin.py` 的 `save`（一家季報都沒有而舊檔有 → 不寫）、`arm/lab/mratio.py` 的 `update_series`（算出 0 筆而舊序列有 → 不寫）、`arm/lab/fcst.py` 的 `update_yahoo`（上市櫃名單是空的、或一家都沒有分析師資料而舊檔有 → 不寫）。測試 `tests/test_usfin.py`、`tests/test_mratio.py`、`tests/test_fcst.py`。改了 `lab/cfg-research.md`、`lab/expert.md`、`lab/forecast.md`。
+## [2026-11-01] 收錄 | 美股季報、融資維持率、Yahoo 預估讀不到來源就不寫（體檢第 6 條）
