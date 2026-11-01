@@ -78,6 +78,6 @@ ponytail（GitHub `DietrichGebert/ponytail`，MIT 授權）**不是資料夾樣�
 | 2 | 美股強勢品質股每天的檢查：抓不到的那一檔沿用上一次，全部抓不到不寫檔 | #427 | 同上一輪，6 檔持股 0 錯 |
 | 3 | 寫檔先寫暫存檔再換名（`arm/fileio.py`）；七本前瞻紀錄讀到壞檔停下報錯（體檢寫四本，另三本同樣問題一起修） | #428 | 修前修後建頁一模一樣 |
 | 7 | 拿掉沒在跑的舊本機流程 117 個檔，臉書抓取留著 | #429 | 同上 |
-| 7 第二步 | 舊流程剩下的零件：`config.distributions`、`issuers` 的註冊表與 `base.py`、`etfinfo` 三個函式、`tdcc` 受益人數週增與 `arm/db.py` | 見下一個 PR | |
+| 7 第二步 | 舊流程剩下的零件：`config.distributions`、`issuers` 的註冊表與 `base.py`、`etfinfo` 三個函式、`tdcc` 受益人數週增與 `arm/db.py` | #430 | 修前修後建頁一模一樣 |
 
 文件與知識庫：體檢報告 PR #425 先合進 main（程式註解指到它）；每條各改知識庫一頁＋`wiki/log.md` 一行。
