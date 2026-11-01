@@ -175,3 +175,6 @@
 
 ## [2026-11-01] 查詢 | ponytail 第二段：體檢報告（只出報告）
 - 使用者確認舊的本機流程「沒在跑了」。新文件 `docs/code_ponytail_audit.md`：必修 2（`fetch_holdings.py` 持股頁抓不到寫空、`ussxqm.watch` 抓不到洗掉賣出提醒）、該修 5、可以更好 3；舊流程可拿掉 124 個檔約 7.2 萬行（含 `.claude/rules/calendar.md` 要一起改）。地圖補「腳本之間直接 import」（`run_ytd.py` → `run_sxlive_seed.py`）。沒有改任何程式。
+
+## [2026-11-01] 收錄 | 基金持股頁抓不到時沿用上一次（體檢第 1 條）
+- 使用者「照建議」開始修。`scripts/fetch_holdings.py` 加 `_keep_holdings`：持股頁出錯或解析 0 筆、舊檔有持股 → 前十大、配置、持股基準日沿用舊檔，淨值照新的；測試 `tests/test_fetch_holdings.py`。改了 `env/container.md`。
