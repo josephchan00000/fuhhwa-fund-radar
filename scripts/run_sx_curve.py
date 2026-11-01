@@ -14,7 +14,6 @@ import argparse
 import json
 import sys
 import time
-from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -30,6 +29,7 @@ from superstock import engine as EN  # noqa: E402
 from superstock import features as FT  # noqa: E402
 from superstock import labpanel as LP  # noqa: E402
 
+from arm.clock import today_tw  # noqa: E402
 from arm.lab import corespec as S  # noqa: E402
 
 X, SX = W.X, W.SX
@@ -59,7 +59,7 @@ def write(res, got: float, book: str, src: str) -> int:
     eq = res.equity.dropna()
     ex = res.exposure.reindex(eq.index).ffill().fillna(0.0)
     doc = {"ver": 1, "spec": f"corespec VER {S.VER}", "book": book, "src": src,
-           "made": date.today().isoformat(), "cagr": round(float(got), 6),
+           "made": today_tw().isoformat(), "cagr": round(float(got), 6),
            "d": [str(d.date()) for d in eq.index], "nav": [round(float(v) / float(eq.iloc[0]), 6) for v in eq.values],
            "x": [round(float(v), 4) for v in ex.values]}
     txt = json.dumps(doc, ensure_ascii=False, separators=(",", ":"))

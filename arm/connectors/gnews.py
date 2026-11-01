@@ -15,7 +15,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 
-from ..clock import TW_TZ
+from ..clock import TW_TZ, today_tw
 
 RSS = "https://news.google.com/rss/search?q={q}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant"
 UA = "Mozilla/5.0 (FH-ARM research bot; contact: marketing)"
@@ -189,7 +189,7 @@ _ISO_ISH = re.compile(r"(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})")
 
 
 def _plausible(dt: datetime | None) -> datetime | None:
-    if dt and 2000 <= dt.year <= datetime.now().year + 1:
+    if dt and 2000 <= dt.year <= today_tw().year + 1:
         return dt
     return None
 

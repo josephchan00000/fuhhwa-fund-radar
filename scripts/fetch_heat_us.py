@@ -26,7 +26,7 @@ from arm.lab import heat as H  # noqa: E402
 from arm.lab import heatdata as HD  # noqa: E402
 from arm.lab import heatfetch_us as U  # noqa: E402
 from arm.lab import bubindfetch as BF  # noqa: E402
-from arm.clock import now_tw  # noqa: E402
+from arm.clock import now_tw, today_tw  # noqa: E402
 
 NAMES = ["us_px_spx", "us_px_ixic", "us_px_ndx", "us_px_sox", "us_vxn", "us_vix3m", "us_dxy", "us_rsp", "us_spy", "us_qqq", "us_qqew",
          "us_h15", "us_h41", "us_m2", "us_z1", "us_gdp", "us_cp", "us_spf", "us_tech_q", "us_tech_a", "fwd_agg",
@@ -72,7 +72,7 @@ def lppls_update() -> None:
 
 
 def daily() -> None:
-    today = date.today().isoformat()
+    today = today_tw().isoformat()
     st = HD.load("_state_us")
     ok = dict(st)
 
@@ -128,7 +128,7 @@ def daily() -> None:
     # 公布日重抓（行事曆官方自動補值，docs/macrocal_fill_plan.md 第二段）：失業率每月第一個週五、CPI 10～15 日，
     # 都是台北 20:30／21:30 公布——上個月的還沒有就讓 21 點以後的班次再抓（heatdata.waiting）
     now = now_tw()
-    once("us_bls", U.bls, date.today().year - 1,
+    once("us_bls", U.bls, today_tw().year - 1,
          force=HD.waiting("us_bls", now, 1, 21, 0) or HD.waiting("us_bls", now, 10, 21, 1))
     fwd_daily(once)
     from arm.lab import usbreadth as UB                      # 美股漲跌家數（S&P 500 成分股；大神策略第三段）

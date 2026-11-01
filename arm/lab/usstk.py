@@ -25,6 +25,7 @@ import time
 import urllib.parse
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from ..clock import today_tw
 
 ROOT = Path(__file__).resolve().parents[2]
 DIR = ROOT / "data" / "lab" / "usstk"
@@ -226,7 +227,7 @@ def weekdays(a: str, b: str) -> list[str]:
 
 def default_until(today: date | None = None) -> str:
     """回補查到哪一天：3 天前（盤後公布的財報隔天才進行事曆，太近的日子先不標成查過）。"""
-    return ((today or date.today()) - timedelta(days=3)).isoformat()
+    return ((today or today_tw()) - timedelta(days=3)).isoformat()
 
 
 def earn_pending(until: str) -> list[str]:
