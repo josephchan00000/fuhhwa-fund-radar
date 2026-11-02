@@ -1,8 +1,39 @@
 {
- "as_of": "2026-11-02 06:49",
+ "as_of": "2026-11-02 19:04",
  "count": 0,
  "fund_count": 0,
- "etf_count": 0,
+ "etf_count": 3,
  "usqm_count": 0,
- "items": []
+ "items": [
+  {
+   "src": "etf",
+   "name": "洲際交易所",
+   "ticker": "ICE",
+   "count": 1,
+   "etfs": [
+    "00998A"
+   ],
+   "weight": 1.38
+  },
+  {
+   "src": "etf",
+   "name": "GENERAL ELECTRIC",
+   "ticker": "GE",
+   "count": 1,
+   "etfs": [
+    "00990A"
+   ],
+   "weight": 1.01
+  },
+  {
+   "src": "etf",
+   "name": "ROYALTY PHARMA PLC- CL A",
+   "ticker": "RPRX",
+   "count": 1,
+   "etfs": [
+    "00990A"
+   ],
+   "weight": 0.64
+  }
+ ]
 }

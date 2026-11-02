@@ -12,17 +12,17 @@
   "mgmt_fee": "1.60%",
   "size_twd": 1776024746.0,
   "nav": 15.15,
-  "nav_date": "2026/10/30",
-  "nav_change": -0.57,
-  "nav_change_pct": "-3.63%",
+  "nav_date": "2026/11/02",
+  "nav_change": 0.0,
+  "nav_change_pct": "0.00%",
   "returns": {
-    "ytd": "58.93%",
-    "3m": "1.62%",
-    "6m": "54.46%",
-    "1y": "78.85%",
-    "2y": "98.70%",
+    "ytd": "46.78%",
+    "3m": "6.02%",
+    "6m": "13.75%",
+    "1y": "50.57%",
+    "2y": "78.94%",
     "3y": "0.00%",
-    "since": "88.20%"
+    "since": "73.81%"
   },
   "managers": [
     "戎宜蘋"
@@ -30,7 +30,7 @@
   "co_managers": [],
   "strategy": "投資於國內上市上櫃公司中，科技相關產業及具有高股息特性之股票，參與長期較佳之企業獲利成長性與股息收益機會。 本基金B類型受益權單位每月評估收益分配，為投資人提供現金流之機會。",
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/123.pdf",
-  "dist_date": "2026/09/30",
+  "dist_date": "2026/10/31",
   "dist_rate": "—",
   "as_of": "2026/09/30",
   "top_holdings": [
@@ -130,7 +130,7 @@
     }
   ],
   "group": "tw_equity",
-  "fetched_at": "2026-11-02 06:48",
+  "fetched_at": "2026-11-02 19:03",
   "returns_daily": {
     "1m": -8.07039,
     "3m": 13.44622,
