@@ -1,8 +1,8 @@
 {
   "as_of": "2026-11-02",
   "perf_asof": "2026-11-02",
-  "fetched_at": "2026/11/03 05:13",
-  "source": "規模／配息殖利率 ← etfinfo.tw（Tier B）；過去一週／一月報酬 ← Yahoo 還原收盤（總報酬口徑）／FinMind／TWSE 官方自算；當月預估配息 ← 證交所／櫃買除權除息預告表、MOPS、主流媒體新聞（2 檔，另 1 檔金額待公告）。正式對外前以各投信官網核對",
+  "fetched_at": "2026/11/03 06:40",
+  "source": "規模／配息殖利率 ← etfinfo.tw（Tier B）；過去一週／一月報酬 ← Yahoo 還原收盤（總報酬口徑）／FinMind／TWSE 官方自算；當月預估配息 ← 證交所／櫃買除權除息預告表、MOPS、主流媒體新聞（6 檔，另 1 檔金額待公告）。正式對外前以各投信官網核對",
   "items": [
     {
       "code": "0056",
@@ -55,12 +55,12 @@
       "ret_1m": -0.26,
       "last_div": 1.01,
       "last_div_date": "2026-08-18",
-      "est_div": null,
-      "est_div_date": null,
+      "est_div": 1.25,
+      "est_div_date": "2026-11-17",
       "est_pend": null,
-      "est_from": null,
-      "est_url": null,
-      "yield_pct": 11.61,
+      "est_from": "Yahoo新聞",
+      "est_url": "https://news.google.com/rss/articles/CBMivgJBVV95cUxNMVloU0s5MVN2bzVoTk9TZ3BvQ1pGWlcxaDJ2bk5iN2pocUtDaXdQajliaW1CZERmUUpQVXhGaEtsS0UzUzBRT2E2d0lGWlBLQ2FMSTVEcTRfU0lrYVg2ZVlUWVlqRWMxZ2hXRjRGYkxSWGxxcl9XRDI5eU9zZ3lLY1lTUmdSM3FSTE0yNmtwRHZFemRDczI1bzBJazhIRVVFckRSUVllV3FGVm9EMGJXYU5KNE42VExzb1ZPZ0dOZjZ5emtRLTlJbnFNRFgxNU9mdVpHUWxOcURlaFpXZTMzbl9VckZfSWtzdlZvYko1UHk2WDl0ZlJ0aUdrSDRvc21xaDd1Z2hoamNpaFpxNENCNWNRcDVIRFh6QUVmbXRCS2FEbW84MGtxMGNta2x2RjloRjVVeXVFWVMwSGNPbHc?oc=5",
+      "yield_pct": 14.37,
       "freq": "季配",
       "chg_pct": -0.03,
       "chg_amt": -0.01,
@@ -80,7 +80,8 @@
       "ret_1m_base": "2026-10-02=34.89",
       "ret_1w_div": null,
       "ret_1m_div": null,
-      "yield_is_est": false
+      "est_src": "news",
+      "yield_is_est": true
     },
     {
       "code": "00919",
@@ -211,12 +212,12 @@
       "ret_1m": -7.61,
       "last_div": 4.75,
       "last_div_date": "2026-07-16",
-      "est_div": null,
-      "est_div_date": null,
+      "est_div": 3.88,
+      "est_div_date": "2026-11-17",
       "est_pend": null,
-      "est_from": null,
-      "est_url": null,
-      "yield_pct": 3.98,
+      "est_from": "ETtoday財經雲",
+      "est_url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTE81eW5MZ2owa1NRYm5jY2Z0a1lrX1ZxTGJRbUxqaW9jcXg3V29ZcVNBa25SaWJaUkxRYWc0cXl6dmh4ZWl6ZEx5MFpkQzQxZDc1a2fSAVBBVV95cUxOVkpsdEdlVWhMNkJsOEJGUkljbUlueWxWVUhubXB6eWJhdVpWcUFLemNDNUI5bTdrcnZaS2N3VVVlRGItUDhkMVVXZlVBaTc3Zg?oc=5",
+      "yield_pct": 3.25,
       "freq": "半年配",
       "chg_pct": -0.87,
       "chg_amt": -2.1,
@@ -236,7 +237,8 @@
       "ret_1m_base": "2026-10-02=258.3",
       "ret_1w_div": null,
       "ret_1m_div": null,
-      "yield_is_est": false
+      "est_src": "news",
+      "yield_is_est": true
     },
     {
       "code": "00980A",
@@ -250,12 +252,12 @@
       "ret_1m": -11.91,
       "last_div": 0.638,
       "last_div_date": "2026-08-18",
-      "est_div": null,
-      "est_div_date": null,
+      "est_div": 0.688,
+      "est_div_date": "2026-11-17",
       "est_pend": null,
-      "est_from": null,
-      "est_url": null,
-      "yield_pct": 11.2,
+      "est_from": "Yahoo股市",
+      "est_url": "https://news.google.com/rss/articles/CBMi3AJBVV95cUxNYkZ6anh5eEZGeTFBVUYwOTJLemNsWlhtamVoVWpDMUhJYTdpWXpocTJNWFJyTHJhZEY3a1l1N0hQdWJOZFo2UDM2a212VndkZVdSMWYtSEMtbE5FZUNScWhnMFA1QzkyZndZbFRUZmhuUk1paURORllFemdXRFBjbXBBYnhUOHZ5NE4yaDBxNUtTMnBuUURxbEdaTHJ5OEY0U1l1WC1VMjdYdDd2UkFUTHV0TWNFNkkzUWR3Y3lpd0V5QXBiZ3V1VG1RWS1WTkd0MEVsZEZVWFo5QTVYWFFRajFfMTR3dTBOWXM0U2YxZkxmTFIxSHF0eThGb2ZoMUZoNjBXYVQ2TS1TTk5CMzh2NXN2cTFOem5xaG9sYXltR3JlSlNmNy11MHNrcXZWUXdYdU1oUlgxUlN3cUlLNllHUkI1WXVUNVU3YTJQLUhIbDRQY21USHBQcHJQNG4?oc=5",
+      "yield_pct": 12.08,
       "freq": "季配",
       "chg_pct": -0.52,
       "chg_amt": -0.12,
@@ -275,7 +277,8 @@
       "ret_1m_base": "2026-10-02=25.87",
       "ret_1w_div": null,
       "ret_1m_div": null,
-      "yield_is_est": false
+      "est_src": "news",
+      "yield_is_est": true
     },
     {
       "code": "00982A",
@@ -289,12 +292,12 @@
       "ret_1m": -13.2,
       "last_div": 0.64,
       "last_div_date": "2026-08-18",
-      "est_div": null,
-      "est_div_date": null,
+      "est_div": 0.78,
+      "est_div_date": "2026-11-17",
       "est_pend": null,
-      "est_from": null,
-      "est_url": null,
-      "yield_pct": 12.4,
+      "est_from": "鉅亨網",
+      "est_url": "https://news.google.com/rss/articles/CBMiT0FVX3lxTFBfd0J6cWxQWklUUi1hT25yR0t2VGxZMG80NGV6T01xXzdOS0toTFZYNE1yXzZ3YWwzVy1pV0NmdVc5Zm5Hamk0RUxLeEdPS28?oc=5",
+      "yield_pct": 15.11,
       "freq": "季配",
       "chg_pct": -0.05,
       "chg_amt": -0.01,
@@ -314,7 +317,8 @@
       "ret_1m_base": "2026-10-02=23.79",
       "ret_1w_div": null,
       "ret_1m_div": null,
-      "yield_is_est": false
+      "est_src": "news",
+      "yield_is_est": true
     },
     {
       "code": "00981A",
