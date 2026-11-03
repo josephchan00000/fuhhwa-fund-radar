@@ -24,7 +24,7 @@ from arm.lab import sigspec as X
 
 
 def test_sig_spec_v1_is_locked():
-    assert X.VER == 27 and X.SPEC_DATE == "2026-11-01"
+    assert X.VER == 28 and X.SPEC_DATE == "2026-11-03"
     assert BS.VER == 4 and "C9" in BS.SIG_MK["tw"] and "C8" in BS.SIG_MK["spx"]   # VER 13：大跌後買點的規則跟著 bottomspec VER 4
     assert X.H_BUY == 60                                                  # VER 10：大跌後買點看買進後 3 個月有沒有漲
     assert X.MARKETS == ("tw", "spx", "ixic", "ndx", "sox")
@@ -284,7 +284,7 @@ def test_sig_spec_v26_listing_by_age_is_locked():
     （0／1～4／5～9／10～19／20～59／60 以上）× 觸發條件還成立或已斷；訊號自己的成績照 ④b 會列、而且今天那一格也過才列（格子只拿掉、
     不多列）；拿掉的放「進行中」；狀態型也分第幾天；買點也只到出現後 H_BUY 天。門檻不變；sig_research、sigoos_research 不動；
     thermo_research 重跑並另存 VER 25 的票（實戰模擬、期貨加碼照舊）。"""
-    assert X.VER == 27 and X.SPEC_DATE == "2026-11-01"
+    assert X.VER >= 27
     assert X.RES_VER == 24 and X.FWD_VER == 25 and X.CAL_VER == 26 and X.AGE_VER == 26
     assert X.AGE_B == (0, 1, 5, 10, 20, 60) and len(X.AGE_NAMES) == len(X.AGE_B)
     assert X.AGE_ST == ("on", "off", "-") and set(X.AGE_ST_NAMES) == set(X.AGE_ST)
@@ -315,4 +315,14 @@ def test_ver27_param_gating_and_inst_note():
     assert X.PARAM_MISS == "參數還沒檢查" and X.PARAM_NONE == "參數檢查還沒算"
     assert X.INST_NOTE == "法人訊號：過去挑出來的，之後多半沒有比平常好"
     assert X.RES_VER == 24 and X.FWD_VER == 25 and X.CAL_VER == 26 and X.AGE_VER == 26
+
+
+def test_ver28_thermo_lean_vs_own_history():
+    """VER 28（2026-11-03，docs/lab_thermo_lean_plan.md）：使用者：「多頭訊號跟空頭訊號的數量有沒有一樣多啊 會不會因為合格的數量比例不同
+    導致會有誤判？」選 A：讀數改看偏多、警示各自和自己過去 10 年比的位置（中位名次差 ≥ 0.20 偏多、≤ −0.20 偏警示），
+    位置算不出來照 VER 27 的偏多占比；列出來的不變；研究檔都不用重跑（新舊比較另存）。"""
+    assert X.VER == 28 and X.LEAN_GAP == 0.20 and X.THERMO_LEAN == 0.6
+    assert (X.CAL_RANK_W, X.CAL_RANK_MIN) == (520, 260)                       # 位置和「過去讀數這樣的時候」同一套
+    assert X.RES_VER == 24 and X.FWD_VER == 25 and X.CAL_VER == 26 and X.AGE_VER == 26
+    assert X.N_MIN == 5 and X.THERMO_EDGE == 0.05 and X.THERMO_CLS == ("up", "buy", "risk")   # 列出來的規則沒動
 
