@@ -81,3 +81,34 @@ def test_fair_html(monkeypatch):
     h = P.fair_html()
     assert "台股分得出" in h and "S&amp;P 500分不出" in h and "S&P" not in h.replace("S&amp;P", "")
     assert "差到 5 點的只有S&amp;P 500短線" in h and "+10.0" in h
+
+
+def test_mark_levels():
+    """列出來的每一類寫強弱、看多那一邊大跌中的強落底另標（sigspec 第 5.8 節，VER 33）：同類裡任何一個是強落底就標、進行中也標、
+    警示那一邊不標落底；每一邊落底排最前、再來強的；不在大跌中不標落底。"""
+    from arm.lab import sigcat as G
+    st = {"n": 8, "hit": 0.9, "base": 0.6}
+    rows = [{"mk": "tw", "id": "a", "cat": "heat", "sig": "cold_in", "H": 20, "up": st},
+            {"mk": "tw", "id": "b", "cat": "heat", "sig": "hot", "H": 20, "up": st},
+            {"mk": "tw", "id": "c", "cat": "inst", "sig": "sell_run10", "H": 20, "up": st},
+            {"mk": "tw", "id": "w", "cat": "heat", "sig": "cold", "H": 20, "warn": st, "up": st}]
+
+    def T0():
+        f1 = {"id": "b", "edge": 0.12, "fam": []}                              # 強、不是落底型
+        f2 = {"id": "x", "edge": 0.06, "fam": [{"id": "c"}]}                   # 弱、同類裡有強落底
+        f3 = {"id": "z", "edge": 0.07, "fam": []}                              # 弱
+        w1 = {"id": "w", "edge": 0.03, "fam": []}                              # 警示：不標落底
+        p1 = {"id": "a"}                                                         # 進行中的強落底
+        th = {"k": "short", "up": [f3, f1, f2], "warn": [w1], "pend": {"up": [p1], "warn": []}}
+        return {"mk": "tw", "thermo": [th], "up": [f3, f1, f2], "warn": [w1]}
+    T = T0()
+    G.mark_levels(T, rows, {"dd60": -0.13})
+    th = T["thermo"][0]
+    assert [f["id"] for f in th["up"]] == ["x", "b", "z"] and th["nbt"] == 1
+    assert [(f["lv"], f["bt"]) for f in th["up"]] == [(False, True), (True, False), (False, False)]
+    assert th["warn"][0]["lv"] is False and th["warn"][0]["bt"] is False
+    assert th["pend"]["up"][0]["bt"] is True and "lv" not in th["pend"]["up"][0]
+    assert [f["id"] for f in T["up"]] == ["x", "b", "z"]
+    T = T0()
+    G.mark_levels(T, rows, None)                                                # 不在大跌中
+    assert T["thermo"][0]["nbt"] == 0 and not any(f["bt"] for f in T["up"]) and [f["id"] for f in T["up"]] == ["b", "z", "x"]

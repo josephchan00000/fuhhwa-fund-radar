@@ -544,6 +544,11 @@ def tq_item(r: dict, ref: str | None, panel: bool = True) -> str:
     from . import sigpage as SPG
     from . import sigspec as SS
     tags = []
+    if "lv" in r:                                                     # VER 33：強弱（第 5.8 節）
+        sd = "warn" if r.get("side") == "warn" else "up"
+        tags.append(f'<span class="tqlv tqlv-{sd}{" tqlv-s" if r["lv"] else ""}">{_e(SS.LEVEL_WORDS[sd][0 if r["lv"] else 1])}</span>')
+    if r.get("bt"):
+        tags.append(f'<span class="tqbt">{_e(SS.BOTTOM_WORD)}</span>')
     if r.get("cls") == "buy":
         tags.append('<span class="tqy">買點</span>')
     orig = _tz_orig(r)
@@ -622,6 +627,7 @@ def tq_pend(p: dict, ref: str | None) -> str:
             tr += f'・到今天 {SPG._sgn(n["chg"])}'
     ip = f'<span class="tqip">{_e(SS.INST_NOTE)}</span>' if p.get("cat") == "inst" else ""
     return (f'<li><a class="tqi tqpi" href="#s={_e(p["id"])}"><span class="tqt"><b>{_e(_tz_name(p))}</b>'
+            + (f'<span class="tqbt">{_e(SS.BOTTOM_WORD)}</span>' if p.get("bt") else "")
             + (f'<span class="tqg">{_e(_tz_orig(p).lstrip("・"))}</span>' if p.get("xk") else "") + '</span>'
             f'<span class="tqpr"{tip}>{_e(rs)}</span>'
             f'<span class="tqs">{_e(SPG.age_head(n, ref, stt))}{"；" + _e(tr) if tr else ""}</span>{ip}</a></li>')
@@ -640,7 +646,9 @@ def _tq_side(xs: list[dict], s: str, th: dict, mk: str | None, ref: str | None, 
         what = f"之後 {hz}內回撤 {SPG._th(x)}% 以上的機率" if x else f"之後 {hz}內大跌的機率"
     nf = sum(len(r.get("fam") or []) for r in xs)
     tip = f' title="{len(xs) + nf} 個訊號，常一起出現的併成一類"' if nf else ""
-    head = (f'<h4 class="tqsh"{tip}><i class="tqd tqd-{s}"></i>{_e(TZ_SIDE[s])}<b>{len(xs)}</b>類'
+    nb = (th.get("nbt") or 0) if s == "up" else 0                    # VER 33：大跌中的強落底類數（第 5.8 節）
+    bn = f'<span class="tqbn">大跌中・{_e(SS.BOTTOM_WORD)}訊號 {nb} 個</span>' if nb else ""
+    head = (f'<h4 class="tqsh"{tip}><i class="tqd tqd-{s}"></i>{_e(SS.SIDE_HEAD[s])}<b>{len(xs)}</b>類{bn}'
             f'<span class="sub">{_e(what)}</span></h4>')
     pend = ((th.get("pend") or {}).get(s)) or []                    # VER 26～27：進行中，清單最下面、預設收起來、不算溫度計
     pd = (f'<details class="tqpd"><summary>進行中 {len(pend)} 個（今天不列）</summary><ul class="tqu tqpu">'
@@ -1986,6 +1994,10 @@ table.oft{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-nume
 .tqok{border-color:var(--acc);color:var(--acc);font-weight:600;cursor:help}
 .tqno{margin:2px 0 4px 14px;font-size:12.5px;color:var(--mut)}
 .tqpm{font-size:11px;padding:0 6px;border-radius:999px;white-space:nowrap;line-height:1.6;border:1px dashed var(--line2);color:var(--mut)}
+.tqlv,.tqbt{font-size:11px;padding:0 6px;border-radius:999px;white-space:nowrap;line-height:1.6;border:1px solid var(--line2);color:var(--mut)}
+.tqlv-up.tqlv-s{border-color:var(--bull);color:var(--bull);font-weight:600}.tqlv-warn.tqlv-s{border-color:var(--bear);color:var(--bear);font-weight:600}
+.tqbt{border-color:var(--bull);background:color-mix(in srgb,var(--bull) 16%,transparent);color:var(--ink);font-weight:600}
+.tqbn{font-size:12px;font-weight:600;color:var(--bull);padding-left:4px}
 .tqip{display:block;font-size:11px;color:var(--mut);line-height:1.5}
 .tqnt{margin:4px 2px 2px;font-size:12px;color:var(--mut)}
 .tqpd summary{cursor:pointer;font-size:12.5px;color:var(--mut);padding:4px 14px}
