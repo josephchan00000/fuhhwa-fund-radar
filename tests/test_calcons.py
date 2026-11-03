@@ -223,16 +223,29 @@ def test_run_fetches_writes_and_reuses_snapshot(tmp_path, monkeypatch):
     r = C.run(TODAY, NOW, cal_dir=tmp_path, get=get, pause=0)
     assert r["wrote"] and _cells(f.read_text(encoding="utf-8"), "JOLTS")[2] == "715萬*"
     assert any("faireconomy" in u for u in asked) and any("2026-11-04" in u for u in asked)
-    assert snap.d["calcons"]["ev"]
+    assert snap.d["calcons"]["FF"]["ev"] and snap.d["calcons"]["NQ"]["ev"]
+    assert "ForexFactory、Nasdaq一致" in f.read_text(encoding="utf-8")
     # push 被拒重算（--no-fetch）：用剛存的事件
     f.write_text(MD, encoding="utf-8")
     r2 = C.run(TODAY, NOW, cal_dir=tmp_path, fetch=False)
     assert r2["wrote"] and _cells(f.read_text(encoding="utf-8"), "JOLTS")[2] == "715萬*"
+    # ForexFactory 這輪回 429：Nasdaq 換新、ForexFactory 用存的（兩邊照樣核對）
+    f.write_text(MD, encoding="utf-8")
+
+    def get429(url):
+        if "faireconomy" in url:
+            raise RuntimeError("HTTP Error 429: Too Many Requests")
+        return get(url)
+
+    r3 = C.run(TODAY, NOW, cal_dir=tmp_path, get=get429, pause=0)
+    assert r3["wrote"] and "ForexFactory、Nasdaq一致" in f.read_text(encoding="utf-8")
+    assert any("ForexFactory 用" in x for x in r3["log"])
     # 兩天前存的不用
     f.write_text(MD, encoding="utf-8")
-    snap.d["calcons"]["as_of"] = "2026-10-31T21:30"
-    r3 = C.run(TODAY, NOW, cal_dir=tmp_path, fetch=False)
-    assert not r3["wrote"] and f.read_text(encoding="utf-8") == MD
+    for src in ("FF", "NQ"):
+        snap.d["calcons"][src]["as_of"] = "2026-10-31T21:30"
+    r4 = C.run(TODAY, NOW, cal_dir=tmp_path, fetch=False)
+    assert not r4["wrote"] and f.read_text(encoding="utf-8") == MD
 
 
 def test_run_survives_both_sources_failing(tmp_path, monkeypatch):

@@ -13,7 +13,8 @@
   · 兩邊都有而數字不同 → 不補（CI 日誌印出來）；只有一邊有也補（Nasdaq 名字分不出月增年增的那幾種只能核對、不能單獨補）。
   · 補上的值後面加「*」（＝市場共識、非官方，和子代理的寫法一樣），「註」加一行「預期自動補」寫哪一列、多少、哪個來源
     （同一行就地更新，不重複加）。
-  · 抓到的事件存一份 data/lab/heat/calcons.json.gz：盤後那支 push 被拒、改用 --no-fetch 重算時沿用（兩天內的才用）。
+  · 抓到的事件兩個來源各存一份 data/lab/heat/calcons.json.gz：某一邊這輪抓不到（ForexFactory 連抓會回 429）、或盤後那支 push 被拒
+    改用 --no-fetch 重算時，用那一邊兩天內存的。
 """
 from __future__ import annotations
 
@@ -513,6 +514,32 @@ def fill(md: str, file_date: date, today: date, now: datetime, events: list) -> 
     return _note("\n".join(lines), entries, f"{now:%m/%d %H:%M}"), acts
 
 
+def merge_snapshot(events: list, now: datetime, save: bool = True) -> tuple[list, list[str]]:
+    """兩個來源各存一份（data/lab/heat/calcons.json.gz：{"FF": {"as_of", "ev"}, "NQ": {…}}）：這次抓到的那一邊換新；
+    沒抓到的那一邊（例 ForexFactory 回 429、push 被拒重算不抓）用存檔裡兩天內的。"""
+    snap = HD.load(SNAP)
+    stamp = now.isoformat(timespec="minutes")
+    out, log, changed = [], [], False
+    for src in ("FF", "NQ"):
+        got = [e for e in events if e[0] == src]
+        if got:
+            out += got
+            snap[src] = {"as_of": stamp, "ev": got}
+            changed = True
+            continue
+        old = snap.get(src) if isinstance(snap.get(src), dict) else {}
+        try:
+            age = (now.replace(tzinfo=None) - datetime.fromisoformat(str(old.get("as_of"))).replace(tzinfo=None)).days
+        except (TypeError, ValueError):
+            age = None
+        if old.get("ev") and age is not None and age < STALE_DAYS:
+            out += old["ev"]
+            log.append(f"{SRC[src]} 用 {str(old['as_of'])[:16]} 存的 {len(old['ev'])} 則")
+    if save and changed:
+        HD.save(SNAP, "ForexFactory 週曆、Nasdaq 經濟日曆", {k: v for k, v in snap.items() if k in ("FF", "NQ")})
+    return out, log
+
+
 def run(today: date, now: datetime, cal_dir=None, fetch: bool = True, write: bool = True, get=None,
         pause: float = 1.0) -> dict:
     """CI 用：補最新一份行事曆的「預期」空白。寫檔前確認表格列數沒變、內容變長；任何一步不對就不寫。"""
@@ -527,17 +554,8 @@ def run(today: date, now: datetime, cal_dir=None, fetch: bool = True, write: boo
     events, log = [], []
     if fetch:
         events, log = fetch_events(qd, get=get, pause=pause)
-        if events:
-            HD.save(SNAP, "ForexFactory 週曆、Nasdaq 經濟日曆", {"as_of": now.isoformat(timespec="minutes"), "ev": events})
-    if not events:
-        snap = HD.load(SNAP)
-        try:
-            age = (now.replace(tzinfo=None) - datetime.fromisoformat(str(snap.get("as_of"))).replace(tzinfo=None)).days
-        except (TypeError, ValueError):
-            age = None
-        if snap.get("ev") and age is not None and age < STALE_DAYS:
-            events = snap["ev"]
-            log.append(f"用 {snap['as_of'][:16]} 存的 {len(events)} 則")
+    events, more = merge_snapshot(events, now, save=fetch)
+    log += more
     if not events:
         return {"file": str(f), "acts": [], "log": log + ["沒有事件可用"], "wrote": False}
     new, acts = fill(md, fd, today, now, events)
