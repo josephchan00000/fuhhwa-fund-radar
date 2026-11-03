@@ -24,7 +24,7 @@ from arm.lab import sigspec as X
 
 
 def test_sig_spec_v1_is_locked():
-    assert X.VER == 28 and X.SPEC_DATE == "2026-11-03"
+    assert X.VER == 29 and X.SPEC_DATE == "2026-11-03"
     assert BS.VER == 4 and "C9" in BS.SIG_MK["tw"] and "C8" in BS.SIG_MK["spx"]   # VER 13：大跌後買點的規則跟著 bottomspec VER 4
     assert X.H_BUY == 60                                                  # VER 10：大跌後買點看買進後 3 個月有沒有漲
     assert X.MARKETS == ("tw", "spx", "ixic", "ndx", "sox")
@@ -321,8 +321,15 @@ def test_ver28_thermo_lean_vs_own_history():
     """VER 28（2026-11-03，docs/lab_thermo_lean_plan.md）：使用者：「多頭訊號跟空頭訊號的數量有沒有一樣多啊 會不會因為合格的數量比例不同
     導致會有誤判？」選 A：讀數改看偏多、警示各自和自己過去 10 年比的位置（中位名次差 ≥ 0.20 偏多、≤ −0.20 偏警示），
     位置算不出來照 VER 27 的偏多占比；列出來的不變；研究檔都不用重跑（新舊比較另存）。"""
-    assert X.VER == 28 and X.LEAN_GAP == 0.20 and X.THERMO_LEAN == 0.6
+    assert X.VER >= 28 and X.LEAN_GAP == 0.20 and X.THERMO_LEAN == 0.6
     assert (X.CAL_RANK_W, X.CAL_RANK_MIN) == (520, 260)                       # 位置和「過去讀數這樣的時候」同一套
     assert X.RES_VER == 24 and X.FWD_VER == 25 and X.CAL_VER == 26 and X.AGE_VER == 26
     assert X.N_MIN == 5 and X.THERMO_EDGE == 0.05 and X.THERMO_CLS == ("up", "buy", "risk")   # 列出來的規則沒動
+
+
+def test_ver29_thermo_numbers_are_votes():
+    """VER 29（2026-11-03，看過 VER 28 的結果之後改；docs/lab_thermo_lean_plan.md 第 6 節）：位置排的是票數，長條旁邊的數字也改寫票數
+    （使用者選「數字改寫票數」）；讀數規則、清單、研究檔都不變。"""
+    assert X.VER == 29 and X.LEAN_GAP == 0.20 and X.THERMO_EDGE == 0.05
+    assert X.RES_VER == 24 and X.FWD_VER == 25 and X.CAL_VER == 26 and X.AGE_VER == 26
 
