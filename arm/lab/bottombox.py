@@ -1,8 +1,8 @@
-"""「可能落底」框（sigspec 第 5.5 節，VER 30；docs/lab_thermo_fair_plan.md 第 4～6 節）。
+"""大跌中的強落底訊號（sigspec 第 5.5 節，VER 30；docs/lab_thermo_fair_plan.md 第 4～7 節）。
 
-今天：大跌中（同 bottom.now）而且有「強的落底型訊號」現在有效 → 今天的訊號最上面一個框＋溫度計小標（today）。
-逐年檢查：每年 1 月 1 日只用那時以前走完的窗口挑強的落底型訊號，那一年每個週末框有沒有出現，之後 3 個月怎麼走（research；
-scripts/run_bottombox.py → data/lab/bottombox_research.json）。只描述＋規格寫定的判定，不影響列出來的訊號與溫度計。
+逐年檢查：每年 1 月 1 日只用那時以前走完的窗口挑強的落底型訊號，那一年每個週末「大跌中而且強的亮著」（原本要上頁面的框）
+有沒有出現，之後 3 個月怎麼走（research；scripts/run_bottombox.py → data/lab/bottombox_research.json）。
+只描述＋規格寫定的判定。VER 31 起框不上頁面（使用者選「併進清單」），VER 32 起清單也不分強弱；結果只在研究紀錄（sigpage.fair_html）。
 """
 from __future__ import annotations
 
@@ -104,7 +104,7 @@ def buy_active(sd0: dict, px, mk: str, T: int) -> np.ndarray:
     return a
 
 
-# ── 今天 ──────────────────────────────────────────────────────────────────────
+# ── 研究檔 ────────────────────────────────────────────────────────────────────
 
 _RES: dict = {}
 
@@ -117,37 +117,6 @@ def load() -> dict | None:
             R = None
         _RES["R"] = R if R and (R.get("ver") or 0) >= S.BOTTOM_VER else None
     return _RES["R"]
-
-
-def today(mk: str, rows: list[dict], on: dict, px, RB=None, R=None) -> dict | None:
-    """今天的框（第 5.5 節）：不在大跌中或沒有強的亮著 → None。
-    → {"dd60", "items": [{"id", "name", "cat", "d", "H", "hz", "n", "hit", "base", "edge", "since"}…]（差大的在前）,
-       "tags": {溫度計: 個數}, "chk": 逐年檢查這個市場的摘要（研究檔有才有）}。RB＝sigcat.robust_index 的結果（None＝不查參數）。"""
-    dn = drop_now(px, mk)
-    if dn is None:
-        return None
-    items = []
-    for r in rows:
-        if r.get("mk") != mk or r.get("id") not in on:
-            continue
-        d = side_of(r)
-        st = r.get(d) if d else None
-        if not d or not strong(st):
-            continue
-        if RB is not None and (RB.get((r["id"], d, None)) or (None,))[0] is False:   # 第 5.2 節：只在這個參數成立
-            continue
-        items.append({"id": r["id"], "name": r.get("name"), "cat": r["cat"], "d": d, "H": int(r.get("H") or S.H_BUY),
-                      "hz": G.horizon(r), "n": int(st["n"]), "hit": float(st["hit"]), "base": float(st["base"]),
-                      "edge": float(st["hit"] - st["base"]), "since": (on.get(r["id"]) or {}).get("since")})
-    if not items:
-        return None
-    items.sort(key=lambda x: (-x["edge"], -x["n"], x["id"]))
-    tags: dict = {}
-    for x in items:
-        tags[x["hz"]] = tags.get(x["hz"], 0) + 1
-    R = load() if R is None else R
-    chk = ((R or {}).get("mk") or {}).get(mk)
-    return {"dd60": dn["dd60"], "items": items, "tags": tags, "chk": None if not chk else {k: chk.get(k) for k in ("v", "box", "drop", "ep")}}
 
 
 # ── 逐年檢查 ──────────────────────────────────────────────────────────────────

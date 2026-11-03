@@ -1,4 +1,4 @@
-"""「可能落底」框（arm/lab/bottombox.py；sigspec 第 5.5 節 VER 30）：哪些算、多強、大跌中、今天的框、判定。"""
+"""大跌中的強落底訊號（arm/lab/bottombox.py；sigspec 第 5.5 節 VER 30）：哪些算、多強、大跌中、判定。"""
 from __future__ import annotations
 
 import numpy as np
@@ -66,21 +66,18 @@ def test_verdict():
     assert BB.verdict(box, {"up": 0.60, "dd": 0.39}, 9) == "no"                    # 大回撤比較多
 
 
-def test_today_box():
-    px = _px()[:215]                                                                 # 5 日急跌後第 10 天，在大跌中
-    st = {"n": 8, "hit": 0.9, "base": 0.6}
-    rows = [
-        {"mk": "tw", "id": "a", "cat": "heat", "sig": "cold_in", "H": 20, "name": "A", "up": st},
-        {"mk": "tw", "id": "b", "cat": "heat", "sig": "cold_in", "H": 20, "name": "B", "up": {"n": 8, "hit": 0.65, "base": 0.6}},
-        {"mk": "tw", "id": "c", "cat": "heat", "sig": "cold", "H": 60, "name": "C", "up": st},
-        {"mk": "tw", "id": "d", "cat": "inst", "sig": "sell_run10", "H": 20, "name": "D", "up": st},
-        {"mk": "tw", "id": "e", "cat": "buy", "H": 60, "name": "E", "buy": {"n": 10, "hit": 0.8, "base": 0.6}},
-        {"mk": "spx", "id": "f", "cat": "buy", "H": 60, "name": "F", "buy": st},
-    ]
-    on = {"a": {"since": "x"}, "b": {}, "d": {}, "e": {}, "f": {}}                    # c 沒亮
-    RB = {("d", "up", None): (False, ["N"])}                                          # d 只在這個參數成立
-    b = BB.today("tw", rows, on, px, RB, R={})
-    assert [x["id"] for x in b["items"]] == ["a", "e"]                                # 差大的在前
-    assert b["tags"] == {"short": 1, "mid": 1} and b["dd60"] < -0.07 and b["chk"] is None
-    assert BB.today("tw", rows, on, _px()[:150], RB, R={}) is None                   # 不在大跌中
-    assert BB.today("tw", rows, {"b": {}}, px, RB, R={}) is None                     # 沒有強的亮著
+def test_fair_html(monkeypatch):
+    """研究紀錄「偏多、警示的強弱」（sigspec 第 5.7 節，VER 32）：兩個研究檔都沒有就不列；有就列兩張表、結論從資料來、名稱有跳脫。"""
+    from arm.lab import sigpage as P
+    from arm.lab import thermocal as TC
+    monkeypatch.setattr(BB, "load", lambda: None)
+    monkeypatch.setattr(TC, "level_load", lambda: None)
+    assert P.fair_html() == ""
+    g = {"n": 10, "up": 0.66, "dd": 0.4}
+    monkeypatch.setattr(BB, "load", lambda: {"mk": {"tw": {"box": g, "drop": {"n": 20, "up": 0.6, "dd": 0.48}, "ep": 9, "v": "ok"},
+                                                    "spx": {"box": g, "drop": {"n": 20, "up": 0.7, "dd": 0.3}, "ep": 9, "v": "no"}}})
+    c = {"up": {"s": [0.8, 200], "w": [0.7, 200], "d": 0.1, "v": "ok"}, "warn": {"s": [0.3, 200], "w": [0.3, 200], "d": 0.0, "v": "no"}}
+    monkeypatch.setattr(TC, "level_load", lambda: {"mk": {"spx": {"cmp": {"short": c}}}})
+    h = P.fair_html()
+    assert "台股分得出" in h and "S&amp;P 500分不出" in h and "S&P" not in h.replace("S&amp;P", "")
+    assert "差到 5 點的只有S&amp;P 500短線" in h and "+10.0" in h

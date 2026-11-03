@@ -505,3 +505,12 @@ def level_research(F: dict | None = None) -> dict:
         mk_out[mk] = G._r({"y0": W["y0"], "cmp": level_compare(W["Y"], W["hist26"], W["hist26s"])})
     return {"ver": S.VER, "spec_date": S.SPEC_DATE, "run": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "last": {mk: F[mk]["cal"][-1] for mk in F}, "mk": mk_out}
+
+
+def level_load() -> dict | None:
+    """強弱分級的逐年檢查（第 5.6 節）研究檔；沒有或版本不夠＝None（研究紀錄 sigpage.fair_html 用）。"""
+    try:
+        R = json.loads(LEVEL_OUT.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return R if (R.get("ver") or 0) >= S.LEVEL_VER else None
