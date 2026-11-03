@@ -221,6 +221,7 @@ def test_now_counts_active_votes_and_ranks_against_research(monkeypatch, tmp_pat
     assert w["n"] == 2 and abs(w["pct"] - (prior < 2).mean()) < 1e-12 and w["grp"] == "hi" and w["v"] == "none"
     u = N["long"]["up"]
     assert u["n"] == 1 and u["pct"] == 0.5 and u["grp"] == "hi" and u["rate"] == 0.7 and u["all"] == 0.6 and u["v"] == "rel"
+    assert u["mid"] == 0.75 and abs(w["mid"] - ((prior < 2).sum() + 0.5 * (prior == 2).sum()) / 300) < 1e-12   # VER 28 的位置＝中位名次
     assert TC.now("spx", on, xon, None) is None
     TC._CACHE.clear()
 
@@ -271,3 +272,62 @@ def test_research_file_covers_markets_and_is_this_year():
                 V = h[side]
                 assert V["v"] in ("rel", "rev", "none", "few") and set(V["g"]) == set(TC.GROUPS)
                 assert sum(V["g"][g][1] for g in TC.GROUPS) == V["all"][1]
+
+
+# ── VER 28：讀數改看兩邊各自的位置（sigspec 第 5.3 節） ──────────────────────
+
+def test_ver28_lean_rules():
+    assert TC.lean_old(8, 14) == "warn" and TC.lean_old(6, 4) == "up" and TC.lean_old(5, 5) == "even" and TC.lean_old(0, 0) == "none"
+    assert TC.lean_new(0.88, 0.83) == "even" and TC.lean_new(0.9, 0.7) == "up" and TC.lean_new(0.5, 0.7) == "warn"
+    assert TC.lean_new(0.7, 0.5) == "up" and TC.lean_new(0.3, 0.5) == "warn"           # 剛好差 0.20（浮點誤差不影響）
+    assert TC.lean_new(0.69, 0.5) == "even"
+
+
+def test_lean_compare_hz_walk_forward():
+    """新舊比較：位置只和自己之前的週比（前 CAL_RANK_MIN 週排不出位置、不算）；警示一直比偏多多時舊讀數不會寫偏多。"""
+    n = 600
+    u = [1 + (i % 5) for i in range(n)]
+    w = [6 + ((i + 2) % 5) for i in range(n)]
+    t = list(range(n))
+    Yu = np.array([1.0 if u[i] >= 4 else 0.0 for i in range(n)])
+    Yw = np.array([1.0 if w[i] >= 9 else 0.0 for i in range(n)])
+    Yu[-10:] = np.nan                                                             # 窗口還沒走完
+    r = TC.lean_compare_hz({"t": t, "u": u, "w": w}, (Yu, Yw, None))
+    assert r["weeks"] == n - S.CAL_RANK_MIN and r["all"]["n"] == r["weeks"] - 10
+    assert r["old"]["up"]["weeks"] == 0 and r["old"]["warn"]["weeks"] > 0
+    assert sum(r["new"][lb]["weeks"] for lb in TC.LEANS) == r["weeks"] == sum(sum(x.values()) for x in r["cross"].values())
+    # 和直接照定義算的一樣
+    ru, rw = TC.rank(u), TC.rank(w)
+    lab = {j: TC.lean_new(ru[j][1], rw[j][1]) for j in range(S.CAL_RANK_MIN, n)}
+    sel = [j for j, x in lab.items() if x == "up" and not np.isnan(Yu[j])]
+    assert r["new"]["up"]["n"] == len(sel) and abs(r["new"]["up"]["up"] - Yu[sel].mean()) < 1e-12
+    sel_w = [j for j, x in lab.items() if x == "warn" and not np.isnan(Yu[j])]
+    assert abs(r["sep"]["new"]["up"] - (Yu[sel].mean() - Yu[sel_w].mean())) < 1e-12
+    assert abs(r["sep"]["new"]["dd"] - (Yw[sel_w].mean() - Yw[sel].mean())) < 1e-12
+    assert r["sep"]["old"]["up"] is None                                            # 舊讀數沒有偏多的週
+
+
+def test_relean_uses_own_history_positions_and_bars():
+    from arm.lab import heatviz as VZ
+    T = {"thermo": [
+        {"k": "short", "name": "短線", "h": "看 1 個月", "H": 20, "n": {"up": 8, "warn": 14}, "share": 8 / 22, "lean": "warn", "up": [], "warn": []},
+        {"k": "mid", "name": "中線", "h": "看 3 個月", "H": 60, "n": {"up": 0, "warn": 0}, "share": None, "lean": None, "up": [], "warn": []},
+        {"k": "long", "name": "長線", "h": "看 12 個月", "H": 250, "n": {"up": 2, "warn": 5}, "share": 2 / 7, "lean": "warn", "up": [], "warn": []}],
+        "cal": {"short": {"up": {"n": 9, "mid": 0.88, "pct": 0.86}, "warn": {"n": 21, "mid": 0.83, "pct": 0.80}},
+                "mid": {"up": {"n": 0, "mid": 0.2, "pct": 0.0}, "warn": {"n": 0, "mid": 0.1, "pct": 0.0}},
+                "long": {"up": {"n": 2, "mid": None, "pct": None}, "warn": {"n": 7, "mid": 0.5, "pct": 0.45}}}}
+    G.relean(T)
+    s, m, lg = T["thermo"]
+    assert s["lean"] == "even" and s["pos"] == {"up": 0.88, "warn": 0.83}             # 兩邊都比平常多，偏多沒有突出 0.20 以上
+    assert m["lean"] is None and m["pos"] == {"up": 0.2, "warn": 0.1}                 # 兩邊都沒有列出來＝中性
+    assert lg["lean"] == "warn" and lg["pos"] is None                                 # 位置算不出來照 VER 27
+    h = VZ.thermo_card(T, "tw")
+    assert s["votes"] == {"up": 9, "warn": 21} and lg["votes"] is None
+    assert "width:88.0%" in h and "width:83.0%" in h and "差不多" in h
+    assert "偏多 9 個訊號亮著，比過去 10 年 86% 的週多；列出來的 8 類" in h                     # VER 29：數字＝票數，滑過去寫類數
+    assert '<span class="tqc tqc-w">21</span>' in h and '<span class="tqc tqc-u">9</span>' in h
+    assert '<span class="tqc tqc-w">5</span>' in h and '<span class="tqc tqc-u">2</span>' in h   # 位置算不出來的那一列照舊寫類數
+    assert "width:14.3%" in h and "width:35.7%" in h                                   # 長線照類數畫（三列共用一把尺，最大 14）：2÷14、5÷14
+    G.relean({"thermo": T["thermo"], "cal": None})                                     # 研究檔沒有：位置拿掉、讀數不動
+    assert all(th["pos"] is None for th in T["thermo"]) and T["thermo"][0]["lean"] == "even"
+

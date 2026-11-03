@@ -336,7 +336,7 @@ def counts_now(M: dict, on: dict, xon: dict | None, rule: str = "v26") -> dict:
 
 
 def now(mk: str, on: dict, xon: dict | None, d: str | None, rule: str = "v26") -> dict | None:
-    """每支溫度計兩邊：{溫度計: {"H", "th", 邊: {"n": 票數, "pct": 比它少的週的比例, "grp", "rate", "all", "v", "ci"}}}；
+    """每支溫度計兩邊：{溫度計: {"H", "th", 邊: {"n": 票數, "pct": 比它少的週的比例, "mid": 中位名次, "grp", "rate", "all", "v", "ci"}}}；
     研究檔沒有這個市場回 None。位置＝和研究檔最後 CAL_RANK_W 個週末（早於資料日的）比。
     rule＝"v25"：研究檔另存的舊票與舊的位置（實戰模擬的實測區用，practspec 寫的是那一套）。"""
     R = load()
@@ -357,12 +357,89 @@ def now(mk: str, on: dict, xon: dict | None, d: str | None, rule: str = "v26") -
             n = cnt[k][c]
             V = h[side]
             if len(prior) < S.CAL_RANK_MIN:
-                res[side] = {"n": n, "pct": None, "grp": None, "v": V["v"]}
+                res[side] = {"n": n, "pct": None, "mid": None, "grp": None, "v": V["v"]}
                 continue
             lt, eq = float((prior < n).sum()), float((prior == n).sum())
-            g = group((lt + 0.5 * eq) / len(prior))
-            res[side] = {"n": n, "pct": lt / len(prior), "grp": g, "rate": V["g"][g][0], "nw": V["g"][g][1],
+            mid = (lt + 0.5 * eq) / len(prior)                     # 中位名次（分三組用；VER 28 的讀數也用它）
+            g = group(mid)
+            res[side] = {"n": n, "pct": lt / len(prior), "mid": mid, "grp": g, "rate": V["g"][g][0], "nw": V["g"][g][1],
                          "hi": V["g"]["hi"][0], "lo": V["g"]["lo"][0], "all": V["all"][0], "v": V["v"],
                          "ci": V.get("ci"), "d": V.get("d")}
         out[k] = res
     return out
+
+
+# ── VER 28：讀數改看兩邊各自的位置（sigspec 第 5.3 節） ──────────────────────────
+
+def lean_old(u: float, w: float) -> str:
+    """VER 27 的讀數（偏多占比 ≥ THERMO_LEAN 偏多、≤ 1 − THERMO_LEAN 偏警示）：u、w＝兩邊的數；兩邊都是 0＝"none"（中性）。"""
+    tot = u + w
+    if not tot:
+        return "none"
+    sh = u / tot
+    return "up" if sh >= S.THERMO_LEAN else "warn" if sh <= 1 - S.THERMO_LEAN else "even"
+
+
+def lean_new(pu: float, pw: float) -> str:
+    """VER 28 的讀數：兩邊位置（中位名次）的差 d＝pu − pw，≥ LEAN_GAP 偏多、≤ −LEAN_GAP 偏警示、其餘差不多（兩邊都是 0 另外判）。"""
+    d = round(pu - pw, 9)
+    return "up" if d >= S.LEAN_GAP else "warn" if d <= -S.LEAN_GAP else "even"
+
+
+LEAN_OUT = ROOT / "data" / "lab" / "thermolean_research.json"
+LEANS = ("up", "even", "warn", "none")
+
+
+def lean_compare_hz(h: dict, Y: tuple) -> dict:
+    """一支溫度計的新舊比較（第 5.3 節，只描述）：h＝逐年滾動的週末票數 {"t", "u", "w"}，Y＝outcomes(...)。
+    只算兩套都有讀數的週（新的那一套排得出位置）。→ {"weeks", "from", "to", "all": {"n", "up", "dd"},
+    "old"／"new": {讀數: {"weeks", "n", "up", "dd"}}, "sep": {"old"／"new": {"up", "dd"}}, "cross": {舊讀數: {新讀數: 週數}}}
+    （lean_compare 把 "t0"、"t1" 換成 "from"、"to" 日期）。"""
+    Yu, Yw, _ = Y
+    ru, rw = rank(h["u"]), rank(h["w"])
+    rows = []
+    for j, t in enumerate(h["t"]):
+        if ru[j] is None or rw[j] is None:
+            continue
+        u, w = h["u"][j], h["w"][j]
+        o = lean_old(u, w)
+        nw = "none" if not (u + w) else lean_new(ru[j][1], rw[j][1])
+        rows.append((t, o, nw, float(Yu[t]), float(Yw[t])))
+
+    def agg(sel):
+        ys = [(a, b) for a, b in sel if not (np.isnan(a) or np.isnan(b))]
+        return {"weeks": len(sel), "n": len(ys), "up": float(np.mean([a for a, _ in ys])) if ys else None,
+                "dd": float(np.mean([b for _, b in ys])) if ys else None}
+    out = {"weeks": len(rows), "t0": rows[0][0] if rows else None, "t1": rows[-1][0] if rows else None,
+           "all": agg([(r[3], r[4]) for r in rows])}
+    for i, tag in ((1, "old"), (2, "new")):
+        out[tag] = {lb: agg([(r[3], r[4]) for r in rows if r[i] == lb]) for lb in LEANS}
+    out["sep"] = {}
+    for tag in ("old", "new"):
+        U, W = out[tag]["up"], out[tag]["warn"]
+        out["sep"][tag] = {"up": None if U["up"] is None or W["up"] is None else U["up"] - W["up"],
+                           "dd": None if U["dd"] is None or W["dd"] is None else W["dd"] - U["dd"]}
+    out["cross"] = {a: {b: sum(1 for r in rows if r[1] == a and r[2] == b) for b in LEANS} for a in LEANS}
+    return out
+
+
+def lean_compare(F: dict) -> dict:
+    """一個市場三支溫度計的新舊比較（VER 26 的票，_weekly(age=True) 的 hist26）。"""
+    W = _weekly(F, age=True)
+    cal = F["cal"]
+    out = {}
+    for k in S.THERMO_H:
+        h = W["hist26"][k]
+        r = lean_compare_hz(h, W["Y"][k])
+        t0, t1 = r.pop("t0"), r.pop("t1")
+        r["from"], r["to"] = (cal[t0], cal[t1]) if t0 is not None else (None, None)
+        r["H"], r["th"] = S.THERMO_H[k], G.warn_th(F["mk"], S.THERMO_H[k])
+        out[k] = r
+    return out
+
+
+def lean_research(F: dict | None = None) -> dict:
+    """五個市場的新舊比較（scripts/run_thermolean.py → data/lab/thermolean_research.json）。"""
+    F = F if F is not None else G.frames()
+    return {"ver": S.VER, "spec_date": S.SPEC_DATE, "run": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "last": {mk: F[mk]["cal"][-1] for mk in F}, "mk": {mk: G._r(lean_compare(F[mk])) for mk in S.MARKETS if mk in F}}
