@@ -11,7 +11,6 @@
 from __future__ import annotations
 
 import json
-import re
 import sys
 import time
 from datetime import date, timedelta
@@ -134,11 +133,43 @@ def match_week() -> None:
             p(f"      NQ {x.get('eventName')} ｜{x.get('consensus')!r}／{x.get('previous')!r}／{x.get('actual')!r}")
 
 
+def compare(name: str, today) -> None:
+    """第二輪（arm/calcons.py 寫好之後）：拿某一份行事曆，對照表對得上的每一列印「表上的預期」和「兩個來源算出來的」，
+    再試補一次（不寫檔）。過去的週只有 Nasdaq（ForexFactory 只給本週）。"""
+    from arm import calcons as K
+    from arm import calfill as CF
+    path = ROOT / "reports" / "macrocal" / f"{name}.md"
+    if not path.exists():
+        p(f"  沒有 {path.name}")
+        return
+    md, fd = path.read_text(encoding="utf-8"), today
+    rows = [(c, r, rel) for _i, c, r, rel in CF._rows(md, fd)
+            if rel and -K.BACK <= (rel - today).days <= K.AHEAD and K.match(r)]
+    qd = sorted({rel + timedelta(days=k) for _c, _r, rel in rows for k in range(-1, 3)})
+    ev, log = K.fetch_events(qd, pause=1.0)
+    for x in log:
+        p(f"  {x}")
+    p(f"  {path.name}：對照表對得上 {len(rows)} 列")
+    for c, r, rel in rows:
+        txt, src = K.value_for(r, rel, c[4], ev)
+        p(f"    {c[0]} {c[1]} ｜表上預期 {c[2]}｜實際 {c[3]}｜{c[5]} → 來源 {txt or '—'}（{src}）")
+    new, acts = K.fill(md, fd, today, clock.now_tw(), ev)
+    p(f"  試補：{sum(1 for a in acts if a['kind'] == 'fill')} 列")
+    for a in acts:
+        p(f"    {a['kind']} {a['item']} {a.get('value', '')} {a.get('src', a.get('why', ''))}")
+    for ln in new.split("\n"):
+        if ln.startswith(K.NOTE_HEAD):
+            p(f"  註：{ln}")
+
+
 def main() -> int:
     t0 = time.time()
     try:
-        for name, fn in (("1. ForexFactory 週曆", ff), ("2. Nasdaq 經濟日曆", nasdaq), ("3. 本週行事曆各列的候選", match_week)):
-            run(name, fn)
+        # 第一輪（11/3 18:5x）：1. ForexFactory 週曆、2. Nasdaq 經濟日曆、3. 本週行事曆各列的候選 —— 結果看過、決定了對照表
+        today = clock.today_tw()
+        for name, d in (("2026-10-19", date(2026, 10, 19)), ("2026-10-26", date(2026, 10, 26)),
+                        (today.isoformat(), today)):
+            run(f"4. 試補 {name}", lambda name=name, d=d: compare(name, d))
     finally:
         p(f"\n總共 {time.time() - t0:.0f} 秒；{clock.stamp_tw()}")
         OUT.parent.mkdir(parents=True, exist_ok=True)
