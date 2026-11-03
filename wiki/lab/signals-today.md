@@ -1,8 +1,8 @@
 # 今天的清單、進行中與溫度計
 
-> 市場頁「今天的訊號」列哪些、拿掉的放哪裡、每一條寫什麼原因；溫度計與「過去讀數這樣的時候」怎麼算（現行 sigspec VER 29）。
-> 原始資料：規劃 `docs/lab_signal_listing_plan.md`（VER 26）、`docs/lab_signal_quality_plan.md` 第 14 節（VER 27）、`docs/lab_thermo_lean_plan.md`（VER 28～29）；程式：`arm/lab/sigcat.py`（`listing`／`today`／`board`／`now_market`）、`arm/lab/sigage.py`、`arm/lab/thermocal.py`、`arm/lab/heatviz.py`、`arm/lab/sigpage.py`
-> 最後更新：2026-11-03
+> 市場頁「今天的訊號」列哪些、拿掉的放哪裡、每一條寫什麼原因；溫度計與「過去讀數這樣的時候」怎麼算；偏多、警示要不要分強弱（現行 sigspec VER 32）。
+> 原始資料：規劃 `docs/lab_signal_listing_plan.md`（VER 26）、`docs/lab_signal_quality_plan.md` 第 14 節（VER 27）、`docs/lab_thermo_lean_plan.md`（VER 28～29）、`docs/lab_thermo_fair_plan.md`（VER 30～32）；程式：`arm/lab/sigcat.py`（`listing`／`today`／`board`／`now_market`）、`arm/lab/sigage.py`、`arm/lab/thermocal.py`、`arm/lab/heatviz.py`、`arm/lab/sigpage.py`、`arm/lab/bottombox.py`
+> 最後更新：2026-11-04
 
 ## 現在怎麼運作
 
@@ -56,6 +56,7 @@
 - 溫度計下面的過去比較不扣參數不穩定的（偷看未來）。
 - 讀數不比兩邊數量的占比：警示那一邊合格的本來就多（大回撤比上漲少見，同樣差 5 點比較容易過），比占比會一直偏警示（`docs/lab_thermo_lean_plan.md` 第 2 節）。
 - 長條旁邊的數字和位置排的必須是同一個數（票數）；清單是類數，兩個不一樣多是正常的。
+- 清單不分強弱（不標「多／偏多」「警示／偏警示」）、沒有「可能落底」框（VER 32）：逐年檢查看，比任一天高 10 點以上的偏多訊號之後沒有比 5～10 點的好；要重提先看研究紀錄「偏多、警示的強弱」那一段（`sigpage.fair_html`，研究檔 `bottombox_research.json`、`thermolevel_research.json`）。
 - 主頁面用字：方法字不上頁面，「任一天」一個比較只寫一次（`PARAM_NA` 曾因含「看不出」改字）。
 - 均線狀態差距在浮點誤差內＝相等（`sigage._sgn`，同 `sigverify._side`）：S&P 500 2003-10-22 收盤剛好等於 20 日均線，原本算成在下面（第二套抓到）。
 - 第 26 版的格子、逐年紀錄、溫度計兩版的票都有第二套算法（`sigverify.check_age`、`check_thermo`），每週六一起核對。
@@ -71,3 +72,9 @@
   讀數改看兩邊各自和自己過去 10 年比的位置。過去 10 年舊讀數寫偏警示的週 33～76%、偏多 8～28%；新舊比較（全部滾動的週）新讀數分得出之後上漲的 15 支裡 12 支較好、
   大回撤差不多（規劃第 5 節）。看結果時發現旁邊寫的類數和位置排的票數不是同一個數（台股長線類數 3／2、票數 6／19），問使用者後選「數字改寫票數」（VER 29）。
   11/3 台股三支從「差不多、差不多、偏多」變成三支都偏警示；美股 12 支新舊都是偏警示。
+- VER 30～32（2026-11-04，B：「偏多、警示合格的門檻公不公平」；規劃 `docs/lab_thermo_fair_plan.md`）：診斷——警示合格得多主要是真的
+  （短期大回撤比較好預測），偏多過了的三分之二像運氣。使用者不採「像運氣的不列」：「因為市場長期多頭所以你可能會覺得像運氣，但我覺得也合理，
+  反而是一些更好的訊號應該可以判定為即將落底的強力訊號？」→ VER 30「可能落底」框（大跌中＋落底型、比任一天高 10 點的訊號亮著）：
+  逐年檢查台股分得出（之後 3 個月漲 66% vs 大跌中每一週 60%、大回撤 40% vs 48%），美股四個指數分不出。使用者：「可能落底跟看多訊號應該可以合在一起吧」
+  → VER 31 改成清單每一列分強弱（多／偏多、警示／偏警示）：逐年檢查看多 15 支只有台股長線分得出、警示強的一致但只多 1～7 點
+  → VER 32 使用者選「都不標」。頁面照 VER 29，兩個檢查放研究紀錄。
