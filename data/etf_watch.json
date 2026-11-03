@@ -1,7 +1,7 @@
 {
   "as_of": "2026-11-03",
   "perf_asof": "2026-11-03",
-  "fetched_at": "2026/11/03 15:38",
+  "fetched_at": "2026/11/03 19:03",
   "source": "規模／配息殖利率 ← etfinfo.tw（Tier B）；過去一週／一月報酬 ← Yahoo 還原收盤（總報酬口徑）／FinMind／TWSE 官方自算；當月預估配息 ← 證交所／櫃買除權除息預告表、MOPS、主流媒體新聞（5 檔，另 2 檔金額待公告）。正式對外前以各投信官網核對",
   "items": [
     {
@@ -36,7 +36,7 @@
       "perf_asof": "2026-11-03",
       "ret_src": "yahoo",
       "src": "official_px+etfinfo",
-      "ret_n": 62,
+      "ret_n": 63,
       "ret_1w_base": "2026-10-27=56.55",
       "ret_1m_base": "2026-10-02=57.05",
       "ret_1w_div": null,
@@ -316,7 +316,8 @@
       "ret_1m_base": "2026-10-02=23.79",
       "ret_1w_div": null,
       "ret_1m_div": null,
-      "yield_is_est": false
+      "est_src": "news",
+      "yield_is_est": true
     },
     {
       "code": "00981A",
@@ -467,7 +468,7 @@
       "perf_asof": "2026-11-03",
       "ret_src": "yahoo",
       "src": "official_px+etfinfo",
-      "ret_n": 62,
+      "ret_n": 63,
       "ret_1w_base": "2026-10-27=16.45",
       "ret_1m_base": "2026-10-02=18.69",
       "ret_1w_div": null,
@@ -996,8 +997,8 @@
       "est_div": 0.12,
       "est_div_date": "2026-11-06",
       "est_pend": null,
-      "est_from": "FTNN 新聞網",
-      "est_url": "https://news.google.com/rss/articles/CBMiS0FVX3lxTFA0b1c1eE4yZUd6SWJBMHhiZFM4eVJOT0E3MVVOSlBpR1lmTW1LX0hUdkZ1SURDb25rYnM1MHlhREx3WEtnQjl4SUlXRQ?oc=5",
+      "est_from": "Yahoo股市",
+      "est_url": "https://news.google.com/rss/articles/CBMiuwJBVV95cUxOcFVZQW1sVG9Ic3RfR0p0ZUdpbVdQbTNnSzJQSktYcHFQMFBUdFJpNlFLYVUyUjFjWGJHVHc2U2s1MEpEYVVxYUUyU2dLUG02TlJVeXNTbEFzMVltbVJaNEEyTTFUWkVlb0p4amFoMHo1UFhySHVxRG1GbWc2MVN3U3g3QnI3R2xORi1pR3EzLWl1aXE1QWtqYnRBS3IxbDZiWWFFUjcxY0VGZ2NPU0l2QnRQTVNpc0NST3NhcHY1ZWhVVm1JUmNPd1RmcEU5SnJoQlZQbFdZT1ZBN2taN3VUbTBEa0s2dlYyVHVJWHoyaVpzWkRORDlONkxId1I4LXV0UUVVVkxQX2dkRGxwOXJVazVOUGd3cEFqb2F6ZU9icFgzbE83VU1jMS1YM0xkZG1sMy1qZk40OGJ2T0U?oc=5",
       "yield_pct": 11.15,
       "freq": "月配",
       "chg_pct": -6.38,
@@ -1013,7 +1014,7 @@
       "perf_asof": "2026-11-03",
       "ret_src": "yahoo",
       "src": "official_px+etfinfo",
-      "ret_n": 62,
+      "ret_n": 63,
       "ret_1w_base": "2026-10-27=14.18",
       "ret_1m_base": "2026-10-02=15.78",
       "ret_1w_div": null,
@@ -1405,7 +1406,7 @@
       "perf_asof": "2026-11-03",
       "ret_src": "yahoo",
       "src": "official_px+etfinfo",
-      "ret_n": 48,
+      "ret_n": 49,
       "ret_1w_base": "2026-10-27=8.95",
       "ret_1m_base": "2026-10-02=10.3",
       "ret_1w_div": null,
