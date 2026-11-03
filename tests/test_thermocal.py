@@ -313,16 +313,20 @@ def test_relean_uses_own_history_positions_and_bars():
         {"k": "short", "name": "短線", "h": "看 1 個月", "H": 20, "n": {"up": 8, "warn": 14}, "share": 8 / 22, "lean": "warn", "up": [], "warn": []},
         {"k": "mid", "name": "中線", "h": "看 3 個月", "H": 60, "n": {"up": 0, "warn": 0}, "share": None, "lean": None, "up": [], "warn": []},
         {"k": "long", "name": "長線", "h": "看 12 個月", "H": 250, "n": {"up": 2, "warn": 5}, "share": 2 / 7, "lean": "warn", "up": [], "warn": []}],
-        "cal": {"short": {"up": {"mid": 0.88, "pct": 0.86}, "warn": {"mid": 0.83, "pct": 0.80}},
-                "mid": {"up": {"mid": 0.2, "pct": 0.0}, "warn": {"mid": 0.1, "pct": 0.0}},
-                "long": {"up": {"mid": None, "pct": None}, "warn": {"mid": 0.5, "pct": 0.45}}}}
+        "cal": {"short": {"up": {"n": 9, "mid": 0.88, "pct": 0.86}, "warn": {"n": 21, "mid": 0.83, "pct": 0.80}},
+                "mid": {"up": {"n": 0, "mid": 0.2, "pct": 0.0}, "warn": {"n": 0, "mid": 0.1, "pct": 0.0}},
+                "long": {"up": {"n": 2, "mid": None, "pct": None}, "warn": {"n": 7, "mid": 0.5, "pct": 0.45}}}}
     G.relean(T)
     s, m, lg = T["thermo"]
     assert s["lean"] == "even" and s["pos"] == {"up": 0.88, "warn": 0.83}             # 兩邊都比平常多，偏多沒有突出 0.20 以上
     assert m["lean"] is None and m["pos"] == {"up": 0.2, "warn": 0.1}                 # 兩邊都沒有列出來＝中性
     assert lg["lean"] == "warn" and lg["pos"] is None                                 # 位置算不出來照 VER 27
     h = VZ.thermo_card(T, "tw")
-    assert "width:88.0%" in h and "width:83.0%" in h and "偏多 8 類，比過去 10 年 86% 的週多" in h and "差不多" in h
+    assert s["votes"] == {"up": 9, "warn": 21} and lg["votes"] is None
+    assert "width:88.0%" in h and "width:83.0%" in h and "差不多" in h
+    assert "偏多 9 個訊號亮著，比過去 10 年 86% 的週多；列出來的 8 類" in h                     # VER 29：數字＝票數，滑過去寫類數
+    assert '<span class="tqc tqc-w">21</span>' in h and '<span class="tqc tqc-u">9</span>' in h
+    assert '<span class="tqc tqc-w">5</span>' in h and '<span class="tqc tqc-u">2</span>' in h   # 位置算不出來的那一列照舊寫類數
     assert "width:14.3%" in h and "width:35.7%" in h                                   # 長線照類數畫（三列共用一把尺，最大 14）：2÷14、5÷14
     G.relean({"thermo": T["thermo"], "cal": None})                                     # 研究檔沒有：位置拿掉、讀數不動
     assert all(th["pos"] is None for th in T["thermo"]) and T["thermo"][0]["lean"] == "even"

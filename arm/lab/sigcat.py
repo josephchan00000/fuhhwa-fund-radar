@@ -1321,8 +1321,8 @@ def today_for(now: dict | None) -> dict | None:
 
 def relean(T: dict) -> None:
     """sigspec 第 5.3 節（VER 28）：溫度計的讀數改看偏多、警示兩邊各自和自己過去 10 年比的位置（thermocal.now 的中位名次 "mid"），
-    每支溫度計多 "pos"（{邊: 位置}，長條用）與 "pct"（{邊: 比它少的週的比例}，滑過去的字用）；兩邊列出來的類數都是 0 照舊中性；
-    位置算不出來的那一支 "pos"＝None、讀數照 VER 27（board 算的偏多占比）。"""
+    每支溫度計多 "pos"（{邊: 位置}，長條用）、"pct"（{邊: 比它少的週的比例}，滑過去的字用）與 "votes"（{邊: 今天的票數}，
+    VER 29：長條旁邊的數字）；兩邊列出來的類數都是 0 照舊中性；位置算不出來的那一支三個都是 None、讀數照 VER 27（board 算的偏多占比）。"""
     from . import thermocal as TC
     C = T.get("cal") or {}
     for th in T.get("thermo") or []:
@@ -1330,10 +1330,11 @@ def relean(T: dict) -> None:
         cu, cw = c.get("up") or {}, c.get("warn") or {}
         pu, pw = cu.get("mid"), cw.get("mid")
         if pu is None or pw is None:
-            th["pos"] = th["pct"] = None
+            th["pos"] = th["pct"] = th["votes"] = None
             continue
         th["pos"] = {"up": pu, "warn": pw}
         th["pct"] = {"up": cu.get("pct"), "warn": cw.get("pct")}
+        th["votes"] = {"up": cu.get("n"), "warn": cw.get("n")}
         if th["n"]["up"] + th["n"]["warn"]:
             th["lean"] = TC.lean_new(pu, pw)
 

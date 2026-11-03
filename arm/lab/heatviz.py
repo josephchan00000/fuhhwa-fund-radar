@@ -418,9 +418,10 @@ def _pos_txt(pct: float | None) -> str:
 
 
 def thermo_card(T: dict, mk: str | None) -> str:
-    """溫度計（sigspec 第 5 節 ④b，VER 23；第 5.3 節，VER 28）：短線、中線、長線三列；中線＝0，警示往左、偏多往右的細長條，
-    長度＝那一邊和自己過去 10 年比的位置（0～100%；sigcat.relean 的 "pos"），位置算不出來的那一列照舊＝類數（三列共用同一把尺）；
-    旁邊的數字＝類數；右邊＝讀數（偏多／偏警示／差不多／中性）。每一列是切換下面清單的標籤（label for 那一段的 radio）。"""
+    """溫度計（sigspec 第 5 節 ④b，VER 23；第 5.3、5.4 節，VER 28～29）：短線、中線、長線三列；中線＝0，警示往左、偏多往右的細長條，
+    長度＝那一邊和自己過去 10 年比的位置（0～100%；sigcat.relean 的 "pos"），旁邊的數字＝今天亮著的訊號數（票數，"votes"），
+    滑過去寫位置與列出來的類數；位置算不出來的那一列照舊：長度與數字都是類數（三列共用同一把尺）。
+    右邊＝讀數（偏多／偏警示／差不多／中性）。每一列是切換下面清單的標籤（label for 那一段的 radio）。"""
     ths = T.get("thermo") or []
     mx = max([1] + [th["n"][s] for th in ths for s in ("up", "warn")])
     rows = []
@@ -428,22 +429,24 @@ def thermo_card(T: dict, mk: str | None) -> str:
         n = th["n"]
         lean = th.get("lean")
         word = TZ_LEAN.get(lean) or "中性"
-        lab = f'{th["name"]}（持有 {_tq_hz(th)}）：警示 {n["warn"]} 類、偏多 {n["up"]} 類，{word}'
-        pos, pct = th.get("pos"), th.get("pct") or {}
-        if pos:
+        pos, pct, vt = th.get("pos"), th.get("pct") or {}, th.get("votes")
+        if pos and vt:
             wd = {s: pos[s] * 100 for s in ("up", "warn")}
-            tt = {s: f'{TZ_SIDE[s]} {n[s]} 類，{_pos_txt(pct.get(s))}' for s in ("up", "warn")}
-            lab += f'（警示{_pos_txt(pct.get("warn"))}；偏多{_pos_txt(pct.get("up"))}）'
+            num = {s: vt[s] for s in ("up", "warn")}
+            tt = {s: f'{TZ_SIDE[s]} {vt[s]} 個訊號亮著，{_pos_txt(pct.get(s))}；列出來的 {n[s]} 類' for s in ("up", "warn")}
+            lab = (f'{th["name"]}（持有 {_tq_hz(th)}）：{tt["warn"]}；{tt["up"]}，{word}')
         else:
             wd = {s: n[s] / mx * 100 for s in ("up", "warn")}
+            num = n
             tt = {s: f'{TZ_SIDE[s]} {n[s]} 類' for s in ("up", "warn")}
-        bar = (f'<span class="tqh tqh-w" title="{_e(tt["warn"])}"><i style="width:{wd["warn"]:.1f}%"></i></span>'
+            lab = f'{th["name"]}（持有 {_tq_hz(th)}）：警示 {n["warn"]} 類、偏多 {n["up"]} 類，{word}'
+        bar =(f'<span class="tqh tqh-w" title="{_e(tt["warn"])}"><i style="width:{wd["warn"]:.1f}%"></i></span>'
                f'<span class="tqh tqh-u" title="{_e(tt["up"])}"><i style="width:{wd["up"]:.1f}%"></i></span>')
         rows.append(f'<label class="tqq" for="{_tq_rid(mk, th["k"])}" title="點了看{_e(th["name"])}列出來的訊號">'
                     f'<span class="tqn"><b>{_e(th["name"])}</b><i>{_e(_tq_hz(th))}</i></span>'
-                    f'<span class="tqc tqc-w">{n["warn"]}</span>'
+                    f'<span class="tqc tqc-w">{num["warn"]}</span>'
                     f'<span class="tqb" role="img" aria-label="{_e(lab)}">{bar}</span>'
-                    f'<span class="tqc tqc-u">{n["up"]}</span>'
+                    f'<span class="tqc tqc-u">{num["up"]}</span>'
                     f'<span class="tqw"><i class="tqd tqd-{lean or "none"}"></i>{_e(word)}</span></label>')
     return ('<div class="tqm"><div class="tqax" aria-hidden="true"><span class="tqa3"><span>◀ 警示</span><span>偏多 ▶</span></span></div>'
             + "".join(rows) + "</div>")
