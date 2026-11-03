@@ -1,8 +1,8 @@
 {
   "as_of": "2026-11-03",
   "perf_asof": "2026-11-03",
-  "fetched_at": "2026/11/03 23:28",
-  "source": "規模／配息殖利率 ← etfinfo.tw（Tier B）；過去一週／一月報酬 ← Yahoo 還原收盤（總報酬口徑）／FinMind／TWSE 官方自算；當月預估配息 ← 證交所／櫃買除權除息預告表、MOPS、主流媒體新聞（4 檔，另 2 檔金額待公告）。正式對外前以各投信官網核對",
+  "fetched_at": "2026/11/04 02:30",
+  "source": "規模／配息殖利率 ← etfinfo.tw（Tier B）；過去一週／一月報酬 ← Yahoo 還原收盤（總報酬口徑）／FinMind／TWSE 官方自算；當月預估配息 ← 證交所／櫃買除權除息預告表、MOPS、主流媒體新聞（3 檔，另 2 檔金額待公告）。正式對外前以各投信官網核對",
   "items": [
     {
       "code": "0056",
@@ -294,8 +294,8 @@
       "est_div": 0.78,
       "est_div_date": "2026-11-17",
       "est_pend": null,
-      "est_from": "三立新聞網SETN.com",
-      "est_url": "https://news.google.com/rss/articles/CBMiTEFVX3lxTE1OSnlzN3FwclNObWJMN0dVdnFlV3lSVVdBZlQ5RDVmWDBCa2g2THJVLTNIMV9pUjBpUW02bnBtX3RpR1pTQ0ZXSjkyS1rSAUxBVV95cUxNTkp5czdxcHJTTm1iTDdHVXZxZVd5UlVXQWZUOUQ1ZlgwQmtoNkxyVS0zSDFfaVIwaVFtNm5wbV90aUdaU0NGV0o5Mkta?oc=5",
+      "est_from": "TVBS新聞網",
+      "est_url": "https://news.google.com/rss/articles/CBMiT0FVX3lxTE43MExhN1ZSTGhvUGJ3VmtDQ2FTTXI0ZG84REkzblA5Zkc5SFQ5RWZpeUFEQlVkOE9Ba25ub1dkTzZWN3l4WEFRNUZENXFFQWc?oc=5",
       "yield_pct": 16.12,
       "freq": "季配",
       "chg_pct": -6.25,
@@ -1111,8 +1111,8 @@
       "ret_1m": -18.5,
       "last_div": 0.138,
       "last_div_date": "2026-11-03",
-      "est_div": 0.138,
-      "est_div_date": "2026-11-03",
+      "est_div": null,
+      "est_div_date": null,
       "est_pend": null,
       "est_from": null,
       "est_url": null,
@@ -1136,8 +1136,7 @@
       "ret_1m_base": "2026-10-02=10.13",
       "ret_1w_div": 0.138,
       "ret_1m_div": 0.276,
-      "est_src": "exch",
-      "yield_is_est": true
+      "yield_is_est": false
     },
     {
       "code": "00408A",
