@@ -24,7 +24,7 @@ from arm.lab import sigspec as X
 
 
 def test_sig_spec_v1_is_locked():
-    assert X.VER == 30 and X.SPEC_DATE == "2026-11-04"
+    assert X.VER == 31 and X.SPEC_DATE == "2026-11-04"
     assert BS.VER == 4 and "C9" in BS.SIG_MK["tw"] and "C8" in BS.SIG_MK["spx"]   # VER 13：大跌後買點的規則跟著 bottomspec VER 4
     assert X.H_BUY == 60                                                  # VER 10：大跌後買點看買進後 3 個月有沒有漲
     assert X.MARKETS == ("tw", "spx", "ixic", "ndx", "sox")
@@ -338,7 +338,7 @@ def test_ver30_bottom_box():
     """VER 30（2026-11-04，docs/lab_thermo_fair_plan.md 第 4～6 節）：使用者：「反而是一些更好的訊號應該可以判定為即將落底的強力訊號？
     這樣會更有鑑別度顯示起來也不會一直偏空這樣很怪」。選：落底型＝大跌之後才有意義的（看 12 個月的景氣數字不算）、比任一天高 10 點、
     框＋溫度計小標（讀數不改）、跨期間的列先不補打亂測試。大跌中＋強的落底型訊號亮著才出框；逐年檢查和大跌中全部週比。"""
-    assert X.VER == 30
+    assert X.VER >= 30
     assert X.BOTTOM_COLD_CATS == ("heat", "crash", "bd") and X.BOTTOM_COLD_SIGS == ("cold", "cold_in")
     assert X.BOTTOM_H_MAX == X.H_CRASH == 60                                  # 看 1 或 3 個月才算
     assert X.BOTTOM_INST_SIGS == ("sell_run5", "sell_run10") and X.BOTTOM_SCEN == ("SC3",)
@@ -348,3 +348,14 @@ def test_ver30_bottom_box():
     assert BS.SIG_WIN == 60 and BS.E10_IN == 0.10 and BS.E10_OUT == 0.05       # 大跌中＝大跌後買點的定義
     assert X.RES_VER == 24 and X.FWD_VER == 25 and X.CAL_VER == 26 and X.AGE_VER == 26   # 研究檔都不用重跑
     assert X.LEAN_GAP == 0.20 and X.THERMO_EDGE == 0.05 and X.THERMO_CLS == ("up", "buy", "risk")   # 讀數與列出來的不變
+
+
+def test_ver31_levels():
+    """VER 31（2026-11-04，看過 VER 30 的逐年檢查之後改；docs/lab_thermo_fair_plan.md 第 8 節）：使用者：「可能落底跟看多訊號應該可以合在一起吧
+    …有運氣成分的顯示偏多 強力訊號顯示多」，選：強＝比任一天高 10 點、警示也分兩級、框拿掉、溫度計不動。"""
+    assert X.VER == 31
+    assert X.LEVEL_EDGE == 0.10 == X.BOTTOM_EDGE
+    assert X.LEVEL_WORDS == {"up": ("多", "偏多"), "warn": ("警示", "偏警示")}
+    assert X.LEVEL_GAIN == 0.05 and X.CAL_MIN_WEEKS == 104 and X.LEVEL_VER == 31
+    assert X.RES_VER == 24 and X.FWD_VER == 25 and X.CAL_VER == 26 and X.AGE_VER == 26   # 研究檔都不用重跑
+    assert X.LEAN_GAP == 0.20 and X.THERMO_EDGE == 0.05 and X.THERMO_CLS == ("up", "buy", "risk")   # 列不列、溫度計不變
