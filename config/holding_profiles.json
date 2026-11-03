@@ -3921,6 +3921,24 @@
    "ticker": "ALV",
    "country": "德國",
    "verified": true
+  },
+  "洲際交易所": {
+   "country": "美國",
+   "intro": "美國洲際交易所（ICE），交易所與清算所營運商；旗下含紐約證券交易所，並提供布蘭特原油期貨、固定收益與金融數據服務及抵押貸款科技。",
+   "ticker": "ICE",
+   "verified": true
+  },
+  "GENERAL ELECTRIC": {
+   "country": "美國",
+   "intro": "美國奇異（GE Aerospace），噴射與渦輪螺旋槳引擎製造商；2024 年 4 月分拆能源業務 GE Vernova 後專注航太，延用紐約證券交易所代號 GE。",
+   "ticker": "GE",
+   "verified": true
+  },
+  "ROYALTY PHARMA PLC- CL A": {
+   "country": "美國",
+   "intro": "美國皇家製藥（Royalty Pharma），總部在紐約的生技權利金投資公司；向藥廠與學研機構購買已上市藥品的未來銷售權利金，並共同出資後期臨床與新藥上市以換取權利金。",
+   "ticker": "RPRX",
+   "verified": true
   }
  }
 }
