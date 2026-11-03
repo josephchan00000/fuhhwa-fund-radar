@@ -1,583 +1,64 @@
 
-===== 1. ForexFactory 週曆 =====
-  https://nfs.faireconomy.media/ff_calendar_thisweek.json
-    15642B（3.1s）開頭 '[{"title":"Daylight Saving Time Shift","country":"CAD","date":"2026-11-01T02:00:00-05:00","impact":"Holiday","forecast":"","previous":""},{"'
-    thisweek：115 則；欄位 ['title', 'country', 'date', 'impact', 'forecast', 'previous']
-  https://nfs.faireconomy.media/ff_calendar_nextweek.json
-    ✗ RuntimeError: GET 失敗 https://nfs.faireconomy.media/ff_calendar_nextweek.json: HTTP Error 404: Not Found（1.6s）
-  https://nfs.faireconomy.media/ff_calendar_lastweek.json
-    ✗ RuntimeError: GET 失敗 https://nfs.faireconomy.media/ff_calendar_lastweek.json: HTTP Error 404: Not Found（1.6s）
-  美歐中日英、影響中高：19 則；有 forecast 的 12 則
-    thisweek 2026-11-02T10:00 USD [Medium] ISM Manufacturing PMI ｜預期 '54.5' 前值 '54.5'
-    thisweek 2026-11-03T10:00 USD [Medium] JOLTS Job Openings ｜預期 '7.15M' 前值 '7.08M'
-    thisweek 2026-11-03T10:16 USD [High] Congressional Elections ｜預期 '' 前值 ''
-    thisweek 2026-11-04T05:00 EUR [Medium] Core CPI Flash Estimate y/y ｜預期 '2.5%' 前值 '2.5%'
-    thisweek 2026-11-04T05:00 EUR [Medium] CPI Flash Estimate y/y ｜預期 '4.0%' 前值 '3.8%'
-    thisweek 2026-11-04T10:00 USD [Medium] ISM Services PMI ｜預期 '54.8' 前值 '54.9'
-    thisweek 2026-11-05T07:00 GBP [High] BOE Monetary Policy Report ｜預期 '' 前值 ''
-    thisweek 2026-11-05T07:00 GBP [High] Monetary Policy Summary ｜預期 '' 前值 ''
-    thisweek 2026-11-05T07:00 GBP [High] MPC Official Bank Rate Votes ｜預期 '7-0-2' 前值 '3-0-6'
-    thisweek 2026-11-05T07:00 GBP [High] Official Bank Rate ｜預期 '4.00%' 前值 '3.75%'
-    thisweek 2026-11-05T07:30 GBP [High] BOE Gov Bailey Speaks ｜預期 '' 前值 ''
-    thisweek 2026-11-05T08:30 USD [Medium] Unemployment Claims ｜預期 '197K' 前值 '194K'
-    thisweek 2026-11-05T13:00 EUR [Medium] ECB President Lagarde Speaks ｜預期 '' 前值 ''
-    thisweek 2026-11-06T08:30 USD [High] Average Hourly Earnings m/m ｜預期 '0.3%' 前值 '0.1%'
-    thisweek 2026-11-06T08:30 USD [High] Non-Farm Employment Change ｜預期 '65K' 前值 '29K'
-    thisweek 2026-11-06T08:30 USD [High] Unemployment Rate ｜預期 '4.2%' 前值 '4.2%'
-    thisweek 2026-11-06T10:00 USD [Medium] Prelim UoM Consumer Sentiment ｜預期 '48.1' 前值 '46.3'
-    thisweek 2026-11-06T10:00 USD [Medium] Prelim UoM Inflation Expectations ｜預期 '' 前值 '4.7%'
-    thisweek 2026-11-06T11:00 JPY [High] BOJ Gov Ueda Speaks ｜預期 '' 前值 ''
+===== 4. 試補 2026-10-19 =====
+  ForexFactory 本週 57 則有預期值
+  Nasdaq 查 8 天、78 則有預期值
+  2026-10-19.md：對照表對得上 8 列
+    10/19 中：第三季GDP（年增；季增） ｜表上預期 +4.4%（+1.1%）*｜實際 —｜未公布 → 來源 —（沒有）
+    10/19 中：9月工業生產（年增） ｜表上預期 +5.3%～+5.5%*｜實際 —｜未公布 → 來源 —（沒有）
+    10/19 中：9月社會消費品零售總額（年增） ｜表上預期 —｜實際 —｜未公布 → 來源 —（沒有）
+    10/20 中：10月貸款市場報價利率LPR（1年；5年） ｜表上預期 —｜實際 —｜未公布 → 來源 —（沒有）
+    10/22 美：截至10/17當週初領失業金人數 ｜表上預期 —｜實際 —｜未公布 → 來源 20.0萬（Nasdaq）
+    10/23 日：9月全國CPI（年增） ｜表上預期 +2.8%～+3.0%*｜實際 —｜未公布 → 來源 —（沒有）
+    10/23 歐：歐元區10月製造業／服務業PMI初值 ｜表上預期 —｜實際 —｜未公布 → 來源 52.7／52.6（Nasdaq）
+    10/23 美：10月S&P Global製造業／服務業PMI初值 ｜表上預期 —｜實際 —｜未公布 → 來源 55.4／57.9（Nasdaq）
+  試補：3 列
+    skip 中：9月社會消費品零售總額  沒有
+    skip 中：10月貸款市場報價利率LPR  沒有
+    fill 美：截至10/17當週初領失業金人數 20.0萬 Nasdaq
+    fill 歐：歐元區10月製造業／服務業PMI初值 52.7／52.6 Nasdaq
+    fill 美：10月S&P Global製造業／服務業PMI初值 55.4／57.9 Nasdaq
+  註：- 預期自動補（11/03 21:29；市場共識、非官方）：美：截至10/17當週初領失業金人數 20.0萬（Nasdaq）；歐：歐元區10月製造業／服務業PMI初值 52.7／52.6（Nasdaq）；美：10月S&PGlobal製造業／服務業PMI初值 55.4／57.9（Nasdaq）。
 
-===== 2. Nasdaq 經濟日曆 =====
-  https://api.nasdaq.com/api/calendar/economicevents?date=2026-10-26
-    580B（2.6s）開頭 '{"data":{"asOf":"Tue, Nov 3, 2026","headers":{"gmt":"Time","country":"Country","eventName":"Event","actual":"Actual","consensus":"Consensus"'
-    欄位 ['gmt', 'country', 'eventName', 'actual', 'consensus', 'previous', 'description']
-    2026-10-26：2 則
-  https://api.nasdaq.com/api/calendar/economicevents?date=2026-10-27
-    19839B（2.5s）開頭 '{"data":{"asOf":"Tue, Nov 3, 2026","headers":{"gmt":"Time","country":"Country","eventName":"Event","actual":"Actual","consensus":"Consensus"'
-    2026-10-27：30 則
-  https://api.nasdaq.com/api/calendar/economicevents?date=2026-10-28
-    31960B（2.6s）開頭 '{"data":{"asOf":"Tue, Nov 3, 2026","headers":{"gmt":"Time","country":"Country","eventName":"Event","actual":"Actual","consensus":"Consensus"'
-    2026-10-28：52 則
-  https://api.nasdaq.com/api/calendar/economicevents?date=2026-10-29
-    51317B（3.6s）開頭 '{"data":{"asOf":"Tue, Nov 3, 2026","headers":{"gmt":"Time","country":"Country","eventName":"Event","actual":"Actual","consensus":"Consensus"'
-    2026-10-29：91 則
-  https://api.nasdaq.com/api/calendar/economicevents?date=2026-10-30
-    51317B（4.9s）開頭 '{"data":{"asOf":"Tue, Nov 3, 2026","headers":{"gmt":"Time","country":"Country","eventName":"Event","actual":"Actual","consensus":"Consensus"'
-    2026-10-30：91 則
-  https://api.nasdaq.com/api/calendar/economicevents?date=2026-11-02
-    6783B（3.5s）開頭 '{"data":{"asOf":"Tue, Nov 3, 2026","headers":{"gmt":"Time","country":"Country","eventName":"Event","actual":"Actual","consensus":"Consensus"'
-    2026-11-02：9 則
-  https://api.nasdaq.com/api/calendar/economicevents?date=2026-11-03
-    35722B（3.5s）開頭 '{"data":{"asOf":"Tue, Nov 3, 2026","headers":{"gmt":"Time","country":"Country","eventName":"Event","actual":"Actual","consensus":"Consensus"'
-    2026-11-03：45 則
-  https://api.nasdaq.com/api/calendar/economicevents?date=2026-11-04
-    25163B（3.6s）開頭 '{"data":{"asOf":"Tue, Nov 3, 2026","headers":{"gmt":"Time","country":"Country","eventName":"Event","actual":"Actual","consensus":"Consensus"'
-    2026-11-04：40 則
-  https://api.nasdaq.com/api/calendar/economicevents?date=2026-11-05
-    47407B（2.6s）開頭 '{"data":{"asOf":"Tue, Nov 3, 2026","headers":{"gmt":"Time","country":"Country","eventName":"Event","actual":"Actual","consensus":"Consensus"'
-    2026-11-05：68 則
-  https://api.nasdaq.com/api/calendar/economicevents?date=2026-11-06
-    34863B（3.5s）開頭 '{"data":{"asOf":"Tue, Nov 3, 2026","headers":{"gmt":"Time","country":"Country","eventName":"Event","actual":"Actual","consensus":"Consensus"'
-    2026-11-06：65 則
-  https://api.nasdaq.com/api/calendar/economicevents?date=2026-11-09
-    4506B（2.6s）開頭 '{"data":{"asOf":"Tue, Nov 3, 2026","headers":{"gmt":"Time","country":"Country","eventName":"Event","actual":"Actual","consensus":"Consensus"'
-    2026-11-09：7 則
-  https://api.nasdaq.com/api/calendar/economicevents?date=2026-11-10
-    22491B（4.6s）開頭 '{"data":{"asOf":"Tue, Nov 3, 2026","headers":{"gmt":"Time","country":"Country","eventName":"Event","actual":"Actual","consensus":"Consensus"'
-    2026-11-10：37 則
-  https://api.nasdaq.com/api/calendar/economicevents?date=2026-11-11
-    20086B（4.6s）開頭 '{"data":{"asOf":"Tue, Nov 3, 2026","headers":{"gmt":"Time","country":"Country","eventName":"Event","actual":"Actual","consensus":"Consensus"'
-    2026-11-11：37 則
-  https://api.nasdaq.com/api/calendar/economicevents?date=2026-11-12
-    14896B（2.6s）開頭 '{"data":{"asOf":"Tue, Nov 3, 2026","headers":{"gmt":"Time","country":"Country","eventName":"Event","actual":"Actual","consensus":"Consensus"'
-    2026-11-12：22 則
-  https://api.nasdaq.com/api/calendar/economicevents?date=2026-11-13
-    25734B（4.7s）開頭 '{"data":{"asOf":"Tue, Nov 3, 2026","headers":{"gmt":"Time","country":"Country","eventName":"Event","actual":"Actual","consensus":"Consensus"'
-    2026-11-13：42 則
-  美歐中日英：350 則；有 consensus 的 135 則
-    2026-10-27 24H Japan Coincident Indicator ｜預期 '-1.9%' 前值 '1.7%' 實際 '-1.8%'
-    2026-10-27 24H Japan Leading Index ｜預期 '0.4%' 前值 '1.5%' 實際 '0.4%'
-    2026-10-27 24H Japan Leading Index ｜預期 '118.0' 前值 '117.7' 實際 '118.0'
-    2026-10-27 01:00 Euro Zone ECB's Elderson Speaks ｜預期 ' ' 前值 '&nbsp;' 實際 '&nbsp;'
-    2026-10-27 06:00 United Kingdom CBI Distributive Trades Survey ｜預期 '-47' 前值 '-55' 實際 '-10'
-    2026-10-27 07:30 United States Chicago Fed National Activity ｜預期 '-0.10' 前值 '-0.08' 實際 '0.07'
-    2026-10-27 09:30 United States Dallas Fed Mfg Business Index ｜預期 '8.8' 前值 '9.8' 實際 '13.4'
-    2026-10-27 11:20 United States 3-Month Bill Auction ｜預期 ' ' 前值 '4.095%' 實際 '4.050%'
-    2026-10-27 11:20 United States 6-Month Bill Auction ｜預期 ' ' 前值 '4.220%' 實際 '4.210%'
-    2026-10-27 12:00 United States 2-Year Note Auction ｜預期 ' ' 前值 '4.787%' 實際 '4.708%'
-    2026-10-27 18:50 Japan Corporate Services Price Index (CSPI) ｜預期 '3.7%' 前值 '3.5%' 實際 '3.7%'
-    2026-10-27 19:01 United Kingdom BRC Shop Price Index ｜預期 '1.6%' 前值 '1.4%' 實際 '2.1%'
-    2026-10-27 20:30 China Chinese Industrial profit YTD ｜預期 ' ' 前值 '15.7%' 實際 '15.5%'
-    2026-10-28 24H Japan BoJ Core CPI ｜預期 ' ' 前值 '2.3%' 實際 '2.5%'
-    2026-10-28 04:00 Euro Zone M3 Money Supply ｜預期 '3.5%' 前值 '3.5%' 實際 '3.5%'
-    2026-10-28 04:00 Euro Zone M3 Money Supply ｜預期 ' ' 前值 '17,646.5B' 實際 '17,717.3B'
-    2026-10-28 04:00 Euro Zone Loans to Non Financial Corporations ｜預期 ' ' 前值 '4.2%' 實際 '4.2%'
-    2026-10-28 04:00 Euro Zone Private Sector Loans ｜預期 '3.1%' 前值 '3.1%' 實際 '3.1%'
-    2026-10-28 05:30 United Kingdom 5-Year Treasury Gilt Auction ｜預期 ' ' 前值 '4.945%' 實際 '5.036%'
-    2026-10-28 07:00 United States Building Permits ｜預期 '1.400M' 前值 '1.403M' 實際 '1.398M'
-    2026-10-28 07:00 United States Building Permits ｜預期 '-0.2%' 前值 '-2.1%' 實際 '-0.4%'
-    2026-10-28 07:15 United States ADP Employment Change Weekly ｜預期 ' ' 前值 '18.50K' 實際 '16.80K'
-    2026-10-28 07:30 United States Core Durable Goods Orders ｜預期 '0.6%' 前值 '0.3%' 實際 '0.5%'
-    2026-10-28 07:30 United States Durable Goods Orders ｜預期 '2.0%' 前值 '0.1%' 實際 '1.8%'
-    2026-10-28 07:30 United States Durables Excluding Defense ｜預期 ' ' 前值 '0.3%' 實際 '2.2%'
-    2026-10-28 07:30 United States Goods Orders Non Defense Ex Air ｜預期 '0.7%' 前值 '1.6%' 實際 '0.5%'
-    2026-10-28 07:55 United States Redbook ｜預期 ' ' 前值 '9.0%' 實際 '9.3%'
-    2026-10-28 08:00 United States House Price Index ｜預期 '0.2%' 前值 '0.2%' 實際 '0.3%'
-    2026-10-28 08:00 United States House Price Index ｜預期 ' ' 前值 '2.5%' 實際 '2.4%'
-    2026-10-28 08:00 United States House Price Index ｜預期 ' ' 前值 '443.2' 實際 '444.6'
-    2026-10-28 08:00 United States S&P/CS HPI Composite - 20 s.a. ｜預期 ' ' 前值 '0.3%' 實際 '0.3%'
-    2026-10-28 08:00 United States S&P/CS HPI Composite - 20 n.s.a. ｜預期 '2.6%' 前值 '2.5%' 實際 '2.7%'
-    2026-10-28 08:00 United States S&P/CS HPI Composite - 20 n.s.a. ｜預期 ' ' 前值 '0.0%' 實際 '-0.4%'
-    2026-10-28 09:00 United States CB Consumer Confidence ｜預期 '81.2' 前值 '84.2' 實際 '91.7'
-    2026-10-28 09:00 United States New Home Sales ｜預期 '651K' 前值 '680K' 實際 '676K'
-    2026-10-28 09:00 United States New Home Sales ｜預期 '-4.5%' 前值 '5.1%' 實際 '-0.6%'
-    2026-10-28 09:00 United States Richmond Manufacturing Index ｜預期 '0' 前值 '-2' 實際 '-2'
-    2026-10-28 09:00 United States Richmond Manufacturing Shipments ｜預期 ' ' 前值 '-5' 實際 '0'
-    2026-10-28 09:00 United States Richmond Services Index ｜預期 ' ' 前值 '0' 實際 '2'
-    2026-10-28 09:30 United States Dallas Fed Services Revenues ｜預期 ' ' 前值 '-0.9' 實際 '4.4'
-    2026-10-28 09:30 United States Texas Services Sector Outlook ｜預期 ' ' 前值 '-1.8' 實際 '4.0'
-    2026-10-28 10:40 United States Atlanta Fed GDPNow ｜預期 '3.5%' 前值 '3.5%' 實際 '3.4%'
-    2026-10-28 12:00 United States 5-Year Note Auction ｜預期 ' ' 前值 '5.033%' 實際 '4.708%'
-    2026-10-28 12:00 United States M2 Money Supply ｜預期 ' ' 前值 '23.34T' 實際 '23.41T'
-    2026-10-28 12:00 Euro Zone ECB President Lagarde Speaks ｜預期 ' ' 前值 '&nbsp;' 實際 '&nbsp;'
-    2026-10-28 15:30 United States API Weekly Crude Oil Stock ｜預期 '0.800M' 前值 '-4.930M' 實際 '-2.031M'
-    2026-10-29 24H Japan Household Confidence ｜預期 '35.1' 前值 '35.4' 實際 '35.0'
-    2026-10-29 04:30 United Kingdom BoE Consumer Credit ｜預期 '2.200B' 前值 '2.683B' 實際 '1.914B'
-    2026-10-29 04:30 United Kingdom M3 Money Supply ｜預期 ' ' 前值 '3,308.5B' 實際 '3,310.6B'
-    2026-10-29 04:30 United Kingdom M4 Money Supply ｜預期 '0.3%' 前值 '0.4%' 實際 '0.1%'
-    2026-10-29 04:30 United Kingdom Mortgage Approvals ｜預期 '54.00K' 前值 '54.81K' 實際 '53.44K'
-    2026-10-29 04:30 United Kingdom Mortgage Lending ｜預期 '4.20B' 前值 '4.17B' 實際 '3.87B'
-    2026-10-29 04:30 United Kingdom Net Lending to Individuals ｜預期 '6.200B' 前值 '6.874B' 實際 '5.800B'
-    2026-10-29 05:00 Euro Zone Business and Consumer Survey ｜預期 '97.5' 前值 '97.5' 實際 '96.9'
-    2026-10-29 05:00 Euro Zone Business Climate ｜預期 ' ' 前值 '-0.05' 實際 '0.09'
-    2026-10-29 05:00 Euro Zone Consumer Confidence ｜預期 '-17.9' 前值 '-16.5' 實際 '-17.9'
-    2026-10-29 05:00 Euro Zone Consumer Inflation Expectation ｜預期 ' ' 前值 '34.7' 實際 '33.9'
-    2026-10-29 05:00 Euro Zone Selling Price Expectations ｜預期 ' ' 前值 '20.8' 實際 '24.8'
-    2026-10-29 05:00 Euro Zone Services Sentiment ｜預期 '5.9' 前值 '5.9' 實際 '5.3'
-    2026-10-29 05:00 Euro Zone Industrial Sentiment ｜預期 '-3.8' 前值 '-3.9' 實際 '-3.4'
-    2026-10-29 07:30 United States Continuing Jobless Claims ｜預期 '1,720K' 前值 '1,722K' 實際 '1,701K'
-    2026-10-29 07:30 United States Core PCE Price Index ｜預期 '0.3%' 前值 '0.3%' 實際 '0.3%'
-    2026-10-29 07:30 United States Core PCE Price Index ｜預期 '3.1%' 前值 '3.0%' 實際 '3.1%'
-    2026-10-29 07:30 United States Core PCE Prices ｜預期 '2.40%' 前值 '3.30%' 實際 '2.50%'
-    2026-10-29 07:30 United States GDP ｜預期 '3.2%' 前值 '2.2%' 實際 '3.4%'
-    2026-10-29 07:30 United States GDP Price Index ｜預期 '3.2%' 前值 '6.1%' 實際 '2.2%'
-    2026-10-29 07:30 United States GDP Sales ｜預期 ' ' 前值 '2.8%' 實際 '1.7%'
-    2026-10-29 07:30 United States Initial Jobless Claims ｜預期 '198K' 前值 '195K' 實際 '194K'
-    2026-10-29 07:30 United States Jobless Claims 4-Week Avg. ｜預期 ' ' 前值 '198.00K' 實際 '196.75K'
-    2026-10-29 07:30 United States PCE price index ｜預期 '0.5%' 前值 '0.3%' 實際 '0.5%'
-    2026-10-29 07:30 United States PCE Price index ｜預期 '3.6%' 前值 '3.4%' 實際 '3.6%'
-    2026-10-29 07:30 United States PCE Prices ｜預期 '3.4%' 前值 '5.0%' 實際 '2.1%'
-    2026-10-29 07:30 United States Personal Income ｜預期 '0.3%' 前值 '0.3%' 實際 '0.2%'
-    2026-10-29 07:30 United States Personal Spending ｜預期 '0.6%' 前值 '0.9%' 實際 '0.5%'
-    2026-10-29 07:30 United States Real Consumer Spending ｜預期 ' ' 前值 '3.8%' 實際 '3.8%'
-    2026-10-29 07:30 United States Real Personal Consumption ｜預期 ' ' 前值 '0.5%' 實際 '0.0%'
-    2026-10-29 08:15 Euro Zone Deposit Facility Rate ｜預期 '2.50%' 前值 '2.50%' 實際 '2.50%'
-    2026-10-29 08:15 Euro Zone ECB Marginal Lending Facility ｜預期 ' ' 前值 '2.90%' 實際 '2.90%'
-    2026-10-29 08:15 Euro Zone ECB Monetary Policy Statement ｜預期 ' ' 前值 '&nbsp;' 實際 '&nbsp;'
-    2026-10-29 08:15 Euro Zone ECB Interest Rate Decision ｜預期 '2.65%' 前值 '2.65%' 實際 '2.65%'
-    2026-10-29 08:45 Euro Zone ECB Press Conference ｜預期 ' ' 前值 '&nbsp;' 實際 '&nbsp;'
-    2026-10-29 09:30 United States Atlanta Fed GDPNow ｜預期 ' ' 前值 '&nbsp;' 實際 '3.2%'
-    2026-10-29 09:30 United States Natural Gas Storage ｜預期 '75B' 前值 '77B' 實際 '80B'
-    2026-10-29 10:15 Euro Zone ECB President Lagarde Speaks ｜預期 ' ' 前值 '&nbsp;' 實際 '&nbsp;'
-    2026-10-29 10:30 United States 4-Week Bill Auction ｜預期 ' ' 前值 '3.945%' 實際 '3.910%'
-    2026-10-29 10:30 United States 8-Week Bill Auction ｜預期 ' ' 前值 '4.015%' 實際 '4.020%'
-    2026-10-29 12:00 United States 7-Year Note Auction ｜預期 ' ' 前值 '5.085%' 實際 '4.894%'
-    2026-10-29 15:30 United States Fed's Balance Sheet ｜預期 ' ' 前值 '6,754B' 實際 '6,746B'
-    2026-10-29 15:30 United States Reserve Balances with Federal Reserve Banks ｜預期 ' ' 前值 '2.969T' 實際 '2.895T'
-    2026-10-29 18:30 Japan CPI Tokyo Ex Food & Energy ｜預期 '2.7%' 前值 '2.7%' 實際 '2.4%'
-    2026-10-29 18:30 Japan Jobs/applications ratio ｜預期 '1.18' 前值 '1.18' 實際 '1.19'
-    2026-10-29 18:30 Japan Tokyo Core CPI ｜預期 '2.6%' 前值 '2.7%' 實際 '2.6%'
-    2026-10-29 18:30 Japan Tokyo CPI ｜預期 '3.3%' 前值 '2.7%' 實際 '2.8%'
-    2026-10-29 18:30 Japan CPI Tokyo Ex Food and Energy ｜預期 ' ' 前值 '0.4%' 實際 '0.6%'
-    2026-10-29 18:30 Japan Unemployment Rate ｜預期 '2.5%' 前值 '2.5%' 實際 '2.4%'
-    2026-10-29 18:50 Japan Industrial Production ｜預期 '1.2%' 前值 '-2.4%' 實際 '2.2%'
-    2026-10-29 18:50 Japan Industrial Production forecast 1m ahead ｜預期 ' ' 前值 '3.2%' 實際 '5.1%'
-    2026-10-29 18:50 Japan Industrial Production forecast 2m ahead ｜預期 ' ' 前值 '3.1%' 實際 '0.8%'
-    2026-10-29 18:50 Japan Large Retailers' Sales ｜預期 ' ' 前值 '-0.9%' 實際 '-0.7%'
-    2026-10-29 18:50 Japan Large Scale Retail Sales YoY ｜預期 ' ' 前值 '1.0%' 實際 '2.0%'
-    2026-10-29 18:50 Japan Retail Sales ｜預期 '3.3%' 前值 '2.9%' 實際 '2.3%'
-    2026-10-29 21:30 Japan BoJ Monetary Policy Statement ｜預期 ' ' 前值 '&nbsp;' 實際 '&nbsp;'
-    2026-10-29 22:00 Japan BoJ Outlook Report ｜預期 ' ' 前值 '&nbsp;' 實際 '&nbsp;'
-    2026-10-29 22:00 Japan BoJ Interest Rate Decision ｜預期 '1.25%' 前值 '1.25%' 實際 '1.25%'
-    2026-10-30 24H Japan Household Confidence ｜預期 '35.1' 前值 '35.4' 實際 '35.0'
-    2026-10-30 04:30 United Kingdom BoE Consumer Credit ｜預期 '2.200B' 前值 '2.683B' 實際 '1.914B'
-    2026-10-30 04:30 United Kingdom M3 Money Supply ｜預期 ' ' 前值 '3,308.5B' 實際 '3,310.6B'
-    2026-10-30 04:30 United Kingdom M4 Money Supply ｜預期 '0.3%' 前值 '0.4%' 實際 '0.1%'
-    2026-10-30 04:30 United Kingdom Mortgage Approvals ｜預期 '54.00K' 前值 '54.81K' 實際 '53.44K'
-    2026-10-30 04:30 United Kingdom Mortgage Lending ｜預期 '4.20B' 前值 '4.17B' 實際 '3.87B'
-    2026-10-30 04:30 United Kingdom Net Lending to Individuals ｜預期 '6.200B' 前值 '6.874B' 實際 '5.800B'
-    2026-10-30 05:00 Euro Zone Business and Consumer Survey ｜預期 '97.5' 前值 '97.5' 實際 '96.9'
-    2026-10-30 05:00 Euro Zone Business Climate ｜預期 ' ' 前值 '-0.05' 實際 '0.09'
-    2026-10-30 05:00 Euro Zone Consumer Confidence ｜預期 '-17.9' 前值 '-16.5' 實際 '-17.9'
-    2026-10-30 05:00 Euro Zone Consumer Inflation Expectation ｜預期 ' ' 前值 '34.7' 實際 '33.9'
-    2026-10-30 05:00 Euro Zone Selling Price Expectations ｜預期 ' ' 前值 '20.8' 實際 '24.8'
-    2026-10-30 05:00 Euro Zone Services Sentiment ｜預期 '5.9' 前值 '5.9' 實際 '5.3'
-    2026-10-30 05:00 Euro Zone Industrial Sentiment ｜預期 '-3.8' 前值 '-3.9' 實際 '-3.4'
-    2026-10-30 07:30 United States Continuing Jobless Claims ｜預期 '1,720K' 前值 '1,722K' 實際 '1,701K'
-    2026-10-30 07:30 United States Core PCE Price Index ｜預期 '0.3%' 前值 '0.3%' 實際 '0.3%'
-    2026-10-30 07:30 United States Core PCE Price Index ｜預期 '3.1%' 前值 '3.0%' 實際 '3.1%'
-    2026-10-30 07:30 United States Core PCE Prices ｜預期 '2.40%' 前值 '3.30%' 實際 '2.50%'
-    2026-10-30 07:30 United States GDP ｜預期 '3.2%' 前值 '2.2%' 實際 '3.4%'
-    2026-10-30 07:30 United States GDP Price Index ｜預期 '3.2%' 前值 '6.1%' 實際 '2.2%'
-    2026-10-30 07:30 United States GDP Sales ｜預期 ' ' 前值 '2.8%' 實際 '1.7%'
-    2026-10-30 07:30 United States Initial Jobless Claims ｜預期 '198K' 前值 '195K' 實際 '194K'
-    2026-10-30 07:30 United States Jobless Claims 4-Week Avg. ｜預期 ' ' 前值 '198.00K' 實際 '196.75K'
-    2026-10-30 07:30 United States PCE price index ｜預期 '0.5%' 前值 '0.3%' 實際 '0.5%'
-    2026-10-30 07:30 United States PCE Price index ｜預期 '3.6%' 前值 '3.4%' 實際 '3.6%'
-    2026-10-30 07:30 United States PCE Prices ｜預期 '3.4%' 前值 '5.0%' 實際 '2.1%'
-    2026-10-30 07:30 United States Personal Income ｜預期 '0.3%' 前值 '0.3%' 實際 '0.2%'
-    2026-10-30 07:30 United States Personal Spending ｜預期 '0.6%' 前值 '0.9%' 實際 '0.5%'
-    2026-10-30 07:30 United States Real Consumer Spending ｜預期 ' ' 前值 '3.8%' 實際 '3.8%'
-    2026-10-30 07:30 United States Real Personal Consumption ｜預期 ' ' 前值 '0.5%' 實際 '0.0%'
-    2026-10-30 08:15 Euro Zone Deposit Facility Rate ｜預期 '2.50%' 前值 '2.50%' 實際 '2.50%'
-    2026-10-30 08:15 Euro Zone ECB Marginal Lending Facility ｜預期 ' ' 前值 '2.90%' 實際 '2.90%'
-    2026-10-30 08:15 Euro Zone ECB Monetary Policy Statement ｜預期 ' ' 前值 '&nbsp;' 實際 '&nbsp;'
-    2026-10-30 08:15 Euro Zone ECB Interest Rate Decision ｜預期 '2.65%' 前值 '2.65%' 實際 '2.65%'
-    2026-10-30 08:45 Euro Zone ECB Press Conference ｜預期 ' ' 前值 '&nbsp;' 實際 '&nbsp;'
-    2026-10-30 09:30 United States Atlanta Fed GDPNow ｜預期 ' ' 前值 '&nbsp;' 實際 '3.2%'
-    2026-10-30 09:30 United States Natural Gas Storage ｜預期 '75B' 前值 '77B' 實際 '80B'
-    2026-10-30 10:15 Euro Zone ECB President Lagarde Speaks ｜預期 ' ' 前值 '&nbsp;' 實際 '&nbsp;'
-    2026-10-30 10:30 United States 4-Week Bill Auction ｜預期 ' ' 前值 '3.945%' 實際 '3.910%'
-    2026-10-30 10:30 United States 8-Week Bill Auction ｜預期 ' ' 前值 '4.015%' 實際 '4.020%'
-    2026-10-30 12:00 United States 7-Year Note Auction ｜預期 ' ' 前值 '5.085%' 實際 '4.894%'
-    2026-10-30 15:30 United States Fed's Balance Sheet ｜預期 ' ' 前值 '6,754B' 實際 '6,746B'
-    2026-10-30 15:30 United States Reserve Balances with Federal Reserve Banks ｜預期 ' ' 前值 '2.969T' 實際 '2.895T'
-    2026-10-30 18:30 Japan CPI Tokyo Ex Food & Energy ｜預期 '2.7%' 前值 '2.7%' 實際 '2.4%'
-    2026-10-30 18:30 Japan Jobs/applications ratio ｜預期 '1.18' 前值 '1.18' 實際 '1.19'
-    2026-10-30 18:30 Japan Tokyo Core CPI ｜預期 '2.6%' 前值 '2.7%' 實際 '2.6%'
-    2026-10-30 18:30 Japan Tokyo CPI ｜預期 '3.3%' 前值 '2.7%' 實際 '2.8%'
-    2026-10-30 18:30 Japan CPI Tokyo Ex Food and Energy ｜預期 ' ' 前值 '0.4%' 實際 '0.6%'
-    2026-10-30 18:30 Japan Unemployment Rate ｜預期 '2.5%' 前值 '2.5%' 實際 '2.4%'
-    2026-10-30 18:50 Japan Industrial Production ｜預期 '1.2%' 前值 '-2.4%' 實際 '2.2%'
-    2026-10-30 18:50 Japan Industrial Production forecast 1m ahead ｜預期 ' ' 前值 '3.2%' 實際 '5.1%'
-    2026-10-30 18:50 Japan Industrial Production forecast 2m ahead ｜預期 ' ' 前值 '3.1%' 實際 '0.8%'
-    2026-10-30 18:50 Japan Large Retailers' Sales ｜預期 ' ' 前值 '-0.9%' 實際 '-0.7%'
-    2026-10-30 18:50 Japan Large Scale Retail Sales YoY ｜預期 ' ' 前值 '1.0%' 實際 '2.0%'
-    2026-10-30 18:50 Japan Retail Sales ｜預期 '3.3%' 前值 '2.9%' 實際 '2.3%'
-    2026-10-30 21:30 Japan BoJ Monetary Policy Statement ｜預期 ' ' 前值 '&nbsp;' 實際 '&nbsp;'
+===== 4. 試補 2026-10-26 =====
+  ForexFactory 本週 57 則有預期值
+  Nasdaq 查 7 天、88 則有預期值
+  2026-10-26.md：對照表對得上 8 列
+    10/27 美：10月經濟諮商會消費者信心指數 ｜表上預期 —｜實際 —｜未公布 → 來源 81.2（Nasdaq）
+    10/27 美：9月耐久財訂單 ｜表上預期 —｜實際 —｜未公布 → 來源 —（沒有）
+    10/29 美：第三季GDP初估（年化季增） ｜表上預期 +3.0%*｜實際 —｜未公布 → 來源 —（沒有）
+    10/29 美：9月PCE物價（年增；核心） ｜表上預期 —｜實際 —｜未公布 → 來源 —（沒有）
+    10/29 美：截至10/24當週初領失業金人數 ｜表上預期 —｜實際 —｜未公布 → 來源 19.8萬（Nasdaq）
+    10/29 歐：ECB利率決議（台北21:15；總裁記者會） ｜表上預期 存款利率2.50%（維持）*｜實際 —｜未公布 → 來源 存款利率2.50%（維持）（Nasdaq）
+    10/30 日：日銀利率決議＋展望報告（總裁記者會15:30 JST） ｜表上預期 1.25%（維持）*｜實際 —｜未公布 → 來源 1.25%（維持）（Nasdaq）
+    10/30 日：10月東京CPI（年增；核心） ｜表上預期 —｜實際 —｜未公布 → 來源 +3.3%（核心+2.6%）（Nasdaq）
+  試補：3 列
+    fill 美：10月經濟諮商會消費者信心指數 81.2 Nasdaq
+    skip 美：9月耐久財訂單  沒有
+    skip 美：9月PCE物價  沒有
+    fill 美：截至10/24當週初領失業金人數 19.8萬 Nasdaq
+    fill 日：10月東京CPI +3.3%（核心+2.6%） Nasdaq
+  註：- 預期自動補（11/03 21:29；市場共識、非官方）：美：10月經濟諮商會消費者信心指數 81.2（Nasdaq）；美：截至10/24當週初領失業金人數 19.8萬（Nasdaq）；日：10月東京CPI +3.3%（核心+2.6%）（Nasdaq）。
 
-===== 3. 本週行事曆各列的候選 =====
-  行事曆 2026-11-03.md
+===== 4. 試補 2026-11-03 =====
+  ForexFactory 抓取失敗：RuntimeError: GET 失敗 https://nfs.faireconomy.media/ff_calendar_thisweek.json: HTTP Error 429: Too Many Requests
+  Nasdaq 查 10 天、120 則有預期值
+  2026-11-03.md：對照表對得上 11 列
+    11/02 中：10月財新製造業PMI ｜表上預期 51.6*｜實際 52.0｜已公布 → 來源 52.0（Nasdaq）
+    11/02 美：10月ISM製造業PMI ｜表上預期 54.7*｜實際 55.5｜已公布 → 來源 54.5（Nasdaq）
+    11/03 美：9月JOLTS職缺 ｜表上預期 —｜實際 —｜未公布 → 來源 715萬（Nasdaq）
+    11/04 歐：歐元區10月HICP快報（年增；核心） ｜表上預期 —｜實際 —｜未公布 → 來源 —（沒有）
+    11/04 美：10月ISM服務業PMI ｜表上預期 55.1*｜實際 —｜未公布 → 來源 54.8（Nasdaq）
+    11/04 美：10月ADP民間就業 ｜表上預期 +7.5萬*｜實際 —｜未公布 → 來源 +6.7萬（Nasdaq）
+    11/04 中：10月財新服務業PMI ｜表上預期 —｜實際 —｜未公布 → 來源 51.7（Nasdaq）
+    11/05 歐：英國央行（BoE）利率決議（台北20:00） ｜表上預期 4.00%（升息25bp）*｜實際 —｜未公布 → 來源 4.00%（升息25bp）（Nasdaq）
+    11/05 美：截至10/31當週初領失業金人數 ｜表上預期 —｜實際 —｜未公布 → 來源 19.7萬（Nasdaq）
+    11/06 美：10月非農就業（失業率） ｜表上預期 +5.5萬（4.2%）*｜實際 —｜未公布 → 來源 +6.3萬（4.2%）（Nasdaq）
+    10/31 中：10月官方製造業PMI（國家統計局，台北09:30） ｜表上預期 49.9*｜實際 49.3｜已公布 → 來源 49.9（Nasdaq）
+  試補：3 列
+    fill 美：9月JOLTS職缺 715萬 Nasdaq
+    skip 歐：歐元區10月HICP快報  沒有
+    fill 中：10月財新服務業PMI 51.7 Nasdaq
+    fill 美：截至10/31當週初領失業金人數 19.7萬 Nasdaq
+  註：- 預期自動補（11/03 21:30；市場共識、非官方）：美：9月JOLTS職缺 715萬（Nasdaq）；中：10月財新服務業PMI 51.7（Nasdaq）；美：截至10/31當週初領失業金人數 19.7萬（Nasdaq）。
 
-  ● 11/02 中：10月財新製造業PMI ｜預期 51.6* 實際 52.0 前值 52.1 已公布
-      NQ RatingDog Manufacturing PMI ｜'52.0'／'52.1'／'52.0'
-
-  ● 11/02 美：10月ISM製造業PMI ｜預期 54.7* 實際 55.5 前值 54.5 已公布
-      FF Final Manufacturing PMI ｜'56.0'／'56.0'
-      FF ISM Manufacturing PMI ｜'54.5'／'54.5'
-      FF Construction Spending m/m ｜'0.4%'／'0.9%'
-      FF ISM Manufacturing Prices ｜'77.2'／'77.9'
-      FF Loan Officer Survey ｜''／''
-      NQ OPEC Meeting ｜' '／'&nbsp;'／'&nbsp;'
-
-  ● 11/02 美：芝加哥聯銀總裁古爾斯比對談（金融市場集團秋季會議） ｜預期 — 實際 — 前值 — 未公布
-      FF Final Manufacturing PMI ｜'56.0'／'56.0'
-      FF ISM Manufacturing PMI ｜'54.5'／'54.5'
-      FF Construction Spending m/m ｜'0.4%'／'0.9%'
-      FF ISM Manufacturing Prices ｜'77.2'／'77.9'
-      FF Loan Officer Survey ｜''／''
-      NQ OPEC Meeting ｜' '／'&nbsp;'／'&nbsp;'
-
-  ● 11/03 美：期中選舉投票日 ｜預期 — 實際 — 前值 — 未公布
-      FF JOLTS Job Openings ｜'7.15M'／'7.08M'
-      FF Factory Orders m/m ｜'1.2%'／'0.1%'
-      FF RCM/TIPP Economic Optimism ｜'46.2'／'46.8'
-      FF Omdia Total Vehicle Sales ｜'15.8M'／'16.0M'
-      FF Congressional Elections ｜''／''
-      FF API Weekly Statistical Bulletin ｜''／''
-      NQ S&P Global Manufacturing PMI ｜'56.0'／'56.0'／'54.9'
-      NQ Construction Spending ｜'0.4%'／'2.0%'／'-1.9%'
-      NQ ISM Manufacturing Employment ｜'52.0'／'52.7'／'52.4'
-      NQ ISM Manufacturing New Orders Index ｜'54.5'／'55.3'／'55.5'
-      NQ ISM Manufacturing PMI ｜'54.5'／'54.5'／'55.5'
-      NQ ISM Manufacturing Prices ｜'77.2'／'77.9'／'75.2'
-      NQ Fed Goolsbee Speaks ｜' '／'&nbsp;'／'&nbsp;'
-      NQ 3-Month Bill Auction ｜' '／'4.050%'／'4.040%'
-      NQ 6-Month Bill Auction ｜' '／'4.210%'／'4.150%'
-      NQ Atlanta Fed GDPNow ｜'3.2%'／'3.2%'／'3.7%'
-      NQ Loan Officer Survey ｜' '／'&nbsp;'／'&nbsp;'
-
-  ● 11/03 美：9月JOLTS職缺 ｜預期 — 實際 — 前值 — 未公布
-      FF JOLTS Job Openings ｜'7.15M'／'7.08M'
-      FF Factory Orders m/m ｜'1.2%'／'0.1%'
-      FF RCM/TIPP Economic Optimism ｜'46.2'／'46.8'
-      FF Omdia Total Vehicle Sales ｜'15.8M'／'16.0M'
-      FF Congressional Elections ｜''／''
-      FF API Weekly Statistical Bulletin ｜''／''
-      NQ S&P Global Manufacturing PMI ｜'56.0'／'56.0'／'54.9'
-      NQ Construction Spending ｜'0.4%'／'2.0%'／'-1.9%'
-      NQ ISM Manufacturing Employment ｜'52.0'／'52.7'／'52.4'
-      NQ ISM Manufacturing New Orders Index ｜'54.5'／'55.3'／'55.5'
-      NQ ISM Manufacturing PMI ｜'54.5'／'54.5'／'55.5'
-      NQ ISM Manufacturing Prices ｜'77.2'／'77.9'／'75.2'
-      NQ Fed Goolsbee Speaks ｜' '／'&nbsp;'／'&nbsp;'
-      NQ 3-Month Bill Auction ｜' '／'4.050%'／'4.040%'
-      NQ 6-Month Bill Auction ｜' '／'4.210%'／'4.150%'
-      NQ Atlanta Fed GDPNow ｜'3.2%'／'3.2%'／'3.7%'
-      NQ Loan Officer Survey ｜' '／'&nbsp;'／'&nbsp;'
-
-  ● 11/04 歐：歐元區10月HICP快報（年增；核心） ｜預期 — 實際 — 前值 +3.8%（核心+2.5%） 未公布
-      FF Spanish Unemployment Change ｜'18.7K'／'23.6K'
-      FF Spanish Services PMI ｜'57.6'／'58.3'
-      FF Italian Services PMI ｜'51.4'／'51.7'
-      FF French Final Services PMI ｜'48.4'／'48.4'
-      FF German Final Services PMI ｜'51.7'／'51.7'
-      FF Final Services PMI ｜'51.7'／'51.7'
-      FF Final Services PMI ｜'53.1'／'53.1'
-      FF Core CPI Flash Estimate y/y ｜'2.5%'／'2.5%'
-      FF CPI Flash Estimate y/y ｜'4.0%'／'3.8%'
-
-  ● 11/04 美：10月ISM服務業PMI ｜預期 55.1* 實際 — 前值 54.9 未公布
-      FF ADP Non-Farm Employment Change ｜'67K'／'90K'
-      FF Trade Balance ｜'-107.9B'／'-105.6B'
-      FF Final Services PMI ｜'57.9'／'57.9'
-      FF ISM Services PMI ｜'54.8'／'54.9'
-      FF Crude Oil Inventories ｜''／'-1.9M'
-      NQ Redbook ｜' '／'9.3%'／'&nbsp;'
-      NQ Durables Excluding Defense ｜'2.2%'／'2.2%'／'&nbsp;'
-      NQ Durables Excluding Transport ｜' '／'0.5%'／'&nbsp;'
-      NQ Factory Orders ｜'1.2%'／'0.1%'／'&nbsp;'
-      NQ Factory orders ex transportation ｜'0.5%'／'0.3%'／'&nbsp;'
-      NQ IBD/TIPP Economic Optimism ｜'46.2'／'46.8'／'&nbsp;'
-      NQ JOLTS Job Openings ｜'7.150M'／'7.079M'／'&nbsp;'
-      NQ Total Vehicle Sales ｜'15.80M'／'16.00M'／'&nbsp;'
-      NQ API Weekly Crude Oil Stock ｜' '／'-2.031M'／'&nbsp;'
-
-  ● 11/04 美：10月ADP民間就業 ｜預期 +7.5萬* 實際 — 前值 +9.0萬 未公布
-      FF ADP Non-Farm Employment Change ｜'67K'／'90K'
-      FF Trade Balance ｜'-107.9B'／'-105.6B'
-      FF Final Services PMI ｜'57.9'／'57.9'
-      FF ISM Services PMI ｜'54.8'／'54.9'
-      FF Crude Oil Inventories ｜''／'-1.9M'
-      NQ Redbook ｜' '／'9.3%'／'&nbsp;'
-      NQ Durables Excluding Defense ｜'2.2%'／'2.2%'／'&nbsp;'
-      NQ Durables Excluding Transport ｜' '／'0.5%'／'&nbsp;'
-      NQ Factory Orders ｜'1.2%'／'0.1%'／'&nbsp;'
-      NQ Factory orders ex transportation ｜'0.5%'／'0.3%'／'&nbsp;'
-      NQ IBD/TIPP Economic Optimism ｜'46.2'／'46.8'／'&nbsp;'
-      NQ JOLTS Job Openings ｜'7.150M'／'7.079M'／'&nbsp;'
-      NQ Total Vehicle Sales ｜'15.80M'／'16.00M'／'&nbsp;'
-      NQ API Weekly Crude Oil Stock ｜' '／'-2.031M'／'&nbsp;'
-
-  ● 11/04 中：10月財新服務業PMI ｜預期 — 實際 — 前值 — 未公布
-      NQ RatingDog Services PMI ｜'51.7'／'51.6'／'&nbsp;'
-
-  ● 11/05 歐：英國央行（BoE）利率決議（台北20:00） ｜預期 4.00%（升息25bp）* 實際 — 前值 3.75% 未公布
-      FF German Factory Orders m/m ｜'4.6%'／'-10.6%'
-      FF French Industrial Production m/m ｜'0.3%'／'-0.3%'
-      FF Italian Retail Sales m/m ｜'0.0%'／'0.3%'
-      FF Construction PMI ｜'46.4'／'46.1'
-      FF PPI m/m ｜'2.5%'／'1.9%'
-      FF Spanish 10-y Bond Auction ｜''／'4.18|1.6'
-      FF French 10-y Bond Auction ｜''／'4.93|2.0'
-      FF BOE Monetary Policy Report ｜''／''
-      FF Monetary Policy Summary ｜''／''
-      FF MPC Official Bank Rate Votes ｜'7-0-2'／'3-0-6'
-      FF Official Bank Rate ｜'4.00%'／'3.75%'
-      FF BOE Gov Bailey Speaks ｜''／''
-      FF German Buba President Nagel Speaks ｜''／''
-      FF ECB President Lagarde Speaks ｜''／''
-      NQ HCOB Eurozone Composite PMI ｜'51.9'／'53.1'／'&nbsp;'
-      NQ HCOB Eurozone Services PMI ｜'51.7'／'53.0'／'&nbsp;'
-      NQ S&P Global Composite PMI ｜'53.1'／'52.0'／'&nbsp;'
-      NQ S&P Global Services PMI ｜'53.1'／'52.1'／'&nbsp;'
-      NQ Core CPI ｜'2.5%'／'2.5%'／'&nbsp;'
-      NQ Core CPI ｜' '／'0.2%'／'&nbsp;'
-      NQ CPI ｜' '／'0.6%'／'&nbsp;'
-      NQ CPI ｜'4.0%'／'3.8%'／'&nbsp;'
-      NQ CPI, n.s.a ｜' '／'104.31'／'&nbsp;'
-      NQ HICP ex Energy & Food ｜' '／'2.2%'／'&nbsp;'
-      NQ HICP ex Energy and Food ｜' '／'0.2%'／'&nbsp;'
-      NQ ECB's Lane Speaks ｜' '／'&nbsp;'／'&nbsp;'
-
-  ● 11/05 美：克里夫蘭聯銀總裁哈馬克談話（台北21:50） ｜預期 — 實際 — 前值 — 未公布
-      FF Challenger Job Cuts y/y ｜''／'-19.9%'
-      FF Unemployment Claims ｜'197K'／'194K'
-      FF Prelim Nonfarm Productivity q/q ｜'2.8%'／'1.4%'
-      FF Prelim Unit Labor Costs q/q ｜'0.3%'／'1.3%'
-      FF FOMC Member Hammack Speaks ｜''／''
-      FF FOMC Member Barkin Speaks ｜''／''
-      FF Natural Gas Storage ｜''／'80B'
-      NQ MBA 30-Year Mortgage Rate ｜' '／'7.37%'／'&nbsp;'
-      NQ MBA Mortgage Applications ｜' '／'3.4%'／'&nbsp;'
-      NQ MBA Purchase Index ｜' '／'134.1'／'&nbsp;'
-      NQ Mortgage Market Index ｜' '／'195.0'／'&nbsp;'
-      NQ Mortgage Refinance Index ｜' '／'516.8'／'&nbsp;'
-      NQ ADP Nonfarm Employment Change ｜'67K'／'90K'／'&nbsp;'
-      NQ Exports ｜' '／'315.20B'／'&nbsp;'
-      NQ Imports ｜' '／'420.80B'／'&nbsp;'
-      NQ Trade Balance ｜'-107.90B'／'-105.60B'／'&nbsp;'
-      NQ S&P Global Composite PMI ｜'57.6'／'58.4'／'&nbsp;'
-      NQ S&P Global Services PMI ｜'57.9'／'58.8'／'&nbsp;'
-      NQ ISM Non-Manufacturing Business Activity ｜' '／'56.5'／'&nbsp;'
-      NQ ISM Non-Manufacturing Employment ｜' '／'50.1'／'&nbsp;'
-      NQ ISM Non-Manufacturing New Orders ｜' '／'59.8'／'&nbsp;'
-      NQ ISM Non-Manufacturing PMI ｜'54.8'／'54.9'／'&nbsp;'
-      NQ ISM Non-Manufacturing Prices ｜' '／'74.0'／'&nbsp;'
-      NQ Atlanta Fed GDPNow ｜'3.7%'／'3.7%'／'&nbsp;'
-      NQ Crude Oil Inventories ｜' '／'-1.892M'／'&nbsp;'
-      NQ EIA Refinery Crude Runs  ｜' '／'-0.123M'／'&nbsp;'
-      NQ Crude Oil Imports ｜' '／'-0.796M'／'&nbsp;'
-      NQ Cushing Crude Oil Inventories ｜' '／'-0.624M'／'&nbsp;'
-      NQ Distillate Fuel Production ｜' '／'-0.071M'／'&nbsp;'
-      NQ EIA Weekly Distillates Stocks ｜' '／'-1.462M'／'&nbsp;'
-      NQ Gasoline Production ｜' '／'-0.509M'／'&nbsp;'
-      NQ Heating Oil Stockpiles ｜' '／'0.164M'／'&nbsp;'
-      NQ EIA Weekly Refinery Utilization Rates ｜' '／'-0.6%'／'&nbsp;'
-      NQ Gasoline Inventories ｜' '／'3.870M'／'&nbsp;'
-
-  ● 11/05 美：截至10/31當週初領失業金人數 ｜預期 — 實際 — 前值 19.4萬 未公布
-      FF Challenger Job Cuts y/y ｜''／'-19.9%'
-      FF Unemployment Claims ｜'197K'／'194K'
-      FF Prelim Nonfarm Productivity q/q ｜'2.8%'／'1.4%'
-      FF Prelim Unit Labor Costs q/q ｜'0.3%'／'1.3%'
-      FF FOMC Member Hammack Speaks ｜''／''
-      FF FOMC Member Barkin Speaks ｜''／''
-      FF Natural Gas Storage ｜''／'80B'
-      NQ MBA 30-Year Mortgage Rate ｜' '／'7.37%'／'&nbsp;'
-      NQ MBA Mortgage Applications ｜' '／'3.4%'／'&nbsp;'
-      NQ MBA Purchase Index ｜' '／'134.1'／'&nbsp;'
-      NQ Mortgage Market Index ｜' '／'195.0'／'&nbsp;'
-      NQ Mortgage Refinance Index ｜' '／'516.8'／'&nbsp;'
-      NQ ADP Nonfarm Employment Change ｜'67K'／'90K'／'&nbsp;'
-      NQ Exports ｜' '／'315.20B'／'&nbsp;'
-      NQ Imports ｜' '／'420.80B'／'&nbsp;'
-      NQ Trade Balance ｜'-107.90B'／'-105.60B'／'&nbsp;'
-      NQ S&P Global Composite PMI ｜'57.6'／'58.4'／'&nbsp;'
-      NQ S&P Global Services PMI ｜'57.9'／'58.8'／'&nbsp;'
-      NQ ISM Non-Manufacturing Business Activity ｜' '／'56.5'／'&nbsp;'
-      NQ ISM Non-Manufacturing Employment ｜' '／'50.1'／'&nbsp;'
-      NQ ISM Non-Manufacturing New Orders ｜' '／'59.8'／'&nbsp;'
-      NQ ISM Non-Manufacturing PMI ｜'54.8'／'54.9'／'&nbsp;'
-      NQ ISM Non-Manufacturing Prices ｜' '／'74.0'／'&nbsp;'
-      NQ Atlanta Fed GDPNow ｜'3.7%'／'3.7%'／'&nbsp;'
-      NQ Crude Oil Inventories ｜' '／'-1.892M'／'&nbsp;'
-      NQ EIA Refinery Crude Runs  ｜' '／'-0.123M'／'&nbsp;'
-      NQ Crude Oil Imports ｜' '／'-0.796M'／'&nbsp;'
-      NQ Cushing Crude Oil Inventories ｜' '／'-0.624M'／'&nbsp;'
-      NQ Distillate Fuel Production ｜' '／'-0.071M'／'&nbsp;'
-      NQ EIA Weekly Distillates Stocks ｜' '／'-1.462M'／'&nbsp;'
-      NQ Gasoline Production ｜' '／'-0.509M'／'&nbsp;'
-      NQ Heating Oil Stockpiles ｜' '／'0.164M'／'&nbsp;'
-      NQ EIA Weekly Refinery Utilization Rates ｜' '／'-0.6%'／'&nbsp;'
-      NQ Gasoline Inventories ｜' '／'3.870M'／'&nbsp;'
-
-  ● 11/06 美：10月非農就業（失業率） ｜預期 +5.5萬（4.2%）* 實際 — 前值 +2.9萬（4.2%） 未公布
-      FF FOMC Member Williams Speaks ｜''／''
-      FF Average Hourly Earnings m/m ｜'0.3%'／'0.1%'
-      FF Non-Farm Employment Change ｜'65K'／'29K'
-      FF Unemployment Rate ｜'4.2%'／'4.2%'
-      FF FOMC Member Musalem Speaks ｜''／''
-      FF Prelim UoM Consumer Sentiment ｜'48.1'／'46.3'
-      FF Prelim UoM Inflation Expectations ｜''／'4.7%'
-      FF FOMC Member Bowman Speaks ｜''／''
-      FF Consumer Credit m/m ｜'13.4B'／'8.3B'
-      NQ Challenger Job Cuts ｜' '／'43.281K'／'&nbsp;'
-      NQ Challenger Job Cuts ｜' '／'43.281K'／'&nbsp;'
-      NQ Challenger Job Cuts ｜' '／'-19.9%'／'&nbsp;'
-      NQ Continuing Jobless Claims ｜' '／'1,701K'／'&nbsp;'
-      NQ Initial Jobless Claims ｜'197K'／'194K'／'&nbsp;'
-      NQ Jobless Claims 4-Week Avg. ｜' '／'196.75K'／'&nbsp;'
-      NQ Nonfarm Productivity ｜'2.8%'／'1.4%'／'&nbsp;'
-      NQ Unit Labor Costs ｜'0.3%'／'1.2%'／'&nbsp;'
-      NQ FOMC Member Barkin Speaks ｜' '／'&nbsp;'／'&nbsp;'
-      NQ Natural Gas Storage ｜' '／'80B'／'&nbsp;'
-      NQ 4-Week Bill Auction ｜' '／'3.910%'／'&nbsp;'
-      NQ 8-Week Bill Auction ｜' '／'4.020%'／'&nbsp;'
-      NQ Fed's Balance Sheet ｜' '／'6,746B'／'&nbsp;'
-      NQ Reserve Balances with Federal Reserve Banks ｜' '／'2.895T'／'&nbsp;'
-      NQ Fed Logan Speaks ｜' '／'&nbsp;'／'&nbsp;'
-
-  ● 10/30 日：日銀利率決議＋展望報告（總裁記者會15:30 JST） ｜預期 1.25%（維持）* 實際 維持1.25%（8比1），通膨達標 前值 1.25% 已公布
-      NQ Household Confidence ｜'35.1'／'35.4'／'35.0'
-      NQ CPI Tokyo Ex Food & Energy ｜'2.7%'／'2.7%'／'2.4%'
-      NQ Jobs/applications ratio ｜'1.18'／'1.18'／'1.19'
-      NQ Tokyo Core CPI ｜'2.6%'／'2.7%'／'2.6%'
-      NQ Tokyo CPI ｜'3.3%'／'2.7%'／'2.8%'
-      NQ CPI Tokyo Ex Food and Energy ｜' '／'0.4%'／'0.6%'
-      NQ Unemployment Rate ｜'2.5%'／'2.5%'／'2.4%'
-      NQ Industrial Production ｜'1.2%'／'-2.4%'／'2.2%'
-      NQ Industrial Production forecast 1m ahead ｜' '／'3.2%'／'5.1%'
-      NQ Industrial Production forecast 2m ahead ｜' '／'3.1%'／'0.8%'
-      NQ Large Retailers' Sales ｜' '／'-0.9%'／'-0.7%'
-      NQ Large Scale Retail Sales YoY ｜' '／'1.0%'／'2.0%'
-      NQ Retail Sales ｜'3.3%'／'2.9%'／'2.3%'
-      NQ BoJ Monetary Policy Statement ｜' '／'&nbsp;'／'&nbsp;'
-      NQ BoJ Outlook Report ｜' '／'&nbsp;'／'&nbsp;'
-      NQ BoJ Interest Rate Decision ｜'1.25%'／'1.25%'／'1.25%'
-
-  ● 10/30 日：10月東京CPI（年增；核心） ｜預期 — 實際 核心+2.6% 前值 +2.7%（核心+2.4%） 已公布
-      NQ Household Confidence ｜'35.1'／'35.4'／'35.0'
-      NQ CPI Tokyo Ex Food & Energy ｜'2.7%'／'2.7%'／'2.4%'
-      NQ Jobs/applications ratio ｜'1.18'／'1.18'／'1.19'
-      NQ Tokyo Core CPI ｜'2.6%'／'2.7%'／'2.6%'
-      NQ Tokyo CPI ｜'3.3%'／'2.7%'／'2.8%'
-      NQ CPI Tokyo Ex Food and Energy ｜' '／'0.4%'／'0.6%'
-      NQ Unemployment Rate ｜'2.5%'／'2.5%'／'2.4%'
-      NQ Industrial Production ｜'1.2%'／'-2.4%'／'2.2%'
-      NQ Industrial Production forecast 1m ahead ｜' '／'3.2%'／'5.1%'
-      NQ Industrial Production forecast 2m ahead ｜' '／'3.1%'／'0.8%'
-      NQ Large Retailers' Sales ｜' '／'-0.9%'／'-0.7%'
-      NQ Large Scale Retail Sales YoY ｜' '／'1.0%'／'2.0%'
-      NQ Retail Sales ｜'3.3%'／'2.9%'／'2.3%'
-      NQ BoJ Monetary Policy Statement ｜' '／'&nbsp;'／'&nbsp;'
-      NQ BoJ Outlook Report ｜' '／'&nbsp;'／'&nbsp;'
-      NQ BoJ Interest Rate Decision ｜'1.25%'／'1.25%'／'1.25%'
-
-  ● 10/30 歐：歐元區第三季GDP初值 ｜預期 — 實際 季增+0.4%，年增+1.3% 前值 — 已公布
-      NQ BoE Consumer Credit ｜'2.200B'／'2.683B'／'1.914B'
-      NQ M3 Money Supply ｜' '／'3,308.5B'／'3,310.6B'
-      NQ M4 Money Supply ｜'0.3%'／'0.4%'／'0.1%'
-      NQ Mortgage Approvals ｜'54.00K'／'54.81K'／'53.44K'
-      NQ Mortgage Lending ｜'4.20B'／'4.17B'／'3.87B'
-      NQ Net Lending to Individuals ｜'6.200B'／'6.874B'／'5.800B'
-      NQ Business and Consumer Survey ｜'97.5'／'97.5'／'96.9'
-      NQ Business Climate ｜' '／'-0.05'／'0.09'
-      NQ Consumer Confidence ｜'-17.9'／'-16.5'／'-17.9'
-      NQ Consumer Inflation Expectation ｜' '／'34.7'／'33.9'
-      NQ Selling Price Expectations ｜' '／'20.8'／'24.8'
-      NQ Services Sentiment ｜'5.9'／'5.9'／'5.3'
-      NQ Industrial Sentiment ｜'-3.8'／'-3.9'／'-3.4'
-      NQ Deposit Facility Rate ｜'2.50%'／'2.50%'／'2.50%'
-      NQ ECB Marginal Lending Facility ｜' '／'2.90%'／'2.90%'
-      NQ ECB Monetary Policy Statement ｜' '／'&nbsp;'／'&nbsp;'
-      NQ ECB Interest Rate Decision ｜'2.65%'／'2.65%'／'2.65%'
-      NQ ECB Press Conference ｜' '／'&nbsp;'／'&nbsp;'
-      NQ ECB President Lagarde Speaks ｜' '／'&nbsp;'／'&nbsp;'
-
-  ● 10/30 美：第三季就業成本指數ECI ｜預期 — 實際 +0.8% 前值 — 已公布
-      NQ Continuing Jobless Claims ｜'1,720K'／'1,722K'／'1,701K'
-      NQ Core PCE Price Index ｜'0.3%'／'0.3%'／'0.3%'
-      NQ Core PCE Price Index ｜'3.1%'／'3.0%'／'3.1%'
-      NQ Core PCE Prices ｜'2.40%'／'3.30%'／'2.50%'
-      NQ GDP ｜'3.2%'／'2.2%'／'3.4%'
-      NQ GDP Price Index ｜'3.2%'／'6.1%'／'2.2%'
-      NQ GDP Sales ｜' '／'2.8%'／'1.7%'
-      NQ Initial Jobless Claims ｜'198K'／'195K'／'194K'
-      NQ Jobless Claims 4-Week Avg. ｜' '／'198.00K'／'196.75K'
-      NQ PCE price index ｜'0.5%'／'0.3%'／'0.5%'
-      NQ PCE Price index ｜'3.6%'／'3.4%'／'3.6%'
-      NQ PCE Prices ｜'3.4%'／'5.0%'／'2.1%'
-      NQ Personal Income ｜'0.3%'／'0.3%'／'0.2%'
-      NQ Personal Spending ｜'0.6%'／'0.9%'／'0.5%'
-      NQ Real Consumer Spending ｜' '／'3.8%'／'3.8%'
-      NQ Real Personal Consumption ｜' '／'0.5%'／'0.0%'
-      NQ Atlanta Fed GDPNow ｜' '／'&nbsp;'／'3.2%'
-      NQ Natural Gas Storage ｜'75B'／'77B'／'80B'
-      NQ 4-Week Bill Auction ｜' '／'3.945%'／'3.910%'
-      NQ 8-Week Bill Auction ｜' '／'4.015%'／'4.020%'
-      NQ 7-Year Note Auction ｜' '／'5.085%'／'4.894%'
-      NQ Fed's Balance Sheet ｜' '／'6,754B'／'6,746B'
-      NQ Reserve Balances with Federal Reserve Banks ｜' '／'2.969T'／'2.895T'
-
-  ● 10/31 中：10月官方製造業PMI（國家統計局，台北09:30） ｜預期 49.9* 實際 49.3 前值 50.1 已公布
-
-  ● 10/26 中：二十屆五中全會（10/26–10/29） ｜預期 — 實際 閉幕公報：通過全面從嚴治黨決定 前值 — 已公布
-
-  ● 10/29 美：截至10/24當週初領失業金人數 ｜預期 — 實際 19.4萬 前值 19.4萬 已公布
-      NQ Continuing Jobless Claims ｜'1,720K'／'1,722K'／'1,701K'
-      NQ Core PCE Price Index ｜'0.3%'／'0.3%'／'0.3%'
-      NQ Core PCE Price Index ｜'3.1%'／'3.0%'／'3.1%'
-      NQ Core PCE Prices ｜'2.40%'／'3.30%'／'2.50%'
-      NQ GDP ｜'3.2%'／'2.2%'／'3.4%'
-      NQ GDP Price Index ｜'3.2%'／'6.1%'／'2.2%'
-      NQ GDP Sales ｜' '／'2.8%'／'1.7%'
-      NQ Initial Jobless Claims ｜'198K'／'195K'／'194K'
-      NQ Jobless Claims 4-Week Avg. ｜' '／'198.00K'／'196.75K'
-      NQ PCE price index ｜'0.5%'／'0.3%'／'0.5%'
-      NQ PCE Price index ｜'3.6%'／'3.4%'／'3.6%'
-      NQ PCE Prices ｜'3.4%'／'5.0%'／'2.1%'
-      NQ Personal Income ｜'0.3%'／'0.3%'／'0.2%'
-      NQ Personal Spending ｜'0.6%'／'0.9%'／'0.5%'
-      NQ Real Consumer Spending ｜' '／'3.8%'／'3.8%'
-      NQ Real Personal Consumption ｜' '／'0.5%'／'0.0%'
-      NQ Atlanta Fed GDPNow ｜' '／'&nbsp;'／'3.2%'
-      NQ Natural Gas Storage ｜'75B'／'77B'／'80B'
-      NQ 4-Week Bill Auction ｜' '／'3.945%'／'3.910%'
-      NQ 8-Week Bill Auction ｜' '／'4.015%'／'4.020%'
-      NQ 7-Year Note Auction ｜' '／'5.085%'／'4.894%'
-      NQ Fed's Balance Sheet ｜' '／'6,754B'／'6,746B'
-      NQ Reserve Balances with Federal Reserve Banks ｜' '／'2.969T'／'2.895T'
-
-總共 64 秒；2026-11-03 21:12
+總共 89 秒；2026-11-03 21:30
