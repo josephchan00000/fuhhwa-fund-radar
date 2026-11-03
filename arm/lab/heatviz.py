@@ -412,9 +412,15 @@ def _tq_rid(mk: str | None, k: str) -> str:
     return f"tqr-{mk or 'm'}-{k}"
 
 
+def _pos_txt(pct: float | None) -> str:
+    """滑過去與讀屏用的位置（和「過去讀數這樣的時候」同一句、不帶標籤）。"""
+    return re.sub(r"<[^>]+>", "", _cal_pos(pct))
+
+
 def thermo_card(T: dict, mk: str | None) -> str:
-    """溫度計（sigspec 第 5 節 ④b，VER 23）：短線、中線、長線三列；中線＝0，警示往左、偏多往右的細長條，長度＝類數
-    （三列共用同一把尺）；右邊＝讀數（偏多／偏警示／差不多／中性）。每一列是切換下面清單的標籤（label for 那一段的 radio）。"""
+    """溫度計（sigspec 第 5 節 ④b，VER 23；第 5.3 節，VER 28）：短線、中線、長線三列；中線＝0，警示往左、偏多往右的細長條，
+    長度＝那一邊和自己過去 10 年比的位置（0～100%；sigcat.relean 的 "pos"），位置算不出來的那一列照舊＝類數（三列共用同一把尺）；
+    旁邊的數字＝類數；右邊＝讀數（偏多／偏警示／差不多／中性）。每一列是切換下面清單的標籤（label for 那一段的 radio）。"""
     ths = T.get("thermo") or []
     mx = max([1] + [th["n"][s] for th in ths for s in ("up", "warn")])
     rows = []
@@ -423,8 +429,16 @@ def thermo_card(T: dict, mk: str | None) -> str:
         lean = th.get("lean")
         word = TZ_LEAN.get(lean) or "中性"
         lab = f'{th["name"]}（持有 {_tq_hz(th)}）：警示 {n["warn"]} 類、偏多 {n["up"]} 類，{word}'
-        bar = (f'<span class="tqh tqh-w"><i style="width:{n["warn"] / mx * 100:.1f}%"></i></span>'
-               f'<span class="tqh tqh-u"><i style="width:{n["up"] / mx * 100:.1f}%"></i></span>')
+        pos, pct = th.get("pos"), th.get("pct") or {}
+        if pos:
+            wd = {s: pos[s] * 100 for s in ("up", "warn")}
+            tt = {s: f'{TZ_SIDE[s]} {n[s]} 類，{_pos_txt(pct.get(s))}' for s in ("up", "warn")}
+            lab += f'（警示{_pos_txt(pct.get("warn"))}；偏多{_pos_txt(pct.get("up"))}）'
+        else:
+            wd = {s: n[s] / mx * 100 for s in ("up", "warn")}
+            tt = {s: f'{TZ_SIDE[s]} {n[s]} 類' for s in ("up", "warn")}
+        bar = (f'<span class="tqh tqh-w" title="{_e(tt["warn"])}"><i style="width:{wd["warn"]:.1f}%"></i></span>'
+               f'<span class="tqh tqh-u" title="{_e(tt["up"])}"><i style="width:{wd["up"]:.1f}%"></i></span>')
         rows.append(f'<label class="tqq" for="{_tq_rid(mk, th["k"])}" title="點了看{_e(th["name"])}列出來的訊號">'
                     f'<span class="tqn"><b>{_e(th["name"])}</b><i>{_e(_tq_hz(th))}</i></span>'
                     f'<span class="tqc tqc-w">{n["warn"]}</span>'
