@@ -6,7 +6,8 @@ CI 每一班抓完官方資料之後、重建儀表板之前跑：TZ=Asia/Taipei
   已填而和官方不同的只在「註」加一行「官方核對」。不擋發佈（永遠 exit 0）。
   先看有沒有列在等只有行事曆用的來源（勞工統計局非農等、歐洲央行、主計總處 GDP 年增；calfill.wanted），
   本機還沒有那一期才連網抓（arm/calsrc.py），其他只讀本機落檔。
-  --dry：只印、不抓、不寫檔。--no-fetch：不抓（盤後那支 push 被拒重試時用，剛才已經抓過）。
+  官方補完之後再補「預期」欄的空白（市場共識：ForexFactory 週曆＋Nasdaq 經濟日曆互相核對，arm/calcons.py；第五段）。
+  --dry：只印、不抓、不寫檔。--no-fetch：不抓（盤後那支 push 被拒重試時用，剛才已經抓過；預期欄用剛才存的事件）。
 """
 from __future__ import annotations
 
@@ -17,6 +18,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from arm import calcons  # noqa: E402
 from arm import calfill as CF  # noqa: E402
 from arm import calsrc  # noqa: E402
 from arm.clock import now_tw, today_tw  # noqa: E402
@@ -39,6 +41,7 @@ def main() -> int:
         r = CF.run(today, now_tw(), write=not a.dry)
     except Exception as e:                                    # noqa: BLE001 —— 不擋發佈
         print(f"[calfill] ✗ {type(e).__name__}: {str(e)[:200]}")
+        consensus(a)
         return 0
     if not r["file"]:
         print("[calfill] 沒有行事曆檔")
@@ -53,7 +56,29 @@ def main() -> int:
         print(f"[calfill] {name} {tag}：{x['item']} → {x['value']}（{x['src']}）{old}{seen}")
     if r.get("wrote"):
         print(f"[calfill] 已寫入 {name}")
+    consensus(a)
     return 0
+
+
+def consensus(a) -> None:
+    """「預期」欄空白補市場共識（arm/calcons.py）；失敗只印一行。"""
+    try:
+        r = calcons.run(today_tw(), now_tw(), fetch=not (a.dry or a.no_fetch), write=not a.dry)
+    except Exception as e:                                    # noqa: BLE001 —— 不擋發佈
+        print(f"[calcons] ✗ {type(e).__name__}: {str(e)[:200]}")
+        return
+    for x in r["log"]:
+        print(f"[calcons] {x}")
+    for x in r["acts"]:
+        if x["kind"] == "fill":
+            print(f"[calcons] 預期補：{x['item']} → {x['value']}*（{x['src']}）")
+        elif x["why"] != "沒有":
+            print(f"[calcons] 預期不補：{x['item']}（{x['why']}）")
+    n = sum(1 for x in r["acts"] if x["kind"] == "skip" and x["why"] == "沒有")
+    if n:
+        print(f"[calcons] 另 {n} 列兩個來源都還沒有預期值")
+    if r.get("wrote"):
+        print(f"[calcons] 已寫入 {Path(r['file']).name}")
 
 
 if __name__ == "__main__":

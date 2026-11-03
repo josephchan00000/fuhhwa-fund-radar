@@ -78,3 +78,9 @@
 
 ## [2026-11-01] 收錄 | 預估配息補新聞備援
 - 交易所表「金額待公告」的那幾檔，改從主流媒體新聞標題取投信第一階段公告的預估金額（`etfwatch.news_estimate`）；探針查過觀測站、證交所 etfDiv、集保都沒有預估金額。改了 `main/etf-watch.md`、`user.md`（規劃 `docs/etf_div_auto_plan.md` 第 5 節）。
+
+## [2026-11-03] 收錄 | 行事曆預期欄自動補
+- 「預期」空白的列由 CI 從 ForexFactory 週曆、Nasdaq 經濟日曆補市場共識（兩邊不同不補、只補空白、標 *、「註」寫來源；`arm/calcons.py`）。改了 `main/calendar.md`（規劃 `docs/macrocal_fill_plan.md` 第九節）。另修 `tests/test_etfwatch.py`：掛牌當天自動加入追蹤的新 ETF（00416A）還沒有週報酬，比照待首抓。
+
+## [2026-11-03] 收錄 | 溫度計讀數改看兩邊各自的位置（sigspec VER 28～29）
+- 讀數不再比偏多、警示的數量占比（警示合格的本來就多），改看兩邊各自和自己過去 10 年比的位置；長條＝位置、旁邊的數字＝亮著的訊號數（VER 29，看過結果後使用者選）。改了 `lab/signals-today.md`、`lab/signals.md`（規劃 `docs/lab_thermo_lean_plan.md`）。

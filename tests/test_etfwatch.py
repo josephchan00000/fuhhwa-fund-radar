@@ -467,16 +467,22 @@ def test_seed_perf_covers_every_watchlist_code():
         assert base.get("ret_1w") is not None and base.get("ret_1m") is not None
 
 
+def _pending() -> set[str]:
+    """待首抓的檔：_SEED_PENDING＋掛牌當天自動升級、還沒轉正進 WATCHLIST 的（watch_tuples；報酬要等第一週）。"""
+    return etfwatch._SEED_PENDING | ({c for c, *_ in etfwatch.watch_tuples()} - {c for c, *_ in etfwatch.WATCHLIST})
+
+
 def test_seed_file_loads_and_covers_watchlist():
     doc = etfwatch.load()
     assert doc and not etfwatch.is_empty(doc)
     by_code = {i["code"]: i for i in doc["items"]}
-    assert set(by_code) == {c for c, *_ in etfwatch.WATCHLIST}
+    # 有效清單＝WATCHLIST＋掛牌日已到、自動升級的 UPCOMING 檔（watch_tuples；2026-11-03 00416A 掛牌當天落檔就有它）
+    assert set(by_code) == {c for c, *_ in etfwatch.watch_tuples()}
     # 每檔的成立日期／週報酬／月報酬／規模一律有值（不再整片留空）；
     # 不斷言確切報酬數字——那些會被 CI 以最新市場資料更新，只驗「完整且合理」。
     for i in doc["items"]:
         assert i.get("inception")                        # 成立日期一律有值
-        if i["code"] in etfwatch._SEED_PENDING:          # 新增檔待 CI 首抓，報酬／規模可暫留空
+        if i["code"] in _pending():                      # 新增檔待 CI 首抓，報酬／規模可暫留空
             continue
         assert i.get("ret_1w") is not None
         assert i.get("ret_1m") is not None and i.get("aum_e8") is not None
@@ -537,7 +543,7 @@ def test_fetch_falls_back_to_seed_when_source_down_and_no_file(monkeypatch):
     assert not etfwatch.is_empty(doc) and "不可達" in doc["source"]
     for i in doc["items"]:                                    # 除新增待抓檔外，無一欄位留空
         assert i.get("inception")
-        if i["code"] in etfwatch._SEED_PENDING:
+        if i["code"] in _pending():
             continue
         assert i.get("ret_1w") is not None and i.get("aum_e8") is not None
 
