@@ -219,4 +219,7 @@ def test_workflow_logs_to_main_before_pushing_the_pack():
     step = wf[i:j]
     assert "continue-on-error: true" in step and "add data/eq_docs_log.json" in step and "push -q origin HEAD:main" in step
     assert "fetch_eqdocs.py --log" in step and "git add -A" not in step
+    import subprocess as sp
+    r = sp.run(["git", "check-ignore", "-q", "data/eq_docs_log.json"], cwd=ROOT)
+    assert r.returncode == 1                                               # 紀錄檔不能被 .gitignore 擋（2026-11-04：從 10/30 起每次都寫不進 main）
     assert "--depth=1 origin +refs/heads/main" in step and not re.search(r"git( -C \S+)? pull", step)   # checkout 是淺的：只拿 main 最新一個 commit、不 rebase
