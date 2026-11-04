@@ -36,6 +36,7 @@ CSS = (".opm{max-width:1000px;margin:0 auto;padding:12px 16px 80px}"
        ".opt th{color:var(--mut);font-weight:600;font-size:12.5px}.opt td:first-child,.opt th:first-child{text-align:left}"
        ".opt .opup{color:var(--t0)}.opt .opdn{color:var(--t4)}.opt .oploss{background:var(--zh)}"
        ".opt tr.opatm td{font-weight:700}.opt tr.oppick td{background:var(--accbg)}.opt tbody tr[data-k]{cursor:pointer}"
+       ".opstale{margin:10px 0;padding:8px 12px;border-radius:8px;border-left:4px solid var(--c4);background:var(--sbg);font-size:14px}"
        ".opnote{font-size:12.5px;color:var(--mut);line-height:1.6;margin:6px 0}"
        ".opexp{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.opexp button{font:inherit;font-size:13px;padding:4px 10px;"
        "border:1px solid var(--line2);border-radius:999px;background:var(--bg);color:var(--ink2);cursor:pointer}"
@@ -46,6 +47,8 @@ JS = r"""
   const D = JSON.parse(document.getElementById('opd').textContent || 'null');
   const box = document.getElementById('opapp');
   if (!D || !D.exps || !D.exps.length) { box.innerHTML = '<p class="oplead">作戰表還沒準備好：每個交易日晚上自動更新。</p>'; return; }
+  const today = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);   // 台北日期
+  const stale = today > D.next;
   const KEY = 'txoCalc';
   let st = {acct: 1000000, fee: D.fee, cap: 'O1'};
   try { Object.assign(st, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) {}
@@ -76,13 +79,14 @@ JS = r"""
     if (lots == null) lots = Math.max(1, maxLots);
     const risk = lots * one, pct = st.acct > 0 ? risk / st.acct : 0;
     const be = cp === 'C' ? k + prem : k - prem, v = volOf(r);
-    const half = lots * (prem / 2) * D.mult + 2 * lots * side(prem / 2);
+    const half = lots * ((prem / 2) * D.mult + side(prem) + side(prem / 2));      // 買進一邊＋停損賣出一邊
     const em = D.em || 0, cl = D.close;
     const moves = [[-3, cl * -0.03], [-2, cl * -0.02], [-1, cl * -0.01], ['正常下緣', -em], [0, 0], ['正常上緣', em], [1, cl * 0.01], [2, cl * 0.02], [3, cl * 0.03]];
     const n = e.n;                                         // 從作戰表那天到到期的交易日數（下一個交易日算第 1 天）
     const times = [['10:00', 75], ['11:30', 165], ['13:00', 255], ['到期結算', null]];
+    const basis = (e.f || cl) - cl;                       // 選擇權隱含的指數水準比收盤高（低）多少；越接近到期越收斂到 0
     const cell = (s, mins) => { const t = mins == null ? 0 : Math.max(0, n - mins / 300) / 252;
-      const val = bs(cp, s, k, t, v); const pl = lots * (val - prem) * D.mult - 2 * lots * side(prem);
+      const val = bs(cp, s + basis * (t * 252 / n), k, t, v); const pl = lots * (val - prem) * D.mult - 2 * lots * side(prem);
       const x = prem > 0 ? val / prem : 0;
       return '<td class="' + (pl < 0 ? 'opdn oploss' : 'opup') + '">' + sgn(pl) + '<br><small>' + nf(x, 1) + ' 倍</small></td>'; };
     let tb = '';
@@ -93,7 +97,7 @@ JS = r"""
     const chain = e.rows.map(x => '<tr data-k="' + x[0] + '" class="' + (x[0] === D.atm ? 'opatm ' : '') + (x[0] === k ? 'oppick' : '') + '">' +
       '<td>' + nf(x[0]) + '</td><td>' + nf(x[1], x[1] < 10 ? 1 : 0) + '</td><td>' + (x[2] ? nf(x[2] * 100, 0) + '%' : '—') + '</td>' +
       '<td>' + nf(x[3], x[3] < 10 ? 1 : 0) + '</td><td>' + (x[4] ? nf(x[4] * 100, 0) + '%' : '—') + '</td><td>' + nf(x[5]) + '／' + nf(x[6]) + '</td></tr>').join('');
-    box.innerHTML =
+    box.innerHTML = (stale ? '<p class="opstale">作戰表停在 ' + md(D.asof) + ' 收盤，還沒更新到今天：下面的價格與波動只能參考，成交價一定要改成券商現在的價格。</p>' : '') +
       '<h2>1. 你的帳戶</h2><div class="opform">' +
       '<label>選擇權帳戶（元）<input id="acct" inputmode="numeric" value="' + st.acct + '"></label>' +
       '<label>每口每邊手續費<select id="fee"><option' + (st.fee == 25 ? ' selected' : '') + '>25</option><option' + (st.fee == 50 ? ' selected' : '') + '>50</option></select></label>' +

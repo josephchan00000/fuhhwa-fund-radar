@@ -1,7 +1,7 @@
 """選擇權作戰表資料（docs/lab_txo_plan.md 第 17 節）：每天晚上用資料分支的日行情與 5 秒指數，準備「下一個交易日」用的數字，
 給選擇權分頁的計算機自動帶入。只是當天收盤後的事實與公式，不是策略成績。
 
-  build(day_rows, close, asof)  → 文件：收盤指數、下一個交易日、最近幾批到期（價平上下 N_STRIKES 檔的結算價與反推的波動率）、
+  build(day_rows, close, asof)  → 文件：收盤指數、下一個交易日、最近幾批到期（隱含指數水準 f、價平上下 N_STRIKES 檔的結算價與用 f 反推的波動率）、
                                    明天的正常波動範圍（價平波動率 × √(1/252)）、成本與每筆上限（照 txospec）
   bs(…)／iv(…)                  Black-Scholes（r＝0）與反推波動率；頁面的 JS 用同一套公式算情境
 """
@@ -13,10 +13,11 @@ from datetime import date, timedelta
 from . import txodata as T
 from . import txospec as S
 
-VER = 1
+VER = 2               # VER 2（2026-11-05）：波動率用選擇權隱含的指數水準反推，不用 13:30 的指數收盤
 N_STRIKES = 10          # 價平上下各幾檔（使用者 2026-11-05：各 10 檔）
 N_EXP = 4               # 列最近幾批到期
 TRADING_YEAR = 252
+FWD_STRIKES = 2       # 隱含指數水準用價平上下幾檔
 
 
 def _ncdf(x: float) -> float:
@@ -74,6 +75,17 @@ def trading_days(a: date, b: date) -> int:
     return n
 
 
+def implied_forward(px: dict, atm: float, width: int = FWD_STRIKES) -> float | None:
+    """選擇權自己隱含的指數水準（r＝0 的買賣權平價：F＝K＋C−P），取價平上下 width 檔的中位數。
+    選擇權 13:45 收盤、加權指數 13:30 收盤，直接用指數收盤反推波動率會讓買權、賣權的波動率差好幾個百分點。"""
+    xs = sorted(k + v["C"][0] - v["P"][0] for k, v in px.items()
+                if abs(k - atm) <= width * S.STRIKE_STEP and v.get("C", (0,))[0] and v.get("P", (0,))[0])
+    if not xs:
+        return None
+    m = len(xs) // 2
+    return xs[m] if len(xs) % 2 else (xs[m - 1] + xs[m]) / 2
+
+
 def build(rows: list[list], close: float, asof: date) -> dict:
     """rows＝txodata.parse_day 的列（同一天、日盤）；close＝asof 當天加權指數收盤。"""
     C = {c: i for i, c in enumerate(T.COLS)}
@@ -96,11 +108,12 @@ def build(rows: list[list], close: float, asof: date) -> dict:
         n = trading_days(asof, xd)
         t = n / TRADING_YEAR
         ks = sorted(k for k in e["px"] if abs(k - atm) <= N_STRIKES * S.STRIKE_STEP)
+        f = implied_forward(e["px"], atm) or close
         out = []
         for k in ks:
             c, p = e["px"][k].get("C", (0, 0)), e["px"][k].get("P", (0, 0))
-            out.append([k, c[0], iv("C", c[0], close, k, t), p[0], iv("P", p[0], close, k, t), c[1], p[1]])
-        exps.append({"code": e["code"], "date": e["date"], "n": n, "tomorrow": xd == nxt, "rows": out})
+            out.append([k, c[0], iv("C", c[0], f, k, t), p[0], iv("P", p[0], f, k, t), c[1], p[1]])
+        exps.append({"code": e["code"], "date": e["date"], "n": n, "tomorrow": xd == nxt, "f": round(f, 1), "rows": out})
     atm_iv = None
     for e in exps:
         if e["tomorrow"]:
