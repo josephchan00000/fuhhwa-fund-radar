@@ -198,6 +198,21 @@ def _notes_adv(k: str, b: dict) -> list[str]:
     return out
 
 
+def halt_note(k: str, live: dict | None = None) -> str:
+    """策略熔斷（ks，ksspec VER 2）暫停中的策略：卡片最上面一句。沒有暫停（或讀不到）＝空字串。"""
+    from . import ks as KS
+    sl = ((live if live is not None else KS.load_live()) or {}).get("slices") or {}
+    sk = next((x for x, y in KS.PICK.items() if y == k), None)
+    v = sl.get(sk) if sk else None
+    if not v or v.get("st") != "pause":
+        return ""
+    t = v.get("trig") or {}
+    pc = lambda x: CPG._pc(x, 1, False)                   # noqa: E731
+    return (f'<div class="pkhalt"><b>暫停中</b>：{_e(CPG._md(t.get("d")))} 收盤落後大盤 {pc(t.get("lag"))}，超過熔斷邊界 '
+            f'{pc(v["dd"])}。下一個交易日收盤把這一份換現金，下面的買進先不做；紙上照記，再比大盤多賺 '
+            f'{pc(v.get("need"))} 回到那天的水準就自動買回。</div>')
+
+
 def _card(k: str, name: str, col: int | None, held: list[str], todo: list[str], evs: list[dict], past: str, notes: list[str],
           extra: str = "", link: str = "", empty: str | None = "", lead: str = "") -> str:
     """lead＝放在規則說明之前（新飆股：這週要做的事、我的、名單）；empty＝None 不寫「沒有部位」。"""
@@ -221,7 +236,7 @@ def _card(k: str, name: str, col: int | None, held: list[str], todo: list[str], 
         dl = f'<details class="cfdet pkdet pkrule"><summary>規則、過去照做、風險</summary>{dl}</details>'
     return (f'<section class="sec pkcard{" pkc" if col else " pkcx"}" id="pk-{_e(k)}" data-nav="{_e(PC.SHORT.get(k, name))}"{sty}>'
             f'<h2 class="pkh"><i class="pkdot"></i>{_e(name)}<span class="sub">{_e(m.get("freq") or "")}</span></h2>'
-            f'{lead}{dl}{body}{extra}' + (f'<div class="pklk">{link}</div>' if link else "") + '</section>')
+            f'{halt_note(k)}{lead}{dl}{body}{extra}' + (f'<div class="pklk">{link}</div>' if link else "") + '</section>')
 
 
 W9_FILE = "tw-superstock-lab/reports/W9_results.json"     # 書上的選股＋書上的買點（W9 主規格；新飆股不等買點的理由）
@@ -435,9 +450,13 @@ def week_rows(evs: list[dict], d: str | None, main: list[str], n: int = WEEK_N) 
     days = PC.next_days("tw", d, n)
     a, b = days[0], days[-1]
     ks = set(main)
+    from . import ks as KS
+    halt = KS.paused()                                    # 策略熔斷暫停中：那條的買進先不做（賣照常）
     rows, fix = [], {}
     for e in evs:
         if e["k"] not in ks or not a <= e["d"] <= b:
+            continue
+        if e["k"] in halt and e["act"] != "賣出":
             continue
         if e.get("proj") and not e["items"]:
             if e["act"] in ("名單", "換股"):
@@ -707,6 +726,7 @@ a.pkeq{color:var(--acc);cursor:pointer}
 .pkdl{display:grid;grid-template-columns:5.2em minmax(0,1fr);gap:6px 12px;margin:0 0 6px;font-size:13.5px;line-height:1.65;max-width:880px}
 .pkdl dt{color:var(--mut);font-size:12.5px;padding-top:2px}.pkdl dd{margin:0;color:var(--ink2)}.pkdl dd b{color:var(--ink)}
 .pknx{display:block;color:var(--ink);font-size:13px;margin-top:2px}
+.pkhalt{max-width:880px;margin:6px 0 10px;padding:8px 12px;border-radius:10px;font-size:13.5px;background:var(--card2);border-left:4px solid var(--acc)}
 .pkgr{max-width:880px}.pkempty{font-size:13.5px;color:var(--ink2);background:var(--card2);border-radius:10px;padding:8px 12px;margin:8px 0;max-width:880px}
 .pkdet{margin:10px 0 0}.pkdet>summary,.pkox>summary,.pkcard .cfsxo>summary{width:auto}.pkagm{margin:10px 0 0}.pktr{margin:8px 0 0;max-width:880px}
 .pklk{margin:10px 0 0;font-size:13px}.pklk a{color:var(--acc);cursor:pointer}
