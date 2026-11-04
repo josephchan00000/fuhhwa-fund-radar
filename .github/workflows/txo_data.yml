@@ -1,0 +1,80 @@
+name: 台指選擇權資料（資料分支）
+
+# docs/lab_txo_plan.md 第 10、15 節：期交所選擇權逐筆（只留 30 個交易日，所以每天存）、選擇權日行情（2002 起）、
+# 證交所每 5 秒加權指數（2016 起），寫進資料分支 claude/txo-data（只放資料，絕不合併進 main）。
+# 程式用這一次 checkout 的版本（排程＝main），資料分支 checkout 到 txodata/，寫完 commit 回資料分支。
+# 回補：workflow_dispatch（mode＝backfill／day／idx）；分支上測試：push .ping/txo（第一行「模式 起點 分鐘」，例「backfill - 150」）。
+
+on:
+  schedule:
+    - cron: '35 10 * * 1-5'    # 台北 18:35（期交所逐筆檔晚上已經有）
+    - cron: '5 14 * * 1-5'     # 台北 22:05 兜底（GitHub 排程常遲到或整班不見）
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "daily｜bars｜day｜idx｜backfill"
+        default: "daily"
+      start:
+        description: "起點（day：YYYY-MM；idx：YYYY-MM-DD；空白＝預設）"
+        default: ""
+      budget:
+        description: "最多跑幾分鐘"
+        default: "100"
+  push:
+    branches: ["claude/**"]
+    paths: [".ping/txo"]
+
+concurrency:
+  group: txo-data
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    env:
+      TZ: Asia/Taipei
+    steps:
+      - uses: actions/checkout@v4
+      - name: checkout 資料分支
+        uses: actions/checkout@v4
+        with:
+          ref: claude/txo-data
+          path: txodata
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --quiet certifi
+      - name: 抓
+        env:
+          IN_MODE: ${{ inputs.mode }}
+          IN_START: ${{ inputs.start }}
+          IN_BUDGET: ${{ inputs.budget }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          MODE="${IN_MODE:-daily}"; START="${IN_START:-}"; BUDGET="${IN_BUDGET:-100}"
+          if [ "$EVENT" = "push" ] && [ -f .ping/txo ]; then
+            read -r MODE START BUDGET < .ping/txo || true
+            [ "$START" = "-" ] && START=""
+          fi
+          echo "模式 $MODE 起點 ${START:-預設} 預算 ${BUDGET:-100} 分（事件 $EVENT）"
+          timeout 17400 python3 scripts/fetch_txo.py --root txodata --mode "$MODE" --start "$START" --budget-min "${BUDGET:-100}"
+      - name: commit 回資料分支
+        if: always()
+        working-directory: txodata
+        run: |
+          git config user.name "josephchan00000"
+          git config user.email "51159474+josephchan00000@users.noreply.github.com"
+          git add -A
+          git commit -q -m "chore: 台指選擇權資料 $(date '+%F %H:%M')" || { echo "無變更"; exit 0; }
+          du -sh . 2>/dev/null || true
+          for i in 1 2 3; do
+            git push origin HEAD:claude/txo-data && exit 0
+            git pull --rebase origin claude/txo-data || git rebase --abort || true
+            sleep 5
+          done
+          echo "::error::push 失敗"; exit 1

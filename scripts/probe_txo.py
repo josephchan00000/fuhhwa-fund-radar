@@ -180,5 +180,112 @@ def main() -> None:
         print("③ 每日交易行情失敗：", e)
 
 
+def bars(path: dict, keys: list, step: int) -> tuple[int, int, bytes]:
+    """逐筆 → 每 step 分鐘一根（開高低收量），存成緊湊 JSON（價格 ×10 取整、分鐘差分）。回傳（契約數, 根數, gz 位元組）。"""
+    doc = {}
+    nb = 0
+    for key in keys:
+        tr = path.get(key) or []
+        if not tr:
+            continue
+        cur = {}
+        for s, p, q in tr:
+            m = (s - (8 * 3600 + 45 * 60)) // (60 * step)
+            b = cur.get(m)
+            pi = int(round(p * 10))
+            if b is None:
+                cur[m] = [pi, pi, pi, pi, q]
+            else:
+                b[1] = max(b[1], pi); b[2] = min(b[2], pi); b[3] = pi; b[4] += q
+        ms = sorted(cur)
+        nb += len(ms)
+        prev = 0
+        rows = []
+        for m in ms:
+            o, h, l, c, v = cur[m]
+            rows.append([m - prev, o, h - o, o - l, c - o, v])
+            prev = m
+        doc["|".join(str(x) for x in key)] = rows
+    raw = json.dumps(doc, separators=(",", ":")).encode()
+    return len(doc), nb, gzip.compress(raw, 9)
+
+
+def hist() -> None:
+    """第二次探針：日行情的歷史有多長、逐筆存成分 K 要多大、履約價間距、證交所 5 秒指數的年份。"""
+    print("== ① 選擇權每日交易行情（optDataDown）的歷史深度（已看過，略）")
+    for dd in [] and ["2002/01/02", "2005/01/03", "2008/01/02", "2012/01/02", "2016/01/04", "2020/01/02", "2024/01/02"]:
+        try:
+            t0 = time.time()
+            b = get(TFX + "/cht/3/optDataDown", {"down_type": "1", "commodity_id": "TXO", "commodity_id2": "",
+                                                "queryStartDate": dd, "queryEndDate": dd})
+            t = b.decode("big5", "replace")
+            ln = [x for x in t.splitlines() if x.strip()]
+            print(f"   {dd}：{len(b) / 1e3:.0f} KB、{len(ln)} 行、{time.time() - t0:.1f} 秒；第二行：{ln[1][:150] if len(ln) > 1 else ln[:1]}")
+        except Exception as e:  # noqa: BLE001
+            print(f"   {dd}：失敗 {e}")
+    for a, z in ():
+        try:
+            t0 = time.time()
+            b = get(TFX + "/cht/3/optDataDown", {"down_type": "1", "commodity_id": "TXO", "commodity_id2": "",
+                                                "queryStartDate": a, "queryEndDate": z})
+            t = b.decode("big5", "replace")
+            ln = [x for x in t.splitlines() if x.strip()]
+            print(f"   區間 {a}～{z}：{len(b) / 1e6:.1f} MB、{len(ln)} 行、{time.time() - t0:.1f} 秒；開頭：{ln[0][:80] if ln else ''}")
+        except Exception as e:  # noqa: BLE001
+            print(f"   區間 {a}～{z}：失敗 {e}")
+
+    print("== ② 證交所 5 秒指數的年份")
+    sys.path.insert(0, str(ROOT))
+    from arm.lab import futdata
+    for dd in ("2012-01-03", "2016-01-04", "2017-01-03", "2020-03-19"):
+        try:
+            doc = futdata.fetch_idx(date.fromisoformat(dd))
+            print(f"   {dd}：{'有，3,241 個時點' if doc else '沒有／不完整'}")
+        except Exception as e:  # noqa: BLE001
+            print(f"   {dd}：失敗 {e}")
+        time.sleep(3)
+
+    print("== ③ 逐筆存成分 K 要多大（11/4）")
+    d = date(2026, 11, 4)
+    raw = get(f"{TFX}/file/taifex/Dailydownload/OptionsDailydownloadCSV/OptionsDaily_{d:%Y_%m_%d}.zip", timeout=300)
+    zf = zipfile.ZipFile(io.BytesIO(raw))
+    txt = zf.read(zf.infolist()[0]).decode("big5", "replace")
+    rd = csv.reader(io.StringIO(txt))
+    next(rd)
+    path: dict = defaultdict(list)
+    for r in rd:
+        if len(r) < 8 or r[1].strip() != "TXO" or r[0].strip() != f"{d:%Y%m%d}":
+            continue
+        s = sec(r[5])
+        if not (8 * 3600 + 45 * 60 <= s <= 13 * 3600 + 45 * 60):
+            continue
+        try:
+            path[(r[3].strip(), r[4].strip(), int(float(r[2])))].append((s, float(r[6]), int(float(r[7]))))
+        except ValueError:
+            continue
+    exps = sorted({k[0] for k in path})
+    print(f"   日盤有成交的到期別：{exps}；契約數 {len(path)}")
+    ref = 43307.54
+    def expd(e: str) -> date:
+        y, m, tail = int(e[:4]), int(e[4:6]), e[6:]
+        wd, n = (2, 3) if not tail else ((2 if tail[0] == "W" else 4), int(tail[1:]))
+        first = date(y, m, 1)
+        off = (wd - first.weekday()) % 7
+        return date.fromordinal(first.toordinal() + off + 7 * (n - 1))
+    print("   到期日推算：", {e: expd(e).isoformat() for e in exps})
+
+    def pick(nexp, band):
+        near = sorted(exps, key=expd)[:nexp] if nexp else exps
+        return [k for k in path if k[0] in near and abs(k[2] - ref) <= ref * band]
+    for name, nexp, band, step in (("全部到期、±8%、1 分", 0, 0.08, 1), ("最近 4 個到期、±8%、1 分", 4, 0.08, 1),
+                                   ("最近 4 個到期、±5%、1 分", 4, 0.05, 1), ("全部到期、±8%、5 分", 0, 0.08, 5),
+                                   ("全部到期、全部履約價、1 分", 0, 1.0, 1)):
+        n, nb, gz = bars(path, pick(nexp, band), step)
+        print(f"   {name}：{n} 個契約、{nb:,} 根、壓縮後 {len(gz) / 1e3:.0f} KB")
+    for e in exps[:3]:
+        ks = sorted({k[2] for k in path if k[0] == e and abs(k[2] - ref) <= 700})
+        print(f"   {e} 價平附近的履約價：{ks}")
+
+
 if __name__ == "__main__":
-    main()
+    hist() if (os.environ.get("PROBE_DAY") or "").strip() == "hist" else main()
