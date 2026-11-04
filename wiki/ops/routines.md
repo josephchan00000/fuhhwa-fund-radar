@@ -2,14 +2,14 @@
 
 > 七個排程都火進同一個綁定的對話（它每天先合併 main，merge 進 main 後下一班就生效）；搬家步驟、模型重設、prompt 原文。
 > 原始資料：CLAUDE.md「指令：「排程搬家」」「每日固定時間自動更新」；`docs/llm_wiki_plan.md` 第 3.1、6 節。
-> 最後更新：2026-10-30
+> 最後更新：2026-11-04
 > CLAUDE.md 仍留著對應的指令段落（排程照它執行）：那一段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）；其他內容以這一頁為準。
 
 ## 現在怎麼運作
 
 claude.ai Routines，七個都**火進同一個主會話**（綁定會話）；name、cron 見搬家步驟 2。trigger id 與綁定會話隨搬家改變，一律以 `list_triggers` 實查為準、本檔不記死 id（2026-07-24 起；使用者約每 3–5 天在新視窗搬一次）。
 ① [全部更新](daily-update.md) 目標＝**07:03 前線上可看當日內容**（2026-07-20 使用者指示；實測全程 15–28 分，06:35 起跑最壞壓線、一般 06:55 完成）；
-②③④ 負責準時（[時點地圖](schedule.md)；-32003 見 [MCP 審批](../env/mcp-approval.md)）；⑤ [ETF 募集週掃](etf-weekly-scan.md)；⑥ [策略探勘週報](strategy-scouting.md)；⑦ [個股報告](../lab/equity-report.md)（每天晚上的名單 `scripts/eq_queue.py`：網頁申請的＋接下來 2 個交易日要買的、技能 equity-report）。
+②③④ 負責準時（[時點地圖](schedule.md)；-32003 見 [MCP 審批](../env/mcp-approval.md)）；⑤ [ETF 募集週掃](etf-weekly-scan.md)；⑥ [策略探勘週報](strategy-scouting.md)；⑦ [個股報告](../lab/equity-report.md)（每天晚上的名單 `scripts/eq_queue.py`：網頁申請的＋接下來 2 個交易日要買的、技能 equity-report；**2026-11-04 起暫停**（`update_trigger` enabled=false），網頁申請會排隊、沒有人寫，使用者說恢復才打開）。
 排程點火的回合若 MCP 不可用，SOP 第 7 步照樣走「push 自動觸發」；驗證用 git（fetch origin main 看是否前進＋檢查檔案內容）即可。
 
 **為什麼火進主會話**：2026-07-18 實測「開新會話」兩次全滅——點火綁的環境（env_01FK…「化學」）沒掛本 repo，連 heartbeat push 都做不到
@@ -33,7 +33,7 @@ claude.ai Routines，七個都**火進同一個主會話**（綁定會話）；n
 **不要詢問、不要查證其他東西、不改任何檔案、不 commit**——固定「list → 建七個 → 刪舊的」收工（最省 token）：
 
 1. `list_triggers`（先用預設 limit；找不到再用 cursor 翻頁）→ 找**名稱以「復華基金雷達」開頭且 `enabled:true`** 的 Routine
-   （正常 7 個；歷史上只有 1／3／4／5／6 個＝尚未擴編，照樣往下走）。全部的 `persistent_session_id` 都已是本會話 → 回一句「排程已綁本視窗」結束。
+   （正常 7 個；**2026-11-04 起 ⑦ 個股報告暫停＝6 個**；歷史上只有 1／3／4／5／6 個＝尚未擴編，照樣往下走）。全部的 `persistent_session_id` 都已是本會話 → 回一句「排程已綁本視窗」結束。
    回應常被截斷存成檔案（坑 1）：**別開子代理讀全文**，`python3 -c` 讀那支檔 `json.loads` 後只印 `id｜name｜cron_expression｜enabled｜persistent_session_id`
    一行一個；prompt 原文在 `job_config.ccr.events[*].data.message.content`（**頂層沒有 `prompt` 欄位**）。
 2. `create_trigger` ×7（預設自綁本會話，**不帶** `persistent_session_id`／`create_new_session_on_fire`），name｜cron（UTC）：
@@ -43,7 +43,7 @@ claude.ai Routines，七個都**火進同一個主會話**（綁定會話）；n
    - ④ `復華基金雷達 美股收盤序列更新(台北 05:08)`｜`8 21 * * 1-5`
    - ⑤ `復華基金雷達 ETF募集週掃(台北週一 08:05)`｜`5 0 * * 1`
    - ⑥ `復華基金雷達 策略探勘週報(台北週日 19:47)`｜`47 11 * * 0`
-   - ⑦ `復華基金雷達 個股報告(台北每天 20:47)`｜`47 12 * * *`
+   - ⑦ `復華基金雷達 個股報告(台北每天 20:47)`｜`47 12 * * *`（**2026-11-04 起暫停**：使用者「先暫停，我不想吃太多 token」→ 搬家時**不建**這一個；使用者說恢復才照原文⑦建）
 3. `delete_trigger` 逐一刪舊的。搬家＝建新＋刪舊：`update_trigger` 改不了綁定會話、跨會話 update 也被組織政策擋，但**跨會話 delete 可行**（2026-07-24 實證）。
 4. 一句話回報：七個新 trigger id＋各自下次觸發時間。`create_trigger` 警告「no MCP connectors」**可忽略**（SOP 第 7 步走 push 自動觸發、驗證用 git）。
    查到「本檔沒記載」的復華 Routine：照樣搬，prompt 從舊 trigger 的 `job_config` 原文照抄，回報提一句「本檔要補記」。
