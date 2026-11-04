@@ -619,6 +619,41 @@ def warn_html(mk: str, N: dict) -> str:
             f'<div class="cfrule2">{_e(rule)}</div>' + due_line(mk, N))
 
 
+def ks_html(mk: str, qm: dict | None = None, live: dict | None = None) -> str:
+    """警訊底下的「策略熔斷」（ks，ksspec VER 2；docs/lab_killswitch_plan.md）：這個市場每一份從上線那天起落後大盤多少、
+    離邊界多遠（一條長條，邊界畫在 80% 的位置）；暫停中寫要做什麼。台股＝新飆股、財報驚喜（大型股）；
+    美股（換成強勢品質股的時候）＝美股強勢品質股。ks_live.json 讀不到就不放。"""
+    from . import ks as KS
+    sl = ((live if live is not None else KS.load_live()) or {}).get("slices") or {}
+    keys = ("tw_boom", "tw_v3l") if mk == "tw" else (("us_qm",) if CPG.qm_on(PLAN_MK[mk], qm) else ())
+    rows, notes = [], []
+    for k in keys:
+        v = sl.get(k)
+        if not v or v.get("dd") is None:
+            continue
+        nm, on = KS.NAMES[k], v.get("st") == "pause"
+        lag = float(v.get("lag") or 0.0)
+        w = max(0.0, min(100.0, 80.0 * lag / v["dd"])) if v["dd"] > 0 else 0.0
+        val = f"落後大盤 {_pc(lag).lstrip('+')}"
+        if v.get("slow"):
+            val += f"・{v['uw']} 個交易日沒追上（回測最久 {v.get('uw_bt')} 天）"
+        rows.append(f'<div class="cfwr{" on" if on else ""}"><b>{_e(nm)}</b><i class="cfwb"><i style="width:{w:.1f}%"></i>'
+                    f'<u style="left:80%"></u></i><span class="cfwv">{_e(val)}<span>（{_e(_pc(v["dd"]).lstrip("+"))} 以上暫停）</span>'
+                    + ('<em>暫停中</em>' if on else "") + "</span></div>")
+        if on:
+            t = v.get("trig") or {}
+            notes.append(f'{nm}：{_md(t.get("d"))} 收盤落後 {_pc(t.get("lag")).lstrip("+")}，這一份放現金（紙上照記），'
+                         f'再比大盤多賺 {_pc(v.get("need")).lstrip("+")} 回到那天的水準就買回')
+        elif v.get("slow"):
+            notes.append(f"{nm}落後很久，要檢討（不暫停）")
+    if not rows:
+        return ""
+    rule = "；".join(notes) + "。" if notes else ("每一份從上線那天起算、跟大盤比（大盤一起跌不算）；落後超過邊界就隔天收盤把那一份換現金，"
+                                                "紙上照記，追回暫停那天的水準自動買回。邊界＝回測裡落後最深那次的 1.5 倍。")
+    return (f'<h3 class="cfh3">策略熔斷<span class="sub">每一份跟大盤比，落後超過邊界就暫停</span></h3>'
+            f'<div class="cfws cfks">{"".join(rows)}</div><div class="cfrule2">{_e(rule)}</div>')
+
+
 HIND_TW = {"s3": "全部", "s5": "全部", "v3l": "2021 年以後"}   # 個股策略的主要設定看過哪一段資料才訂的（檢討第 1.4 節）
 
 
@@ -792,7 +827,7 @@ def tw_parts(data: dict, bundle: dict) -> dict:
     bx = (f'過去照做：{CPG.yr0(bm["a"])} 年起每年賺 {_pc(bm["cagr"]).lstrip("+")}、最慘時跌 {bm["mdd"] * 100:.0f}%'
           if bm.get("cagr") is not None else "")
     return {"card": card, "hold": tw_hold(G, stk, N), "sched": tw_sched(G, stk, N), "bx": bx,
-            "warn": warn_html("tw", N) if N else '<h2 class="cfh">警訊</h2><p class="cfwhy">今天的讀數還沒算出來。</p>',
+            "warn": (warn_html("tw", N) if N else '<h2 class="cfh">警訊</h2><p class="cfwhy">今天的讀數還沒算出來。</p>') + ks_html("tw"),
             "perf": perf, "boom": boom_html(stk, bundle, data.get("sx_pos")), "d": d0, "nx": nx,
             "tl": {"use": use, "boom": _boom_lane(stk)},
             "pos": pos_map(G), "ytd": ytd_html((data.get("ytd") or {}).get("tw"), "tw")}
@@ -1169,7 +1204,8 @@ def us_parts(data: dict, bundle: dict) -> dict:
     G["uc"] = set((uc or {}).get("s") or ())
     perf = '<h2 class="cfh">過去照做</h2>' + perf_line("us", bundle) + past_note("us", data, bundle) + detail_html("us", bundle)
     return {"card": us_money(G, N), "hold": us_hold(G, N), "sched": us_sched(G, N),
-            "warn": warn_html("us", N) if N else '<h2 class="cfh">警訊</h2><p class="cfwhy">今天的讀數還沒算出來。</p>',
+            "warn": (warn_html("us", N) if N else '<h2 class="cfh">警訊</h2><p class="cfwhy">今天的讀數還沒算出來。</p>')
+            + ks_html("us", bundle.get("qm")),
             "perf": perf, "d": d0, "nx": nx, "tl": {"qm": _qm_lane(G)}, "uc": uc,
             "ytd": ytd_html((data.get("ytd") or {}).get("us"), "us")}
 
@@ -1351,6 +1387,7 @@ CSS = r"""
 .cfws .cfwr{display:grid;grid-template-columns:7.5em minmax(0,1fr);gap:2px 12px;align-items:center;padding:7px 0;border-top:1px solid var(--line);font-size:13.5px}
 .cfws .cfwr:first-child{border-top:0}.cfws .cfwr.on b{color:var(--warn)}.cfws .cfwb{display:block;width:auto}
 .cfwv{grid-column:2;font-size:12.5px;color:var(--ink2)}.cfwv span{color:var(--mut)}.cfwv em{font-style:normal;font-weight:700;color:var(--warn);margin-left:6px}
+.cfws.cfks .cfwr{grid-template-columns:9.5em minmax(0,1fr)}   /* 策略熔斷：名字比警訊長（財報驚喜（大型股）） */
 .cfrule2{font-size:13px;color:var(--ink2);background:var(--card2);border-radius:10px;padding:8px 12px;margin-top:8px}
 .cfmo,.cfgr,.cfcash,.cfsch,.cfws,.cfrule2,.cfht.cfql{max-width:880px}   /* 電腦版不要拉到整頁寬：名字和比重離太遠 */
 .cfyt{width:100%;max-width:880px;border-collapse:collapse;font-size:13.5px;margin:8px 0 6px}
