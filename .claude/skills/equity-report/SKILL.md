@@ -5,7 +5,7 @@ description: 產生投行首次報告格式的個股深度報告（評等、目�
 
 # 個股深度報告（equity-report）
 
-規劃與使用者決定：`docs/lab_equity_report_plan.md`；評等與目標價規格：`arm/lab/eqspec.py`（VER 3：倍數和 EPS 同一把尺、不自己預估；未來 12 個月依會計年度加權；美股近四季＝近四季淨利 ÷ 最新股數）；
+規劃與使用者決定：`docs/lab_equity_report_plan.md`；評等與目標價規格：`arm/lab/eqspec.py`（VER 4：倍數和 EPS 同一把尺、不自己預估；未來 12 個月依會計年度加權；美股近四季＝近四季淨利 ÷ 最新股數；台股季底之後配股，每股淨值與 EPS 照新股數，資料包 `val.adj`）；
 頁面：`arm/lab/eqpage.py`；檢查：`scripts/check_eq.py`；官方文件包：`docs/lab_eq_docs_plan.md`（`scripts/eq_docs_req.py`）。方法改寫自 Anthropic financial-services-plugins（見 `NOTICE.md`）。
 
 ## 什麼時候用
@@ -19,7 +19,8 @@ description: 產生投行首次報告格式的個股深度報告（評等、目�
 0. **官方文件包（台股）——主會話在派子代理之前做，一次送完今天所有台股代號**；子代理只用主會話給的編號，
    沒拿到編號就回報主會話、不要自己送請求（同一個分支好幾個子代理同時 commit、push 會互撞）。容器連不到公開資訊觀測站，由 CI 抓。
    `TZ=Asia/Taipei python3 scripts/eq_docs_req.py --send tw:代號 …`（印出編號）→ Bash `run_in_background` 跑 `--wait 編號 --timeout 1500`
-   → 拉到 `.eqdocs/編號/`。每家的處理照它印的：🟢 照常寫；「今天不寫」＝文件包沒抓到、明天重試；「連續 2 天沒抓到」＝照寫，
+   → 拉到 `.eqdocs/編號/`。**`--send` 會 commit 並 push 整個分支**：分支上還沒定稿的報告會一起被推上去、觸發 daily.yml 併進 main，
+   而同一天的報告檔 main 不覆蓋——所以送請求之前，分支上不能有還沒定稿的報告（2026-11-04 踩過）。每家的處理照它印的：🟢 照常寫；「今天不寫」＝文件包沒抓到、明天重試；「連續 2 天沒抓到」＝照寫，
    「資料侷限」寫明官方文件包連兩天抓不到與原因。全部報告推上去之後 `--drop 編號`（本機檔刪掉；臨時分支 CI 每天清）。
 1. **資料包**：`TZ=Asia/Taipei python3 scripts/eq_facts.py 代號 --docs .eqdocs/編號`（台股一定要帶 `--docs`；美股還沒有文件包）。
    看印出來的：方法、未來 12 個月 EPS、倍數範圍、預設目標價、同業、產業鏈、官方文件包狀態。
