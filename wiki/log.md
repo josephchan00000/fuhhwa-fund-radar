@@ -123,3 +123,6 @@
 
 ## [2026-11-04] 收錄 | Vercel 部署儲存超過免費 10 GB：網頁沒變就不部署
 - 使用者截圖 Deployment Storage 10.12 GB / 10 GB。兩支 `vercel.json` 加 `ignoreCommand`（dashboard/ 跟上次成功部署一樣就略過，拿不準一律部署）；`txo_data.yml` 把兩支 vercel.json 放進資料分支；債務帳那一列與 daily.yml 的 shortcut 註解拿掉。改了 `ops/deploy.md`、`lab/txo.md`。
+
+## [2026-11-05] 收錄 | 台指選擇權第 1 段完成：回補跑完
+- 回補 236.5 分鐘：日行情 2002-01～2026-11（299 個月）、5 秒指數 2016 起 2,631 天、逐筆 30 天；資料分支約 128 MB。規劃第 15 節；改了 `lab/txo.md`。
