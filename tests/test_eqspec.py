@@ -1,11 +1,11 @@
-"""個股報告評等與目標價的規格鎖定（arm/lab/eqspec.py、docs/lab_equity_report_plan.md 第 6 節）。VER 2：倍數與 EPS 同一把尺、不自己預估；VER 3：會計年度與美股口徑；VER 4：台股配股調整。"""
+"""個股報告評等與目標價的規格鎖定（arm/lab/eqspec.py、docs/lab_equity_report_plan.md 第 6 節）。VER 2：倍數與 EPS 同一把尺、不自己預估；VER 3：會計年度與美股口徑；VER 4：台股配股調整；VER 5：EPS 照公布時的累計數重組。"""
 import pytest
 
 from arm.lab import eqspec as S
 
 
 def test_spec_v3_is_locked():
-    assert S.VER == 4 and S.SPEC_DATE == "2026-11-04"
+    assert S.VER == 5 and S.SPEC_DATE == "2026-11-04"
     assert S.HORIZON_M == 12 and S.CONS_MIN == 3 and not hasattr(S, "MOM_CLIP") and not hasattr(S, "mom_factor")   # 不自己預估
     assert S.PE_MAX == 80.0 and S.BAND_YEARS == 5 and S.BAND_PE_MAX == 100.0 and S.BAND_PB_MAX == 20.0
     assert S.PEER_MIN == 3 and S.PB_INDUSTRIES == ("金融保險",)
@@ -84,3 +84,15 @@ def test_ver4_stock_dividend_adjustment():
     assert S.adj_factor(ev, "2026-09-30", "2026-11-03") == 1.0                 # 第三季財報已經是新股數
     assert S.adj_factor(ev, "2026-06-30", "2026-12-31") == pytest.approx(1.155)
     assert S.adj_factor([], "2026-06-30", "2026-11-03") == 1.0
+
+
+def test_ver5_eps_ttm_restated_per_publication():
+    """VER 5：騰雲 7/21 除權在第二季財報（8/13）之前，上半年 2.54 元已是新股數，不再除；去年全年（3 月公布）÷ 1.1976；
+    去年上半年（2025/8 公布）還要 ÷ 2025-09-04 的 1.02。結果約 7.22 元，接近公司公告的 7.20 元（VER 4 是 6.78 元）。"""
+    assert S.PUB_PROXY == "法定期限"
+    f = 1.19763285303
+    v = S.eps_ttm(2.54, False, 7.08, 1.50, 1.0, f, 1.02 * f)
+    assert v == pytest.approx(2.54 + 7.08 / f - 1.50 / (1.02 * f)) and 7.15 < v < 7.25
+    assert S.eps_ttm(1.84, False, 1.73, 0.0, 1.05, 1.05, 1.05) == pytest.approx(3.57 / 1.05)
+    assert S.eps_ttm(7.08, True, f_last=1.05) == pytest.approx(7.08 / 1.05)
+    assert S.eps_ttm(2.54, False, None, 1.5) is None and S.eps_ttm(None, True) is None
