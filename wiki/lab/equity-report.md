@@ -3,10 +3,12 @@
 > 投行首次報告格式的個股報告（評等、目標價、同業比較、產業章）與同產業共用的產業報告：資料包、官方文件包、估值規格、檢查、頁面、技能包、網頁申請與每天晚上的名單。
 > 原始資料：規劃 `docs/lab_equity_report_plan.md`、`docs/lab_eq_docs_plan.md`（官方文件包）；程式：`arm/lab/eqspec.py`、`eqfacts.py`、`eqfacts_us.py`、`eqreport.py`、`eqchart.py`、`eqpage.py`、`eqsite.py`、`eqqueue.py`、`eqdocs.py`、`eqdocs_us.py`；
 > 指令：`scripts/eq_facts.py`、`scripts/check_eq.py`、`scripts/eq_build.py`、`scripts/eq_queue.py`、`scripts/eq_docs_req.py`（CI：`scripts/fetch_eqdocs.py`、`eq_docs.yml`）；技能 `.claude/skills/equity-report/`；測試 `tests/test_eqspec.py`、`test_eqfacts.py`、`test_eqfacts_us.py`、`test_eqreport.py`、`test_eqqueue.py`、`test_eqdocs.py`
-> 最後更新：2026-10-30
+> 最後更新：2026-11-04
 > 正本就是這一頁（2026-10-29 新建，CLAUDE.md 沒有對應段落）。
 
 ## 現在怎麼運作
+
+**2026-11-04 起暫停**：使用者「把現有的股票查財報的部分先暫停，我不想吃太多 token」→ 每天 20:47 的個股報告排程關掉（`update_trigger` enabled=false；搬家時不建，見[排程](../ops/routines.md)）。程式、頁面、官方文件的 CI 抓取都照舊（CI 不花 token）；網頁上的申請會排隊，恢復後才寫。
 
 2026-10-29 使用者：「我想要針對篩選出來最強力推薦的公司，可以跑專業的個股分析報告跟同業比較表，像是投行那種的深度產業報告」。
 使用者四個決定（AskUserQuestion）：每週新進的＋隨時指定；網頁深度報告（8～12 頁、10～15 張圖、同業表可下載 CSV、可存 PDF）；
