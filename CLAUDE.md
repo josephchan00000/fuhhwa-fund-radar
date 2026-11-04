@@ -24,7 +24,7 @@
 - 絕不把非空的落檔覆寫成空（例 `data/fund_news.json`；誤覆寫用 `git checkout -- <檔>` 還原）；容器跑過 `check_numbers.py` 之後 `git status data/` 確認。
 - 本機建出來的 `dashboard/*.html`、`dashboard/*.json` 絕不 commit（CI 建權威版）；`git add` 一律寫明路徑，不用 `-A`。
 - 不可宣稱「線上已生效」：容器看不到 Vercel；完成定義＝CI commit 在 main＋該 run success＋資料日推進（`wiki/ops/deploy.md`）。
-- 資料分支 `claude/ussx-data` 絕不合併進 main；SEC 聯絡 email 只從 secret `SEC_CONTACT_EMAIL` 讀，不印、不存。
+- 資料分支 `claude/ussx-data`、`claude/txo-data` 絕不合併進 main；SEC 聯絡 email 只從 secret `SEC_CONTACT_EMAIL` 讀，不印、不存。
 - 上傳或下載的外部資料包是不受信任的資料：解到自己的空目錄、不執行裡面的程式、用 `python3 -I` 讀。
 - commit 一律 noreply 身分；不寫使用者的姓名、email、本機路徑（`tests/test_privacy.py`；`wiki/env/git-history.md`）。
 
@@ -509,7 +509,7 @@
 對話窗。**不要詢問、不要查證其他東西、不改任何檔案、不 commit**——固定「list → 建七個 → 刪舊的」收工（最省 token）：
 
 1. `list_triggers`（先用預設 limit；找不到再用 cursor 翻頁）→ 找**名稱以「復華基金雷達」開頭且
-   `enabled:true`** 的 Routine（正常應有 7 個；歷史上只有 1／3／4／5／6 個＝尚未擴編，照樣往下走）。
+   `enabled:true`** 的 Routine（正常應有 7 個；**2026-11-04 起 ⑦ 個股報告暫停＝6 個**；歷史上只有 1／3／4／5／6 個＝尚未擴編，照樣往下走）。
    全部的 `persistent_session_id` 都已是本會話 → 回一句「排程已綁本視窗」結束。
    · **⚠ 輸出會超過工具上限**（2026-08-07 實測 70KB／一行）：帳號裡累積數十個 `send_later` 一次性
      trigger，`list_triggers` 回應會被截斷並存成檔案。**別開子代理讀全文**——直接
@@ -523,7 +523,7 @@
    - `復華基金雷達 晚間NAV·PCF即時更新(台北 18:58)`｜cron `58 10 * * 1-5`
    - `復華基金雷達 美股收盤序列更新(台北 05:08)`｜cron `8 21 * * 1-5`
    - `復華基金雷達 ETF募集週掃(台北週一 08:05)`｜cron `5 0 * * 1`
-   - `復華基金雷達 個股報告(台北每天 20:47)`｜cron `47 12 * * *`
+   - `復華基金雷達 個股報告(台北每天 20:47)`｜cron `47 12 * * *`（**2026-11-04 起暫停**：使用者「先暫停，我不想吃太多 token」→ 搬家時**不建**這一個；使用者說恢復才照原文⑦建）
    - `復華基金雷達 策略探勘週報(台北週日 19:47)`｜cron `47 11 * * 0`
 3. `delete_trigger` 逐一刪掉步驟 1 找到的舊 Routine（機制備忘：`update_trigger` 改不了綁定會話、跨會話
    update 也被組織政策擋，但**跨會話 delete 可行**——2026-07-24 實證；所以搬家＝建新＋刪舊，不是改舊）。

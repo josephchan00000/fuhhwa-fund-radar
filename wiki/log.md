@@ -111,3 +111,21 @@
 
 ## [2026-11-04] 收錄 | 策略熔斷那一塊移到交易計畫的警訊底下（修正）
 - 第一版放進 `corepage.card`，那張卡已經沒有頁面在用；研究紀錄・交易計畫是 `cfgpage` 組的 → 改成 `cfgpage.ks_html`（警訊底下，樣式同警訊）。改了 `lab/killswitch.md`。
+
+## [2026-11-04] 收錄 | 策略熔斷第 3 段（改版觀察期）暫停
+- 使用者：「先這樣好了」。改了 `lab/killswitch.md`（觀察期只有規格、沒有程式擋改版）；規劃第 9 節。
+
+## [2026-11-04] 收錄 | 台指選擇權分頁規劃＋個股報告排程暫停
+- 使用者要一個藏起來的選擇權分頁，用同一套架構規劃台指選擇權策略（只做買方、即時停損、只抓大波動），並先暫停個股報告省 token。規劃 `docs/lab_txo_plan.md`（今天週選結算日的真實成交、振幅天數表、規則與限制、證據、O1～O3、風險收益、要決定的事）；資料探針 `scripts/probe_txo.py`、`probe_txo.yml`（只看資料長相，不算成績）。每天 20:47 個股報告排程 enabled=false，改了 `ops/routines.md`、`lab/equity-report.md`（CLAUDE.md 排程搬家同步註明不建）。
+
+## [2026-11-04] 收錄 | 台指選擇權第 1 段：資料層與資料分支 claude/txo-data
+- 使用者決定：三條都做、資金保守、入口＝右下角「選」字、盤中提醒之後再說。新頁 `lab/txo.md`；`arm/lab/txodata.py`、`scripts/fetch_txo.py`、`txo_data.yml`（逐筆分 K、日行情 2002 起、5 秒指數 2016 起，寫進資料分支，絕不合併進 main）。改了 `lab/overview.md`；CLAUDE.md 鐵則加 `claude/txo-data`。
+
+## [2026-11-04] 收錄 | Vercel 部署儲存超過免費 10 GB：網頁沒變就不部署
+- 使用者截圖 Deployment Storage 10.12 GB / 10 GB。兩支 `vercel.json` 加 `ignoreCommand`（dashboard/ 跟上次成功部署一樣就略過，拿不準一律部署）；`txo_data.yml` 把兩支 vercel.json 放進資料分支；債務帳那一列與 daily.yml 的 shortcut 註解拿掉。改了 `ops/deploy.md`、`lab/txo.md`。
+
+## [2026-11-05] 收錄 | 台指選擇權第 1 段完成：回補跑完
+- 回補 236.5 分鐘：日行情 2002-01～2026-11（299 個月）、5 秒指數 2016 起 2,631 天、逐筆 30 天；資料分支約 128 MB。規劃第 15 節；改了 `lab/txo.md`。
+
+## [2026-11-05] 收錄 | 台指選擇權第 2 段：規格 txospec VER 1
+- 使用者說繼續。`arm/lab/txospec.py`（O1 結算日順勢、O2 CPI／FOMC 前買跨式、O3 農曆年前與聖誕行情改買權；成本、上限、判定）、`tests/test_txospec.py`，算成績之前 commit；規劃第 16 節、`lab/txo.md`。

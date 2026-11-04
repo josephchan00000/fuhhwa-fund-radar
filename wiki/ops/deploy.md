@@ -1,8 +1,8 @@
 # 部署與「線上沒更新」
 
-> 線上沒更新時照順序診斷（資料日期、產表時戳、部署步驟日誌、Vercel 部署上限，最後才查 Vercel Deployments）；「內容在 main」不等於線上已部署；Deploy Hook、對時哨兵、煙霧測試、快取。
+> 線上沒更新時照順序診斷（資料日期、產表時戳、部署步驟日誌、Vercel 部署上限，最後才查 Vercel Deployments）；「內容在 main」不等於線上已部署；Deploy Hook、網頁沒變不部署與部署儲存、對時哨兵、煙霧測試、快取。
 > 原始資料：CLAUDE.md「全部更新」步驟 9 的「內容在 main ≠ 線上已部署」條、「每日固定時間自動更新」段的「部署」「Vercel 免費方案每日部署上限」「多人化硬化」三條；規劃 `docs/multi_user_plan.md`；程式：`scripts/check_live_deploy.py`、`scripts/smoke_dashboard.py`、兩支 `vercel.json`。
-> 最後更新：2026-10-29
+> 最後更新：2026-11-04
 > CLAUDE.md 仍留著對應的指令段落（排程照它執行）：那一段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）；其他內容以這一頁為準。
 
 ## 現在怎麼運作
@@ -50,6 +50,13 @@
 - **secret 沒生效時的當下緩解**：dispatch 一輪 `daily.yml`（ref=main、`news_ref` 留空＝只用 main 現有新聞重刷資料），
   產生新的 commit＋push 事件，給自動偵測第二次機會（2026-08-13 實測有效，17:24 那筆上線）。**根治只有把 secret 建起來**。
 
+### 網頁沒變就不部署、部署儲存（2026-11-04）
+
+- Vercel 每次部署都存一份完整的 `dashboard/`（約 55 MB、2,020 個檔）。免費方案的「部署儲存」上限 10 GB（整個帳號算），超過會擋部署；main 一天被推 9～41 次、每次都部署，CI 的 commit 又被 Deploy Hook 再部署一次，2026-11-04 到了 10.12 GB。
+- 兩支 `vercel.json` 的 `ignoreCommand`：**`dashboard/` 跟上次成功部署的那筆一模一樣就略過**（只動 `data/`、程式 PR 合併、Deploy Hook 重打已經部署好的同一筆）；拿不到上次那筆（`VERCEL_GIT_PREVIOUS_SHA` 空、不在淺層 clone 裡）或比對失敗，一律照常部署。略過的部署在 Vercel 顯示「Canceled」（Ignored Build Step），不佔儲存、也不算壞掉。
+- 資料分支（`claude/txo-data`）與文件包臨時分支的每筆 commit 也放兩支 `vercel.json`，讓 `claude/**` 的關閉設定讀得到。
+- **Vercel 那邊只有使用者能動**（容器連不到 Vercel）：專案 Settings → Security → Deployment Retention Policy 四種都設最短；Deployments 頁刪舊部署（目前上線那一筆刪不掉也不會被刪，刪了只是不能回滾）。刪完數字可能幾天後才降（社群回報）。
+
 ### 快取
 
 兩支 `vercel.json`（根目錄與 dashboard/）都設 `Cache-Control: no-cache`：瀏覽器可存但**每次都必須向伺服器 revalidate**——
@@ -78,6 +85,7 @@ CI 分鐘帳（私有時期的帳；2026-10-16 起 repo 已公開，一般機器
 - 不可只憑「main 檔已更新」就宣稱「線上已生效」（上面的完成定義）。
 - **兩支 vercel.json 根目錄與 dashboard/ 都要一致**。工作分支的預覽部署用 `"git": {"deploymentEnabled": {"claude/**": false}}` 關掉，
   **main 不得關掉**（`tests/test_multiuser_hardening.py` 守）。
+- **`ignoreCommand` 只能在 `dashboard/` 跟上次成功部署一模一樣時略過**；任何拿不準的情況都要照常部署（`tests/test_multiuser_hardening.py` 用暫存 repo 跑過九種情況），不可硬到線上不更新。
 - **煙測只擋結構壞頁；數字對錯仍走 factcheck 不擋發佈**，「防線不可硬到什麼都沒更新」原則不變。
 - **新增排程/步驟前先想分鐘帳**。
 
@@ -99,8 +107,9 @@ CI 分鐘帳（私有時期的帳；2026-10-16 起 repo 已公開，一般機器
   但部署建不起來，線上停在舊版。診斷見上面第 4 步。當下對策：當天少推分支，等限制解除，下一班 CI 會自動部署。
   根治：兩支 vercel.json 加 `"git": {"deploymentEnabled": {"claude/**": false}}`，停掉工作分支的預覽部署
   （2026-10-16 使用者同意、已改，`tests/test_multiuser_hardening.py` 守）。
-  現況（2026-11-01）：main 每筆 commit 仍自動部署一次、CI 的 commit 再打一次 Deploy Hook；10/29～11/1 main 每天 18～41 筆，程式 PR 合併後頁面沒變也照樣部署。免費方案每天 100 次——一天超過 45 筆或對時哨兵見限流，就讓 vercel.json 在 dashboard/ 沒變時不部署（債務帳 `docs/code_debt.md`）。
-- **文件包臨時分支也會被 Vercel 預覽部署（2026-11-04 使用者收到「Preview deployment failed」信）**：`claude/eqdocs-tmp/{編號}`（`eq_docs.yml` 推的）只有 `eqdocs/`，沒有兩支 vercel.json → `claude/**` 的關閉設定讀不到，Vercel 照樣建預覽，又找不到 Root Directory「dashboard」而失敗寄信，也吃每日部署額度。線上（main）不受影響。修法：臨時分支的 commit 也放進兩支 vercel.json（`eq_docs.yml` 推到臨時分支那一步，`tests/test_eqdocs.py` 守）。
+  現況（2026-11-01）：main 每筆 commit 仍自動部署一次、CI 的 commit 再打一次 Deploy Hook；10/29～11/1 main 每天 18～41 筆，程式 PR 合併後頁面沒變也照樣部署。免費方案每天 100 次。2026-11-04 起 `dashboard/` 沒變就不部署（上面「網頁沒變就不部署」；債務帳那一列已拿掉）。
+- **文件包臨時分支也會被 Vercel 預覽部署（2026-11-04 使用者收到「Preview deployment failed」信）**：`claude/eqdocs-tmp/{編號}`（`eq_docs.yml` 推的）只有 `eqdocs/`，沒有兩支 vercel.json → `claude/**` 的關閉設定讀不到，Vercel 照樣建預覽，又找不到 Root Directory「dashboard」而失敗寄信，也吃每日部署額度。線上（main）不受影響。修法：臨時分支的 commit 也放進兩支 vercel.json（`eq_docs.yml` 推到臨時分支那一步，`tests/test_eqdocs.py` 守）。同日開的選擇權資料分支 `claude/txo-data` 也一樣，`txo_data.yml` 每次 commit 前把兩支複製進去（`tests/test_txodata.py` 守）。
+- **部署儲存超過免費 10 GB（2026-11-04 使用者截圖：Deployment Storage 10.12 GB / 10 GB，其他九項都遠低於上限）**：不是資料分支，是正式站一天部署幾十次、每次 55 MB 累積起來的。修法：`ignoreCommand`（上面）＋使用者把保留期限設最短、刪舊部署。
 
 ## 歷史
 
@@ -109,3 +118,4 @@ CI 分鐘帳（私有時期的帳；2026-10-16 起 repo 已公開，一般機器
 - 2026-08-14：多人化硬化：對時哨兵、煙霧測試、頁齡提示；`Cache-Control` 由 no-store 改 no-cache（多人化 Phase 1）。
 - 2026-10-15：撞到 Vercel 每日部署上限。
 - 2026-10-16：兩支 vercel.json 停掉 `claude/**` 預覽部署；repo 改公開，一般機器不計 Actions 分鐘。
+- 2026-11-04：部署儲存超過免費 10 GB；兩支 vercel.json 加 `ignoreCommand`（dashboard/ 沒變就不部署），資料分支也放兩支 vercel.json。

@@ -316,7 +316,7 @@ jobs:
           done
           echo "::error::push 連續失敗——本日資料未入 main"; exit 1
 
-      # shortcut: 每筆 main commit Vercel 都會自動部署，CI 的 commit 再打一次 Deploy Hook（afterhours_refresh.yml、etf_holdings.yml 同樣）；免費方案每天 100 次，10/30 main 有 41 筆 commit，程式 PR 合併後頁面沒變也照樣部署。升級：對時哨兵出現部署被限流、或一天 main 超過 45 筆 → vercel.json 設 dashboard/ 沒變就不部署（ignoreCommand）。
+      # 每筆 main commit Vercel 都會自動部署，CI 的 commit 再打一次 Deploy Hook（afterhours_refresh.yml、etf_holdings.yml 同樣）；2026-11-04 起兩支 vercel.json 的 ignoreCommand 讓「dashboard/ 跟上次成功部署一樣」的部署直接略過（部署儲存超過免費 10 GB 後加的，wiki/ops/deploy.md）。
       - name: 觸發 Vercel 部署（Deploy Hook — 確保線上吃到 CI 這筆真實資料版，不靠 Vercel 自動偵測）
         if: steps.merge.outputs.skip != 'true'
         env:
