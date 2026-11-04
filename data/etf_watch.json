@@ -1,8 +1,8 @@
 {
   "as_of": "2026-11-03",
   "perf_asof": "2026-11-03",
-  "fetched_at": "2026/11/04 05:14",
-  "source": "規模／配息殖利率 ← etfinfo.tw（Tier B）；過去一週／一月報酬 ← Yahoo 還原收盤（總報酬口徑）／FinMind／TWSE 官方自算；當月預估配息 ← 證交所／櫃買除權除息預告表、MOPS、主流媒體新聞（3 檔，另 2 檔金額待公告）。正式對外前以各投信官網核對",
+  "fetched_at": "2026/11/04 08:17",
+  "source": "規模／配息殖利率 ← etfinfo.tw（Tier B）；過去一週／一月報酬 ← Yahoo 還原收盤（總報酬口徑）／FinMind／TWSE 官方自算；當月預估配息 ← 證交所／櫃買除權除息預告表、MOPS、主流媒體新聞（4 檔，另 2 檔金額待公告）。正式對外前以各投信官網核對",
   "items": [
     {
       "code": "0056",
@@ -133,11 +133,11 @@
       "ret_1m": -9.52,
       "last_div": 0.38,
       "last_div_date": "2026-10-21",
-      "est_div": null,
-      "est_div_date": null,
+      "est_div": 0.38,
+      "est_div_date": "2026-11-18",
       "est_pend": null,
-      "est_from": null,
-      "est_url": null,
+      "est_from": "Yahoo股市",
+      "est_url": "https://news.google.com/rss/articles/CBMi7AJBVV95cUxPbzMyY0pWWEdvMjN2ZHJleUxiZzZpWk5tSnIySEh4bXRfY3ducE1KV0ZsSk1pNVpiU3NIV0JkWDB0RnZJWHZJV2swZm1mYW4tQnMycDBBTXFOaGFGcThUckxLdWlET2FQcXAyanY0Z242MlVybzN5bDZ2TUkwaWRJM0FPd0hiTllCYmMyNjY0UTVuS2hVbnNwb294TG1KdE9NUGlYazRuTFJVVGZOQlkxWWozblc4U0lVa2VjOTFkd3hoV08wcFBpdVpqYkg5OHlSa3MwSUVidjN4N2xvZTh3YnUyUjVkYWJqVGRkT1owcVBMUGdnYXUxNzQwTWlqa0ZPTHByYzQxdXNRbmRCenUzcWNvTjJNVWFpQlVqcHdTakNZQ29DamhNSklEMFo5V1NEUUJFeU04ZndRSk9IVUVSVDE4NEQwMUo4a2NXLXNySUlNWjJRdElZcU90eHpIS3kxOW96bV9DU3gyVWdN?oc=5",
       "yield_pct": 17.19,
       "freq": "月配",
       "chg_pct": -3.91,
@@ -158,7 +158,8 @@
       "ret_1m_base": "2026-10-02=29.73",
       "ret_1w_div": null,
       "ret_1m_div": 0.38,
-      "yield_is_est": false
+      "est_src": "news",
+      "yield_is_est": true
     },
     {
       "code": "0050",
@@ -294,8 +295,8 @@
       "est_div": 0.78,
       "est_div_date": "2026-11-17",
       "est_pend": null,
-      "est_from": "TVBS新聞網",
-      "est_url": "https://news.google.com/rss/articles/CBMiT0FVX3lxTE43MExhN1ZSTGhvUGJ3VmtDQ2FTTXI0ZG84REkzblA5Zkc5SFQ5RWZpeUFEQlVkOE9Ba25ub1dkTzZWN3l4WEFRNUZENXFFQWc?oc=5",
+      "est_from": "ETtoday財經雲",
+      "est_url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTE1oclZiXzRpeE1FUUZ1ZW8wSkpNTUFKVnE2VUF0ckpSM2k0VkJmZzczRnBMb3VtNTYtQnRXTlZhbkd0RHI0RTBubnNvcVdkQm4zX1HSAVBBVV95cUxQemc0VXAwQjFwTUhQc3R5NldCVTdyNkIwd21vcmJzM29Idm1hVTBabFNUck52MGpqbzFyaktkNTRqallPNU8wV01FWmp4aVpySw?oc=5",
       "yield_pct": 16.12,
       "freq": "季配",
       "chg_pct": -6.25,
