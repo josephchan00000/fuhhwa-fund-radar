@@ -212,8 +212,8 @@ def bars(path: dict, keys: list, step: int) -> tuple[int, int, bytes]:
 
 def hist() -> None:
     """第二次探針：日行情的歷史有多長、逐筆存成分 K 要多大、履約價間距、證交所 5 秒指數的年份。"""
-    print("== ① 選擇權每日交易行情（optDataDown）的歷史深度")
-    for dd in ["2002/01/02", "2005/01/03", "2008/01/02", "2012/01/02", "2016/01/04", "2020/01/02", "2024/01/02"]:
+    print("== ① 選擇權每日交易行情（optDataDown）的歷史深度（已看過，略）")
+    for dd in [] and ["2002/01/02", "2005/01/03", "2008/01/02", "2012/01/02", "2016/01/04", "2020/01/02", "2024/01/02"]:
         try:
             t0 = time.time()
             b = get(TFX + "/cht/3/optDataDown", {"down_type": "1", "commodity_id": "TXO", "commodity_id2": "",
@@ -223,7 +223,7 @@ def hist() -> None:
             print(f"   {dd}：{len(b) / 1e3:.0f} KB、{len(ln)} 行、{time.time() - t0:.1f} 秒；第二行：{ln[1][:150] if len(ln) > 1 else ln[:1]}")
         except Exception as e:  # noqa: BLE001
             print(f"   {dd}：失敗 {e}")
-    for a, z in (("2025/10/01", "2025/10/31"), ("2025/09/01", "2025/10/31")):
+    for a, z in ():
         try:
             t0 = time.time()
             b = get(TFX + "/cht/3/optDataDown", {"down_type": "1", "commodity_id": "TXO", "commodity_id2": "",
