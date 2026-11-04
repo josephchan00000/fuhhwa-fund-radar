@@ -167,6 +167,15 @@ def run(DL, names: dict | None = None) -> dict:
                                       "sp": None if x.get("now") is None else round(x["now"], 2), "r": x.get("now_r"),
                                       "hd": T - 1 - cur[0], "rk": i + 1, "st": "open", "fw": True, "sc": x.get("sc"),
                                       "info": inf(x["c"], cur[0])})
+        if k == "v3l":                                  # 策略熔斷（ks，ksspec VER 2）：財報驚喜（大型股）前瞻的逐日淨值
+            try:
+                from . import ks as KS
+                lp = list(pk)
+                if now and now["entered"] and cal[cur[0]] >= SINCE:
+                    lp.append((cur[0], T - 1, [x["c"] for x in now["picks"]]))
+                KS.LIVE["tw_v3l"] = KS.nav_from_account(P, lp, b, SINCE)
+            except Exception as e:                      # noqa: BLE001 —— 算不出來：熔斷用上一次存下來的
+                print(f"[ks] 財報驚喜前瞻淨值算不出來：{type(e).__name__}: {e}")
         out[k] = {"k": k, "src": src, "b": b, "name": name, "unit": unit, "since": SINCE, "res": r, "fwd": fwd,
                   "now": now, "next": nxt, "due": _due(src, cal, rows), "tr": trades.pack(ftr) if ftr else None,
                   "_hl": hl}

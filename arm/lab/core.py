@@ -304,17 +304,23 @@ def _chart(cal, plan, hold, sat, a: int, b: int) -> dict:
 
 # ── 台股衛星：財報驚喜（大型股）資金帳戶的每天報酬 ────────────────────────────────
 
-def stk_sleeve(cal: list[str], tot, P=None, rf=None) -> dict:
-    """BACKTEST_SLEEVE（財報驚喜（大型股），bt3l.top5 的 p3 L）在 cal 上的每天報酬：有持股的日子＝資金帳戶（修正後的 bt3.account），
-    沒有持股＝大盤（VER 1～3；rf 給了＝現金利息、不付大盤的成本：VER 4）。
-    → {"sl", "inpos", "swc", "act": 那一天有沒有持有任何一期, "a": 第一期決定日, "b": 最後一期出場日}。"""
+def sleeve_periods(P) -> list:
+    """BACKTEST_SLEEVE（財報驚喜（大型股），bt3l.top5 的 p3 L）每一期的 (決定日, 出場日, 名單)；stk_sleeve 與策略熔斷（ks）共用。"""
     from . import bt3, bt3d, bt3s
-    P = P or bt3d.Panel()
     E = bt3.Elig(P)
     eps = bt3d.load_eps()
     rows = bt3s.p3_rows(P, E, "L", P.codes, eps, 60)
     done = [r for r in rows if r[1] is not None]
-    pk = bt3s.pick(done, 0.0, 5, False, 20)
+    return bt3s.pick(done, 0.0, 5, False, 20)
+
+
+def stk_sleeve(cal: list[str], tot, P=None, rf=None) -> dict:
+    """BACKTEST_SLEEVE（財報驚喜（大型股），bt3l.top5 的 p3 L）在 cal 上的每天報酬：有持股的日子＝資金帳戶（修正後的 bt3.account），
+    沒有持股＝大盤（VER 1～3；rf 給了＝現金利息、不付大盤的成本：VER 4）。
+    → {"sl", "inpos", "swc", "act": 那一天有沒有持有任何一期, "a": 第一期決定日, "b": 最後一期出場日}。"""
+    from . import bt3, bt3d
+    P = P or bt3d.Panel()
+    pk = sleeve_periods(P)
     acc = bt3.account(P, pk, "L")
     active = set()
     for t, x, _ in pk:
