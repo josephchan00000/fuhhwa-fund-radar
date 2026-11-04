@@ -281,6 +281,38 @@ def adj_factor(ev: list | None, after: str | None, upto: str | None) -> float:
     return S.adj_factor([(d, x) for d, x, _ in ev if x], after, upto)
 
 
+def _cum_eps(qs: list[dict], q: str) -> float | None:
+    """公布時的累計 EPS＝當年到 q 為止的單季相加（單季是累計相減得來，相加回到公布時的數字）。"""
+    n = {"03-31": 1, "06-30": 2, "09-30": 3, "12-31": 4}[q[5:]]
+    xs = [o for o in qs if o["q"][:4] == q[:4] and o["q"] <= q]
+    if len(xs) != n or any(o.get("eps") is None for o in xs):
+        return None
+    return sum(o["eps"] for o in xs)
+
+
+def ttm_eps(qs: list[dict], q: str, ev: list | None, upto: str) -> float | None:
+    """eqspec VER 5：截至 q 的近四季 EPS，照 upto 那天的股數。每個累計數只除「公布之後」（法定期限之後）的配股倍數；
+    沒有配股事件 → 就是單季相加；累計數湊不齊 → None。"""
+    def f(x):
+        return adj_factor(ev, deadline(x), upto)
+    if q[5:] == "12-31":
+        return S.eps_ttm(_cum_eps(qs, q), True, f_last=f(q))
+    py = str(int(q[:4]) - 1)
+    fy, same = f"{py}-12-31", f"{py}{q[4:]}"
+    return S.eps_ttm(_cum_eps(qs, q), False, _cum_eps(qs, fy), _cum_eps(qs, same), f(q), f(fy), f(same))
+
+
+def eps4_on(qs: list[dict], q: dict, ev: list | None, upto: str) -> float | None:
+    """VER 5 的近四季 EPS（沒進位）；沒有配股 → 單季相加（q["eps4"]）；累計數湊不齊 → 單季相加 ÷ 最新一季公布之後的配股倍數。"""
+    raw = q.get("eps4")
+    if not ev or not any(x for _, x, _ in ev):
+        return raw
+    v = ttm_eps(qs, q["q"], ev, upto)
+    if v is None and raw is not None:
+        v = raw / adj_factor(ev, deadline(q["q"]), upto)
+    return v
+
+
 def _co_lastq(code: str, asof: str) -> str | None:
     """同業最近一季（已公布）的季底日。"""
     co = _read(DASH / "co" / f"{code}.json")
@@ -300,18 +332,17 @@ def _month_end(ym: str) -> str:
 
 def bands(mo: list[dict], qs: list[dict], asof_ym: str, ev: list | None = None) -> dict:
     """近 BAND_YEARS 年每個月底：本益比＝月底收盤 ÷ 當時已公布的近四季 EPS；淨值比＝÷ 當時已公布的最近一季每股淨值。
-    VER 4：那一季季底到月底之間有無償配股 → EPS 與淨值 ÷ 調整倍數（ev＝stock_events）。"""
+    VER 4：那一季季底到月底之間有無償配股 → 淨值 ÷ 調整倍數；VER 5：EPS 只除財報公布之後的配股（ev＝stock_events）。"""
     n = S.BAND_YEARS * 12
     ms = [o for o in mo if o["ym"] <= asof_ym and o.get("px")][-n:]
     pe, pb, rows = [], [], []
     for o in ms:
         me = _month_end(o["ym"])
         avail = [q for q in qs if q["dl"] <= me]
-        e4 = avail[-1].get("eps4") if avail else None
+        e4 = _r(eps4_on(qs, avail[-1], ev, me), 2) if avail else None     # VER 5：EPS 只除公布之後的配股
         bv = avail[-1].get("bvps") if avail else None
-        f = adj_factor(ev, avail[-1]["q"], me) if avail else 1.0
+        f = adj_factor(ev, avail[-1]["q"], me) if avail else 1.0     # VER 4：每股淨值除季底之後的配股
         if f != 1.0:
-            e4 = _r(e4 / f, 2) if e4 is not None else None
             bv = _r(bv / f, 2) if bv is not None else None
         rows.append([o["ym"], o["px"], e4, bv])
         v = o["px"] / e4 if e4 and e4 > 0 else None
@@ -620,13 +651,19 @@ def tw_pack(code: str, D=None, pos=None, asof: str | None = None, peers: list[st
     prow = [peer_row(c, rows, cols, nm_all, fx, px1y, asof) for c in peers]
     me = peer_row(code, rows, cols, nm_all, fx, px1y, asof)
     me["n"] = co.get("n")
-    for p in prow + [me]:                                        # VER 4：季底之後配股 → 本益比、淨值比 × 調整倍數
-        pev = ev if p["c"] == code else stock_events(p["c"], months(_read(DASH / "co" / f"{p['c']}.json") or {}))
-        f = adj_factor(pev, _co_lastq(p["c"], asof), asof)
-        if f != 1.0:
+    for p in prow + [me]:                                        # 季底之後配股：淨值比 × 倍數（VER 4）、本益比照 VER 5 的近四季 EPS
+        pco = co if p["c"] == code else (_read(DASH / "co" / f"{p['c']}.json") or {})
+        pev = ev if p["c"] == code else stock_events(p["c"], months(pco))
+        pqs = qs if p["c"] == code else quarters(pco)
+        lq = _co_lastq(p["c"], asof) if p["c"] != code else next((q["q"] for q in reversed(qs) if q.get("eps") is not None), None)
+        f = adj_factor(pev, lq, asof)
+        qd = next((q for q in pqs if q["q"] == lq), None)
+        e_raw, e_new = (qd.get("eps4"), eps4_on(pqs, qd, pev, asof)) if qd else (None, None)
+        if f != 1.0 or (e_raw and e_new and abs(e_raw - e_new) > 1e-9):
             p["adj"] = round(f, 4)
-            p["pe"] = _r(p["pe"] * f, 1) if p.get("pe") is not None else None
             p["pb"] = _r(p["pb"] * f, 2) if p.get("pb") is not None else None
+            if p.get("pe") is not None and e_raw and e_new and e_raw > 0 and e_new > 0:
+                p["pe"] = _r(p["pe"] * e_raw / e_new, 1)
     if me.get("adj"):
         my = {**my, "pe": me["pe"], "pb": me["pb"]}
     keys = ("cap", "px", "pe", "fpe", "pb", "yld", "ry3", "gm", "om", "roe", "r1y")
@@ -670,13 +707,12 @@ def valuation(f12: dict, qs: list[dict], bd: dict, prow: list[dict], px: float |
     lastq = next((q for q in reversed(qs) if q.get("eps4") is not None), None)
     eps4 = lastq["eps4"] if lastq else None
     adj = None
-    fb = adj_factor(ev, bq["q"] if bq else None, asof)          # VER 4：季底之後無償配股 → 每股數字 ÷ 調整倍數
-    fe = adj_factor(ev, lastq["q"] if lastq else None, asof)
-    if fb != 1.0 or fe != 1.0:
-        adj = {"f": round(fb, 6), "f_eps": round(fe, 6), "bvps_raw": bvps, "eps4_raw": eps4,
-               "ev": [e for e in ev if e[1] and (bq or lastq)["q"] < e[0] <= asof]}
-        b_x = bvps / fb if bvps is not None else None             # 比值用沒進位的數字，和同業表（× 倍數）一致
-        e_x = eps4 / fe if eps4 is not None else None
+    fb = adj_factor(ev, bq["q"] if bq else None, asof)          # VER 4：季底之後無償配股 → 每股淨值 ÷ 調整倍數
+    e_x = eps4_on(qs, lastq, ev, asof) if lastq else None        # VER 5：近四季 EPS 只除財報公布之後的配股
+    if fb != 1.0 or (e_x is not None and eps4 is not None and abs(e_x - eps4) > 1e-9):
+        adj = {"f": round(fb, 6), "f_eps": round(eps4 / e_x, 6) if e_x and eps4 else None, "bvps_raw": bvps, "eps4_raw": eps4,
+               "ev": [e for e in ev if e[1] and (bq or lastq)["q"][:4] >= str(int(e[0][:4]) - 1) and e[0] <= asof]}
+        b_x = bvps / fb if bvps is not None else None             # 比值用沒進位的數字，和同業表一致
         bvps, eps4 = _r(b_x, 2), _r(e_x, 2)
         my = {**my, "pb": _r(px / b_x, 2) if px and b_x and b_x > 0 else my.get("pb"),
               "pe": _r(px / e_x, 1) if px and e_x and e_x > 0 else None}

@@ -180,3 +180,23 @@ def test_ver4_stock_events_sources(monkeypatch):
     assert E.stock_events("4958", mo) == []                                     # 只配息（參考價進位誤差）
     assert E.stock_events("1111", mo) == [["2026-07-01", 1.1, "證交所參考價"]]
     assert E.stock_events("6870", mo) == [["2026-07-21", round(1.19763285303, 6), "櫃買每千股配股數"]]
+
+
+def test_ver5_eps_only_after_publication():
+    """eqspec VER 5：騰雲 7/21 除權、第二季 8/14 前公布 → 上半年已是新股數；去年全年 ÷ 1.1976、去年上半年再 ÷ 2025-09-04 的 1.02。
+    每股淨值照 VER 4（季底股數）照除。"""
+    from arm.lab import eqfacts as E
+    eps = {"2025-03-31": 0.66, "2025-06-30": 0.84, "2025-09-30": 2.88, "2025-12-31": 2.70, "2026-03-31": 1.10, "2026-06-30": 1.44}
+    qs = [{"q": q, "eps": e, "dl": E.deadline(q), "bvps": 51.94} for q, e in eps.items()]
+    for i in range(3, len(qs)):
+        qs[i]["eps4"] = round(sum(qs[j]["eps"] for j in range(i - 3, i + 1)), 2)
+    f = 1.19763285303
+    ev = [["2025-09-04", 1.02, "櫃買每千股配股數"], ["2026-07-21", f, "櫃買每千股配股數"]]
+    v = E.ttm_eps(qs, "2026-06-30", ev, "2026-11-03")
+    assert v == pytest.approx(2.54 + 7.08 / f - 1.50 / (1.02 * f)) and 7.2 < v < 7.25
+    assert E.eps4_on(qs, qs[-1], [], "2026-11-03") == qs[-1]["eps4"] == 8.12           # 沒有配股＝單季相加
+    assert E.ttm_eps(qs, "2026-06-30", [], "2026-11-03") == pytest.approx(8.12)          # 公式本身在沒配股時等於單季相加
+    val = E.valuation({"eps": None, "src": "none"}, qs, {"pe": {}, "pb": {}}, [], 413.0, {"pe": 50.9, "pb": 7.95}, "電子", "tw",
+                      ev=ev, asof="2026-11-03")
+    assert val["eps4"] == round(v, 2) and val["bvps"] == round(51.94 / f, 2)
+    assert val["adj"]["eps4_raw"] == 8.12 and val["pe_ttm"] == round(413.0 / v, 1)
