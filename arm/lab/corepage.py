@@ -560,32 +560,6 @@ def _boom_first(B: dict) -> str:
     return f"還沒有持股；{_md(nw)}（{WD[date.fromisoformat(nw).weekday()]}）收盤看名單" + (f"、{_md(nb)} 開盤買" if nb else "")
 
 
-def ks_html(mk: str, qm: dict | None = None, live: dict | None = None) -> str:
-    """策略熔斷（ks，ksspec VER 2；docs/lab_killswitch_plan.md）：這個市場每一份現在落後大盤多少、離邊界多遠、暫停中要做什麼。
-    台股＝新飆股、財報驚喜（大型股）；美股（換成強勢品質股的時候）＝美股強勢品質股。ks_live.json 讀不到就不放。"""
-    from . import ks as KS
-    sl = ((live if live is not None else KS.load_live()) or {}).get("slices") or {}
-    keys = ("tw_boom", "tw_v3l") if mk == "tw" else (("us_qm",) if qm_on(mk, qm) else ())
-    rows = ""
-    for k in keys:
-        v = sl.get(k)
-        if not v:
-            continue
-        if v.get("st") == "pause":
-            t = v.get("trig") or {}
-            body = (f'<b>暫停中</b>：{_e(_md(t.get("d")))} 收盤落後大盤 {_pc(t.get("lag"), 1, False)}，超過邊界 {_pc(v["dd"], 1, False)}；'
-                    f'這一份放現金（紙上照記），再比大盤多賺 {_pc(v.get("need"), 1, False)} 回到那天的水準就買回')
-        else:
-            body = f'落後大盤 {_pc(v["lag"], 1, False)}，邊界 {_pc(v["dd"], 1, False)}'
-            if v.get("slow"):
-                body += f'；已經 {v["uw"]} 個交易日沒追上（回測最久 {v.get("uw_bt")} 天），要檢討'
-        rows += f'<div class="plnsn">{_e(KS.NAMES[k])}</div><div class="plnsv">{body}</div>'
-    if not rows:
-        return ""
-    return (f'<div class="plnsat plnkill"><div class="plnsh">策略熔斷：每一份從上線那天起算、落後大盤多少'
-            f'（超過邊界就暫停那一份、放現金）</div>{rows}</div>')
-
-
 def _sat_now(stk: dict | None, cash: bool) -> str:
     """機動現在拿著什麼（台股）。接在 plnnt 段落後面：先關掉段落、放清單、再開一個隱藏的空段落讓外層的 </p> 對得上。"""
     W = sat_weights(stk)
@@ -1134,7 +1108,7 @@ def card(mk: str, N: dict | None, R: dict | None, stk: dict | None = None, fw: d
     if not N:
         body = '<p class="plnnote">今天的分數還沒算出來（景氣頁建頁時會算），先列過去的成績。</p>'
     else:
-        body = now_html(mk, N, stk, qm) + ks_html(mk, qm) + todo_html(mk, N, stk, qm)
+        body = now_html(mk, N, stk, qm) + todo_html(mk, N, stk, qm)
     if sc:
         body += benefit_html(mk, sc, qm) + expect_html(mk, sc) + details_html(mk, sc, fw, qm)
     else:

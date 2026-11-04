@@ -76,13 +76,14 @@ def test_valog_push_line_only_for_new_events_and_buys_held():
 
 
 def test_plan_block_and_pick_banner():
-    from arm.lab import corepage as CPG
+    from arm.lab import cfgpage as CF
     from arm.lab import pickpage as PK
     live = {"slices": {"tw_boom": {"st": "on", "lag": 0.026, "dd": 0.488, "uw": 1, "slow": False},
                        "tw_v3l": {"st": "pause", "lag": 0.6, "dd": 0.691, "trig": {"d": "2026-11-05", "lag": 0.70}, "need": 0.12}}}
-    h = CPG.ks_html("tw", None, live)
-    assert "台股新飆股" in h and "落後大盤 2.6%，邊界 48.8%" in h and "暫停中" in h and "11/5 收盤" in h and "多賺 12.0%" in h
-    assert CPG.ks_html("spx", None, live) == ""                                       # 美股沒換成強勢品質股：不放
+    h = CF.ks_html("tw", None, live)
+    assert "台股新飆股" in h and "落後大盤 2.6%" in h and "48.8% 以上暫停" in h and "暫停中" in h
+    assert "11/5 收盤落後 70.0%" in h and "多賺 12.0%" in h and 'class="cfwr on"' in h
+    assert CF.ks_html("us", None, live) == ""                                         # 美股沒換成強勢品質股：不放
     b = PK.halt_note("v3l", live)
     assert "暫停中" in b and "11/5 收盤" in b and "70.0%" in b and "69.1%" in b and "買進先不做" in b
     assert PK.halt_note("boom", live) == "" and PK.halt_note("qm", {}) == ""
