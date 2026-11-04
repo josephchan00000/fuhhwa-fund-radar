@@ -1,11 +1,11 @@
-"""個股報告評等與目標價的規格鎖定（arm/lab/eqspec.py、docs/lab_equity_report_plan.md 第 6 節）。VER 2：倍數與 EPS 同一把尺、不自己預估；VER 3：會計年度與美股口徑。"""
+"""個股報告評等與目標價的規格鎖定（arm/lab/eqspec.py、docs/lab_equity_report_plan.md 第 6 節）。VER 2：倍數與 EPS 同一把尺、不自己預估；VER 3：會計年度與美股口徑；VER 4：台股配股調整。"""
 import pytest
 
 from arm.lab import eqspec as S
 
 
 def test_spec_v3_is_locked():
-    assert S.VER == 3 and S.SPEC_DATE == "2026-10-30"
+    assert S.VER == 4 and S.SPEC_DATE == "2026-11-04"
     assert S.HORIZON_M == 12 and S.CONS_MIN == 3 and not hasattr(S, "MOM_CLIP") and not hasattr(S, "mom_factor")   # 不自己預估
     assert S.PE_MAX == 80.0 and S.BAND_YEARS == 5 and S.BAND_PE_MAX == 100.0 and S.BAND_PB_MAX == 20.0
     assert S.PEER_MIN == 3 and S.PB_INDUSTRIES == ("金融保險",)
@@ -66,3 +66,21 @@ def test_scenarios():
     s = S.scenarios(20, r, 400)
     assert s == {"bear": S.round_tp(20 * 0.85 * 15), "base": 400, "bull": S.round_tp(20 * 1.15 * 30)}
     assert S.scenarios(100, r, 2000, pe=False) == {"bear": 1500.0, "base": 2000, "bull": 3000.0}
+
+
+def test_ver4_stock_dividend_adjustment():
+    """VER 4：季底之後無償配股 → 每股淨值與近四季 EPS ÷ 調整倍數；配股率取官方除權息表，證交所查不到現金股利才用股數比。"""
+    assert S.SH_TOL == 0.05 and S.MIN_STK == 0.002
+    assert S.ratio_tpex(197.63285303) == pytest.approx(1.19763285303)           # 騰雲 2026-07-21 每千股配 197.63 股
+    assert S.ratio_tpex(0.0) is None and S.ratio_tpex(None) is None
+    assert S.ratio_twse(185.0, 175.23, 1.0) == pytest.approx(184.0 / 175.23)   # 暉盛 2026-08-28：現金 1 元＋配股
+    assert S.ratio_twse(504.0, 500.57, 3.421698) is None                       # 只配息，沒有配股
+    assert S.ratio_twse(185.0, 175.23, None) is None
+    r = S.ratio_from_shares(185.0, 175.23, 9.761907, 36797, 38637)             # 暉盛：股數 3,679.7 萬 → 3,863.7 萬
+    assert r == pytest.approx(38637 / 36797) and 0.99 < 185.0 - 175.23 * r < 1.02
+    assert S.ratio_from_shares(185.0, 175.23, 9.761907, 36797, 46000) is None  # 反推的現金股利是負的＝股數比含了別的增資
+    ev = [("2026-08-28", 1.05), ("2026-12-01", 1.1)]
+    assert S.adj_factor(ev, "2026-06-30", "2026-11-03") == pytest.approx(1.05)
+    assert S.adj_factor(ev, "2026-09-30", "2026-11-03") == 1.0                 # 第三季財報已經是新股數
+    assert S.adj_factor(ev, "2026-06-30", "2026-12-31") == pytest.approx(1.155)
+    assert S.adj_factor([], "2026-06-30", "2026-11-03") == 1.0
