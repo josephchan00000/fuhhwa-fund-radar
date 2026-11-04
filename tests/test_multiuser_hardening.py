@@ -70,3 +70,56 @@ def test_三支_workflow_都掛了哨兵與煙測():
 def test_頁齡提示_JS_在渲染端():
     src = (ROOT / "arm/fund_dashboard.py").read_text(encoding="utf-8")
     assert "本頁已開啟超過" in src and "18e5" in src  # 30 分 tick 的長開分頁提示（Phase 1-⑤）
+
+
+def test_兩支_vercel_json_網頁沒變就不部署():
+    # 2026-11-04：Vercel 部署儲存超過免費 10 GB（每次部署存一份 dashboard/，約 55 MB）。ignoreCommand 只在
+    # 「dashboard/ 跟上次成功部署的那筆一模一樣」時略過（exit 0）；拿不到上次那筆、或比對失敗，一律照常部署（exit 1），
+    # 不可硬到什麼都沒更新。Root Directory 是 dashboard/，所以兩個工作目錄都要對。
+    import os
+    import shutil
+    import tempfile
+
+    cmds = {p: _load(p).get("ignoreCommand") for p in ("vercel.json", "dashboard/vercel.json")}
+    cmd = cmds["dashboard/vercel.json"]
+    assert cmd and cmds["vercel.json"] == cmd, cmds
+    assert len(cmd) <= 256, len(cmd)                       # Vercel 的長度上限
+    if not shutil.which("git") or not shutil.which("sh"):
+        return
+    with tempfile.TemporaryDirectory() as td:
+        def git(*a):
+            return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *a], cwd=td,
+                                  capture_output=True, text=True, check=True).stdout.strip()
+
+        def put(rel, text):
+            f = pathlib.Path(td, rel)
+            f.parent.mkdir(parents=True, exist_ok=True)
+            f.write_text(text, encoding="utf-8")
+            git("add", "-A")
+            git("commit", "-q", "-m", rel)
+            return git("rev-parse", "HEAD")
+
+        git("init", "-q")
+        c1 = put("dashboard/index.html", "v1")
+        c2 = put("data/x.json", "1")                          # 只動 data/：網頁沒變
+        c3 = put("dashboard/index.html", "v2")                # 網頁變了
+        c4 = put("dashboard/vercel.json", "{}")               # 設定檔在 dashboard/ 裡，也算網頁變了
+
+        def run(head, prev, sub):
+            git("checkout", "-q", head)
+            env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+            if prev is not None:
+                env["VERCEL_GIT_PREVIOUS_SHA"] = prev
+            return subprocess.run(["sh", "-c", cmd], cwd=pathlib.Path(td, sub), env=env,
+                                  capture_output=True, text=True).returncode
+
+        for sub in ("dashboard", "."):
+            assert run(c2, c1, sub) == 0, sub                 # 只動 data/ → 略過
+            assert run(c3, c3, sub) == 0, sub                 # 同一筆又被 Deploy Hook 打一次 → 略過
+            assert run(c3, c1, sub) == 1, sub                 # 網頁變了 → 部署
+            assert run(c3, c2, sub) == 1, sub
+            assert run(c4, c3, sub) == 1, sub                 # vercel.json 變了 → 部署
+            assert run(c3, None, sub) == 1, sub               # 沒有上次的紀錄 → 部署
+            assert run(c3, "", sub) == 1, sub
+            assert run(c3, "0" * 40, sub) == 1, sub           # 上次那筆不在淺層 clone 裡 → 部署
+            assert run(c3, "not-a-sha", sub) == 1, sub

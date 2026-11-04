@@ -120,3 +120,6 @@
 
 ## [2026-11-04] 收錄 | 台指選擇權第 1 段：資料層與資料分支 claude/txo-data
 - 使用者決定：三條都做、資金保守、入口＝右下角「選」字、盤中提醒之後再說。新頁 `lab/txo.md`；`arm/lab/txodata.py`、`scripts/fetch_txo.py`、`txo_data.yml`（逐筆分 K、日行情 2002 起、5 秒指數 2016 起，寫進資料分支，絕不合併進 main）。改了 `lab/overview.md`；CLAUDE.md 鐵則加 `claude/txo-data`。
+
+## [2026-11-04] 收錄 | Vercel 部署儲存超過免費 10 GB：網頁沒變就不部署
+- 使用者截圖 Deployment Storage 10.12 GB / 10 GB。兩支 `vercel.json` 加 `ignoreCommand`（dashboard/ 跟上次成功部署一樣就略過，拿不準一律部署）；`txo_data.yml` 把兩支 vercel.json 放進資料分支；債務帳那一列與 daily.yml 的 shortcut 註解拿掉。改了 `ops/deploy.md`、`lab/txo.md`。

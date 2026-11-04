@@ -24,7 +24,7 @@
 ## 不能改的規則
 
 - 容器連不到期交所與證交所：`fetch_txo.py`、`probe_txo.py` 只在 CI 跑。
-- 資料分支 `claude/txo-data` 絕不合併進 main；程式一律在 main，workflow 把資料分支 checkout 到 `txodata/` 再寫。
+- 資料分支 `claude/txo-data` 絕不合併進 main；程式一律在 main，workflow 把資料分支 checkout 到 `txodata/` 再寫；每次 commit 前把兩支 `vercel.json` 複製進去，Vercel 才不會試著預覽部署這個分支（[部署](../ops/deploy.md)）。
 - 策略規格先寫死、commit，才算成績；改＝VER＋1；只做買方，不做賣方、不做夜盤、不自動下單（規劃第 6 節）。
 - 探針只看資料長相與某一天的價格路徑，不算策略成績。
 
