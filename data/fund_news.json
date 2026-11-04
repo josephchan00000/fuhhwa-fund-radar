@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/11/04 11:01",
+  "as_of": "2026/11/04 12:50",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -13,16 +13,9 @@
     {
       "title": "00929績效、配息雙亮眼！近月受益人數激增3萬人、官股也搶買逾23億",
       "url": "https://www.scooptw.com/yesmedia/548806/00929%E7%B8%BE%E6%95%88%E3%80%81%E9%85%8D%E6%81%AF%E9%9B%99%E4%BA%AE%E7%9C%BC%EF%BC%81%E8%BF%91%E6%9C%88%E5%8F%97%E7%9B%8A%E4%BA%BA%E6%95%B8%E6%BF%80%E5%A2%9E3%E8%90%AC%E4%BA%BA%E3%80%81%E5%AE%98/",
-      "source": "蕃新聞",
+      "source": "睿傳媒 Rightmedia",
       "date": "2026-11-04 08:00",
       "datetime": "2026-11-04T08:00:17+08:00"
-    },
-    {
-      "title": "配息率衝破13% 復華00949配息3.02元創日股ETF高息話題",
-      "url": "https://udn.com/news/story/123006/9853362",
-      "source": "UDN",
-      "date": "2026-11-03 08:41",
-      "datetime": "2026-11-03T08:41:47+08:00"
     },
     {
       "title": "官股也青睞 復華00929再度穩配息16%",
@@ -63,13 +56,6 @@
       ],
       "items": [
         {
-          "title": "00929績效、配息雙亮眼！近月受益人數激增3萬人、官股也搶買逾23億",
-          "url": "https://www.scooptw.com/yesmedia/548806/00929%E7%B8%BE%E6%95%88%E3%80%81%E9%85%8D%E6%81%AF%E9%9B%99%E4%BA%AE%E7%9C%BC%EF%BC%81%E8%BF%91%E6%9C%88%E5%8F%97%E7%9B%8A%E4%BA%BA%E6%95%B8%E6%BF%80%E5%A2%9E3%E8%90%AC%E4%BA%BA%E3%80%81%E5%AE%98/",
-          "source": "https://www.yesmedia.com.tw/",
-          "date": "2026-11-04 08:00",
-          "datetime": "2026-11-04T08:00:17+08:00"
-        },
-        {
           "title": "40歲存0050，幾歲轉0056？達人揭最佳轉換年紀「100萬月領14萬」！00929配息率16%更香？00878、00919退休這樣搭",
           "url": "https://www.businesstoday.com.tw/article/category/183013/post/202611030019/",
           "source": "今周刊",
@@ -77,11 +63,18 @@
           "datetime": "2026-11-03T15:36:49+08:00"
         },
         {
-          "title": "00878配息1.25元創高！00919、00929全面內捲「存股老手驚吐：3個字是財富密碼」資產含息報酬率直接衝破100％ - 上市櫃",
-          "url": "https://wantrich.chinatimes.com/news/20261103900355-420101",
-          "source": "旺得富理財網",
-          "date": "2026-11-03 15:30",
-          "datetime": "2026-11-03T15:30:00+08:00"
+          "title": "49萬股民嗨翻！00929配息開獎「每股0.38元」 專家試算1超狂數據：輾壓4檔勁敵 | 張庭維 | 新聞",
+          "url": "https://www.storm.mg/article/11178351",
+          "source": "風傳媒",
+          "date": "2026-11-04 10:59",
+          "datetime": "2026-11-04T10:59:00+08:00"
+        },
+        {
+          "title": "00929績效、配息雙亮眼！近月受益人數激增3萬人、官股也搶買逾23億",
+          "url": "https://www.scooptw.com/yesmedia/548806/00929%E7%B8%BE%E6%95%88%E3%80%81%E9%85%8D%E6%81%AF%E9%9B%99%E4%BA%AE%E7%9C%BC%EF%BC%81%E8%BF%91%E6%9C%88%E5%8F%97%E7%9B%8A%E4%BA%BA%E6%95%B8%E6%BF%80%E5%A2%9E3%E8%90%AC%E4%BA%BA%E3%80%81%E5%AE%98/",
+          "source": "https://www.yesmedia.com.tw/",
+          "date": "2026-11-04 08:00",
+          "datetime": "2026-11-04T08:00:17+08:00"
         }
       ]
     },
@@ -490,7 +483,7 @@
       "board": "債券基金",
       "title": "安聯台灣科技轉平衡的資金停泊短期債券",
       "url": "https://fundhot.com/forum/%E5%82%B5%E5%88%B8%E5%9F%BA%E9%87%91/%E5%AE%89%E8%81%AF%E5%8F%B0%E7%81%A3%E7%A7%91%E6%8A%80%E8%BD%89%E5%B9%B3%E8%A1%A1%E7%9A%84%E8%B3%87%E9%87%91%E5%81%9C%E6%B3%8A%E7%9F%AD%E6%9C%9F%E5%82%B5%E5%88%B8/14041",
-      "date": "2026-11-03"
+      "first_seen": "2026-11-04"
     },
     {
       "platform": "fundhot",
@@ -540,7 +533,7 @@
       "channel": "JUSTIN投資日記",
       "url": "https://www.youtube.com/watch?v=8VSo8m4_9Go",
       "date": "2026-11-02",
-      "views": 4024
+      "views": 4090
     },
     {
       "platform": "youtube",
@@ -557,7 +550,7 @@
       "channel": "懶得變有錢",
       "url": "https://www.youtube.com/shorts/B0tqWlaYBcQ",
       "date": "2026-11-01",
-      "views": 1311,
+      "views": 1312,
       "short": true
     },
     {
@@ -566,7 +559,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/PTnYdznK2XI",
       "date": "2026-11-02",
-      "views": 207438,
+      "views": 212362,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -577,19 +570,9 @@
       "channel": "瘋狂股市福利社Free Free Free!",
       "url": "https://www.youtube.com/watch?v=RxPRvqYjVKc",
       "date": "2026-10-30",
-      "views": 175975,
+      "views": 175999,
       "peer": true,
       "cat": "市值型"
-    },
-    {
-      "platform": "youtube",
-      "title": "台股跌到4萬點？超馬芭樂買「這2檔ETF」安穩避風港！【#賺錢放大術】20261030｜超馬芭樂、白昀霏",
-      "channel": "賺錢放大術",
-      "url": "https://www.youtube.com/watch?v=8-Szt70v4xY",
-      "date": "2026-10-30",
-      "views": 137689,
-      "peer": true,
-      "cat": "綜合"
     },
     {
       "platform": "youtube",
@@ -597,10 +580,20 @@
       "channel": "施羅德投資 (台灣)",
       "url": "https://www.youtube.com/shorts/vlFqx1GeoiI",
       "date": "2026-11-02",
-      "views": 131727,
+      "views": 148190,
       "peer": true,
       "short": true,
       "cat": "主動式"
+    },
+    {
+      "platform": "youtube",
+      "title": "台股跌到4萬點？超馬芭樂買「這2檔ETF」安穩避風港！【#賺錢放大術】20261030｜超馬芭樂、白昀霏",
+      "channel": "賺錢放大術",
+      "url": "https://www.youtube.com/watch?v=8-Szt70v4xY",
+      "date": "2026-10-30",
+      "views": 138066,
+      "peer": true,
+      "cat": "綜合"
     },
     {
       "platform": "youtube",
@@ -608,7 +601,7 @@
       "channel": "理財達人秀 EBCmoneyshow",
       "url": "https://www.youtube.com/watch?v=3ZeGiG5It4M",
       "date": "2026-11-03",
-      "views": 115464,
+      "views": 121371,
       "peer": true,
       "cat": "債券"
     },
@@ -618,7 +611,7 @@
       "channel": "非凡商業台",
       "url": "https://www.youtube.com/watch?v=HpnqF8OLHTI",
       "date": "2026-10-30",
-      "views": 75352,
+      "views": 75566,
       "peer": true,
       "cat": "高股息"
     },
@@ -628,7 +621,7 @@
       "channel": "廣哥教傳富",
       "url": "https://www.youtube.com/watch?v=AX2fRtejHFo",
       "date": "2026-10-30",
-      "views": 64862,
+      "views": 65119,
       "peer": true,
       "cat": "高股息"
     },
@@ -638,9 +631,20 @@
       "channel": "自由女神邱沁宜",
       "url": "https://www.youtube.com/watch?v=KckfwZqgn9I",
       "date": "2026-10-30",
-      "views": 61685,
+      "views": 61741,
       "peer": true,
       "cat": "市場趨勢"
+    },
+    {
+      "platform": "youtube",
+      "title": "吳子嘉怒問蘇家4500萬：蘇貞昌當院長時　國發基金投資女兒任董事的公司｜洋流變成蘇家擋箭牌｜董事長開講 臺北站",
+      "channel": "董事長開講",
+      "url": "https://www.youtube.com/shorts/1Hirnp6dW0g",
+      "date": "2026-11-03",
+      "views": 55396,
+      "peer": true,
+      "short": true,
+      "cat": "基金"
     },
     {
       "platform": "youtube",
@@ -648,25 +652,15 @@
       "channel": "阿格力博識",
       "url": "https://www.youtube.com/watch?v=e2GX7EtKizk",
       "date": "2026-11-02",
-      "views": 52301,
+      "views": 52977,
       "peer": true,
       "cat": "主動式"
-    },
-    {
-      "platform": "youtube",
-      "title": "大盤底部不遠?台股先蹲後跳?選後大行情? 鴻海科技日揭&quot;共贏密碼&quot; 拉誰吃大餅?｜王志郁 主持｜20261101｜Catch大錢潮 完整版｜三立財經iNEWS",
-      "channel": "三立財經iNEWS",
-      "url": "https://www.youtube.com/watch?v=CeVmJDuTrNA",
-      "date": "2026-11-01",
-      "views": 47838,
-      "peer": true,
-      "cat": "市值型"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00418A（詳下方新聞標籤）",
     "品牌焦點：00877 復華中國5G通信ETF｜成分股？配息？優缺點？（StockFeel 股感）",
     "社群聲量最高：這波大跌，鉅亨超底王幫你自動加碼哪些基金？觸發設幾趴？（0 推）",
-    "YouTube 熱片：台股高檔急殺，先賣再接回？她勸你別想得太簡單｜ft.基金教母蕭碧燕、葉芷娟 #投資心態 #基金 #ETF錢滾錢（【CMoney理財寶】官方頻道・207,438 次觀看）"
+    "YouTube 熱片：台股高檔急殺，先賣再接回？她勸你別想得太簡單｜ft.基金教母蕭碧燕、葉芷娟 #投資心態 #基金 #ETF錢滾錢（【CMoney理財寶】官方頻道・212,362 次觀看）"
   ]
 }
