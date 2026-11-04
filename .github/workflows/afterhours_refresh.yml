@@ -181,6 +181,7 @@ jobs:
           git add -f dashboard/x9x.html 2>/dev/null || true            # 大神策略頁（docs/lab_nav_plan.md；分開 add）
           git add -f dashboard/x9xh.json 2>/dev/null || true           # 大神策略的淨值與每一筆（點開才下載；分開 add）
           git add -f dashboard/x9r.html 2>/dev/null || true            # 研究紀錄頁（docs/lab_ia_v5_plan.md 第 7 節；分開 add）
+          git add -f dashboard/x9op.html 2>/dev/null || true           # 選擇權計算機（docs/lab_txo_plan.md 第 17 節；分開 add）
           git add -f dashboard/x9muh-*.json 2>/dev/null || true        # 美股景氣頁各指數對照圖資料（分開 add）
           git add -f dashboard/x9mup-*.json 2>/dev/null || true        # 美股景氣頁各指數細項面板與內容（點到才下載，分開 add）
           git add -f dashboard/co 2>/dev/null || true                  # 公司分析：每檔資料檔（點進去才下載；內容沒變不改寫）
@@ -212,6 +213,7 @@ jobs:
             git add -f dashboard/x9x.html 2>/dev/null || true            # 大神策略頁（docs/lab_nav_plan.md；分開 add）
             git add -f dashboard/x9xh.json 2>/dev/null || true           # 大神策略的淨值與每一筆（點開才下載；分開 add）
             git add -f dashboard/x9r.html 2>/dev/null || true            # 研究紀錄頁（docs/lab_ia_v5_plan.md 第 7 節；分開 add）
+            git add -f dashboard/x9op.html 2>/dev/null || true           # 選擇權計算機（docs/lab_txo_plan.md 第 17 節；分開 add）
             git add -f dashboard/x9muh-*.json 2>/dev/null || true        # 美股景氣頁各指數對照圖資料（分開 add）
             git add -f dashboard/x9mup-*.json 2>/dev/null || true        # 美股景氣頁各指數細項面板與內容（點到才下載，分開 add）
             git add -f dashboard/co 2>/dev/null || true                  # 公司分析：每檔資料檔（點進去才下載；內容沒變不改寫）

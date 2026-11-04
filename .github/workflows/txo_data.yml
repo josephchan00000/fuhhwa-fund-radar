@@ -67,10 +67,12 @@ jobs:
         if: always() && github.ref == 'refs/heads/main'
         run: |
           python3 scripts/run_txocalc.py --root txodata --out data/lab/txo_calc.json || { echo "::warning::作戰表沒算出來"; exit 0; }
-          [ -n "$(git status --porcelain -- data/lab/txo_calc.json)" ] || { echo "作戰表沒變"; exit 0; }
+          python3 -c "from arm.lab import txopage; txopage.build()" || echo "::warning::選擇權頁沒建成"
+          [ -n "$(git status --porcelain -- data/lab/txo_calc.json dashboard/x9op.html)" ] || { echo "作戰表沒變"; exit 0; }
           git config user.name "josephchan00000"
           git config user.email "51159474+josephchan00000@users.noreply.github.com"
           git add data/lab/txo_calc.json
+          git add -f dashboard/x9op.html 2>/dev/null || true
           git commit -q -m "chore: 選擇權作戰表 $(date '+%F %H:%M')"
           for i in 1 2 3; do
             git push origin HEAD:main && exit 0

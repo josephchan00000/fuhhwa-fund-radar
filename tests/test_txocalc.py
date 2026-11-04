@@ -42,3 +42,20 @@ def test_build_picks_future_expiries_and_atm_window():
 def test_trading_days_skip_weekend():
     assert C.trading_days(date(2026, 11, 6), date(2026, 11, 9)) == 1              # 週五 → 週一
     assert C.next_trading(date(2026, 11, 6)) == date(2026, 11, 9)
+
+
+def test_implied_forward_fixes_close_time_mismatch():
+    # 選擇權 13:45 收、指數 13:30 收：用選擇權自己的買賣權平價找指數水準，買權與賣權反推的波動率才會一致
+    f_true, t = 43060.0, 2 / 252
+    px = {k: {"C": (C.bs("C", f_true, k, t, 0.3), 1), "P": (C.bs("P", f_true, k, t, 0.3), 1)} for k in range(42800, 43350, 50)}
+    assert abs(C.implied_forward(px, 43000) - f_true) < 1e-6
+    rows = []
+    for k, v in px.items():
+        for cp in "CP":
+            rows.append(_row("2026-11-04", "202611F1", k, cp, v[cp][0], "2026-11-06"))
+    doc = C.build(rows, 43000.0, date(2026, 11, 4))                   # 13:30 收盤比選擇權隱含的低 60 點
+    e = doc["exps"][0]
+    assert e["f"] == 43060.0
+    r = next(x for x in e["rows"] if x[0] == 43000)
+    assert abs(r[2] - 0.3) < 2e-3 and abs(r[4] - 0.3) < 2e-3
+    assert C.implied_forward({}, 43000) is None
