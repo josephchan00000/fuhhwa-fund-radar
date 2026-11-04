@@ -159,3 +159,28 @@ def test_sec_email_only_from_secret_and_never_printed():
     assert "SEC_CONTACT_EMAIL: ${{ secrets.SEC_CONTACT_EMAIL }}" in wf and "echo \"$SEC_CONTACT_EMAIL" not in wf
     src = (ROOT / "scripts" / "fetch_eqdocs.py").read_text("utf-8") + (ROOT / "arm" / "lab" / "eqdocs_us.py").read_text("utf-8")
     assert "print(email" not in src and "SF.contact()" in src and not re.search(r"[\w.+-]+@[\w-]+\.[a-z]{2,}", src)
+
+
+def test_build_retries_and_a_missing_release_exhibit_fails_the_pack():
+    """2026-11-04 第一次正式抓 PAYC：8/5 財報新聞稿的 Ex-99.1 漏掉，包卻是 🟢 → 重試、記下漏掉的、財報新聞稿缺附件整包算沒抓到。"""
+    ex = f"{ARC}/000123456726000028/ex991.htm"
+    get, calls = _get(_sub())
+    flaky = {"n": 0}
+
+    def get1(url):                                   # 第一次 503，第二次才給
+        if url == ex and flaky["n"] == 0:
+            flaky["n"] += 1
+            return 503, b""
+        return get(url)
+    waits = []
+    pk = U.build("TST", CIK, date(2026, 11, 4), get1, log=lambda *_: None, wait=waits.append)
+    assert pk["ok"] and pk["st"]["8k"] == "ok" and waits == [2.0] and pk["news"][1]["miss"] == []
+    get2, _ = _get(_sub(), fail=("ex991",))           # 一直抓不到
+    waits = []
+    pk = U.build("TST", CIK, date(2026, 11, 4), get2, log=lambda *_: None, wait=waits.append)
+    assert waits == [] and pk["news"][1]["miss"] == ["EX-99.1"]          # 404 不重試
+    assert not pk["ok"] and pk["st"]["8k"] == "err 財報新聞稿抓不到（2026-08-05 EX-99.1）"
+    assert "（這一份抓不到：EX-99.1）" in U.render_md(pk)
+    get3, _ = _get(_sub(), fail=("26-000030-index",))   # 別份 8-K 的附件清單抓不到：記下來，但不擋
+    pk = U.build("TST", CIK, date(2026, 11, 4), get3, log=lambda *_: None, wait=lambda s: None)
+    assert pk["ok"] and pk["st"]["8k"] == "partial 2026-10-30 附件清單"

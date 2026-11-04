@@ -10,14 +10,16 @@ from __future__ import annotations
 import html as H
 import json
 import re
+import time
 from datetime import date, timedelta
 
-VER = 1
+VER = 2                  # 2026-11-04：抓不到重試、8-K 記 miss、財報新聞稿附件抓不到整包算沒抓到
 SUB = "https://data.sec.gov/submissions/CIK{cik:010d}.json"
 ARCH = "https://www.sec.gov/Archives/edgar/data/{cik}/{acc}/"
 CODE_RE = re.compile(r"^us:[A-Z][A-Z0-9.\-]{0,9}$")
 NEWS_DAYS = 183          # 8-K 近 6 個月
 NEWS_MAX = 20            # 8-K 最多抓幾份（從新到舊）
+TRIES = 3                # 抓不到（不是 404）就再試，間隔 2、4 秒（2026-11-04 第一次正式抓 PAYC 時 8/5 財報新聞稿附件漏掉）
 CAP = {"1": 40000, "1A": 30000, "7": 60000, "q2": 40000, "8k": 6000, "ex": 25000}   # 每段最多幾個字（太長的截斷，標明）
 K10_ITEMS = ("1", "1A", "7")
 Q10_ITEMS = ("2",)
@@ -123,13 +125,20 @@ def items_text(items: str) -> str:
     return "、".join(f"{x} {ITEMS_8K.get(x, '')}".strip() for x in xs)
 
 
-def build(sym: str, cik: int, today: date, get, log=print) -> dict:
-    """一家公司的文件包。get(url) → (status, bytes)；任何一段失敗都記在 st、不擋其他段。"""
+def build(sym: str, cik: int, today: date, get, log=print, wait=time.sleep) -> dict:
+    """一家公司的文件包。get(url) → (status, bytes)；任何一段失敗都記在 st、不擋其他段。
+    8-K 的索引頁或 Ex-99 附件抓不到記在那一份的 miss；最近一次財報新聞稿（2.02）的附件抓不到＝8k 記錯、整包 ok＝False（照 D2 隔天重試）。"""
     pk: dict = {"v": VER, "mk": "us", "code": sym, "cik": cik, "made": today.isoformat(), "st": {}}
 
     def fetch(url: str) -> bytes | None:
-        st, b = get(url)
-        return b if st == 200 and b else None
+        for k in range(TRIES):
+            st, b = get(url)
+            if st == 200 and b:
+                return b
+            if st == 404 or k == TRIES - 1:
+                return None
+            wait(2.0 * (k + 1))
+        return None
 
     b = fetch(SUB.format(cik=cik))
     if not b:
@@ -168,21 +177,33 @@ def build(sym: str, cik: int, today: date, get, log=print) -> dict:
     news = []
     for f in [x for x in fs if x["form"] in ("8-K", "8-K/A") and x["d"] >= cut][:NEWS_MAX]:
         x = {"d": f["d"], "form": f["form"], "items": f["items"], "subj": items_text(f["items"]),
-             "url": doc_url(cik, f["acc"], f["doc"]), "idx": index_url(cik, f["acc"]), "ex": []}
+             "url": doc_url(cik, f["acc"], f["doc"]), "idx": index_url(cik, f["acc"]), "ex": [], "miss": []}
         main = fetch(x["url"])
         if main:
             x["body"], x["cut"] = cap(to_text(main), CAP["8k"])
+        else:
+            x["miss"].append("主文件")
         ib = fetch(x["idx"])
+        if not ib:
+            x["miss"].append("附件清單")
         for e in exhibits(ib.decode("utf-8", "replace")) if ib else []:
             if re.fullmatch(r"EX-99(\.\d+)?", e["type"] or ""):
                 eb = fetch(e["url"])
                 if eb:
                     t, c = cap(to_text(eb), CAP["ex"])
                     x["ex"].append({**e, "text": t, "cut": c})
+                else:
+                    x["miss"].append(e["type"])
         news.append(x)
     pk["news"] = news
-    pk["st"]["8k"] = "ok"
-    pk["ok"] = pk["st"].get("k10") == "ok" and pk["st"].get("q10") in ("ok", "older", "none")
+    rel = next((x for x in news if "2.02" in (x["items"] or "")), None)
+    bad = [f"{x['d']} {'、'.join(x['miss'])}" for x in news if x["miss"]]
+    if rel and rel["miss"]:
+        pk["st"]["8k"] = f"err 財報新聞稿抓不到（{rel['d']} {'、'.join(rel['miss'])}）"
+    else:
+        pk["st"]["8k"] = ("partial " + "；".join(bad)) if bad else "ok"
+    pk["ok"] = (pk["st"].get("k10") == "ok" and pk["st"].get("q10") in ("ok", "older", "none")
+                and not pk["st"]["8k"].startswith("err"))
     log(f"[eqdocs-us] {sym}：{pk['st']}")
     return pk
 
@@ -221,6 +242,8 @@ def render_md(pk: dict) -> str:
     L += ["", "## 8-K（近 6 個月，新到舊）", ""]
     for x in pk.get("news") or []:
         L.append(f"### {x['d']} {x['form']}：{x['subj']}（{x['url']}）")
+        if x.get("miss"):
+            L.append(f"（這一份抓不到：{'、'.join(x['miss'])}）")
         if x.get("body"):
             L.append(x["body"] + ("\n（主文件太長，只放前段）" if x.get("cut") else ""))
         for e in x.get("ex") or []:
