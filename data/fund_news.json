@@ -1,8 +1,15 @@
 {
-  "as_of": "2026/11/04 08:16",
+  "as_of": "2026/11/04 08:46",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
+    {
+      "title": "復華00949每單位配3.02元 年化配息率逾13%改寫日股ETF紀錄",
+      "url": "https://finance.biggo.com.tw/news/7d57ac0c-7e0c-49d8-add8-00148efe9c74",
+      "source": "BigGo 財經",
+      "date": "2026-11-03 09:05",
+      "datetime": "2026-11-03T09:05:00+08:00"
+    },
     {
       "title": "配息率衝破13% 復華00949配息3.02元創日股ETF高息話題",
       "url": "https://udn.com/news/story/123006/9853362",
@@ -109,13 +116,6 @@
           "source": "東森電視",
           "date": "2026-11-03 11:08",
           "datetime": "2026-11-03T11:08:00+08:00"
-        },
-        {
-          "title": "00998A金融引擎10月中旬以來逆勢上漲 重倉科技股的新避險選擇",
-          "url": "https://tw.news.yahoo.com/00998a%E9%87%91%E8%9E%8D%E5%BC%95%E6%93%8E10%E6%9C%88%E4%B8%AD%E6%97%AC%E4%BB%A5%E4%BE%86%E9%80%86%E5%8B%A2%E4%B8%8A%E6%BC%B2-%E9%87%8D%E5%80%89%E7%A7%91%E6%8A%80%E8%82%A1%E7%9A%84%E6%96%B0%E9%81%BF%E9%9A%AA%E9%81%B8%E6%93%87-004259812.html",
-          "source": "Yahoo新聞",
-          "date": "2026-11-03 08:42",
-          "datetime": "2026-11-03T08:42:59+08:00"
         }
       ]
     },
@@ -526,7 +526,7 @@
       "channel": "JUSTIN投資日記",
       "url": "https://www.youtube.com/watch?v=8VSo8m4_9Go",
       "date": "2026-11-02",
-      "views": 3965
+      "views": 3955
     },
     {
       "platform": "youtube",
@@ -552,7 +552,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/PTnYdznK2XI",
       "date": "2026-11-02",
-      "views": 201551,
+      "views": 202181,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -563,7 +563,7 @@
       "channel": "瘋狂股市福利社Free Free Free!",
       "url": "https://www.youtube.com/watch?v=RxPRvqYjVKc",
       "date": "2026-10-30",
-      "views": 176024,
+      "views": 175975,
       "peer": true,
       "cat": "市值型"
     },
@@ -573,7 +573,7 @@
       "channel": "賺錢放大術",
       "url": "https://www.youtube.com/watch?v=8-Szt70v4xY",
       "date": "2026-10-30",
-      "views": 137269,
+      "views": 137307,
       "peer": true,
       "cat": "綜合"
     },
@@ -583,7 +583,7 @@
       "channel": "施羅德投資 (台灣)",
       "url": "https://www.youtube.com/shorts/vlFqx1GeoiI",
       "date": "2026-11-02",
-      "views": 131078,
+      "views": 131183,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -594,7 +594,7 @@
       "channel": "理財達人秀 EBCmoneyshow",
       "url": "https://www.youtube.com/watch?v=3ZeGiG5It4M",
       "date": "2026-11-03",
-      "views": 99161,
+      "views": 101111,
       "peer": true,
       "cat": "債券"
     },
@@ -604,7 +604,7 @@
       "channel": "非凡商業台",
       "url": "https://www.youtube.com/watch?v=HpnqF8OLHTI",
       "date": "2026-10-30",
-      "views": 75121,
+      "views": 75154,
       "peer": true,
       "cat": "高股息"
     },
@@ -624,7 +624,17 @@
       "channel": "自由女神邱沁宜",
       "url": "https://www.youtube.com/watch?v=KckfwZqgn9I",
       "date": "2026-10-30",
-      "views": 61683,
+      "views": 61685,
+      "peer": true,
+      "cat": "市場趨勢"
+    },
+    {
+      "platform": "youtube",
+      "title": "【股票】台股失守4萬5能抄底？美股選後有望迎反攻？高手揭第四季布局關鍵！ft.施雅棠｜下班經濟學799｜謝哲青、張珈瑄",
+      "channel": "風傳媒 The Storm Media",
+      "url": "https://www.youtube.com/watch?v=IAqQsD-3QKg",
+      "date": "2026-11-02",
+      "views": 53586,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -634,25 +644,15 @@
       "channel": "阿格力博識",
       "url": "https://www.youtube.com/watch?v=e2GX7EtKizk",
       "date": "2026-11-02",
-      "views": 51795,
+      "views": 51843,
       "peer": true,
       "cat": "主動式"
-    },
-    {
-      "platform": "youtube",
-      "title": "大盤底部不遠?台股先蹲後跳?選後大行情? 鴻海科技日揭&quot;共贏密碼&quot; 拉誰吃大餅?｜王志郁 主持｜20261101｜Catch大錢潮 完整版｜三立財經iNEWS",
-      "channel": "三立財經iNEWS",
-      "url": "https://www.youtube.com/watch?v=CeVmJDuTrNA",
-      "date": "2026-11-01",
-      "views": 47720,
-      "peer": true,
-      "cat": "市值型"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00418A（詳下方新聞標籤）",
-    "品牌焦點：配息率衝破13% 復華00949配息3.02元創日股ETF高息話題（UDN）",
+    "品牌焦點：復華00949每單位配3.02元 年化配息率逾13%改寫日股ETF紀錄（BigGo 財經）",
     "社群聲量最高：安聯台灣科技轉平衡的資金停泊短期債券（0 推）",
-    "YouTube 熱片：台股高檔急殺，先賣再接回？她勸你別想得太簡單｜ft.基金教母蕭碧燕、葉芷娟 #投資心態 #基金 #ETF錢滾錢（【CMoney理財寶】官方頻道・201,551 次觀看）"
+    "YouTube 熱片：台股高檔急殺，先賣再接回？她勸你別想得太簡單｜ft.基金教母蕭碧燕、葉芷娟 #投資心態 #基金 #ETF錢滾錢（【CMoney理財寶】官方頻道・202,181 次觀看）"
   ]
 }
