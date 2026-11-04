@@ -140,8 +140,10 @@ def verdict(box: dict, drop: dict, ep: int) -> str:
     return "no"
 
 
-def market(F: dict) -> dict:
-    """一個市場的逐年檢查（第 5.5 節）。"""
+def weeks(F: dict, edge: float | None = None) -> dict:
+    """逐年挑強的落底型訊號（強＝次數 ≥ N_MIN、比任一天高 edge 以上；預設 BOTTOM_EDGE），每個週末框有沒有出現。
+    → {"t": 週末位置, "box", "gate", "years", "strong_now", "px", "y0"}（第 5.5 節；方法檢查 fairchk 換門檻用）。"""
+    edge = S.BOTTOM_EDGE if edge is None else edge
     mk, cal = F["mk"], F["cal"]
     px = np.asarray(F["px"], dtype=float)
     T = len(cal)
@@ -158,8 +160,6 @@ def market(F: dict) -> dict:
         if H not in Ys:
             Ys[H] = G.outcomes(px, H, G.warn_th(mk, H))
     gate = drop_days(px, mk)
-    Yu, Yw, _ = G.outcomes(px, S.BOTTOM_CHK_H, G.warn_th(mk, S.BOTTOM_CHK_H))
-    Yu2 = G.outcomes(px, S.BOTTOM_CHK_H2, G.warn_th(mk, S.BOTTOM_CHK_H2))[0]
     y0, y1 = TC.first_year(cal), int(cal[-1][:4])
     tw, bw, years, now_strong = [], [], [], []
     for yr in range(y0, y1 + 1):
@@ -168,7 +168,9 @@ def market(F: dict) -> dict:
         picked = []
         for i, sd in enumerate(allsd):
             Rb = TC.stats_before(sd, cut, Ys[int(sd["H"])], int(sd["H"]))
-            if Rb is not None and strong(Rb.get("up")):
+            st = (Rb or {}).get("up")
+            if st and (st.get("n") or 0) >= S.N_MIN and st.get("hit") is not None and st.get("base") is not None \
+                    and round(st["hit"] - st["base"], 9) >= edge:
                 picked.append(i)
         if yr == y1:
             now_strong = [allsd[i]["id"] for i in picked]
@@ -181,17 +183,35 @@ def market(F: dict) -> dict:
         tw += [int(t) for t in wk]
         bw += [bool(x) for x in box]
         years.append([yr, len(picked), int(box.sum())])
-    t = np.asarray(tw, dtype=np.int64)
-    b = np.asarray(bw, dtype=bool)
+    return {"t": np.asarray(tw, dtype=np.int64), "box": np.asarray(bw, dtype=bool), "gate": gate, "years": years,
+            "strong_now": now_strong, "px": px, "y0": y0}
+
+
+def episodes(b: np.ndarray) -> int:
+    """連續的週算一段：前一個週末沒有框的框週數。"""
+    return int(sum(1 for j in range(len(b)) if b[j] and (j == 0 or not b[j - 1])))
+
+
+def summary(F: dict, W: dict) -> dict:
+    """weeks 的結果 → 四組週的比例、段數、判定（第 5.5 節）。"""
+    mk, cal = F["mk"], F["cal"]
+    px, t, b, gate = W["px"], W["t"], W["box"], W["gate"]
+    Yu, Yw, _ = G.outcomes(px, S.BOTTOM_CHK_H, G.warn_th(mk, S.BOTTOM_CHK_H))
+    Yu2 = G.outcomes(px, S.BOTTOM_CHK_H2, G.warn_th(mk, S.BOTTOM_CHK_H2))[0]
     g = gate[t] if len(t) else np.zeros(0, dtype=bool)
-    ep = int(sum(1 for j in range(len(b)) if b[j] and (j == 0 or not b[j - 1])))
+    ep = episodes(b)
     res = {"box": _grp(b, t, Yu, Yw, Yu2), "drop": _grp(g, t, Yu, Yw, Yu2), "drop_nobox": _grp(g & ~b, t, Yu, Yw, Yu2),
            "all": _grp(np.ones(len(t), dtype=bool), t, Yu, Yw, Yu2)}
-    first = next((tw[j] for j in range(len(b)) if b[j]), None)
-    return {"y0": y0, "weeks": [cal[int(x)] for x in (t[0], t[-1])] if len(t) else None, "th": G.warn_th(mk, S.BOTTOM_CHK_H),
+    first = next((int(t[j]) for j in range(len(b)) if b[j]), None)
+    return {"y0": W["y0"], "weeks": [cal[int(x)] for x in (t[0], t[-1])] if len(t) else None, "th": G.warn_th(mk, S.BOTTOM_CHK_H),
             **res, "ep": ep, "v": verdict(res["box"], res["drop"], ep), "first": None if first is None else cal[first],
-            "years": years, "strong_now": now_strong,
+            "years": W["years"], "strong_now": W["strong_now"],
             "box_weeks": [cal[int(x)] for x, y in zip(t, b) if y]}
+
+
+def market(F: dict) -> dict:
+    """一個市場的逐年檢查（第 5.5 節）。"""
+    return summary(F, weeks(F))
 
 
 def research(F: dict | None = None) -> dict:

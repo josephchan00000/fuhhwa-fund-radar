@@ -1230,6 +1230,17 @@ def _age_pass(P: dict | None, side: str) -> np.ndarray:
         return (P["n"] >= S.N_MIN) & ~np.isnan(h) & (h - b >= S.THERMO_EDGE)
 
 
+def _age_strong(P: dict | None, side: str, edge: float) -> np.ndarray:
+    """每一格這一邊當時的差 ≥ edge（sigspec 第 5.6、5.9 節；會不會列另由 _age_pass 管）。"""
+    if P is None:
+        return np.zeros(NC, dtype=bool)
+    h, b = (P["warn"], P["bw"]) if side == "w" else (P["up"], P["bu"])
+    out = np.zeros(NC, dtype=bool)
+    f = ~np.isnan(h)
+    out[f] = np.round(h[f] - b, 9) >= edge
+    return out
+
+
 def _age_keys(p: str, d: str, H: int, n: int, e: float) -> list[str]:
     """之後也成立的格子鍵（第 4.14 節 ②，前面加 AGE_XP）：方向|看多久|次數分組|優勢分組、次數合併、正負。"""
     b, g = bisect.bisect_right(S.FWD_NB, n), bisect.bisect_right(S.FWD_EB, e)
@@ -1340,11 +1351,12 @@ def check_age(F: dict) -> dict:
     return {"mk": F["mk"], "n": sum(len(v) for v in ra.values()), "nrec": nrec, "bad": bad[:50], "nbad": len(bad)}
 
 
-def thermo2(F: dict, items: dict) -> dict:
+def thermo2(F: dict, items: dict, edges: tuple = ()) -> dict:
     """溫度計（第二套，同 thermocal._weekly＋market）：每年 1 月 1 日只用之前走完的窗口決定每個訊號投哪一邊，
     那一年每個週末兩邊各有幾個項目有效；位置（和之前最近 CAL_RANK_W 週比）、分組、之後的比例、區塊重抽。items＝{訊號: 項目}。
     VER 25 的票（"hist"、"votes"、"hz"：只看訊號自己的成績）與 VER 26 的票（"hist26"、"votes26"、"hz26"：另外要那天落的那一格
-    這一邊也過，格子只用 cut 之前走完的日子；今年的票＝{訊號: {"i", "v": {溫度計: {格: 邊}}}}）。"""
+    這一邊也過，格子只用 cut 之前走完的日子；今年的票＝{訊號: {"i", "v": {溫度計: {格: 邊}}}}）。
+    edges＝給了就另算強票 "hist26s"＝{門檻: 每週票數}（sigspec 第 5.6、5.9 節 L4：那一格當時的差 ≥ 門檻，同一個項目任何一個訊號強就算）。"""
     from . import sigcat as G
     mk, cal = F["mk"], F["cal"]
     T = len(cal)
@@ -1371,6 +1383,7 @@ def thermo2(F: dict, items: dict) -> dict:
     y1 = int(cal[-1][:4])
     hist = {k: {"t": [], "u": [], "w": []} for k in S.THERMO_H}
     hist26 = {k: {"t": [], "u": [], "w": []} for k in S.THERMO_H}
+    hist26s = {e: {k: {"t": [], "u": [], "w": []} for k in S.THERMO_H} for e in edges}
     votes: dict = {}
     votes26: dict = {}
     for yr, cut, nxt, _ in cuts:
@@ -1380,6 +1393,7 @@ def thermo2(F: dict, items: dict) -> dict:
         for k, H in S.THERMO_H.items():
             on = {"u": {}, "w": {}}
             on26 = {"u": {}, "w": {}}
+            on26s = {e: {"u": {}, "w": {}} for e in edges}
             for i, sd in enumerate(sds):
                 v = _vote(_pstats(preps[k][i], H, cut, 0, *Y[k], S.CAL_MIN_SAMP))
                 if not v:
@@ -1394,16 +1408,19 @@ def thermo2(F: dict, items: dict) -> dict:
                     on[c][it] = on[c].get(it, np.zeros(len(wk), dtype=bool)) | a
                     ok = _age_pass(P, c)
                     on26[c][it] = on26[c].get(it, np.zeros(len(wk), dtype=bool)) | (a & (cw >= 0) & ok[np.maximum(cw, 0)])
+                    for e in edges:
+                        okS = ok & _age_strong(P, c, e)
+                        on26s[e][c][it] = on26s[e][c].get(it, np.zeros(len(wk), dtype=bool)) | (a & (cw >= 0) & okS[np.maximum(cw, 0)])
                     if yr == y1 and ok.any():
                         vv = votes26.setdefault(sd["id"], {"i": it, "v": {}})["v"].setdefault(k, {})
                         for cid in np.flatnonzero(ok).tolist():
                             vv[_ck(cid)] = "".join(x for x in "uw" if x in vv.get(_ck(cid), "") + c)
-            for h, o in ((hist, on), (hist26, on26)):
+            for h, o in ((hist, on), (hist26, on26)) + tuple((hist26s[e], on26s[e]) for e in edges):
                 h[k]["t"] += [int(t) for t in wk]
                 for c in ("u", "w"):
                     h[k][c] += [int(sum(int(arr[j]) for arr in o[c].values())) for j in range(len(wk))]
     return {"hist": hist, "votes": votes, "hz": _hz2(hist, Y, cal),
-            "hist26": hist26, "votes26": votes26, "hz26": _hz2(hist26, Y, cal)}
+            "hist26": hist26, "votes26": votes26, "hz26": _hz2(hist26, Y, cal), "hist26s": hist26s}
 
 
 def _hz2(hist: dict, Y: dict, cal: list) -> dict:

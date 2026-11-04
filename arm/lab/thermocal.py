@@ -160,10 +160,12 @@ def weekly(F: dict) -> dict:
     return _weekly(F, age=False)
 
 
-def _weekly(F: dict, age: bool, level: bool = False) -> dict:
+def _weekly(F: dict, age: bool, level=()) -> dict:
     """weekly 的本體；age＝True 另算 VER 26 的票（第 5.1 節：訊號自己的成績會投、而且那天落的那一格也過，格子只用 cut 之前走完的日子）：
     另有 "hist26"、"votes26"（{訊號: {"i", "v": {溫度計: {格: 邊}}}}）與新舊比較 "cmp"。
-    level＝True（要 age）另算 VER 31 的強票 "hist26s"（第 5.6 節：那一格當時的差 ≥ LEVEL_EDGE；同一個項目任何一個訊號強就算強）。"""
+    level＝門檻的 tuple（要 age；True＝(LEVEL_EDGE,)）另算 VER 31 的強票 "hist26s"＝{門檻: 每週票數}（第 5.6 節：那一格當時的差 ≥ 門檻；
+    同一個項目任何一個訊號強就算強；VER 33 第 5.9 節的方法檢查換門檻用）。"""
+    level = (S.LEVEL_EDGE,) if level is True else tuple(level or ())
     from . import sigage as A
     mk, cal, px = F["mk"], F["cal"], F["px"]
     T = len(cal)
@@ -188,7 +190,7 @@ def _weekly(F: dict, age: bool, level: bool = False) -> dict:
     y0, y1 = first_year(cal), int(cal[-1][:4])
     hist = {k: {"t": [], "u": [], "w": []} for k in S.THERMO_H}
     hist26 = {k: {"t": [], "u": [], "w": []} for k in S.THERMO_H}
-    hist26s = {k: {"t": [], "u": [], "w": []} for k in S.THERMO_H}
+    hist26s = {e: {k: {"t": [], "u": [], "w": []} for k in S.THERMO_H} for e in level}
     votes_now: dict = {}
     votes26: dict = {}
     for yr in range(y0, y1 + 1):
@@ -199,7 +201,7 @@ def _weekly(F: dict, age: bool, level: bool = False) -> dict:
         for k, H in S.THERMO_H.items():
             on = {"u": {}, "w": {}}
             on26 = {"u": {}, "w": {}}
-            on26s = {"u": {}, "w": {}}
+            on26s = {e: {"u": {}, "w": {}} for e in level}
             for i, sd in enumerate(sds):
                 v = vote(stats_before(sd, cut, Y[k], H))
                 if not v:
@@ -217,16 +219,16 @@ def _weekly(F: dict, age: bool, level: bool = False) -> dict:
                     ok = A.passes(P, "up" if c == "u" else "warn")
                     a26 = a & (cw >= 0) & ok[np.maximum(cw, 0)]
                     on26[c][items[i]] = on26[c].get(items[i], np.zeros(len(wk), dtype=bool)) | a26
-                    if level:
-                        okS = ok & strong_cells(P, "up" if c == "u" else "warn")
+                    for e in level:
+                        okS = ok & strong_cells(P, "up" if c == "u" else "warn", e)
                         a26s = a & (cw >= 0) & okS[np.maximum(cw, 0)]
-                        on26s[c][items[i]] = on26s[c].get(items[i], np.zeros(len(wk), dtype=bool)) | a26s
+                        on26s[e][c][items[i]] = on26s[e][c].get(items[i], np.zeros(len(wk), dtype=bool)) | a26s
                     if yr == y1 and ok.any():
                         vv = votes26.setdefault(sd["id"], {"i": items[i], "v": {}})["v"].setdefault(k, {})
                         for cid in np.nonzero(ok)[0].tolist():
                             ck = A.ckey(cid)
                             vv[ck] = "".join(x for x in "uw" if x in vv.get(ck, "") + c)
-            for hh, oo in ((hist, on), (hist26, on26)) + (((hist26s, on26s),) if level else ()) if age else ((hist, on),):
+            for hh, oo in ((hist, on), (hist26, on26)) + tuple((hist26s[e], on26s[e]) for e in level) if age else ((hist, on),):
                 hh[k]["t"] += [int(t) for t in wk]
                 for c in ("u", "w"):
                     tot = np.zeros(len(wk), dtype=int)
@@ -241,15 +243,15 @@ def _weekly(F: dict, age: bool, level: bool = False) -> dict:
     return out
 
 
-def strong_cells(P: dict | None, d: str) -> np.ndarray:
-    """at(cut) 的每一格這一邊的差 ≥ LEVEL_EDGE（第 5.6 節；次數與「會不會列」另由 sigage.passes 管）。"""
+def strong_cells(P: dict | None, d: str, edge: float | None = None) -> np.ndarray:
+    """at(cut) 的每一格這一邊的差 ≥ edge（預設 LEVEL_EDGE；第 5.6 節；次數與「會不會列」另由 sigage.passes 管）。"""
     if P is None:
         from . import sigage as A
         return np.zeros(A.NC, dtype=bool)
     h = P["warn" if d == "warn" else "up"]
     b = P["bw" if d == "warn" else "bu"]
     with np.errstate(invalid="ignore"):
-        return np.isfinite(h) & (np.round(h - b, 9) >= S.LEVEL_EDGE)
+        return np.isfinite(h) & (np.round(h - b, 9) >= (S.LEVEL_EDGE if edge is None else edge))
 
 
 def compare(Y: dict, h25: dict, h26: dict) -> dict:
@@ -501,8 +503,8 @@ def level_research(F: dict | None = None) -> dict:
     for mk in S.MARKETS:
         if mk not in F:
             continue
-        W = _weekly(F[mk], age=True, level=True)
-        mk_out[mk] = G._r({"y0": W["y0"], "cmp": level_compare(W["Y"], W["hist26"], W["hist26s"])})
+        W = _weekly(F[mk], age=True, level=(S.LEVEL_EDGE,))
+        mk_out[mk] = G._r({"y0": W["y0"], "cmp": level_compare(W["Y"], W["hist26"], W["hist26s"][S.LEVEL_EDGE])})
     return {"ver": S.VER, "spec_date": S.SPEC_DATE, "run": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "last": {mk: F[mk]["cal"][-1] for mk in F}, "mk": mk_out}
 

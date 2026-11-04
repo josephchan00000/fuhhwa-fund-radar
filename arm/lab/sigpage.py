@@ -752,6 +752,36 @@ def _fair_side(L: dict, side: str, word: str) -> str:
               f'差到 5 點的{"只有" + "、".join(ok) if ok else "一支都沒有"}。')
 
 
+def _fair_chk() -> str:
+    """③ 研究方法檢查（sigspec 第 5.9 節）：換算法再算一次的總結；研究檔沒有就不列。"""
+    from . import fairchk as FC
+    R = FC.load()
+    if not R:
+        return ""
+    T = FC.tally(R)
+    pt = lambda x: "—" if x is None else f"{x * 100:+.1f}"            # noqa: E731
+    bt = T["bottom"]
+    tw = bt.get("tw")
+    us = [bt[m] for m in ("spx", "ixic", "ndx", "sox") if m in bt]
+    parts = []
+    if tw:
+        parts.append(f'台股 {tw["n"]} 種算法裡 {tw["pos"]} 種落底訊號亮著的週比較常漲（差 {pt(tw["lo"])}～{pt(tw["hi"])} 點），'
+                     f'到 5 點的 {tw["ok"]} 種')
+    if us:
+        n, pos, ok = sum(x["n"] for x in us), sum(x["pos"] for x in us), sum(x["ok"] for x in us)
+        parts.append(f'美股四個指數 {n} 種裡比較常漲的 {pos} 種、到 5 點的 {ok} 種')
+    lv = T["level"]
+    lt = [f'{w}那一邊可以比的 {lv[s]["n"]} 種裡強的比較好 {lv[s]["pos"]} 種（差 {pt(lv[s]["lo"])}～{pt(lv[s]["hi"])} 點）、'
+          f'到 5 點的 {lv[s]["ok"]} 種' for s, w in (("up", "偏多"), ("warn", "警示")) if lv.get(s, {}).get("n")]
+    two = T["second"]
+    tw_txt = "另外寫一套程式重算，" + ("五個市場的落底、台股的強弱數字完全一樣" if two["bottom"] and two["level"] else "有對不上的地方（見研究檔）")
+    return ('<p class="sgfwh">③ 換算法再算一次（研究方法檢查）</p>'
+            '換成和全部的週比、每一段大跌只算一次、看 1 個月與 6 個月、門檻換 5／15／20 點、看報酬與跌幅的中位數，全部照列：'
+            + _e("；".join(parts)) + "。強弱：" + _e("；".join(lt)) + "。" + _e(tw_txt) + "。"
+            '換算法之後結論的方向沒有變：台股大跌中的落底訊號一直比較好但差距不大（在 5 點上下），美股分不出；'
+            '偏多那一邊強弱分不出，警示那一邊強的一直略準一點。')
+
+
 def fair_html() -> str:
     """偏多、警示的強弱（sigspec 第 5.5～5.7 節，VER 30～32；docs/lab_thermo_fair_plan.md）：兩個逐年檢查的結果，研究檔都沒有就不列。"""
     from . import bottombox as BB
@@ -797,7 +827,8 @@ def fair_html() -> str:
                    f'<th>警示 強／弱</th><th>差</th></tr></thead><tbody>{"".join(body)}</tbody></table></div>'
                    + "".join(_fair_side(L, s, w) for s, w in (("up", "偏多"), ("warn", "警示")))
                    + '今天的清單照樣標強弱與落底（使用者 2026-11-04 決定：「雖然會沒那麼準但我哪知道是不是你的研究方法有問題」），'
-                   '研究方法另外換幾種算法檢查。')
+                   '研究方法另外換幾種算法檢查（下一段）。')
+    out.append(_fair_chk())
     return "".join(out) + "</dd>"
 
 
