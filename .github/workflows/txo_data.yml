@@ -69,6 +69,10 @@ jobs:
         run: |
           git config user.name "josephchan00000"
           git config user.email "51159474+josephchan00000@users.noreply.github.com"
+          # 兩支 vercel.json 也放進資料分支：它們用 deploymentEnabled 關掉 claude/** 的預覽部署；資料分支沒有它們時
+          # Vercel 會試著部署、找不到 Root Directory「dashboard」而寄失敗信，也吃每日部署額度（同 eq_docs.yml 的臨時分支）
+          { mkdir -p dashboard && cp ../vercel.json vercel.json && cp ../dashboard/vercel.json dashboard/vercel.json; } \
+            || echo "::warning::vercel.json 沒複製到資料分支（資料照樣 commit）"
           git add -A
           git commit -q -m "chore: 台指選擇權資料 $(date '+%F %H:%M')" || { echo "無變更"; exit 0; }
           du -sh . 2>/dev/null || true

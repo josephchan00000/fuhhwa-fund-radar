@@ -13,7 +13,7 @@
 
 - [「全部更新」每日 SOP](ops/daily-update.md)：使用者打「全部更新」就照這頁跑：容器只產新聞報告，抓資料、建表、部署交給 CI；步驟 1～9（含 9⑤～9⑨）怎麼做、怎麼驗。
 - [新聞報告規則（全部更新步驟 2）](ops/news-rules.md)：五份新聞檔怎麼產：守備範圍、來源、週末時窗、選題與評分、市場變動錨定、深度與漲跌分析、速覽與卡片文風、粗體標籤、數字口徑、子代理回傳。
-- [部署與「線上沒更新」](ops/deploy.md)：線上沒更新時照順序診斷（資料日期、產表時戳、部署步驟日誌、Vercel 部署上限，最後才查 Vercel Deployments）；「內容在 main」不等於線上已部署；Deploy Hook、對時哨兵、煙霧測試、快取。
+- [部署與「線上沒更新」](ops/deploy.md)：線上沒更新時照順序診斷（資料日期、產表時戳、部署步驟日誌、Vercel 部署上限，最後才查 Vercel Deployments）；「內容在 main」不等於線上已部署；Deploy Hook、網頁沒變不部署與部署儲存、對時哨兵、煙霧測試、快取。
 - [指令「ETF 募集週掃」](ops/etf-weekly-scan.md)：每週一 08:05（或使用者打「ETF 募集週掃」）WebSearch 盤點新 ETF 與指數審核時程，只改 `data/etf_upcoming.json`（＋`config/index_reviews.json`），push 即自動上線。
 - [指令「策略探勘週報」](ops/strategy-scouting.md)：每週日 19:47（或使用者打「策略探勘週報」）WebSearch 找最多 2 條新策略，先寫規格與程式再推，合併通道回測乾淨才併進 main；使用者回「試用／納入／不納入」。
 - [指令「整理知識庫」](ops/wiki-maintenance.md)：使用者打「整理知識庫」才全面檢查：體檢、事實比對、找矛盾與過時、修好、日誌一行、回報；平常做完事只改相關的那一頁。

@@ -81,3 +81,12 @@ def test_dump_is_deterministic(tmp_path):
     assert T.write(tmp_path, "y/z.json.gz", doc) is True
     assert T.write(tmp_path, "y/z.json.gz", doc) is False                      # 內容沒變不改寫
     assert T.read(tmp_path, "y/z.json.gz") == doc
+
+
+def test_workflow_puts_vercel_json_on_data_branch():
+    # 資料分支沒有兩支 vercel.json 時，Vercel 會試著預覽部署、找不到 Root Directory「dashboard」而寄失敗信（wiki/ops/deploy.md）
+    from pathlib import Path
+    wf = (Path(__file__).resolve().parent.parent / ".github/workflows/txo_data.yml").read_text(encoding="utf-8")
+    step = wf.split("commit 回資料分支", 1)[1]
+    cp = step.index("cp ../dashboard/vercel.json dashboard/vercel.json")
+    assert "cp ../vercel.json vercel.json" in step and cp < step.index("git add -A")
