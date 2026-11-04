@@ -99,3 +99,6 @@
 
 ## [2026-11-04] 收錄 | 臻鼎、德宏、騰雲用官方文件重做＋EPS 配股規則修正（eqspec VER 5）
 - 三家報告用官方文件包重做（臻鼎中立 400 元、德宏減碼 27.5 元、騰雲減碼 200 元），舊版共 17 處錯被改掉。騰雲抓到 VER 4 把財報公布前的配股多除一次 → VER 5（EPS 只除公布之後的配股）。改了 `lab/equity-report.md`（規劃 `docs/lab_equity_report_plan.md` 第 6 節）。
+
+## [2026-11-04] 收錄 | 美股官方文件包（SEC 10-K／10-Q／8-K）
+- 美股報告也改成先讀 CI 抓的官方文件（`eqdocs_us`，請求寫 `us:代號`）；11/04 起的美股報告要引用 10-K、10-Q、寫出最近一次財報新聞稿日期（`eqreport.docs_issues_us`）。排程 ⑦ 的①-b 改成台股、美股一起送。改了 `lab/equity-report.md`、`ops/routines.md`（規劃 `docs/lab_eq_docs_plan.md` 第 13 節）。

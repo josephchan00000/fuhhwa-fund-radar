@@ -61,7 +61,7 @@ jobs:
 
       - name: 回補
         env:
-          SEC_CONTACT_EMAIL: ${{ secrets.SEC_CONTACT_EMAIL }}   # 只有 ussxfill 的 SEC 那一段、secprobe、uschipprobe、uschipfill 讀（arm/lab/secfin.py、insider.py），不印、不存
+          SEC_CONTACT_EMAIL: ${{ secrets.SEC_CONTACT_EMAIL }}   # 只有 ussxfill 的 SEC 那一段、secprobe、secdocsprobe、uschipprobe、uschipfill 讀（arm/lab/secfin.py、insider.py），不印、不存
         run: |
           MODE="full"
           if [ "${{ github.event_name }}" = "push" ]; then
@@ -161,6 +161,9 @@ jobs:
           elif [ "${MODE#uschipprobe}" != "$MODE" ]; then
             # 美股各指數自己的籌碼（docs/lab_us_chip_plan.md）：CFTC 那斯達克 100、槓桿 ETF、SEC 內部人資料的探針；只印不寫
             timeout 1500 python3 scripts/probe_uschip.py $(echo "${MODE#uschipprobe}" | tr ":," "  ")
+          elif [ "${MODE#secdocsprobe}" != "$MODE" ]; then
+            # 美股個股報告的官方文件包（SEC 10-K／10-Q／8-K）探針（docs/lab_eq_docs_plan.md 第 6 節）：只存統計，結果 data/lab/_secdocs.txt
+            timeout 900 python3 scripts/probe_secdocs.py $(echo "${MODE#secdocsprobe}" | tr ":," "  ")
           elif [ "${MODE#secprobe}" != "$MODE" ]; then
             # 美股財報「一次性利得／損失」項目的探針（美股三成營益率的研究，2026-10-24）：只印不寫
             timeout 1800 python3 scripts/probe_secgain.py

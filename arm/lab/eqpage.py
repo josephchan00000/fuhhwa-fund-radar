@@ -561,12 +561,37 @@ def _a(u, text: str) -> str:
     return f'<a href="{escape(u)}" target="_blank" rel="noopener">{escape(text)}</a>' if u else escape(text)
 
 
+def _docs_box_us(dc: dict, md_) -> str:
+    """美股的公司文件（SEC）：最新 10-K、10-Q、最近一次財報新聞稿、近 6 個月 8-K。"""
+    items = []
+    for k, lab in (("k10", "最新年報 10-K"), ("q10", "最新季報 10-Q")):
+        x = dc.get(k) or {}
+        if x.get("url"):
+            items.append(f"<li>{lab}：{_a(x['url'], str(x.get('d') or '') + ' 申報')}（期間到 {escape(str(x.get('per') or ''))}）</li>")
+    rel = dc.get("release") or {}
+    if rel.get("url"):
+        items.append(f"<li>最近一次財報新聞稿：{_a(rel['url'], str(rel.get('d') or '') + ' 8-K')}</li>")
+    if dc.get("site"):
+        items.append(f"<li>公司網站：{_a(dc['site'], dc['site'])}</li>")
+    news = dc.get("news") or []
+    if news:
+        nl = "".join(f"<li>{md_(n.get('d'))} {_a(n['url'], n.get('subj') or '8-K')}</li>" if n.get("url")
+                     else f"<li>{md_(n.get('d'))} {escape(n.get('subj') or '')}</li>" for n in news[:DOCS_NEWS_MAX])
+        more = f"<li>…另外 {len(news) - DOCS_NEWS_MAX} 份</li>" if len(news) > DOCS_NEWS_MAX else ""
+        items.append(f"<li>近 6 個月 8-K {len(news)} 份<ul>{nl}{more}</ul></li>")
+    bad = [k for k, v in (dc.get("st") or {}).items() if str(v).startswith("err")]
+    note = f"官方文件 {escape(str(dc.get('at') or ''))} 抓取" + (f"；這幾段沒抓到：{escape('、'.join(bad))}" if bad else "")
+    return f'<div class="chain docs"><b>公司文件</b>（SEC 申報）<ul>{"".join(items)}</ul><p class="tn">{note}</p></div>'
+
+
 def docs_box(pack: dict) -> str:
     """公司文件：官方文件包的清單（報告旁 .facts.json 的 docs；docs/lab_eq_docs_plan.md），撰寫者不用寫。"""
     dc = pack.get("docs") or {}
     if not dc:
         return ""
     md_ = lambda d: escape(str(d or "")[5:].replace("-", "/"))                 # noqa: E731
+    if dc.get("mk") == "us":
+        return _docs_box_us(dc, md_)
     items = []
     deck, confs = dc.get("deck") or {}, dc.get("confs") or []
     if deck.get("url"):

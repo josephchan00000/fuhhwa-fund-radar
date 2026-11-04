@@ -6,7 +6,8 @@ name: 個股報告官方文件包
 # 所以臨時分支由這裡刪：每天台北 03:23（schedule）與每次抓取時，刪掉請求日期在今天以前的。
 # 觸發：claude/** 分支 push 動到 .ping/eqdocs（eq_docs_req.py --send 寫的 JSON：{"id", "codes"}）、手動、每天清臨時分支。
 # 每次抓完把結果記進 main 的 data/eq_docs_log.json（隔天重試、連兩天抓不到才照寫：docs/lab_eq_docs_plan.md 第 12 節）。
-# 請求內容只交給 fetch_eqdocs.py 驗格式（代號 tw:四碼、編號 YYYYMMDD-HHMM-六碼），不放進任何指令。
+# 請求內容只交給 fetch_eqdocs.py 驗格式（代號 tw:四碼或 us:美股代號、編號 YYYYMMDD-HHMM-六碼），不放進任何指令。
+# 美股（us:代號，2026-11-04 起）：SEC 的最新 10-K、10-Q、近 6 個月 8-K 與財報新聞稿（arm/lab/eqdocs_us.py）。
 
 on:
   push:
@@ -17,7 +18,7 @@ on:
   workflow_dispatch:
     inputs:
       codes:
-        description: "代號（空白分隔，例 tw:6870 tw:7730）"
+        description: "代號（空白分隔，例 tw:6870 us:PAYC）"
         required: true
 
 concurrency:
@@ -50,6 +51,7 @@ jobs:
         env:
           CODES: ${{ inputs.codes }}
           EVENT: ${{ github.event_name }}
+          SEC_CONTACT_EMAIL: ${{ secrets.SEC_CONTACT_EMAIL }}   # 只有美股（us:代號）的 SEC 那一段讀（arm/lab/secfin.contact），不印、不存
         run: |
           OUT="$RUNNER_TEMP/eqdocs"
           if [ "$EVENT" = "push" ]; then
