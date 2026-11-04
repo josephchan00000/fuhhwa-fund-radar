@@ -92,6 +92,13 @@ def main() -> None:
         print(f"[研究紀錄] {'已更新' if changed else '無變更'} {research_page.OUT}")
     except Exception as e:                                # noqa: BLE001
         print(f"[研究紀錄] 建頁失敗（不影響其他頁）：{type(e).__name__}: {e}")
+    # 選擇權計算機（x9op.html；docs/lab_txo_plan.md 第 17 節；不在頂欄，各頁右下角「選」字進）。分開建、分開失敗。
+    try:
+        from arm.lab import txopage
+        changed = txopage.build()
+        print(f"[選擇權] {'已更新' if changed else '無變更'} {txopage.OUT}")
+    except Exception as e:                                # noqa: BLE001
+        print(f"[選擇權] 建頁失敗（不影響其他頁）：{type(e).__name__}: {e}")
     if "--open" in sys.argv[1:]:
         webbrowser.open(OUT.as_uri())
 
