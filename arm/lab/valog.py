@@ -380,6 +380,51 @@ def rare_line(cur: dict | None) -> str | None:
     return RP.remind_line((cur or {}).get("td") or [])
 
 
+def ks_state(record: bool, made: str) -> dict | None:
+    """策略熔斷（ks，ksspec VER 2）：每一份現在的狀態（CI 時順手寫回 ks_live.json）。
+    → {份: {st: on／pause, lag, dd（邊界）, uw, uwb, uw_bt, d, ev（最後一個事件 [日期, 種類]）, trig（暫停那天的落後）}}；算不出來＝None。"""
+    from . import ks as KS
+    sl = KS.daily(record, made).get("slices") or {}
+    if not sl:
+        return None
+    r4 = lambda x: None if x is None else round(float(x), 4)          # noqa: E731
+    return {k: {"st": v["st"], "lag": r4(v["lag"]), "dd": r4(v["dd"]), "uw": v["uw"], "uwb": v["uwb"], "uw_bt": v.get("uw_bt"),
+                "d": v["d"], "ev": v["ev"][-1] if v["ev"] else None, "trig": r4((v.get("trig") or {}).get("lag"))}
+            for k, v in sl.items()}
+
+
+def ks_line(cur: dict | None, prev: dict | None) -> str | None:
+    """推播一行：比前一個資料日多出來的熔斷事件（暫停、恢復、落後太久）。沒有新事件就不加。"""
+    from . import ks as KS
+    out = []
+    for k, v in (cur or {}).items():
+        e = v.get("ev")
+        if not e or e == ((prev or {}).get(k) or {}).get("ev"):
+            continue
+        nm = KS.NAMES.get(k, k)
+        if e[1] == "pause":
+            out.append(f"{nm}落後大盤 {(v.get('trig') or v['lag']) * 100:.1f}%，超過熔斷邊界 {v['dd'] * 100:.1f}%，"
+                       "暫停：下一個交易日收盤把這一份換現金（紙上照記，追回暫停那天的水準就自動買回）")
+        elif e[1] == "resume":
+            out.append(f"{nm}已追回暫停那天的水準，熔斷解除：下一個交易日收盤照它當時該有的股票買回")
+        elif e[1] == "slow":
+            out.append(f"{nm}已經 {v['uw']} 個交易日沒追上大盤（回測最久 {v.get('uw_bt')} 天），要檢討（不暫停）")
+    return ("策略熔斷：" + "；".join(out) + "。") if out else None
+
+
+def ks_hold(rec: dict) -> None:
+    """暫停中的那幾份，下一個交易日的「買」先不做（賣照常）：財報驚喜（大型股）的行事曆、新飆股、美股強勢品質股。"""
+    st = rec.get("ks") or {}
+    halt = {k for k, v in st.items() if v.get("st") == "pause"}
+    if not halt:
+        return
+    if "tw_v3l" in halt and rec.get("todo"):
+        rec["todo"]["items"] = [i for i in rec["todo"].get("items") or [] if not (i.get("k") == "v3l" and "買" in str(i.get("act")))]
+    for k, key in (("tw_boom", "boom"), ("us_qm", "uqm")):
+        if k in halt and rec.get(key):
+            rec[key]["td"] = [x for x in rec[key].get("td") or [] if x[1] != "買"]
+
+
 def verify_state(now: datetime) -> dict | None:
     """每週計算核對的結果（verify_status.json）。→ {"d": 核對日, "ok", "nbad": 不一致幾項, "n": 比了幾項,
     "old": 超過 VFY_OLD 天沒跑, "ex": 前 3 個例子（不一致才有）}；檔案讀不到＝None。"""
@@ -462,6 +507,8 @@ def push_lines(rec: dict) -> list[str]:
     v = verify_line(rec.get("vfy"))
     if v:
         out.append(v)
+    if rec.get("ksl"):
+        out.append(rec["ksl"])
     ev = rec.get("ev") or []
     if ev:
         out.append("策略驗證：" + "；".join(e["txt"] for e in ev) + "。")
@@ -551,6 +598,16 @@ def update(data: dict, write_file: bool | None = None, now: datetime | None = No
             rec["vfy"] = vf
     except Exception:                                     # noqa: BLE001 —— 讀不到：不發提醒
         pass
+    try:                                                  # 策略熔斷（落後大盤超過邊界就暫停那一份；CI 時寫回 ks_live.json）
+        ks = ks_state(write_file, now.strftime("%Y-%m-%d"))
+        if ks:
+            rec["ks"] = ks
+            ks_hold(rec)
+            kl = ks_line(ks, (days.get(prev_d) or {}).get("ks") if prev_d else None)
+            if kl:
+                rec["ksl"] = kl
+    except Exception as e:                                # noqa: BLE001 —— 算不出來：不發提醒、不擋紀錄
+        print(f"[ks] 熔斷狀態算不出來：{type(e).__name__}: {e}")
     rec["push"] = push_lines(rec)
     old = days.get(last) or {}
     if {k: v for k, v in old.items() if k != "t"} != rec:   # 內容沒變就不動檔（時間戳也不改）

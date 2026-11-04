@@ -49,6 +49,8 @@ data/funds/*
 !data/factcheck.json
 # 個股報告申請佇列（eq_inbox.yml 寫、每天晚上的排程讀；docs/lab_eq_request_plan.md）
 !data/eq_requests.json
+# 個股報告文件包抓取紀錄（eq_docs.yml 寫回 main；隔天重試、連兩天抓不到才照寫看它）。2026-11-04 才發現被 data/* 擋住、從沒寫成
+!data/eq_docs_log.json
 # GitHub PAT（建 repo 用）絕不入庫
 .gh_tok
 data/.gh_tok

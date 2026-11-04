@@ -725,6 +725,113 @@ def fwd_html() -> str:
             f'<p class="sgfwh">報酬多賺留下多少（偏多、大跌後買點）</p>{tbl(up, "kr")}</dd>')
 
 
+FAIR_MK = (("tw", "台股"), ("spx", "S&P 500"), ("ixic", "那斯達克"), ("ndx", "那斯達克 100"), ("sox", "費城半導體"))
+FAIR_V = {"ok": "分得出", "no": "分不出", "few": "次數太少"}
+
+
+def _fair_sum(ok: list, no: list, what: str) -> str:
+    """一句結論：分得出的與分不出的市場。"""
+    a = f'{_e("、".join(ok))}分得出（{_e(what)}）' if ok else "沒有一個市場分得出"
+    return a + (f'；{_e("、".join(no))}分不出。' if no else "。")
+
+
+def _fair_side(L: dict, side: str, word: str) -> str:
+    """強弱分級一邊的一句：幾支裡強的比較好、差的範圍、哪幾支分得出。"""
+    ds, ok = [], []
+    for mk, nm in FAIR_MK:
+        for k, h in (("short", "短線"), ("mid", "中線"), ("long", "長線")):
+            x = (((L.get("mk") or {}).get(mk) or {}).get("cmp") or {}).get(k, {}).get(side) or {}
+            if x.get("d") is not None:
+                ds.append(x["d"])
+                if x.get("v") == "ok":
+                    ok.append(f"{nm}{h}")
+    if not ds:
+        return ""
+    pos = sum(1 for d in ds if d > 0)
+    return _e(f'{word}：{len(ds)} 支裡強的比較好 {pos} 支，差 {min(ds) * 100:+.1f}～{max(ds) * 100:+.1f} 點；'
+              f'差到 5 點的{"只有" + "、".join(ok) if ok else "一支都沒有"}。')
+
+
+def _fair_chk() -> str:
+    """③ 研究方法檢查（sigspec 第 5.9 節）：換算法再算一次的總結；研究檔沒有就不列。"""
+    from . import fairchk as FC
+    R = FC.load()
+    if not R:
+        return ""
+    T = FC.tally(R)
+    pt = lambda x: "—" if x is None else f"{x * 100:+.1f}"            # noqa: E731
+    bt = T["bottom"]
+    tw = bt.get("tw")
+    us = [bt[m] for m in ("spx", "ixic", "ndx", "sox") if m in bt]
+    parts = []
+    if tw:
+        parts.append(f'台股 {tw["n"]} 種算法裡 {tw["pos"]} 種落底訊號亮著的週比較常漲（差 {pt(tw["lo"])}～{pt(tw["hi"])} 點），'
+                     f'到 5 點的 {tw["ok"]} 種')
+    if us:
+        n, pos, ok = sum(x["n"] for x in us), sum(x["pos"] for x in us), sum(x["ok"] for x in us)
+        parts.append(f'美股四個指數 {n} 種裡比較常漲的 {pos} 種、到 5 點的 {ok} 種')
+    lv = T["level"]
+    lt = [f'{w}那一邊可以比的 {lv[s]["n"]} 種裡強的比較好 {lv[s]["pos"]} 種（差 {pt(lv[s]["lo"])}～{pt(lv[s]["hi"])} 點）、'
+          f'到 5 點的 {lv[s]["ok"]} 種' for s, w in (("up", "偏多"), ("warn", "警示")) if lv.get(s, {}).get("n")]
+    two = T["second"]
+    tw_txt = "另外寫一套程式重算，" + ("五個市場的落底、台股的強弱數字完全一樣" if two["bottom"] and two["level"] else "有對不上的地方（見研究檔）")
+    return ('<p class="sgfwh">③ 換算法再算一次（研究方法檢查）</p>'
+            '換成和全部的週比、每一段大跌只算一次、看 1 個月與 6 個月、門檻換 5／15／20 點、看報酬與跌幅的中位數，全部照列：'
+            + _e("；".join(parts)) + "。強弱：" + _e("；".join(lt)) + "。" + _e(tw_txt) + "。"
+            '換算法之後結論的方向沒有變：台股大跌中的落底訊號一直比較好但差距不大（在 5 點上下），美股分不出；'
+            '偏多那一邊強弱分不出，警示那一邊強的一直略準一點。')
+
+
+def fair_html() -> str:
+    """偏多、警示的強弱（sigspec 第 5.5～5.7 節，VER 30～32；docs/lab_thermo_fair_plan.md）：兩個逐年檢查的結果，研究檔都沒有就不列。"""
+    from . import bottombox as BB
+    from . import thermocal as TC
+    B, L = BB.load(), TC.level_load()
+    if not B and not L:
+        return ""
+    pc = lambda x: "—" if x is None else f"{x * 100:.0f}%"                       # noqa: E731
+    out = ['<dt>偏多、警示的強弱（2026-11-04）</dt><dd>兩邊列出來的門檻一樣（比任一天高 5 點），但兩邊本來就不一樣好過：'
+           '大回撤比上漲少見，同樣差 5 點，警示比較容易過，所以列出來的警示幾乎總是比偏多多。檢查過兩件事（都是每年 1 月 1 日只用之前的資料，'
+           '不偷看之後）。']
+    if B:
+        rows = "".join(
+            f'<tr><td class="l">{_e(nm)}</td><td>{pc(m["box"]["up"])}／{pc(m["box"]["dd"])}</td>'
+            f'<td>{pc(m["drop"]["up"])}／{pc(m["drop"]["dd"])}</td><td>{m["box"]["n"]:,}／{m["ep"]}</td>'
+            f'<td>{_e(FAIR_V.get(m["v"], m["v"]))}</td></tr>'
+            for mk, nm in FAIR_MK for m in [(B.get("mk") or {}).get(mk)] if m)
+        out.append('<p class="sgfwh">① 大跌中的強落底訊號</p>'
+                   '大跌中（從 60 日高點跌 10% 還沒回到 5% 以內，或 5 日急跌之後 60 個交易日內），落底型的訊號'
+                   '（大跌後買點的規則、看 1～3 個月的過冷、法人連續賣超、景氣差價格反彈）裡過去比任一天高 10 點以上的亮著的週，'
+                   '之後 3 個月上漲／大回撤的比例，和大跌中的每一週比：'
+                   '<div class="sgfwr"><table class="sgfw"><thead><tr><th class="l">市場</th><th>強的亮著</th><th>大跌中每一週</th>'
+                   f'<th>週數／段數</th><th>判定</th></tr></thead><tbody>{rows}</tbody></table></div>'
+                   + _fair_sum([nm for mk, nm in FAIR_MK if ((B.get("mk") or {}).get(mk) or {}).get("v") == "ok"],
+                               [nm for mk, nm in FAIR_MK if ((B.get("mk") or {}).get(mk) or {}).get("v") == "no"],
+                               "強的亮著的週之後比較常漲、大回撤沒有比較多"))
+    if L:
+        hz = (("short", "短"), ("mid", "中"), ("long", "長"))
+        body = []
+        for mk, nm in FAIR_MK:
+            m = (L.get("mk") or {}).get(mk)
+            if not m:
+                continue
+            for k, h in hz:
+                c = (m.get("cmp") or {}).get(k) or {}
+                u, w = c.get("up") or {}, c.get("warn") or {}
+                d = lambda x: "—" if x.get("d") is None else f'{x["d"] * 100:+.1f}'   # noqa: E731
+                body.append(f'<tr><td class="l">{_e(nm)}・{h}</td><td>{pc((u.get("s") or [None])[0])}／{pc((u.get("w") or [None])[0])}</td>'
+                            f'<td>{d(u)}</td><td>{pc((w.get("s") or [None])[0])}／{pc((w.get("w") or [None])[0])}</td><td>{d(w)}</td></tr>')
+        out.append('<p class="sgfwh">② 比任一天高 10 點以上的，有沒有比高 5～10 點的準</p>'
+                   '列出來的訊號裡，那一格當時比任一天高 10 點以上的（強）和 5～10 點的（弱），之後的比例（偏多＝之後上漲、警示＝之後大回撤）：'
+                   '<div class="sgfwr"><table class="sgfw"><thead><tr><th class="l">市場・溫度計</th><th>偏多 強／弱</th><th>差</th>'
+                   f'<th>警示 強／弱</th><th>差</th></tr></thead><tbody>{"".join(body)}</tbody></table></div>'
+                   + "".join(_fair_side(L, s, w) for s, w in (("up", "偏多"), ("warn", "警示")))
+                   + '今天的清單照樣標強弱與落底（使用者 2026-11-04 決定：「雖然會沒那麼準但我哪知道是不是你的研究方法有問題」），'
+                   '研究方法另外換幾種算法檢查（下一段）。')
+    out.append(_fair_chk())
+    return "".join(out) + "</dd>"
+
+
 def method_html(luck: dict | None = None) -> str:
     """名詞與判定方式（sigspec 第 3、3.5 節；VER 17）；luck＝研究檔的「運氣會產生幾個 ★、◆」
     （{市場: {方向: [實際 ★, 運氣會產生的 ★, 實際 ◆, 運氣會產生的 ◆]}}）。
@@ -775,7 +882,7 @@ def method_html(luck: dict | None = None) -> str:
             '看有多少比例做得到一樣高的機率——比例越小，越不像運氣。2026-10-22 起只當參考、不參與判定（個股訊號照舊參與）。'
             '大跌後買點與個股偏多訊號是和同一批事件的對照比，改成在每一次事件裡隨機對調「訊號」和「對照」的結果。'
             f'次數少的訊號就算每次都中，亂排做得到一樣準的比例也常超過 {S.LUCK_P * 100:.0f}%（例：8 次、平常 59%，每次都中時亂排也有約 2.5% 做得到）。</dd>'
-            f'{lk}{fwd_html()}'
+            f'{lk}{fwd_html()}{fair_html()}'
             f'<dt>今天的訊號（市場頁）</dt><dd>現在成立、出現過 {S.N_MIN} 次以上、而且過去出現之後的機率比隨便挑一天高 '
             f'{S.THERMO_EDGE * 100:g} 個百分點以上的就列（使用者 2026-10-21 定的寬鬆規則：溫度計是看現在整體偏哪邊），★／◆ 判定不決定列不列。'
             '三類：<b>偏多</b>＝之後上漲的機率高；<b>買點</b>＝大跌後照規則買進、之後 3 個月上漲的機率高；'
@@ -784,6 +891,10 @@ def method_html(luck: dict | None = None) -> str:
             '原本看別的期間的訊號也用它過去在另外兩段期間的機率算一次（標「原本看…」）。'
             f'<b>之後也成立</b>＝預估之後（上一段的逐年檢查）仍比隨便挑一天高 {S.LIST_GAP * 100:g} 點以上，排在前面；沒有標的只代表過去的成績。'
             f'出現不到 {S.STAR_N} 次的標「次數少」。（2026-10-22 白天曾改成只列預估之後仍差 {S.LIST_GAP * 100:g} 點以上的，偏多那一邊幾乎全空，同日改回。）'
+            f'每一列另寫強弱：那一列比任一天高 {S.LEVEL_EDGE * 100:g} 點以上寫「多」（警示那一邊寫「警示」），其餘寫「偏多」（「偏警示」）；'
+            f'大跌中（從 60 日高點跌 10% 還沒回來，或 5 日急跌之後 60 個交易日內），落底型的訊號（大跌後買點、看 1～3 個月的過冷、法人連續賣超、'
+            f'景氣差價格反彈）自己的成績比任一天高 {S.BOTTOM_EDGE * 100:g} 點以上的另標「落底」，進行中的也標；落底排最前、再來強的'
+            '（2026-11-04 起；過去的檢查看多那一邊強弱分不出、落底只有台股分得出，見下面「偏多、警示的強弱」，使用者決定照樣標）。'
             '溫度計＝這一段偏多、警示各有幾類（一類算 1）。警示那一邊合格的本來就比較多（大回撤比上漲少見，同樣差 5 點比較容易過），'
             '所以讀數不比兩邊的數量，而是兩邊各自和自己過去 10 年每週的數量比（長條的長度就是這個位置；旁邊的數字是現在亮著的訊號數，'
             '一個項目算一個、還沒過參數檢查、沒有併同類，所以比下面清單的類數多）：'

@@ -212,6 +212,116 @@ def months(co: dict) -> list[dict]:
     return out
 
 
+# ── 配股調整（eqspec VER 4）───────────────────────────────────────────────
+
+_EXR: dict = {}
+
+
+def _ex_tables() -> tuple[dict, dict, dict]:
+    """官方除權息表：證交所（權／權息列：日期、代號、權值＋息值、類型、前收盤、參考價）、櫃買（日期、代號、前收盤、參考價、現金、每千股配股），
+    與 company.dividends() 的現金股利（證交所權息列的現金部分）。"""
+    if "t" not in _EXR:
+        from . import company
+        tw: dict = {}
+        tp: dict = {}
+        for _, doc in store.load("divtw"):
+            for r in doc.get("rows") or []:
+                if len(r) >= 6 and r[3] in ("權", "權息"):
+                    tw.setdefault(r[1], []).append(r)
+        for _, doc in store.load("v3div"):
+            for r in doc.get("rows") or []:
+                if len(r) >= 6 and r[5]:
+                    tp.setdefault(r[1], []).append(r)
+        cash = {(c, x[0]): x[1] for c, rows in company.dividends().items() for x in rows}
+        _EXR["t"] = (tw, tp, cash)
+    return _EXR["t"]
+
+
+def _shares_around(mo: list[dict], d: str) -> tuple:
+    """除權日那個月（含）以前最後一個股數，與之後 3 個月內第一個不同的股數。"""
+    ym = d[:7]
+    before = [o["sh"] for o in mo if o.get("sh") and o["ym"] <= ym]
+    if not before:
+        return None, None
+    sh0 = before[-1]
+    after = [o["sh"] for o in mo if o.get("sh") and ym < o["ym"] <= _add_months(ym, 3) and o["sh"] != sh0]
+    return sh0, (after[0] if after else None)
+
+
+def _add_months(ym: str, n: int) -> str:
+    y, m = int(ym[:4]), int(ym[5:]) + n
+    y, m = y + (m - 1) // 12, (m - 1) % 12 + 1
+    return f"{y:04d}-{m:02d}"
+
+
+def stock_events(code: str, mo: list[dict] | None = None) -> list[list]:
+    """無償配股事件 → [[除權日, 配股倍數或 None, 怎麼算的]]（eqspec VER 4）。"""
+    tw, tp, cash = _ex_tables()
+    out = []
+    for r in tp.get(code, []):
+        x = S.ratio_tpex(r[5])
+        if x:
+            out.append([r[0], round(x, 6), "櫃買每千股配股數"])
+    for r in tw.get(code, []):
+        d, amt, prev, ref = r[0], r[2], r[4], r[5]
+        cs = 0.0 if r[3] == "權" else cash.get((code, d))
+        x, how = S.ratio_twse(prev, ref, cs), "證交所參考價"
+        if x is None and cs is None:
+            sh0, sh1 = _shares_around(mo or [], d)
+            x, how = S.ratio_from_shares(prev, ref, amt, sh0, sh1), "除權前後股數比"
+        if x is None and cs is not None:
+            continue                                             # 現金股利查得到、算出來不到 MIN_STK＝只配息
+        out.append([d, round(x, 6) if x else None, how if x else "查不到配股率，不調整"])
+    return sorted(out)
+
+
+def adj_factor(ev: list | None, after: str | None, upto: str | None) -> float:
+    if not ev or not after or not upto:
+        return 1.0
+    return S.adj_factor([(d, x) for d, x, _ in ev if x], after, upto)
+
+
+def _cum_eps(qs: list[dict], q: str) -> float | None:
+    """公布時的累計 EPS＝當年到 q 為止的單季相加（單季是累計相減得來，相加回到公布時的數字）。"""
+    n = {"03-31": 1, "06-30": 2, "09-30": 3, "12-31": 4}[q[5:]]
+    xs = [o for o in qs if o["q"][:4] == q[:4] and o["q"] <= q]
+    if len(xs) != n or any(o.get("eps") is None for o in xs):
+        return None
+    return sum(o["eps"] for o in xs)
+
+
+def ttm_eps(qs: list[dict], q: str, ev: list | None, upto: str) -> float | None:
+    """eqspec VER 5：截至 q 的近四季 EPS，照 upto 那天的股數。每個累計數只除「公布之後」（法定期限之後）的配股倍數；
+    沒有配股事件 → 就是單季相加；累計數湊不齊 → None。"""
+    def f(x):
+        return adj_factor(ev, deadline(x), upto)
+    if q[5:] == "12-31":
+        return S.eps_ttm(_cum_eps(qs, q), True, f_last=f(q))
+    py = str(int(q[:4]) - 1)
+    fy, same = f"{py}-12-31", f"{py}{q[4:]}"
+    return S.eps_ttm(_cum_eps(qs, q), False, _cum_eps(qs, fy), _cum_eps(qs, same), f(q), f(fy), f(same))
+
+
+def eps4_on(qs: list[dict], q: dict, ev: list | None, upto: str) -> float | None:
+    """VER 5 的近四季 EPS（沒進位）；沒有配股 → 單季相加（q["eps4"]）；累計數湊不齊 → 單季相加 ÷ 最新一季公布之後的配股倍數。"""
+    raw = q.get("eps4")
+    if not ev or not any(x for _, x, _ in ev):
+        return raw
+    v = ttm_eps(qs, q["q"], ev, upto)
+    if v is None and raw is not None:
+        v = raw / adj_factor(ev, deadline(q["q"]), upto)
+    return v
+
+
+def _co_lastq(code: str, asof: str) -> str | None:
+    """同業最近一季（已公布）的季底日。"""
+    co = _read(DASH / "co" / f"{code}.json")
+    if not co:
+        return None
+    qs = [q for q in quarters(co) if q.get("eps") is not None and q["q"] <= asof]
+    return qs[-1]["q"] if qs else None
+
+
 # ── 估值區間 ───────────────────────────────────────────────────────────────
 
 def _month_end(ym: str) -> str:
@@ -220,16 +330,20 @@ def _month_end(ym: str) -> str:
     return (date.fromordinal(nxt.toordinal() - 1)).isoformat()
 
 
-def bands(mo: list[dict], qs: list[dict], asof_ym: str) -> dict:
-    """近 BAND_YEARS 年每個月底：本益比＝月底收盤 ÷ 當時已公布的近四季 EPS；淨值比＝÷ 當時已公布的最近一季每股淨值。"""
+def bands(mo: list[dict], qs: list[dict], asof_ym: str, ev: list | None = None) -> dict:
+    """近 BAND_YEARS 年每個月底：本益比＝月底收盤 ÷ 當時已公布的近四季 EPS；淨值比＝÷ 當時已公布的最近一季每股淨值。
+    VER 4：那一季季底到月底之間有無償配股 → 淨值 ÷ 調整倍數；VER 5：EPS 只除財報公布之後的配股（ev＝stock_events）。"""
     n = S.BAND_YEARS * 12
     ms = [o for o in mo if o["ym"] <= asof_ym and o.get("px")][-n:]
     pe, pb, rows = [], [], []
     for o in ms:
         me = _month_end(o["ym"])
         avail = [q for q in qs if q["dl"] <= me]
-        e4 = avail[-1].get("eps4") if avail else None
+        e4 = _r(eps4_on(qs, avail[-1], ev, me), 2) if avail else None     # VER 5：EPS 只除公布之後的配股
         bv = avail[-1].get("bvps") if avail else None
+        f = adj_factor(ev, avail[-1]["q"], me) if avail else 1.0     # VER 4：每股淨值除季底之後的配股
+        if f != 1.0:
+            bv = _r(bv / f, 2) if bv is not None else None
         rows.append([o["ym"], o["px"], e4, bv])
         v = o["px"] / e4 if e4 and e4 > 0 else None
         pe.append([o["ym"], _r(v, 1) if v is not None and 0 < v <= S.BAND_PE_MAX else None])
@@ -503,7 +617,8 @@ def tw_pack(code: str, D=None, pos=None, asof: str | None = None, peers: list[st
     qs = quarters(co)
     yrs = annual(qs, co.get("ye") or {}, co.get("dv") or [])
     mo = months(co)
-    bd = bands(mo, qs, asof[:7])
+    ev = stock_events(code, mo)
+    bd = bands(mo, qs, asof[:7], ev)
     cons = consensus(fx.get(code), int(asof[:4]))
     f12 = f12m_eps(cons, mo, qs, asof)
     my = dict(zip(cols, rows.get(code) or []))
@@ -536,9 +651,24 @@ def tw_pack(code: str, D=None, pos=None, asof: str | None = None, peers: list[st
     prow = [peer_row(c, rows, cols, nm_all, fx, px1y, asof) for c in peers]
     me = peer_row(code, rows, cols, nm_all, fx, px1y, asof)
     me["n"] = co.get("n")
+    for p in prow + [me]:                                        # 季底之後配股：淨值比 × 倍數（VER 4）、本益比照 VER 5 的近四季 EPS
+        pco = co if p["c"] == code else (_read(DASH / "co" / f"{p['c']}.json") or {})
+        pev = ev if p["c"] == code else stock_events(p["c"], months(pco))
+        pqs = qs if p["c"] == code else quarters(pco)
+        lq = _co_lastq(p["c"], asof) if p["c"] != code else next((q["q"] for q in reversed(qs) if q.get("eps") is not None), None)
+        f = adj_factor(pev, lq, asof)
+        qd = next((q for q in pqs if q["q"] == lq), None)
+        e_raw, e_new = (qd.get("eps4"), eps4_on(pqs, qd, pev, asof)) if qd else (None, None)
+        if f != 1.0 or (e_raw and e_new and abs(e_raw - e_new) > 1e-9):
+            p["adj"] = round(f, 4)
+            p["pb"] = _r(p["pb"] * f, 2) if p.get("pb") is not None else None
+            if p.get("pe") is not None and e_raw and e_new and e_raw > 0 and e_new > 0:
+                p["pe"] = _r(p["pe"] * e_raw / e_new, 1)
+    if me.get("adj"):
+        my = {**my, "pe": me["pe"], "pb": me["pb"]}
     keys = ("cap", "px", "pe", "fpe", "pb", "yld", "ry3", "gm", "om", "roe", "r1y")
     med = {k: _r(_med([p[k] for p in prow if k not in ("pe", "fpe") or _pe_ok(p[k])]), 2) for k in keys}   # 本益比中位數和倍數範圍同一個排除規則
-    val = valuation(f12, qs, bd, prow, px, my, co.get("ind"), "tw")
+    val = valuation(f12, qs, bd, prow, px, my, co.get("ind"), "tw", ev=ev, asof=asof)
     nq = None
     if qs:
         nxt = next_quarter(qs[-1]["q"])
@@ -566,15 +696,26 @@ def _b2(b: dict | None) -> dict | None:
 
 
 def valuation(f12: dict, qs: list[dict], bd: dict, prow: list[dict], px: float | None, my: dict, industry: str | None,
-              mk: str = "tw") -> dict:
+              mk: str = "tw", ev: list | None = None, asof: str | None = None) -> dict:
     """eqspec VER 2：倍數和它乘的 EPS 同一把尺。共識法＝未來 12 個月 EPS × 同業未來本益比；近四季法＝近四季 EPS × 本公司與同業的近四季本益比；
     淨值比法＝每股淨值 × 淨值比。base_label／range_how／dflt_how 是頁面上「目標價怎麼算」的說明（照實寫是哪一把尺）。"""
     peer_pe = S.band([p["pe"] for p in prow if p.get("pe") is not None and 0 < p["pe"] <= S.BAND_PE_MAX])
     peer_fpe = S.band([p["fpe"] for p in prow if p.get("fpe") is not None and 0 < p["fpe"] <= S.BAND_PE_MAX])
     peer_pb = S.band([p["pb"] for p in prow if p.get("pb") is not None and 0 < p["pb"] <= S.BAND_PB_MAX])
-    bvps = next((q["bvps"] for q in reversed(qs) if q.get("bvps")), None)
+    bq = next((q for q in reversed(qs) if q.get("bvps")), None)
+    bvps = bq["bvps"] if bq else None
     lastq = next((q for q in reversed(qs) if q.get("eps4") is not None), None)
     eps4 = lastq["eps4"] if lastq else None
+    adj = None
+    fb = adj_factor(ev, bq["q"] if bq else None, asof)          # VER 4：季底之後無償配股 → 每股淨值 ÷ 調整倍數
+    e_x = eps4_on(qs, lastq, ev, asof) if lastq else None        # VER 5：近四季 EPS 只除財報公布之後的配股
+    if fb != 1.0 or (e_x is not None and eps4 is not None and abs(e_x - eps4) > 1e-9):
+        adj = {"f": round(fb, 6), "f_eps": round(eps4 / e_x, 6) if e_x and eps4 else None, "bvps_raw": bvps, "eps4_raw": eps4,
+               "ev": [e for e in ev if e[1] and (bq or lastq)["q"][:4] >= str(int(e[0][:4]) - 1) and e[0] <= asof]}
+        b_x = bvps / fb if bvps is not None else None             # 比值用沒進位的數字，和同業表一致
+        bvps, eps4 = _r(b_x, 2), _r(e_x, 2)
+        my = {**my, "pb": _r(px / b_x, 2) if px and b_x and b_x > 0 else my.get("pb"),
+              "pe": _r(px / e_x, 1) if px and e_x and e_x > 0 else None}
     bas = S.basis(f12.get("src") == "cons", (peer_fpe or {}).get("n", 0))
     eps_base = f12.get("eps") if bas == "fwd" else eps4
     meth = S.method(eps_base, px, bvps, industry)
@@ -584,6 +725,9 @@ def valuation(f12: dict, qs: list[dict], bd: dict, prow: list[dict], px: float |
                  "peer_pe": _b2(peer_pe), "peer_fpe": _b2(peer_fpe), "peer_pb": _b2(peer_pb),
                  "fpe_now": _r(px / f12e, 1) if f12e and f12e > 0 and px else None,
                  "pe4_now": _r(px / eps4, 1) if eps4 and eps4 > 0 and px else None}
+    if adj:
+        val["adj"] = adj
+        val["pe4_now"] = my.get("pe")
     own = {k: bd[meth].get(k) for k in ("p25", "p50", "p75", "n")} if meth in ("pe", "pb") and bd[meth].get("n") else None
     if meth == "pe" and bas == "fwd":
         rng, base = S.fwd_range(peer_fpe), f12e
@@ -608,6 +752,9 @@ def valuation(f12: dict, qs: list[dict], bd: dict, prow: list[dict], px: float |
                     "tp_dflt": tp, "up_dflt": _pc(tp, px), "rating_dflt": S.rating(tp, px),
                     "scen_dflt": S.scenarios(base, rng, tp, mk, pe=meth == "pe"),
                     "tp_lo": S.round_tp(base * rng["lo"], mk), "tp_hi": S.round_tp(base * rng["hi"], mk)})
+    if adj and val.get("base_label") in ("每股淨值（最近一季）", "近四季 EPS"):
+        val["base_label"] = {"每股淨值（最近一季）": "每股淨值（最近一季，已依配股調整）",
+                             "近四季 EPS": "近四季 EPS（已依配股調整）"}[val["base_label"]]
     return val
 
 

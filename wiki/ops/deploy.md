@@ -100,6 +100,7 @@ CI 分鐘帳（私有時期的帳；2026-10-16 起 repo 已公開，一般機器
   根治：兩支 vercel.json 加 `"git": {"deploymentEnabled": {"claude/**": false}}`，停掉工作分支的預覽部署
   （2026-10-16 使用者同意、已改，`tests/test_multiuser_hardening.py` 守）。
   現況（2026-11-01）：main 每筆 commit 仍自動部署一次、CI 的 commit 再打一次 Deploy Hook；10/29～11/1 main 每天 18～41 筆，程式 PR 合併後頁面沒變也照樣部署。免費方案每天 100 次——一天超過 45 筆或對時哨兵見限流，就讓 vercel.json 在 dashboard/ 沒變時不部署（債務帳 `docs/code_debt.md`）。
+- **文件包臨時分支也會被 Vercel 預覽部署（2026-11-04 使用者收到「Preview deployment failed」信）**：`claude/eqdocs-tmp/{編號}`（`eq_docs.yml` 推的）只有 `eqdocs/`，沒有兩支 vercel.json → `claude/**` 的關閉設定讀不到，Vercel 照樣建預覽，又找不到 Root Directory「dashboard」而失敗寄信，也吃每日部署額度。線上（main）不受影響。修法：臨時分支的 commit 也放進兩支 vercel.json（`eq_docs.yml` 推到臨時分支那一步，`tests/test_eqdocs.py` 守）。
 
 ## 歷史
 

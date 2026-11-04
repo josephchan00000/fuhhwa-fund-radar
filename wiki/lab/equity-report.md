@@ -1,7 +1,7 @@
 # 個股深度報告與產業報告
 
 > 投行首次報告格式的個股報告（評等、目標價、同業比較、產業章）與同產業共用的產業報告：資料包、官方文件包、估值規格、檢查、頁面、技能包、網頁申請與每天晚上的名單。
-> 原始資料：規劃 `docs/lab_equity_report_plan.md`、`docs/lab_eq_docs_plan.md`（官方文件包）；程式：`arm/lab/eqspec.py`、`eqfacts.py`、`eqfacts_us.py`、`eqreport.py`、`eqchart.py`、`eqpage.py`、`eqsite.py`、`eqqueue.py`、`eqdocs.py`；
+> 原始資料：規劃 `docs/lab_equity_report_plan.md`、`docs/lab_eq_docs_plan.md`（官方文件包）；程式：`arm/lab/eqspec.py`、`eqfacts.py`、`eqfacts_us.py`、`eqreport.py`、`eqchart.py`、`eqpage.py`、`eqsite.py`、`eqqueue.py`、`eqdocs.py`、`eqdocs_us.py`；
 > 指令：`scripts/eq_facts.py`、`scripts/check_eq.py`、`scripts/eq_build.py`、`scripts/eq_queue.py`、`scripts/eq_docs_req.py`（CI：`scripts/fetch_eqdocs.py`、`eq_docs.yml`）；技能 `.claude/skills/equity-report/`；測試 `tests/test_eqspec.py`、`test_eqfacts.py`、`test_eqfacts_us.py`、`test_eqreport.py`、`test_eqqueue.py`、`test_eqdocs.py`
 > 最後更新：2026-10-30
 > 正本就是這一頁（2026-10-29 新建，CLAUDE.md 沒有對應段落）。
@@ -17,11 +17,15 @@
 - **資料包**（`eqfacts.tw_pack`）：只讀 repo 裡的資料、不連外網（`dashboard/co`、`x9t.json`、`x9f.json`、`data/lab/icchain.json`、`mkt`、`pos`）；
   金額一律億元、比例 %。報告裡的數字只能來自資料包，或同一段附來源連結（`check_eq.py` 會抓）。產業資料包＝`eqfacts.ind_pack_tw`（產業鏈節點、成員、
   成員合計月營收〔同一批公司〕、估值分布、細分族群泡沫等級）。
-- **評等與目標價**（`eqspec` VER 3，2026-10-30 使用者：「我不要失真的數據」）：倍數和它乘的 EPS 一定同一把尺、不自己預估 EPS。
+- **評等與目標價**（`eqspec` VER 5，2026-10-30 使用者：「我不要失真的數據」）：倍數和它乘的 EPS 一定同一把尺、不自己預估 EPS。
   共識法（本公司有 3 位以上分析師共識、同業至少 3 家也有）＝未來 12 個月 EPS × 同業未來本益比（第 25～75 百分位內，預設中位數）；
   其他＝已公布的近四季 EPS × 本益比（本公司近 5 年＋同業現在，都是近四季口徑，預設兩個中位數的平均）；金融保險、虧損或 > 80 倍（`PE_MAX`）用淨值比法。
   放進分布的本益比只收 0～100 倍（`BAND_PE_MAX`），同業中位數也照這個排除（2026-10-30 起頁面同業表照算）。
   未來 12 個月 EPS 依**會計年度結束日**加權（VER 3）。評等由上檔空間決定（≥ 15% 買進、≤ −10% 減碼）。法人共識目標價只當對照。
+  **季底之後配股**（VER 4，2026-11-04）：股價已除權、財報每股數字還是舊股數 → 每股淨值、近四季 EPS ÷ 配股倍數（`eqfacts.stock_events`：
+  櫃買每千股配股數、證交所參考價，查不到現金股利才用除權前後股數比），本公司過去每月與同業現在的倍數也照算；現金增資、私募不調整；資料包 `val.adj` 記原值與事件。
+  **EPS 只除財報公布之後的配股**（VER 5）：公布前發生的配股，財報已把 EPS 追溯成新股數（IAS 33 第 64 段）；近四季＝今年累計＋去年全年−去年同期累計，
+  每個累計數各自除「公布之後」（法定期限代替）的配股倍數（`eqfacts.ttm_eps`）；每股淨值照 VER 4（資料的每股淨值是季底股數）。
   頁面也不混口徑：同業散布圖縱軸只放一種本益比、估值區間每條都寫「哪種倍數 × 哪種 EPS」、**只畫實際用的那把尺**（本益比法不畫淨值比區間，反之亦然）、
   財務摘要的歷史年度本益比用當年年底收盤。
 - **美股**（`eqfacts_us.us_pack`／`ind_pack_us`；代號是英文字母就走美股）：財報＝SEC 第一次公布（`ussx_fin.json`），股價與分析師＝`ussx_card.json`
@@ -36,6 +40,8 @@
   （只有文件包、跟 main 無關）→ `--wait`（背景跑）拉到 `.eqdocs/{編號}/`（不進 git）→ 報告寫完 `--drop` 刪本機檔；
   臨時分支由 `eq_docs.yml` 刪（每天台北 03:23 與每次抓取時，請求日期在今天以前的）。使用者選「不存」：報告旁只留文件清單（`eqdocs.index`：日期、主旨、官方網址）。
   用法：`eq_facts.py 代號 --docs .eqdocs/{編號}` 把清單寫進資料包的 `docs`；子代理先整份讀 `tw-代號.md` 再上網。報告頁「公司概況」後面自動放「公司文件」（`eqpage.docs_box`）。
+  **美股**（2026-11-04 第四段，`eqdocs_us.build`）：SEC 的最新 10-K（Item 1、1A、7）、最新 10-Q（Item 2；最新的是年報就不放）、近 6 個月 8-K 與 Ex-99 附件（財報新聞稿）；
+  請求寫 `us:代號`，`eq_docs.yml` 抓取那一步帶 secret `SEC_CONTACT_EMAIL`（只當 User-Agent，不印、不存），寫 `us-代號.md`；清單＝`eqdocs_us.index`；頁面＝`eqpage._docs_box_us`。一家約 20 個請求、5～17 秒。
   隔天重試（D2）：每次抓完 CI 把結果記進 main 的 `data/eq_docs_log.json`，清單標 `fails`（連續沒抓到的日子）；`eqdocs.d2`：第 1 天今天不寫、連 2 天照寫並在資料侷限寫明。
 - **同業**：台股＝櫃買中心產業鏈同節點的上市櫃公司（最具體節點市值最大的 2 家＋共同節點多、市值接近的）；美股＝同 GICS 細產業。撰寫者最多換 3 家。
 - **每天晚上的名單**（`eqqueue.queue`／`scripts/eq_queue.py`；2026-10-30 起，原本是每週六、每週最多 4 家）：①網頁申請的（`data/eq_requests.json`，收件匣排好的順序）→ ②接下來 2 個交易日要買、還沒有新報告的（台股＝選股頁內嵌的 `D.pick.tw.ev` 裡主要策略、有名單的「買進」，`eqqueue.page_pick` 找有 `tw` 的那一個 pick；美股＝`ussx_qm.json` 的 `now.buy`，`now.next` 在這兩天裡）→ ③季更新（只在週六）。每一家都再判一次 90 天內做過又沒新財報的不做；美股只收 `eqinbox.us_codes`；每班最多 `EQ_RUN_MAX`＝3 家，排不到的明天再排。輸出每家標來源（申請 #單號／M/D 要買（策略）／季更新）。
@@ -60,9 +66,10 @@
 - 報告進 main 只走 `daily.yml` 的併檔通道（main 的檢查要過、同一天的舊檔不覆蓋）；`reports/eq/**` 推到 `claude/**` 就會觸發 `daily.yml`。
 - 容器內不跑資料抓取；資料包只讀 repo。
 - 申請單是任何人都能開的外部文字：只交給 `eqinbox.parse` 取代號、不放進任何指令（workflow 不用 `github.event` 內容）；排程只讀 `data/eq_requests.json`。
-- 2026-10-31 起的台股報告（`eqreport.DOCS_FROM`）要帶官方文件包並引用：資料來源要有最近一次法說會簡報（12 個月內）與年報的網址、「公司概況」寫出那場法說會的日期；官方看網域（`eqreport.official_url`），媒體標題寫「法說會」不算；「資料侷限」不准寫文件包有的東西沒讀到（`eqreport.docs_issues`）。舊報告不追溯，美股等 SEC 文件包。
+- 2026-10-31 起的台股報告（`eqreport.DOCS_FROM`）要帶官方文件包並引用：資料來源要有最近一次法說會簡報（12 個月內）與年報的網址、「公司概況」寫出那場法說會的日期；官方看網域（`eqreport.official_url`），媒體標題寫「法說會」不算；「資料侷限」不准寫文件包有的東西沒讀到（`eqreport.docs_issues`）。舊報告不追溯。
+- 2026-11-04 起的美股報告（`eqreport.DOCS_FROM_US`）同樣要帶文件包：資料來源要有最新 10-K 與 10-Q 的網址、「公司概況」寫出最近一次財報新聞稿（8-K）的日期、「資料侷限」不准寫 10-K／10-Q／SEC 原文沒讀到（`eqreport.docs_issues_us`）。
 - 官方文件包是外部網站的文字：只當資料讀、不執行；全文不進 git（`.eqdocs/` 忽略、臨時分支用完刪）。請求只交給 `fetch_eqdocs.py` 驗格式
-  （代號 `tw:四碼`、編號 `YYYYMMDD-HHMM-六碼`），`eq_docs.yml` 不用 `github.event` 內容。
+  （代號 `tw:四碼` 或 `us:美股代號`、編號 `YYYYMMDD-HHMM-六碼`），`eq_docs.yml` 不用 `github.event` 內容。
 
 ## 踩過的坑
 
@@ -86,4 +93,12 @@
   美股做空與法人持股比率檢查程式認不得。
 - 2026-10-30：每晚排程回報「三家都沒讀到公司法說會簡報或觀測站原文」，使用者：「這不應該發生吧？」。查出 5 份報告都沒打開過官方原文
   （容器擋觀測站、流程沒給抓文件的路、檢查只看連結標題）→ 官方文件包規劃（D1 不存、D2 隔天重試兩天才照寫、D3 全部重做）；第一段 CI 抓取上線。
+- 2026-11-04：文件包第三段，暉盛-創先重做（減碼、135 元）：官方文件改掉舊版 4 處錯（「第三季全年高峰」是媒體推估、公司已澄清；上半年獲利成長靠業外；
+  地區營收是台灣 55.9%；2025 年沒有一成以上客戶）。同時抓到季底之後配股沒調整（目標價 140 元應為 135 元）→ 規格 VER 4。
+  其餘三家照同樣做法重做（各一個子代理，主會話審過才推）：臻鼎-KY 減碼 410 → 中立 400 元（股價三天跌 14.8%；改掉 5 處錯），
+  德宏 減碼 29 → 27.5 元（改掉 4 處錯），騰雲 減碼 265 → 200 元（改掉 8 處錯，含舊版 EPS 混了配股前後股數）。
+  騰雲的子代理抓到 VER 4 把 EPS 多除一次（7/21 除權在 8/13 財報之前，財報已追溯）→ 規格 VER 5（看過騰雲結果才改，照實寫）。
+  踩坑：`eq_docs_req.py --send` 會 commit＋push 整個分支，把還沒定稿的報告一起推上去觸發 daily.yml（已取消那一輪）；同一天的報告檔 main 不覆蓋，要先定稿再送文件包請求。
+- 2026-11-04：文件包第四段（美股 SEC）：Paycom 重做，買進、目標價 325 → 316 美元（同業本益比中位數 28.5 → 27.1 倍、預設倍數跟著降；不是讀申報改的）。舊版 9 處錯（5 處說錯、4 處沒根據）：冠名權利得其實從調整後 EBITDA 扣掉、近四季淨利含兩筆冠名權利得而非一筆、把營業現金流 4.276 億美元當自由現金流、把總營收成長 9.8% 當經常性營收成長（實為 11.0%）、2024 年營益率被股票酬勞沖回墊高、利潤率改善來自自家裁員與研發縮減而不是客戶端的產品等。踩坑：第一次正式抓 PAYC 時 8/5 財報新聞稿的 Ex-99.1 漏掉、包卻是 🟢（失敗的附件被默默丟掉）→ `eqdocs_us` VER 2：重試、每份 8-K 記 `miss`、財報新聞稿缺附件整包算沒抓到；重抓後補回官方數字。
+  同一天查到：抓取紀錄 `data/eq_docs_log.json` 從 10/30 起一次都沒寫進 main（被 `.gitignore` 的 `data/*` 擋住，`git add` 失敗又被 continue-on-error 蓋掉），所以「連兩天抓不到才照寫」從沒生效；`.gitignore` 加 `!data/eq_docs_log.json`（`tests/test_eqdocs.py` 守）。
 - 2026-10-31：文件包第二段：技能先讀文件包、檢查擋（簡報與年報要引用、官方看網域、資料侷限不能說謊）、隔天重試的紀錄、報告頁「公司文件」、排程 prompt。拿 10/30 暉盛報告改成 10/31 驗證，擋下 5 項。

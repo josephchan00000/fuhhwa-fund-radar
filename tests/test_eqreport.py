@@ -357,3 +357,76 @@ def test_page_lists_company_documents_from_the_pack():
     assert "近 6 個月重大訊息 10 則" in html and "…另外 2 則" in html
     assert "公告本公司董事會&lt;決議&gt;" in html and "<決議>" not in html          # 觀測站的字一律跳脫
     assert "公司文件" not in P.render(_md(), _pack())                          # 沒有文件包的舊報告不放
+
+
+# ── 美股官方文件包（SEC 10-K／10-Q／8-K；docs/lab_eq_docs_plan.md 第 6 節）：2026-11-04 起的美股報告 ─────────────
+
+SK = "https://www.sec.gov/Archives/edgar/data/1234567/000123456726000027/tst-20251231.htm"
+SQ = "https://www.sec.gov/Archives/edgar/data/1234567/000123456726000029/tst-20260630.htm"
+SR = "https://www.sec.gov/Archives/edgar/data/1234567/000123456726000028/tst-8k.htm"
+
+
+def _docs_us(**kw):
+    d = {"v": 1, "mk": "us", "made": "2026-11-04", "ok": True, "name": "Test Inc", "site": "https://investors.test.com", "cik": 1234567,
+         "st": {"sub": "ok", "k10": "ok", "q10": "ok", "8k": "ok"},
+         "k10": {"d": "2026-02-19", "per": "2025-12-31", "url": SK}, "q10": {"d": "2026-08-06", "per": "2026-06-30", "url": SQ},
+         "release": {"d": "2026-08-05", "url": SR},
+         "news": [{"d": "2026-08-05", "subj": "2.02 營運成果與財務狀況（財報）", "url": SR}] + [{"d": "2026-06-01", "subj": "5.07 <表決>", "url": None}] * 9,
+         "fails": [], "id": "20261104-1200-abcdef", "at": "2026-11-04 12:10"}
+    d.update(kw)
+    return d
+
+
+def _pack_us(**kw):
+    pk = _pack()
+    pk.update(mk="us", code="ME", docs=_docs_us(**kw))
+    return pk
+
+
+SECSRC = (f"- [Test Inc 2025 年報 10-K]({SK})（2026-02-19）\n- [Test Inc 2026 第二季季報 10-Q]({SQ})（2026-08-06）\n"
+          f"- [Test Inc 第二季財報新聞稿 8-K]({SR})（2026-08-05）\n"
+          + "\n".join(f"- [媒體報導 {i}](https://news.example.com/{i})（2026-10-0{i}）" for i in range(1, 6)))
+
+
+def _md_us(src=SECSRC, co="2026 年 8 月 5 日財報新聞稿說明訂閱營收成長。", **kw):
+    t = _md(code='"ME"', mk="us", made="2026-11-04", **kw).replace(LINKS, src)
+    return t.replace("## 公司概況\n", f"## 公司概況\n{co}\n")
+
+
+def test_us_report_with_sec_docs_passes_and_old_reports_are_not_checked():
+    assert R.check(_md_us(), _pack_us()) == []
+    old = _pack()
+    old.update(mk="us", code="ME")
+    assert R.check(_md(code='"ME"', mk="us"), old) == []                       # 11/04 以前的美股報告不追溯
+    assert any("沒有官方文件包" in e for e in R.check(_md_us(), old))
+
+
+def test_us_report_must_cite_10k_10q_and_release_date():
+    assert any("年報 10-K" in e for e in R.check(_md_us(src=SECSRC.replace(SK, "https://news.example.com/k")), _pack_us()))
+    assert any("季報 10-Q" in e for e in R.check(_md_us(src=SECSRC.replace(SQ, "https://news.example.com/q")), _pack_us()))
+    assert any("最近一次財報新聞稿（2026-08-05" in e for e in R.check(_md_us(co="最近一次財報說明訂閱營收成長。"), _pack_us()))
+    assert R.check(_md_us(co="8/5 的財報新聞稿說明訂閱營收成長。"), _pack_us()) == []
+    media = "\n".join(f"- [某某 10-K 重點整理 {i}](https://news.example.com/{i})（2026-10-0{i}）" for i in range(1, 9))
+    assert any("沒有官方網址" in e for e in R.check(_md_us(src=media), _pack_us(k10=None, q10=None)))
+    site = media + "\n- [Test Inc 投資人關係](https://investors.test.com/ir)（2026-10-01）"
+    assert R.check(_md_us(src=site), _pack_us(k10=None, q10=None)) == []          # 文件包記下的公司官網算
+
+
+def test_us_limits_cannot_claim_missing_sec_documents():
+    for lie in ("資料侷限：未取得 10-K 原文。", "資料侷限：沒有讀到最新季報。", "資料侷限：未能取得 SEC 原文，內容依媒體轉述。"):
+        assert any("資料侷限寫沒讀到" in e for e in R.check(_md_us(src=SECSRC + "\n" + lie), _pack_us())), lie
+    ok = SECSRC + "\n資料侷限：10-Q 沒有揭露各產品線毛利率；媒體對新產品營收的說法不一。"
+    assert R.check(_md_us(src=ok), _pack_us()) == []
+    bad = {"ok": False, "st": {"sub": "err 抓不到 submissions"}, "k10": None, "q10": None, "release": None, "news": []}
+    assert any("今天不寫、明天重試" in e for e in R.check(_md_us(), _pack_us(fails=["2026-11-04"], **bad)))
+    told = SECSRC + "\n資料侷限：官方文件包連兩天抓不到 SEC 申報（回應錯誤），內容依媒體轉述。"
+    assert R.check(_md_us(src=told), _pack_us(fails=["2026-11-04", "2026-11-03"], **bad)) == []
+    assert any("超過 3 天" in e for e in R.check(_md_us(), _pack_us(at="2026-10-25 12:10")))
+
+
+def test_us_page_lists_sec_documents():
+    html = P.render(_md_us(), _pack_us())
+    assert "（SEC 申報）" in html and f'href="{SK}"' in html and f'href="{SQ}"' in html and "2026-02-19 申報" in html
+    assert "最近一次財報新聞稿" in html and "近 6 個月 8-K 10 份" in html and "…另外 2 份" in html
+    assert "5.07 &lt;表決&gt;" in html and "<表決>" not in html and "&amp;lt;" not in html
+    assert "法說會" not in html.split("（SEC 申報）", 1)[1].split("</div>", 1)[0]

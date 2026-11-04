@@ -1316,7 +1316,43 @@ def today_for(now: dict | None) -> dict | None:
         print(f"[訊號總覽] 過去讀數這樣的時候算不出來：{type(e).__name__}: {e}")
         out["cal"] = None
     relean(out)
+    mark_levels(out, rows, now.get("drop"))
     return out
+
+
+def mark_levels(T: dict, rows: list[dict], drop: dict | None) -> None:
+    """sigspec 第 5.8 節（VER 33）：列出來的每一類寫強弱（"lv"：那一列的差 ≥ LEVEL_EDGE），看多那一邊大跌中的強落底另標（"bt"：
+    領頭或同類裡任何一個是落底型、訊號自己的成績強；進行中的也標）；每一邊落底排最前、再來強的（穩定排序）；
+    每支溫度計 "nbt"＝看多那一欄列出來的落底類數。drop＝bottombox.drop_now 的結果（None＝不在大跌中）。"""
+    from . import bottombox as BB
+    byid = {r["id"]: r for r in rows if r.get("mk") == T.get("mk")}
+
+    def bottom(x: dict) -> bool:
+        r = byid.get(x.get("id")) if drop else None
+        d = BB.side_of(r) if r else None
+        return bool(d) and BB.strong(r.get(d))
+
+    def mark(f: dict, side: str, listed: bool) -> None:
+        if listed and f.get("edge") is not None:
+            f["lv"] = round(f["edge"], 9) >= S.LEVEL_EDGE
+        f["bt"] = side == "up" and (bottom(f) or any(bottom(m) for m in f.get("fam") or []))
+
+    def key(f: dict) -> tuple:
+        return (not f.get("bt"), not f.get("lv"))
+    for th in T.get("thermo") or []:
+        for s in ("up", "warn"):
+            for f in th.get(s) or []:
+                mark(f, s, True)
+            th[s] = sorted(th.get(s) or [], key=key)
+            for p in (th.get("pend") or {}).get(s) or []:
+                mark(p, s, False)
+        th["nbt"] = sum(1 for f in th["up"] if f.get("bt"))
+    for s in ("up", "warn"):
+        for f in T.get(s) or []:
+            if "bt" not in f:
+                mark(f, s, True)
+        T[s] = sorted(T.get(s) or [], key=key)
+    T["drop"] = drop
 
 
 def relean(T: dict) -> None:
@@ -1819,6 +1855,16 @@ def _sim_now(F: dict) -> dict | None:
         return None
 
 
+def _drop_now(F: dict) -> dict | None:
+    """大跌中（sigspec 第 5.8 節，同大跌後買點）；算不出來當作不在大跌中、不擋建頁。"""
+    try:
+        from . import bottombox as BB
+        return BB.drop_now(F["px"], F["mk"]) if F.get("px") is not None and F.get("mk") else None
+    except Exception as e:                            # noqa: BLE001
+        print(f"[訊號總覽] 大跌中算不出來：{type(e).__name__}: {e}")
+        return None
+
+
 def now_for_B(B: dict) -> dict | None:
     """景氣頁建頁時呼叫：算這個市場現在有效的訊號，存進 NOW（訊號總覽沿用）。失敗回 None、不擋景氣頁。"""
     try:
@@ -1830,7 +1876,7 @@ def now_for_B(B: dict) -> dict | None:
         gone: dict = {}
         on = now_market(F, acts, xon, gone)
         NOW[F["mk"]] = {"mk": F["mk"], "d": F["cal"][-1], "on": on, "acts": acts, "xon": xon, "gone": gone, "cv": crash_now(F),
-                        "sim": _sim_now(F)}
+                        "sim": _sim_now(F), "drop": _drop_now(F)}
         return NOW[F["mk"]]
     except Exception as e:                            # noqa: BLE001
         print(f"[訊號總覽] 現在的狀態算不出來：{type(e).__name__}: {e}")

@@ -329,8 +329,8 @@ def test_board_families_merge_signals_that_appear_together():
     from arm.lab import heatviz as VZ
     h = VZ.today_html({"sigtoday": dict(B, d="2026-10-16", mk="tw")})
     assert 'title="同時成立：20 日線乖離過冷">・同時成立 1 個' in h
-    assert ('<h4 class="tqsh" title="3 個訊號，常一起出現的併成一類"><i class="tqd tqd-up"></i>偏多<b>2</b>類' in h
-            and '<h4 class="tqsh" title="2 個訊號，常一起出現的併成一類"><i class="tqd tqd-up"></i>偏多<b>1</b>類' in h)
+    assert ('<h4 class="tqsh" title="3 個訊號，常一起出現的併成一類"><i class="tqd tqd-up"></i>看多<b>2</b>類' in h
+            and '<h4 class="tqsh" title="2 個訊號，常一起出現的併成一類"><i class="tqd tqd-up"></i>看多<b>1</b>類' in h)
     assert '<span class="tqy">買點</span>' in h
 
 

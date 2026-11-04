@@ -138,3 +138,65 @@ def test_pick_info_and_why_box_follow_the_strategy_only(tmp_path):
     for x in (w, eqpage.why_box({"pick": old, "mk": "tw"})):                              # 舊的資料包重建也不再寫書上的買點
         for bad in ("突破", "才算", "等拉回", "還差", "位置：", "打底中"):
             assert bad not in x, bad
+
+
+def test_ver4_stock_dividend_adjusts_per_share(monkeypatch):
+    """eqspec VER 4：季底之後無償配股 → 基數、本益比、淨值比、過去每月都照新股數；配股之前的月份不動；美股與沒配股的不變。"""
+    from arm.lab import eqfacts as E
+    ev = [["2026-08-28", 1.05, "除權前後股數比"]]
+    assert E.adj_factor(ev, "2026-06-30", "2026-11-03") == 1.05
+    assert E.adj_factor(ev, "2026-09-30", "2026-11-03") == 1.0
+    assert E.adj_factor(None, "2026-06-30", "2026-11-03") == 1.0
+    qs = [{"q": "2026-06-30", "dl": "2026-08-14", "eps4": 1.84, "bvps": 26.52, "eps": 0.18}]
+    mo = [{"ym": "2026-08", "px": 173.0}, {"ym": "2026-07", "px": 151.0}, {"ym": "2026-10", "px": 225.0}]
+    mo.sort(key=lambda o: o["ym"])
+    bd = E.bands(mo, qs, "2026-10", ev)
+    pb = dict(bd["pb"]["ser"])
+    assert pb["2026-07"] is None                                                   # 7 月：第二季財報還沒公布（8/14）
+    assert pb["2026-08"] == round(173.0 / (26.52 / 1.05), 2)                       # 8/28 除權 → 8 月底起照新股數
+    assert pb["2026-10"] == round(225.0 / (26.52 / 1.05), 2)
+    assert E.bands(mo, qs, "2026-10")["pb"]["ser"][-1][1] == round(225.0 / 26.52, 2)  # 不給事件＝舊算法
+    val = E.valuation({"eps": None, "src": "none"}, qs, bd, [], 193.0, {"pe": 104.9, "pb": 7.28}, "半導體業", "tw",
+                      ev=ev, asof="2026-11-03")
+    assert val["bvps"] == 25.26 and val["eps4"] == 1.75 and val["pb"] == round(193.0 * 1.05 / 26.52, 2)
+    assert val["pe_ttm"] == round(193.0 * 1.05 / 1.84, 1) == val["pe4_now"]
+    assert val["adj"]["bvps_raw"] == 26.52 and val["adj"]["ev"] == ev
+    v0 = E.valuation({"eps": None, "src": "none"}, qs, bd, [], 193.0, {"pe": 104.9, "pb": 7.28}, "半導體業", "tw")
+    assert v0["bvps"] == 26.52 and "adj" not in v0
+
+
+def test_ver4_stock_events_sources(monkeypatch):
+    """配股率：櫃買用每千股配股數；證交所有現金股利用參考價；沒有現金股利用除權前後股數比；只配息不算。"""
+    from arm.lab import eqfacts as E
+    tw = {"7730": [["2026-08-28", "7730", 9.761907, "權息", 185.0, 175.23]],
+          "4958": [["2026-06-08", "4958", 3.42, "權息", 504.0, 500.57]],
+          "1111": [["2026-07-01", "1111", 10.0, "權", 110.0, 100.0]]}
+    tp = {"6870": [["2026-07-21", "6870", 319.5, 264.09, 3.21161109, 197.63285303]]}
+    cash = {("4958", "2026-06-08"): 3.42}
+    monkeypatch.setitem(E._EXR, "t", (tw, tp, cash))
+    mo = [{"ym": "2026-08", "sh": 36797}, {"ym": "2026-09", "sh": 36797}, {"ym": "2026-10", "sh": 38637}]
+    assert E.stock_events("7730", mo) == [["2026-08-28", round(38637 / 36797, 6), "除權前後股數比"]]
+    assert E.stock_events("7730", []) == [["2026-08-28", None, "查不到配股率，不調整"]]
+    assert E.stock_events("4958", mo) == []                                     # 只配息（參考價進位誤差）
+    assert E.stock_events("1111", mo) == [["2026-07-01", 1.1, "證交所參考價"]]
+    assert E.stock_events("6870", mo) == [["2026-07-21", round(1.19763285303, 6), "櫃買每千股配股數"]]
+
+
+def test_ver5_eps_only_after_publication():
+    """eqspec VER 5：騰雲 7/21 除權、第二季 8/14 前公布 → 上半年已是新股數；去年全年 ÷ 1.1976、去年上半年再 ÷ 2025-09-04 的 1.02。
+    每股淨值照 VER 4（季底股數）照除。"""
+    from arm.lab import eqfacts as E
+    eps = {"2025-03-31": 0.66, "2025-06-30": 0.84, "2025-09-30": 2.88, "2025-12-31": 2.70, "2026-03-31": 1.10, "2026-06-30": 1.44}
+    qs = [{"q": q, "eps": e, "dl": E.deadline(q), "bvps": 51.94} for q, e in eps.items()]
+    for i in range(3, len(qs)):
+        qs[i]["eps4"] = round(sum(qs[j]["eps"] for j in range(i - 3, i + 1)), 2)
+    f = 1.19763285303
+    ev = [["2025-09-04", 1.02, "櫃買每千股配股數"], ["2026-07-21", f, "櫃買每千股配股數"]]
+    v = E.ttm_eps(qs, "2026-06-30", ev, "2026-11-03")
+    assert v == pytest.approx(2.54 + 7.08 / f - 1.50 / (1.02 * f)) and 7.2 < v < 7.25
+    assert E.eps4_on(qs, qs[-1], [], "2026-11-03") == qs[-1]["eps4"] == 8.12           # 沒有配股＝單季相加
+    assert E.ttm_eps(qs, "2026-06-30", [], "2026-11-03") == pytest.approx(8.12)          # 公式本身在沒配股時等於單季相加
+    val = E.valuation({"eps": None, "src": "none"}, qs, {"pe": {}, "pb": {}}, [], 413.0, {"pe": 50.9, "pb": 7.95}, "電子", "tw",
+                      ev=ev, asof="2026-11-03")
+    assert val["eps4"] == round(v, 2) and val["bvps"] == round(51.94 / f, 2)
+    assert val["adj"]["eps4_raw"] == 8.12 and val["pe_ttm"] == round(413.0 / v, 1)

@@ -186,6 +186,7 @@ def test_workflow_never_feeds_request_text_to_a_shell():
     assert re.search(r"permissions:\s*\n\s*contents: write\s*\n\s*\n", wf)
     assert "grep -Eq '^[0-9]{8}-[0-9]{4}-[0-9a-f]{6}$'" in wf and "refs/heads/claude/eqdocs-tmp/$ID" in wf
     assert "git add -f eqdocs" in wf and "GIT_INDEX_FILE" in wf and "git add -A" not in wf
+    assert "git add -f vercel.json dashboard/vercel.json" in wf                          # 臨時分支也關掉 Vercel 預覽部署
     assert "cron: '23 19 * * *'" in wf and wf.count("if: github.event_name != 'schedule'") == 5   # 每天只清臨時分支
     assert 'CUT=$(date +%Y%m%d)' in wf and "TZ: Asia/Taipei" in wf                               # 請求日期在今天以前的就刪
 
@@ -218,4 +219,7 @@ def test_workflow_logs_to_main_before_pushing_the_pack():
     step = wf[i:j]
     assert "continue-on-error: true" in step and "add data/eq_docs_log.json" in step and "push -q origin HEAD:main" in step
     assert "fetch_eqdocs.py --log" in step and "git add -A" not in step
+    import subprocess as sp
+    r = sp.run(["git", "check-ignore", "-q", "data/eq_docs_log.json"], cwd=ROOT)
+    assert r.returncode == 1                                               # 紀錄檔不能被 .gitignore 擋（2026-11-04：從 10/30 起每次都寫不進 main）
     assert "--depth=1 origin +refs/heads/main" in step and not re.search(r"git( -C \S+)? pull", step)   # checkout 是淺的：只拿 main 最新一個 commit、不 rebase

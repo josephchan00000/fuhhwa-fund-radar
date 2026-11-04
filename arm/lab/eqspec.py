@@ -26,6 +26,23 @@ VER 3：2026-10-30（做美股版之前、算任何一家美股之前寫定；�
 - **美股共識**：Yahoo Finance，分析師 ≥ CONS_MIN 位；同業的未來本益比＝股價 ÷ 各自的 F12M（同一個加權法、各自的會計年度）。
   美股分析師預估多半是調整後 EPS：共識法是「調整後 × 調整後」、近四季法是「財報淨利 × 財報淨利」，不交叉，頁面標明。
 
+VER 4：2026-11-04（使用者：「先修再上線」）。台股季底之後配股票股利（無償配股）時，股價已經除權，財報的每股淨值與每股盈餘
+還是季底的舊股數算的，倍數與目標價一起被墊高（暉盛 2026-09-05 配股 5%，目標價 140 元其實應是 135 元）。修法：
+- **配股倍數**：每一次無償配股的 1 ＋ 配股率，配股率取官方除權息表——櫃買＝每千股配股數 ÷ 1000；證交所＝（除權息前收盤 − 現金股利）
+  ÷ 參考價 − 1（只配股＝前收盤 ÷ 參考價 − 1；小於 MIN_STK 視為參考價進位誤差）；證交所查不到現金股利 → 改用除權日前後兩個月的股數比，
+  反推的現金股利（前收盤 − 參考價 × 股數比）要在 0 到「權值＋息值」之間（容許 SH_TOL 元）才算數，否則這一次不調整、資料包標明。
+- **調整倍數**＝某一季季底之後、到某一天（含）為止，所有配股倍數相乘。每股淨值、近四季 EPS 都 ÷ 這個倍數（權益與淨利總額不變、股數變多）。
+- 用在三個地方：基數（最近一季季底 → 資料日）、本公司過去每月（當時用的那一季季底 → 月底）、同業現在的本益比與淨值比（各自最近一季季底 → 資料日，× 倍數）。
+- 現金增資、私募、轉換公司債的新股不調整（帶進了新的錢，等下一季財報）；美股不受影響（VER 3 已是總額 ÷ 最新股數）。
+
+VER 5：2026-11-04（VER 4 算騰雲時發現、照實寫：是看過騰雲的結果才改的）。VER 4 把 EPS 也從「季底」開始調，但台股財報公布前發生的配股，
+財報會把 EPS 追溯調整成新股數（IAS 33 第 64 段）：騰雲 7/21 除權、8/13 公布第二季，上半年 EPS 2.54 元已是新股數，VER 4 又除一次（近四季 6.78 元，
+公司公告 7.20 元）。修法只動 EPS，每股淨值照 VER 4（資料的每股淨值是季底股數算的，追溯調整不碰它）：
+- **近四季 EPS 用「公布時的累計數」重組**：累計 EPS＝當年各季單季 EPS 相加（單季是累計相減得來，相加就回到公布時的累計數）。
+  最新一季是第四季 → 近四季＝全年；否則＝今年累計 ＋ 去年全年 − 去年同期累計。
+- 每個累計數各自 ÷「它公布之後、到資料日（或月底）為止」的配股倍數；公布日用法定期限代替（PUB_PROXY：第一季 5/15、第二季 8/14、第三季 11/14、全年隔年 3/31）。
+- 本公司過去每月、同業現在的本益比都用同一個算法；每股淨值（基數、過去每月、同業淨值比）照 VER 4。
+
 VER 1（2026-10-29）：基數＝F12M（沒有共識＝近四季 EPS × 營收動能，夾 0.7～1.5）；範圍＝本公司近 5 年本益比（近四季）＋同業現在本益比（近四季）。
 臻鼎-KY 樣本（中立、目標價 560 元）照 VER 1 算，留著當評等歷史。
 """
@@ -33,8 +50,8 @@ from __future__ import annotations
 
 from datetime import date
 
-VER = 3
-SPEC_DATE = "2026-10-30"
+VER = 5
+SPEC_DATE = "2026-11-04"
 
 HORIZON_M = 12
 CONS_MIN = 3
@@ -54,6 +71,9 @@ TICK_TP = {"tw": ((50, 0.5), (100, 1.0), (500, 5.0), (1000, 10.0), (float("inf")
 PEER_N = 6
 PEER_LEADERS = 2
 PEER_SWAP_MAX = 3
+SH_TOL = 0.05          # VER 4：用股數比反推的現金股利，容許比「權值＋息值」多或比 0 少這麼多元
+MIN_STK = 0.002        # VER 4：算出的配股率小於 0.2% 視為參考價進位誤差（只配息），不調整
+PUB_PROXY = "法定期限"  # VER 5：財報公布日用法定期限代替（第一季 5/15、第二季 8/14、第三季 11/14、全年隔年 3/31）
 
 
 def rating(tp: float | None, px: float | None) -> str:
@@ -146,3 +166,48 @@ def scenarios(base_val: float | None, rng: dict | None, tp: float | None, mk: st
     e = SCEN_EPS if pe else 0.0
     return {"bear": round_tp(base_val * (1 - e) * rng["lo"], mk), "base": tp,
             "bull": round_tp(base_val * (1 + e) * rng["hi"], mk)}
+
+
+# ── VER 4：配股調整 ─────────────────────────────────────────────────────────
+
+def ratio_tpex(stock_per_k: float | None) -> float | None:
+    """櫃買除權息表：每千股配股數 → 配股倍數；沒有配股 → None。"""
+    return 1 + stock_per_k / 1000 if stock_per_k and stock_per_k > 0 else None
+
+
+def ratio_twse(prev: float | None, ref: float | None, cash: float | None) -> float | None:
+    """證交所除權息表：（除權息前收盤 − 現金股利）÷ 參考價；現金股利不知道 → None。"""
+    if not prev or not ref or ref <= 0 or cash is None:
+        return None
+    r = (prev - cash) / ref
+    return r if r >= 1 + MIN_STK else None
+
+
+def ratio_from_shares(prev: float | None, ref: float | None, amt: float | None, sh0: float | None, sh1: float | None) -> float | None:
+    """證交所查不到現金股利：股數比 sh1 ÷ sh0；反推現金股利＝前收盤 − 參考價 × 股數比，要在 [−SH_TOL, 權值＋息值 ＋ SH_TOL] 才算數。"""
+    if not prev or not ref or not sh0 or not sh1 or sh1 <= sh0 or amt is None:
+        return None
+    r = sh1 / sh0
+    cash = prev - ref * r
+    return r if -SH_TOL <= cash <= amt + SH_TOL else None
+
+
+def adj_factor(events: list, after: str, upto: str) -> float:
+    """events＝[(除權日, 配股倍數)]；after（不含）到 upto（含）之間的倍數相乘；沒有＝1。"""
+    f = 1.0
+    for d, r in events:
+        if r and after < d <= upto:
+            f *= r
+    return f
+
+
+def eps_ttm(c_last: float | None, last_is_q4: bool, c_fy_prev: float | None = None, c_same_prev: float | None = None,
+            f_last: float = 1.0, f_fy: float = 1.0, f_same: float = 1.0) -> float | None:
+    """VER 5：近四季 EPS 照資料日的股數。c_*＝公布時的累計 EPS（今年累計、去年全年、去年同期累計），f_*＝各自公布之後的配股倍數。"""
+    if c_last is None:
+        return None
+    if last_is_q4:
+        return c_last / f_last
+    if c_fy_prev is None or c_same_prev is None:
+        return None
+    return c_last / f_last + c_fy_prev / f_fy - c_same_prev / f_same

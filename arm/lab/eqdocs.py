@@ -388,9 +388,9 @@ def d2(x: dict) -> str:
     return "write" if len(x.get("fails") or []) >= 2 else "retry"
 
 
-def for_facts(idx: dict, code: str) -> dict | None:
+def for_facts(idx: dict, code: str, mk: str = "tw") -> dict | None:
     """文件清單（.eqdocs/{編號}/index.json）→ 報告旁 .facts.json 的 docs（只有日期、主旨、官方網址與抓取狀態，沒有全文）。"""
-    x = (idx.get("codes") or {}).get(f"tw:{code}")
+    x = (idx.get("codes") or {}).get(f"{mk}:{code}")
     if not x:
         return None
     return {**x, "id": idx.get("id"), "at": idx.get("at")}

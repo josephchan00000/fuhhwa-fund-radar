@@ -24,7 +24,7 @@ from arm.lab import sigspec as X
 
 
 def test_sig_spec_v1_is_locked():
-    assert X.VER == 29 and X.SPEC_DATE == "2026-11-03"
+    assert X.VER == 33 and X.SPEC_DATE == "2026-11-04"
     assert BS.VER == 4 and "C9" in BS.SIG_MK["tw"] and "C8" in BS.SIG_MK["spx"]   # VER 13：大跌後買點的規則跟著 bottomspec VER 4
     assert X.H_BUY == 60                                                  # VER 10：大跌後買點看買進後 3 個月有沒有漲
     assert X.MARKETS == ("tw", "spx", "ixic", "ndx", "sox")
@@ -330,6 +330,53 @@ def test_ver28_thermo_lean_vs_own_history():
 def test_ver29_thermo_numbers_are_votes():
     """VER 29（2026-11-03，看過 VER 28 的結果之後改；docs/lab_thermo_lean_plan.md 第 6 節）：位置排的是票數，長條旁邊的數字也改寫票數
     （使用者選「數字改寫票數」）；讀數規則、清單、研究檔都不變。"""
-    assert X.VER == 29 and X.LEAN_GAP == 0.20 and X.THERMO_EDGE == 0.05
+    assert X.VER >= 29 and X.LEAN_GAP == 0.20 and X.THERMO_EDGE == 0.05
     assert X.RES_VER == 24 and X.FWD_VER == 25 and X.CAL_VER == 26 and X.AGE_VER == 26
 
+
+def test_ver30_bottom_box():
+    """VER 30（2026-11-04，docs/lab_thermo_fair_plan.md 第 4～6 節）：使用者：「反而是一些更好的訊號應該可以判定為即將落底的強力訊號？
+    這樣會更有鑑別度顯示起來也不會一直偏空這樣很怪」。選：落底型＝大跌之後才有意義的（看 12 個月的景氣數字不算）、比任一天高 10 點、
+    框＋溫度計小標（讀數不改）、跨期間的列先不補打亂測試。大跌中＋強的落底型訊號亮著才出框；逐年檢查和大跌中全部週比。"""
+    assert X.VER >= 30
+    assert X.BOTTOM_COLD_CATS == ("heat", "crash", "bd") and X.BOTTOM_COLD_SIGS == ("cold", "cold_in")
+    assert X.BOTTOM_H_MAX == X.H_CRASH == 60                                  # 看 1 或 3 個月才算
+    assert X.BOTTOM_INST_SIGS == ("sell_run5", "sell_run10") and X.BOTTOM_SCEN == ("SC3",)
+    assert X.BOTTOM_EDGE == 0.10 and X.N_MIN == 5                              # 比任一天高 10 點、次數 ≥ 5
+    assert X.BOTTOM_CHK_H == 60 and X.BOTTOM_CHK_H2 == 20 and X.BOTTOM_GAIN == 0.05 and X.BOTTOM_MIN_EP == 5
+    assert X.BOTTOM_VER == 30 and X.BOTTOM_TAG == "有落底訊號"
+    assert BS.SIG_WIN == 60 and BS.E10_IN == 0.10 and BS.E10_OUT == 0.05       # 大跌中＝大跌後買點的定義
+    assert X.RES_VER == 24 and X.FWD_VER == 25 and X.CAL_VER == 26 and X.AGE_VER == 26   # 研究檔都不用重跑
+    assert X.LEAN_GAP == 0.20 and X.THERMO_EDGE == 0.05 and X.THERMO_CLS == ("up", "buy", "risk")   # 讀數與列出來的不變
+
+
+def test_ver31_levels():
+    """VER 31（2026-11-04，看過 VER 30 的逐年檢查之後改；docs/lab_thermo_fair_plan.md 第 8 節）：使用者：「可能落底跟看多訊號應該可以合在一起吧
+    …有運氣成分的顯示偏多 強力訊號顯示多」，選：強＝比任一天高 10 點、警示也分兩級、框拿掉、溫度計不動。"""
+    assert X.VER >= 31
+    assert X.LEVEL_EDGE == 0.10 == X.BOTTOM_EDGE
+    assert X.LEVEL_WORDS == {"up": ("多", "偏多"), "warn": ("警示", "偏警示")}
+    assert X.LEVEL_GAIN == 0.05 and X.CAL_MIN_WEEKS == 104 and X.LEVEL_VER == 31
+    assert X.RES_VER == 24 and X.FWD_VER == 25 and X.CAL_VER == 26 and X.AGE_VER == 26   # 研究檔都不用重跑
+    assert X.LEAN_GAP == 0.20 and X.THERMO_EDGE == 0.05 and X.THERMO_CLS == ("up", "buy", "risk")   # 列不列、溫度計不變
+
+
+def test_ver32_no_level_labels():
+    """VER 32（2026-11-04，看過 VER 31 的逐年檢查之後改；docs/lab_thermo_fair_plan.md 第 10 節）：看多那一邊強弱分不出，
+    使用者選「都不標」；兩個檢查只放研究紀錄。研究檔都不用重跑。"""
+    assert X.VER >= 32
+    assert X.RES_VER == 24 and X.FWD_VER == 25 and X.CAL_VER == 26 and X.AGE_VER == 26
+    assert X.BOTTOM_VER == 30 and X.LEVEL_VER == 31
+
+
+def test_ver33_labels_bottom_and_method_check():
+    """VER 33（2026-11-04；docs/lab_thermo_fair_plan.md 第 11、12 節）：使用者：「加入到看多訊號裡面吧 我覺得雖然會沒那麼準
+    但我哪知道是不是你的研究方法有問題」。選：落底＋多／偏多都加、擋掉的照舊放進行中但也標落底、五個市場都標、要檢查研究方法。"""
+    assert X.VER == 33
+    assert X.LEVEL_EDGE == 0.10 and X.LEVEL_WORDS == {"up": ("多", "偏多"), "warn": ("警示", "偏警示")}
+    assert X.BOTTOM_WORD == "落底" and X.SIDE_HEAD == {"up": "看多", "warn": "警示"}
+    assert X.BOTTOM_EDGE == 0.10 and X.N_MIN == 5                              # 落底的強＝第 5.5 節
+    assert X.CHK_HS == (20, 120) and X.CHK_EDGES == (0.05, 0.15) and X.CHK_EDGES_L == (0.15, 0.20) and X.CHK_VER == 33
+    assert X.BOTTOM_GAIN == 0.05 and X.LEVEL_GAIN == 0.05 and X.CAL_MIN_WEEKS == 104   # 判定同主結果
+    assert X.RES_VER == 24 and X.FWD_VER == 25 and X.CAL_VER == 26 and X.AGE_VER == 26
+    assert X.LEAN_GAP == 0.20 and X.THERMO_EDGE == 0.05 and X.THERMO_CLS == ("up", "buy", "risk")   # 列不列、溫度計不變

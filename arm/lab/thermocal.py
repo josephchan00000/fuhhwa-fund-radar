@@ -160,9 +160,12 @@ def weekly(F: dict) -> dict:
     return _weekly(F, age=False)
 
 
-def _weekly(F: dict, age: bool) -> dict:
+def _weekly(F: dict, age: bool, level=()) -> dict:
     """weekly 的本體；age＝True 另算 VER 26 的票（第 5.1 節：訊號自己的成績會投、而且那天落的那一格也過，格子只用 cut 之前走完的日子）：
-    另有 "hist26"、"votes26"（{訊號: {"i", "v": {溫度計: {格: 邊}}}}）與新舊比較 "cmp"。"""
+    另有 "hist26"、"votes26"（{訊號: {"i", "v": {溫度計: {格: 邊}}}}）與新舊比較 "cmp"。
+    level＝門檻的 tuple（要 age；True＝(LEVEL_EDGE,)）另算 VER 31 的強票 "hist26s"＝{門檻: 每週票數}（第 5.6 節：那一格當時的差 ≥ 門檻；
+    同一個項目任何一個訊號強就算強；VER 33 第 5.9 節的方法檢查換門檻用）。"""
+    level = (S.LEVEL_EDGE,) if level is True else tuple(level or ())
     from . import sigage as A
     mk, cal, px = F["mk"], F["cal"], F["px"]
     T = len(cal)
@@ -187,6 +190,7 @@ def _weekly(F: dict, age: bool) -> dict:
     y0, y1 = first_year(cal), int(cal[-1][:4])
     hist = {k: {"t": [], "u": [], "w": []} for k in S.THERMO_H}
     hist26 = {k: {"t": [], "u": [], "w": []} for k in S.THERMO_H}
+    hist26s = {e: {k: {"t": [], "u": [], "w": []} for k in S.THERMO_H} for e in level}
     votes_now: dict = {}
     votes26: dict = {}
     for yr in range(y0, y1 + 1):
@@ -197,6 +201,7 @@ def _weekly(F: dict, age: bool) -> dict:
         for k, H in S.THERMO_H.items():
             on = {"u": {}, "w": {}}
             on26 = {"u": {}, "w": {}}
+            on26s = {e: {"u": {}, "w": {}} for e in level}
             for i, sd in enumerate(sds):
                 v = vote(stats_before(sd, cut, Y[k], H))
                 if not v:
@@ -214,12 +219,16 @@ def _weekly(F: dict, age: bool) -> dict:
                     ok = A.passes(P, "up" if c == "u" else "warn")
                     a26 = a & (cw >= 0) & ok[np.maximum(cw, 0)]
                     on26[c][items[i]] = on26[c].get(items[i], np.zeros(len(wk), dtype=bool)) | a26
+                    for e in level:
+                        okS = ok & strong_cells(P, "up" if c == "u" else "warn", e)
+                        a26s = a & (cw >= 0) & okS[np.maximum(cw, 0)]
+                        on26s[e][c][items[i]] = on26s[e][c].get(items[i], np.zeros(len(wk), dtype=bool)) | a26s
                     if yr == y1 and ok.any():
                         vv = votes26.setdefault(sd["id"], {"i": items[i], "v": {}})["v"].setdefault(k, {})
                         for cid in np.nonzero(ok)[0].tolist():
                             ck = A.ckey(cid)
                             vv[ck] = "".join(x for x in "uw" if x in vv.get(ck, "") + c)
-            for hh, oo in ((hist, on), (hist26, on26)) if age else ((hist, on),):
+            for hh, oo in ((hist, on), (hist26, on26)) + tuple((hist26s[e], on26s[e]) for e in level) if age else ((hist, on),):
                 hh[k]["t"] += [int(t) for t in wk]
                 for c in ("u", "w"):
                     tot = np.zeros(len(wk), dtype=int)
@@ -229,7 +238,20 @@ def _weekly(F: dict, age: bool) -> dict:
     out = {"y0": y0, "y1": y1, "Y": Y, "hist": hist, "votes": votes_now}
     if age:
         out.update(hist26=hist26, votes26=votes26, cmp=compare(Y, hist, hist26))
+    if age and level:
+        out["hist26s"] = hist26s
     return out
+
+
+def strong_cells(P: dict | None, d: str, edge: float | None = None) -> np.ndarray:
+    """at(cut) 的每一格這一邊的差 ≥ edge（預設 LEVEL_EDGE；第 5.6 節；次數與「會不會列」另由 sigage.passes 管）。"""
+    if P is None:
+        from . import sigage as A
+        return np.zeros(A.NC, dtype=bool)
+    h = P["warn" if d == "warn" else "up"]
+    b = P["bw" if d == "warn" else "bu"]
+    with np.errstate(invalid="ignore"):
+        return np.isfinite(h) & (np.round(h - b, 9) >= (S.LEVEL_EDGE if edge is None else edge))
 
 
 def compare(Y: dict, h25: dict, h26: dict) -> dict:
@@ -443,3 +465,54 @@ def lean_research(F: dict | None = None) -> dict:
     F = F if F is not None else G.frames()
     return {"ver": S.VER, "spec_date": S.SPEC_DATE, "run": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "last": {mk: F[mk]["cal"][-1] for mk in F}, "mk": {mk: G._r(lean_compare(F[mk])) for mk in S.MARKETS if mk in F}}
+
+
+# ── VER 31：列出來的每一列分強弱的逐年檢查（第 5.6 節） ─────────────────────────────────────────
+
+LEVEL_OUT = ROOT / "data" / "lab" / "thermolevel_research.json"
+
+
+def level_compare(Y: dict, h26: dict, hs: dict) -> dict:
+    """每支溫度計、每一邊：強的「項目 × 週」（hs）與弱的（h26 − hs）之後的比例（偏多＝之後上漲、警示＝之後大回撤），和全部週比。
+    → {溫度計: {邊: {"all": [比例, 週數], "s": [比例, 項目週], "w": [...], "d": 強 − 弱, "v": ok／no／few}}}。"""
+    out: dict = {}
+    for k in S.THERMO_H:
+        Yu, Yw, _ = Y[k]
+        t = np.asarray(h26[k]["t"], dtype=np.int64)
+        res = {}
+        for side, c, Yx in (("up", "u", Yu), ("warn", "w", Yw)):
+            y = Yx[t] if len(t) else np.zeros(0)
+            ok = np.isfinite(y)
+            a, s_ = np.asarray(h26[k][c], dtype=float)[ok], np.asarray(hs[k][c], dtype=float)[ok]
+            y = y[ok]
+
+            def rate(w):
+                return [float((w * y).sum() / w.sum()) if w.sum() else None, int(w.sum())]
+            S_, W_ = rate(s_), rate(a - s_)
+            d = None if S_[0] is None or W_[0] is None else S_[0] - W_[0]
+            v = "few" if min(S_[1], W_[1]) < S.CAL_MIN_WEEKS or d is None else "ok" if round(d, 9) >= S.LEVEL_GAIN else "no"
+            res[side] = {"all": [float(y.mean()) if len(y) else None, int(len(y))], "s": S_, "w": W_, "d": d, "v": v}
+        out[k] = res
+    return out
+
+
+def level_research(F: dict | None = None) -> dict:
+    """五個市場的逐年檢查（scripts/run_thermolevel.py）。"""
+    F = F if F is not None else G.frames()
+    mk_out = {}
+    for mk in S.MARKETS:
+        if mk not in F:
+            continue
+        W = _weekly(F[mk], age=True, level=(S.LEVEL_EDGE,))
+        mk_out[mk] = G._r({"y0": W["y0"], "cmp": level_compare(W["Y"], W["hist26"], W["hist26s"][S.LEVEL_EDGE])})
+    return {"ver": S.VER, "spec_date": S.SPEC_DATE, "run": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "last": {mk: F[mk]["cal"][-1] for mk in F}, "mk": mk_out}
+
+
+def level_load() -> dict | None:
+    """強弱分級的逐年檢查（第 5.6 節）研究檔；沒有或版本不夠＝None（研究紀錄 sigpage.fair_html 用）。"""
+    try:
+        R = json.loads(LEVEL_OUT.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return R if (R.get("ver") or 0) >= S.LEVEL_VER else None
