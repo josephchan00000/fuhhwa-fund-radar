@@ -129,3 +129,6 @@
 
 ## [2026-11-05] 收錄 | 台指選擇權第 2 段：規格 txospec VER 1
 - 使用者說繼續。`arm/lab/txospec.py`（O1 結算日順勢、O2 CPI／FOMC 前買跨式、O3 農曆年前與聖誕行情改買權；成本、上限、判定）、`tests/test_txospec.py`，算成績之前 commit；規劃第 16 節、`lab/txo.md`。
+
+## [2026-11-05] 收錄 | 選擇權風險／報酬計算機第 1 段：作戰表資料
+- 使用者要計算機自動帶入數字與情境，先做計算機、回測往後排。`arm/lab/txocalc.py`、`scripts/run_txocalc.py`、`txo_data.yml` 寫回 main 的 `data/lab/txo_calc.json`；規劃第 17 節、`lab/txo.md`。
