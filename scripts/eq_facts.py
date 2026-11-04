@@ -30,7 +30,7 @@ def main() -> int:
     ap.add_argument("code", nargs="?")
     ap.add_argument("--ind", help="產業代號（tw-L000＝櫃買產業鏈 L000）")
     ap.add_argument("--peers", help="換過的同業，逗號分開")
-    ap.add_argument("--docs", help="官方文件包資料夾 .eqdocs/{編號}（台股；清單寫進資料包的 docs，全文不寫）")
+    ap.add_argument("--docs", help="官方文件包資料夾 .eqdocs/{編號}（清單寫進資料包的 docs，全文不寫）")
     ap.add_argument("--out")
     a = ap.parse_args()
     today = clock.today_tw().isoformat()
@@ -62,14 +62,11 @@ def main() -> int:
     else:
         pack = E.tw_pack(a.code, peers=peers)
     if a.docs:
-        if mk != "tw":
-            print("美股的官方文件包還沒做（docs/lab_eq_docs_plan.md 第 6 節）")
-            return 2
         from arm.lab import eqdocs as D
         ip = Path(a.docs) / "index.json"
-        docs = D.for_facts(json.loads(ip.read_text(encoding="utf-8")), pack["code"]) if ip.exists() else None
+        docs = D.for_facts(json.loads(ip.read_text(encoding="utf-8")), pack["code"], mk) if ip.exists() else None
         if not docs:
-            print(f"{ip} 裡沒有 tw:{pack['code']}（先 scripts/eq_docs_req.py --send tw:{pack['code']}，再 --wait）")
+            print(f"{ip} 裡沒有 {mk}:{pack['code']}（先 scripts/eq_docs_req.py --send {mk}:{pack['code']}，再 --wait）")
             return 2
         pack["docs"] = docs
     pack["made"] = today
@@ -84,12 +81,16 @@ def main() -> int:
           f"範圍換算目標價 {v.get('tp_lo')}～{v.get('tp_hi')}")
     print(f"同業（{pack['peer_how']}）：{[(p['c'], p['n']) for p in pack['peers']]}；照規則的同業：{pack['peers_auto']}")
     dc = pack.get("docs")
-    if dc:
+    if dc and mk == "us":
+        from arm.lab import eqdocs as D
+        print(f"官方文件包（{dc.get('at')}）：{D.d2(dc)}；10-K {(dc.get('k10') or {}).get('d') or '沒有'}、10-Q {(dc.get('q10') or {}).get('d') or '沒有'}、"
+              f"財報新聞稿 {(dc.get('release') or {}).get('d') or '6 個月內沒有'}、8-K {len(dc.get('news') or [])} 份")
+    elif dc:
         from arm.lab import eqdocs as D
         print(f"官方文件包（{dc.get('at')}）：{D.d2(dc)}；最近一次法說會簡報 {(dc.get('deck') or {}).get('d') or '12 個月內沒有'}、"
               f"年報 {(dc.get('annual') or {}).get('fy') or '沒有'} 年度、重大訊息 {len(dc.get('news') or [])} 則")
-    elif mk == "tw":
-        print("⚠ 沒帶官方文件包（--docs）：2026-10-31 起的台股報告檢查會擋")
+    else:
+        print("⚠ 沒帶官方文件包（--docs）：台股 2026-10-31、美股 2026-11-04 起的報告檢查會擋")
     if mk == "us":
         print(f"GICS：{pack.get('sector')}・{pack.get('ind')}；預設產業報告 {pack.get('ind_key')}")
     else:

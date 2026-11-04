@@ -29,7 +29,7 @@ from arm.lab import eqdocs as E  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 LOCAL = ROOT / ".eqdocs"
 PING = ROOT / ".ping" / "eqdocs"
-KEEP = re.compile(r"(id\.txt|index\.json|tw-\d{4}\.(json|md)|raw/[\w.-]+\.html)")
+KEEP = re.compile(r"(id\.txt|index\.json|tw-\d{4}\.(json|md)|us-[A-Z][A-Z0-9.\-]{0,9}\.(json|md)|raw/[\w.-]+\.html)")
 
 
 def git(*a: str, check: bool = True) -> subprocess.CompletedProcess:
@@ -37,9 +37,10 @@ def git(*a: str, check: bool = True) -> subprocess.CompletedProcess:
 
 
 def send(codes: list[str], raw: bool, commit: bool) -> int:
-    bad = [c for c in codes if not E.CODE_RE.fullmatch(c)]
+    from arm.lab import eqdocs_us as U
+    bad = [c for c in codes if not (E.CODE_RE.fullmatch(c) or U.CODE_RE.fullmatch(c))]
     if bad or not codes:
-        print(f"代號格式不對（要 tw:四碼）：{bad or codes}")
+        print(f"代號格式不對（要 tw:四碼 或 us:美股代號，例 us:PAYC）：{bad or codes}")
         return 1
     rid = f"{now_tw():%Y%m%d-%H%M}-{secrets.token_hex(3)}"
     PING.parent.mkdir(exist_ok=True)
@@ -92,17 +93,24 @@ def wait(rid: str, timeout: int) -> int:
     print(f"文件包 {rid}（CI {idx.get('at')}）→ {dest.relative_to(ROOT)}/")
     for c, x in (idx.get("codes") or {}).items():
         d, a = x.get("deck") or {}, x.get("annual") or {}
-        print(f"- {c}：{'🟢' if x.get('ok') else '🔴'} 法說會 {len(x.get('confs') or [])} 場"
-              + (f"、最近一次簡報 {d.get('d')}（{d.get('n')} 頁）" if d else "、12 個月內沒有簡報")
-              + f"、重大訊息 {len(x.get('news') or [])} 則"
-              + (f"、年報 {a.get('fy')} 年度營運概況 {len(a.get('pages') or [])} 頁" if a else "、沒有年報")
-              + ("" if x.get("ok") else f"；{x.get('st')}"))
+        if c.startswith("us:"):
+            k, q, r = x.get("k10") or {}, x.get("q10") or {}, x.get("release") or {}
+            print(f"- {c}：{'🟢' if x.get('ok') else '🔴'} 10-K {k.get('d') or '沒有'}、10-Q {q.get('d') or '沒有'}"
+                  f"、財報新聞稿 {r.get('d') or '6 個月內沒有'}、8-K {len(x.get('news') or [])} 份"
+                  + ("" if x.get("ok") else f"；{x.get('st')}"))
+        else:
+            print(f"- {c}：{'🟢' if x.get('ok') else '🔴'} 法說會 {len(x.get('confs') or [])} 場"
+                  + (f"、最近一次簡報 {d.get('d')}（{d.get('n')} 頁）" if d else "、12 個月內沒有簡報")
+                  + f"、重大訊息 {len(x.get('news') or [])} 則"
+                  + (f"、年報 {a.get('fy')} 年度營運概況 {len(a.get('pages') or [])} 頁" if a else "、沒有年報")
+                  + ("" if x.get("ok") else f"；{x.get('st')}"))
         act = E.d2(x)
         if act == "retry":
             print(f"  → 今天不寫這家（文件包沒抓到，明天重試；連續沒抓到 {len(x.get('fails') or [])} 天）")
         elif act == "write":
             print(f"  → 連續 {len(x['fails'])} 天沒抓到（{'、'.join(x['fails'])}）：照寫，「資料侷限」寫明官方文件包連兩天抓不到與原因")
-        print(f"  讀：{dest.relative_to(ROOT)}/tw-{c.split(':')[1]}.md；資料包：scripts/eq_facts.py {c.split(':')[1]} --docs {dest.relative_to(ROOT)}")
+        mk, code = c.split(":", 1)
+        print(f"  讀：{dest.relative_to(ROOT)}/{mk}-{code}.md；資料包：scripts/eq_facts.py {code} --docs {dest.relative_to(ROOT)}")
     return 0
 
 
@@ -123,7 +131,7 @@ def drop(rid: str) -> int:
 def main() -> int:
     ap = argparse.ArgumentParser()
     g = ap.add_mutually_exclusive_group(required=True)
-    g.add_argument("--send", nargs="+", metavar="tw:代號")
+    g.add_argument("--send", nargs="+", metavar="tw:代號|us:代號")
     g.add_argument("--wait", metavar="編號")
     g.add_argument("--drop", metavar="編號")
     ap.add_argument("--timeout", type=int, default=1200)

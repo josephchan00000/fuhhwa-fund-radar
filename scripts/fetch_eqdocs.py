@@ -5,7 +5,8 @@
     python3 scripts/fetch_eqdocs.py --codes "tw:6870 tw:7730" --out DIR     # 手動
     python3 scripts/fetch_eqdocs.py --log 主幹/data/eq_docs_log.json --index DIR/index.json   # 抓完：記錄、標「連續沒抓到的日子」
 
-寫 DIR/id.txt（請求編號）、DIR/tw-{代號}.json（全文）、DIR/tw-{代號}.md（給子代理讀）、DIR/index.json（每家狀態與文件清單）。
+寫 DIR/id.txt（請求編號）、DIR/{tw|us}-{代號}.json（全文）、DIR/{tw|us}-{代號}.md（給子代理讀）、DIR/index.json（每家狀態與文件清單）。
+美股（us:代號）抓 SEC 的 10-K／10-Q／8-K（arm/lab/eqdocs_us.py），聯絡 email 只從 SEC_CONTACT_EMAIL 讀，不印、不存。
 請求裡 "raw": true＝另存每個觀測站回應的前 60KB 到 DIR/raw/（做測試樣本用）。代號與編號照格式驗過才用，不進任何指令。"""
 import argparse
 import json
@@ -18,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from arm.clock import now_tw, today_tw  # noqa: E402
 from arm.http import get_bytes  # noqa: E402
 from arm.lab import eqdocs as E  # noqa: E402
+from arm.lab import eqdocs_us as U  # noqa: E402
 from arm.lab.market import _decode, post_bytes  # noqa: E402
 
 MAX_CODES = 6
@@ -32,7 +34,7 @@ def request(args) -> tuple[str, list[str], bool]:
         codes, raw = (args.codes or "").split(), False
     if not E.ID_RE.fullmatch(rid):
         raise SystemExit(f"請求編號格式不對：{rid!r}")
-    bad = [c for c in codes if not E.CODE_RE.fullmatch(c)]
+    bad = [c for c in codes if not (E.CODE_RE.fullmatch(c) or U.CODE_RE.fullmatch(c))]
     if bad or not codes or len(codes) > MAX_CODES:
         raise SystemExit(f"代號格式不對或數量不對（1～{MAX_CODES} 個）：{codes!r}")
     return rid, list(dict.fromkeys(codes)), raw
@@ -74,16 +76,68 @@ def main() -> int:
         return b
 
     idx = {"id": rid, "at": f"{now_tw():%Y-%m-%d %H:%M}", "codes": {}}
+    sec = sec_client() if any(c.startswith("us:") for c in codes) else None
     for c in codes:
-        code = c.split(":", 1)[1]
+        mk, code = c.split(":", 1)
         t0 = now_tw()
-        pk = E.build(code, today_tw(), post, get)
-        (out / f"tw-{code}.json").write_text(json.dumps(pk, ensure_ascii=False), encoding="utf-8")
-        (out / f"tw-{code}.md").write_text(E.render_md(pk), encoding="utf-8")
-        idx["codes"][c] = E.index(pk)
+        if mk == "us":
+            pk = us_pack(code, sec)
+            md = U.render_md(pk)
+            ix = U.index(pk)
+        else:
+            pk = E.build(code, today_tw(), post, get)
+            md = E.render_md(pk)
+            ix = E.index(pk)
+        (out / f"{mk}-{code}.json").write_text(json.dumps(pk, ensure_ascii=False), encoding="utf-8")
+        (out / f"{mk}-{code}.md").write_text(md, encoding="utf-8")
+        idx["codes"][c] = ix
         print(f"[eqdocs] {c} {pk.get('name')}：{pk['st']}（{(now_tw() - t0).seconds}s）", flush=True)
     (out / "index.json").write_text(json.dumps(idx, ensure_ascii=False, indent=1), encoding="utf-8")
     return 0
+
+
+def sec_client():
+    """SEC 的取用器（每秒最多 5 個請求、User-Agent 帶聯絡 email）與代號 → CIK 表；沒有 SEC_CONTACT_EMAIL → None。"""
+    import time
+    import urllib.error
+    import urllib.request
+    from arm.http import _CTX
+    from arm.lab import secfin as SF
+    email = SF.contact()
+    if not email:
+        print("[eqdocs] 沒有 SEC_CONTACT_EMAIL，美股文件包跳過", flush=True)
+        return None
+    last = [0.0]
+
+    def get(url: str) -> tuple[int, bytes]:
+        w = last[0] + 0.2 - time.time()
+        if w > 0:
+            time.sleep(w)
+        last[0] = time.time()
+        req = urllib.request.Request(url, headers={"User-Agent": SF._ua(email), "Accept": "*/*"})
+        try:
+            with urllib.request.urlopen(req, timeout=120, context=_CTX) as r:
+                return r.status, r.read()
+        except urllib.error.HTTPError as e:
+            return e.code, b""
+        except Exception:                                              # noqa: BLE001
+            return 0, b""
+    try:
+        tick = SF.fetch_tickers(email)
+    except Exception as e:                                             # noqa: BLE001
+        print(f"[eqdocs] SEC 代號表抓不到：{type(e).__name__}", flush=True)
+        tick = {}
+    return get, tick
+
+
+def us_pack(sym: str, sec) -> dict:
+    if not sec:
+        return {"v": U.VER, "mk": "us", "code": sym, "made": today_tw().isoformat(), "ok": False, "st": {"sub": "err 沒有 SEC 聯絡設定"}}
+    get, tick = sec
+    cik = tick.get(sym)
+    if not cik:
+        return {"v": U.VER, "mk": "us", "code": sym, "made": today_tw().isoformat(), "ok": False, "st": {"sub": "err 代號查不到 CIK"}}
+    return U.build(sym, cik, today_tw(), get)
 
 
 def log(lp: Path, ip: Path) -> int:
