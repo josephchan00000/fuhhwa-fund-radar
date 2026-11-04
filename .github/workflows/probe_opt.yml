@@ -1,0 +1,24 @@
+name: 選擇權資料探針
+# docs/lab_options_plan.md 第 4 節：只看期交所選擇權資料的長相與某一天的價格路徑，不算策略成績、不寫任何檔。
+# 容器連不到期交所，借 CI 網路跑；結果讀日誌。workflow_dispatch 只能對已在 main 的檔觸發，
+# 所以另外留 push 觸發（只限 .ping/optprobe 這個檔；第一行可寫日期 YYYY-MM-DD，空白＝今天）。
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["claude/**"]
+    paths: [".ping/optprobe"]
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 探針
+        run: |
+          D="$(head -n1 .ping/optprobe 2>/dev/null | tr -d '[:space:]' || true)"
+          TZ=Asia/Taipei PROBE_DAY="$D" python3 scripts/probe_opt.py
