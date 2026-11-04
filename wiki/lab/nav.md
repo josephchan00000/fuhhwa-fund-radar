@@ -17,6 +17,8 @@
 - 整站建頁的測試夾具 `tests/conftest.py` 的 `labsite`（session scope：照每天建頁的順序建配置、市場、轉址、研究紀錄頁，整個測試只建一次約 3 分鐘；`test_plain.py`、`test_old_urls.py` 共用）。CI 不跑 pytest——改頂欄、網址、轉址之後自己跑這兩支。
 - 主頁頁尾的「·」連 x9m.html（市場・台股）；tests/test_lab.py 守入口只在頁尾。
 
+- **右下角「選」字**（2026-11-05）：`appnav.finish` 在每個籌碼雷達頁右下角放一個小小的「選」字（`appnav.OP_ENTRY`），連到藏起來的選擇權計算機 `x9op.html`（[台指選擇權](txo.md)）；計算機頁自己不放。
+
 ## 踩過的坑
 
 - 配置頁要載入 corepage 的樣式（`page.render` 的 CSS 有 `corepage.CSS`；「細節」放的是 corepage 的圖表與表格）——第 1 段漏了，打開細節時圖是整片黑塊、兩張圖一起出現、表把整頁撐成 1,213px 寬，到第 4 段量手機寬度才發現。把別的模組的 HTML 搬進一頁時，樣式要一起帶。

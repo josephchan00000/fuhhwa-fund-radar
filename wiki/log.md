@@ -132,3 +132,6 @@
 
 ## [2026-11-05] 收錄 | 選擇權風險／報酬計算機第 1 段：作戰表資料
 - 使用者要計算機自動帶入數字與情境，先做計算機、回測往後排。`arm/lab/txocalc.py`、`scripts/run_txocalc.py`、`txo_data.yml` 寫回 main 的 `data/lab/txo_calc.json`；規劃第 17 節、`lab/txo.md`。
+
+## [2026-11-05] 收錄 | 選擇權計算機第 2 段：x9op.html 與右下角「選」字
+- `arm/lab/txopage.py`、`appnav.OP_ENTRY`／`OP_CSS`、gen_fund_dashboard 建頁、三支 workflow add；`tests/test_txopage.py`。改了 `lab/txo.md`、`lab/nav.md`。
