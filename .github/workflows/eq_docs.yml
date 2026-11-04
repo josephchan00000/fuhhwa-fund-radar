@@ -101,6 +101,9 @@ jobs:
           export GIT_INDEX_FILE="$RUNNER_TEMP/eqdocs.idx"
           rm -f "$GIT_INDEX_FILE"
           git add -f eqdocs
+          # 兩支 vercel.json 也放進去：它們用 deploymentEnabled 關掉 claude/** 的預覽部署；臨時分支沒有它們時 Vercel 會試著部署、
+          # 找不到 Root Directory「dashboard」而寄失敗信，也會吃每日部署額度（2026-11-04 使用者收到 Preview deployment failed）
+          git add -f vercel.json dashboard/vercel.json
           TREE=$(git write-tree)
           COMMIT=$(git commit-tree "$TREE" -m "個股報告官方文件包 $ID")
           unset GIT_INDEX_FILE
