@@ -1,8 +1,39 @@
 {
- "as_of": "2026-11-04 15:38",
- "count": 0,
+ "as_of": "2026-11-04 19:03",
+ "count": 3,
  "fund_count": 0,
- "etf_count": 0,
+ "etf_count": 3,
  "usqm_count": 0,
- "items": []
+ "items": [
+  {
+   "src": "etf",
+   "name": "HOWMET AEROSPACE INC",
+   "ticker": "HWM",
+   "count": 1,
+   "etfs": [
+    "00990A"
+   ],
+   "weight": 1.55
+  },
+  {
+   "src": "etf",
+   "name": "裕慶-KY",
+   "ticker": "6957",
+   "count": 1,
+   "etfs": [
+    "00984A"
+   ],
+   "weight": 0.68
+  },
+  {
+   "src": "etf",
+   "name": "廣達服務公司",
+   "ticker": "PWR",
+   "count": 1,
+   "etfs": [
+    "00409A"
+   ],
+   "weight": 0.46
+  }
+ ]
 }
