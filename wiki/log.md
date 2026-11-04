@@ -104,4 +104,4 @@
 - 美股報告也改成先讀 CI 抓的官方文件（`eqdocs_us`，請求寫 `us:代號`）；11/04 起的美股報告要引用 10-K、10-Q、寫出最近一次財報新聞稿日期（`eqreport.docs_issues_us`）。排程 ⑦ 的①-b 改成台股、美股一起送。改了 `lab/equity-report.md`、`ops/routines.md`（規劃 `docs/lab_eq_docs_plan.md` 第 13 節）。
 
 ## [2026-11-04] 收錄 | Paycom 用 SEC 官方文件重做＋美股文件包漏附件修正
-- Paycom 重做（買進、316 美元），舊版 9 處錯；第一次抓包漏掉 8/5 財報新聞稿附件卻顯示 🟢 → `eqdocs_us` VER 2 重試＋記 miss＋缺財報新聞稿附件算沒抓到。改了 `lab/equity-report.md`（規劃 `docs/lab_eq_docs_plan.md` 第 13 節）。
+- Paycom 重做（買進、316 美元），舊版 9 處錯；第一次抓包漏掉 8/5 財報新聞稿附件卻顯示 🟢 → `eqdocs_us` VER 2 重試＋記 miss＋缺財報新聞稿附件算沒抓到。改了 `lab/equity-report.md`（規劃 `docs/lab_eq_docs_plan.md` 第 13 節）；文件包臨時分支被 Vercel 預覽部署、失敗寄信 → 臨時分支也放兩支 vercel.json，改了 `ops/deploy.md`。
