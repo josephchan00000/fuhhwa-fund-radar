@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/11/04 14:57",
+  "as_of": "2026/11/04 15:36",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -554,7 +554,7 @@
       "channel": "JUSTIN投資日記",
       "url": "https://www.youtube.com/watch?v=8VSo8m4_9Go",
       "date": "2026-11-02",
-      "views": 4141
+      "views": 4114
     },
     {
       "platform": "youtube",
@@ -571,7 +571,7 @@
       "channel": "懶得變有錢",
       "url": "https://www.youtube.com/shorts/B0tqWlaYBcQ",
       "date": "2026-11-01",
-      "views": 1314,
+      "views": 1312,
       "short": true
     },
     {
@@ -580,7 +580,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/PTnYdznK2XI",
       "date": "2026-11-02",
-      "views": 217383,
+      "views": 218932,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -591,7 +591,7 @@
       "channel": "瘋狂股市福利社Free Free Free!",
       "url": "https://www.youtube.com/watch?v=RxPRvqYjVKc",
       "date": "2026-10-30",
-      "views": 175999,
+      "views": 176026,
       "peer": true,
       "cat": "市值型"
     },
@@ -601,7 +601,7 @@
       "channel": "施羅德投資 (台灣)",
       "url": "https://www.youtube.com/shorts/vlFqx1GeoiI",
       "date": "2026-11-02",
-      "views": 168999,
+      "views": 173353,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -612,7 +612,7 @@
       "channel": "賺錢放大術",
       "url": "https://www.youtube.com/watch?v=8-Szt70v4xY",
       "date": "2026-10-30",
-      "views": 138569,
+      "views": 138720,
       "peer": true,
       "cat": "綜合"
     },
@@ -622,19 +622,9 @@
       "channel": "理財達人秀 EBCmoneyshow",
       "url": "https://www.youtube.com/watch?v=3ZeGiG5It4M",
       "date": "2026-11-03",
-      "views": 123733,
+      "views": 124351,
       "peer": true,
       "cat": "債券"
-    },
-    {
-      "platform": "youtube",
-      "title": "00406A掩護性買權創造高配息 僅花88天衝破千億 刷新主動式ETF紀錄│*曾鐘玉 王仲麟 *20261030股市周報分段版2/5.有CC字幕",
-      "channel": "非凡商業台",
-      "url": "https://www.youtube.com/watch?v=HpnqF8OLHTI",
-      "date": "2026-10-30",
-      "views": 75798,
-      "peer": true,
-      "cat": "高股息"
     },
     {
       "platform": "youtube",
@@ -642,18 +632,18 @@
       "channel": "董事長開講",
       "url": "https://www.youtube.com/shorts/1Hirnp6dW0g",
       "date": "2026-11-03",
-      "views": 68399,
+      "views": 71397,
       "peer": true,
       "short": true,
       "cat": "基金"
     },
     {
       "platform": "youtube",
-      "title": "EP43 ETF 0050 vs 0056 驚人對比！退休月領 5 萬只要 600 萬本金？廣哥揭秘年輕人10%配息神級玩法",
-      "channel": "廣哥教傳富",
-      "url": "https://www.youtube.com/watch?v=AX2fRtejHFo",
-      "date": "2026-10-30",
-      "views": 65401,
+      "title": "配息17%根本沒賺到？這檔ETF被外資盯上 !｜楚狂人 ft. 退休教授 朱岳中 ｜財富狂犇｜玩股網20261031",
+      "channel": "玩股網楚狂人",
+      "url": "https://www.youtube.com/watch?v=TMi8kLk99ss",
+      "date": "2026-10-31",
+      "views": 65028,
       "peer": true,
       "cat": "高股息"
     },
@@ -663,7 +653,7 @@
       "channel": "自由女神邱沁宜",
       "url": "https://www.youtube.com/watch?v=KckfwZqgn9I",
       "date": "2026-10-30",
-      "views": 61741,
+      "views": 61795,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -673,15 +663,25 @@
       "channel": "阿格力博識",
       "url": "https://www.youtube.com/watch?v=e2GX7EtKizk",
       "date": "2026-11-02",
-      "views": 53614,
+      "views": 53795,
       "peer": true,
       "cat": "主動式"
+    },
+    {
+      "platform": "youtube",
+      "title": "大盤底部不遠?台股先蹲後跳?選後大行情? 鴻海科技日揭&quot;共贏密碼&quot; 拉誰吃大餅?｜王志郁 主持｜20261101｜Catch大錢潮 完整版｜三立財經iNEWS",
+      "channel": "三立財經iNEWS",
+      "url": "https://www.youtube.com/watch?v=CeVmJDuTrNA",
+      "date": "2026-11-01",
+      "views": 48071,
+      "peer": true,
+      "cat": "市值型"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00418A（詳下方新聞標籤）",
     "品牌焦點：00877 復華中國5G通信ETF｜成分股？配息？優缺點？（StockFeel 股感）",
     "社群聲量最高：股市越跌強友越買，底氣藏在這張126年藏金圖（0 推）",
-    "YouTube 熱片：台股高檔急殺，先賣再接回？她勸你別想得太簡單｜ft.基金教母蕭碧燕、葉芷娟 #投資心態 #基金 #ETF錢滾錢（【CMoney理財寶】官方頻道・217,383 次觀看）"
+    "YouTube 熱片：台股高檔急殺，先賣再接回？她勸你別想得太簡單｜ft.基金教母蕭碧燕、葉芷娟 #投資心態 #基金 #ETF錢滾錢（【CMoney理財寶】官方頻道・218,932 次觀看）"
   ]
 }

@@ -3939,6 +3939,18 @@
    "intro": "美國皇家製藥（Royalty Pharma），總部在紐約的生技權利金投資公司；向藥廠與學研機構購買已上市藥品的未來銷售權利金，並共同出資後期臨床與新藥上市以換取權利金。",
    "ticker": "RPRX",
    "verified": true
+  },
+  "SOLARIS ENERGY INFRASTRUCTUR": {
+   "country": "美國",
+   "intro": "美國 Solaris Energy Infrastructure，以租賃方式提供資料中心與油氣場域使用的移動式天然氣發電設備（電力即服務），並附帶配電與物流服務；電力業務為主要獲利來源。",
+   "ticker": "SEI",
+   "verified": true
+  },
+  "中鼎": {
+   "country": "台灣",
+   "intro": "台灣中鼎工程，國內最大的工程統包業者；業務涵蓋煉油石化、電力、環保與高科技廠房，從規劃、設計、採購、施工到試車一貫服務，近年擴及半導體與 AI 資料中心廠房。",
+   "ticker": "9933",
+   "verified": true
   }
  }
 }

@@ -1,29 +1,8 @@
 {
- "as_of": "2026-11-04 14:58",
- "count": 2,
+ "as_of": "2026-11-04 15:38",
+ "count": 0,
  "fund_count": 0,
- "etf_count": 2,
+ "etf_count": 0,
  "usqm_count": 0,
- "items": [
-  {
-   "src": "etf",
-   "name": "SOLARIS ENERGY INFRASTRUCTUR",
-   "ticker": "SEI",
-   "count": 1,
-   "etfs": [
-    "00990A"
-   ],
-   "weight": 0.77
-  },
-  {
-   "src": "etf",
-   "name": "中鼎",
-   "ticker": "9933",
-   "count": 1,
-   "etfs": [
-    "00984A"
-   ],
-   "weight": 0.64
-  }
- ]
+ "items": []
 }
