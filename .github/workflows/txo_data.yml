@@ -63,6 +63,21 @@ jobs:
           fi
           echo "模式 $MODE 起點 ${START:-預設} 預算 ${BUDGET:-100} 分（事件 $EVENT）"
           timeout 17400 python3 scripts/fetch_txo.py --root txodata --mode "$MODE" --start "$START" --budget-min "${BUDGET:-100}"
+      - name: 作戰表（data/lab/txo_calc.json 寫回 main；docs/lab_txo_plan.md 第 17 節）
+        if: always() && github.ref == 'refs/heads/main'
+        run: |
+          python3 scripts/run_txocalc.py --root txodata --out data/lab/txo_calc.json || { echo "::warning::作戰表沒算出來"; exit 0; }
+          [ -n "$(git status --porcelain -- data/lab/txo_calc.json)" ] || { echo "作戰表沒變"; exit 0; }
+          git config user.name "josephchan00000"
+          git config user.email "51159474+josephchan00000@users.noreply.github.com"
+          git add data/lab/txo_calc.json
+          git commit -q -m "chore: 選擇權作戰表 $(date '+%F %H:%M')"
+          for i in 1 2 3; do
+            git push origin HEAD:main && exit 0
+            git pull --rebase origin main || git rebase --abort || true
+            sleep 5
+          done
+          echo "::warning::作戰表沒推上 main（資料分支照常 commit）"
       - name: commit 回資料分支
         if: always()
         working-directory: txodata
