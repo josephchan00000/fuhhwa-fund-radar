@@ -26,17 +26,30 @@
   流程：新版本寫好規格（VER＋1）→ 現行版照常拿錢、新版從同一天起紙上記 → 滿 QUAR_DAYS 個交易日推播「新版觀察滿 3 個月，回『好』才換」
     → 使用者回「好」才換；回「不換」新版停記。不設成績門檻（QUAR_GATE＝None；K5：63 天的成績差大多是雜訊，換不換由使用者看並列成績決定）。
   修錯當天改（FIX_KINDS）：資料錯、用到未來的資料、程式和規格不一致；commit 與知識庫日誌寫「修錯」並說明為什麼不算改版；拿不準先問使用者。
+
+VER 2（2026-11-04，同日，算任何門檻之前）：熔斷先只做有逐日回測淨值的三份。
+  寫門檻時查到：臺灣50 提前卡位（s3）、長線投信動能（s5）只有逐筆交易，沒有逐日淨值（交易計畫的回測也是用財報驚喜（大型股）代替整個 ★ 那一半）。
+  使用者選「先做有資料的三條」：SLICES＝台股新飆股（tw_boom）、財報驚喜（大型股）（tw_v3l）、美股強勢品質股（us_qm）。
+  s3、s5 暫時不設熔斷，照舊靠策略健檢（health.daily）通知；之後補好逐日回測（先寫定同時拿幾檔、錢怎麼分）再 VER＋1 加進來。
+  三份的回測淨值（BT_SRC）都用那條策略判定用的同一個回測、照引擎原樣（沒有部位的錢不算利息，前瞻同一個算法）：
+    tw_boom＝data/lab/sx_n8_curve.json 的 nav（W10 挑出的 N8 做法）；
+    tw_v3l＝bt3.account（回測方法 v3、bt3l.top5 的 p3 L，和 core.stk_sleeve 同一份名單）的逐日淨值，沒有部位的日子淨值不動；
+    us_qm＝資料分支上 ussxqm 規則 QM 的照做淨值（ussxbook.run 的逐日報酬，閒置放現金）。
+  門檻算出來寫進 data/lab/ks_bounds.json（BOUNDS_FILE）；美股那一份在資料分支算，只帶數字回 main。
 """
 from __future__ import annotations
 
 import math
 
-VER = 1
+VER = 2
 SPEC_DATE = "2026-11-04"
 
-SLICES = ("tw_boom", "tw_star", "us_qm")      # tw_star＝★ 個股策略每一條各自一份
+SLICES = ("tw_boom", "tw_v3l", "us_qm")       # VER 2：s3、s5 沒有逐日回測淨值，先不設（VER 1＝tw_star 每一條）
+SLICE_MK = {"tw_boom": "tw", "tw_v3l": "tw", "us_qm": "us"}
+BT_SRC = {"tw_boom": "sx_n8_curve.json:nav", "tw_v3l": "bt3.account:v3l", "us_qm": "ussxbook.run:QM"}
+BOUNDS_FILE = "ks_bounds.json"
 BENCH = {"tw": "加權報酬指數（含息）", "us": "S&P 500 含息"}
-LIVE_FROM = {"tw_boom": "2026-10-23", "us_qm": "2026-10-23", "tw_star": "2026-10-15"}   # sxlivespec.START、ussx 前瞻、v3live.SINCE
+LIVE_FROM = {"tw_boom": "2026-10-23", "us_qm": "2026-10-23", "tw_v3l": "2026-10-15"}    # sxlivespec.START、ussx 前瞻、v3live.SINCE
 DD_MULT = 1.5                 # K1
 UW_MULT = 1.5                 # K3：只標示＋推播
 ACT_LAG = 1                   # 觸發／恢復那天之後第幾個交易日收盤動作

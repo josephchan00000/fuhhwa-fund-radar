@@ -5,11 +5,13 @@ import pytest
 from arm.lab import ksspec as K
 
 
-def test_ksspec_v1_is_locked():
-    assert (K.VER, K.SPEC_DATE) == (1, "2026-11-04")
-    assert K.SLICES == ("tw_boom", "tw_star", "us_qm")
+def test_ksspec_v2_is_locked():
+    assert (K.VER, K.SPEC_DATE) == (2, "2026-11-04")
+    assert K.SLICES == ("tw_boom", "tw_v3l", "us_qm")                  # VER 2：s3、s5 沒有逐日回測淨值，先不設
+    assert K.SLICE_MK == {"tw_boom": "tw", "tw_v3l": "tw", "us_qm": "us"} and K.BOUNDS_FILE == "ks_bounds.json"
+    assert K.BT_SRC == {"tw_boom": "sx_n8_curve.json:nav", "tw_v3l": "bt3.account:v3l", "us_qm": "ussxbook.run:QM"}
     assert K.BENCH == {"tw": "加權報酬指數（含息）", "us": "S&P 500 含息"}
-    assert K.LIVE_FROM == {"tw_boom": "2026-10-23", "us_qm": "2026-10-23", "tw_star": "2026-10-15"}
+    assert K.LIVE_FROM == {"tw_boom": "2026-10-23", "us_qm": "2026-10-23", "tw_v3l": "2026-10-15"}
     assert (K.DD_MULT, K.UW_MULT, K.ACT_LAG) == (1.5, 1.5, 1)
     assert (K.AUTO_RESUME, K.RESUME_RESET, K.UW_PAUSES, K.EPS) == (True, True, False, 1e-9)
     assert (K.QUAR_DAYS, K.QUAR_GATE) == (63, None)
