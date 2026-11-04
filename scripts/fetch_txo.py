@@ -6,7 +6,7 @@ claude/txo-data checkout 到 txodata/ 後執行，寫完由 workflow commit 回�
   python3 scripts/fetch_txo.py --root txodata --mode idx --start 2016-01-04 # 回補 5 秒指數（已存與證交所說沒有的日子跳過）
   python3 scripts/fetch_txo.py --root txodata --mode backfill             # 日行情從 2002 起、5 秒指數從 2016 起，照 --budget-min 能做多少做多少
 
-容器連不到期交所與證交所，不要在容器裡跑（CLAUDE.md 鐵則）。
+容器連不到期交所與證交所，不要在容器裡跑（wiki/env/container.md）。
 """
 from __future__ import annotations
 

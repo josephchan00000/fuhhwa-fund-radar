@@ -117,3 +117,6 @@
 
 ## [2026-11-04] 收錄 | 台指選擇權分頁規劃＋個股報告排程暫停
 - 使用者要一個藏起來的選擇權分頁，用同一套架構規劃台指選擇權策略（只做買方、即時停損、只抓大波動），並先暫停個股報告省 token。規劃 `docs/lab_txo_plan.md`（今天週選結算日的真實成交、振幅天數表、規則與限制、證據、O1～O3、風險收益、要決定的事）；資料探針 `scripts/probe_txo.py`、`probe_txo.yml`（只看資料長相，不算成績）。每天 20:47 個股報告排程 enabled=false，改了 `ops/routines.md`、`lab/equity-report.md`（CLAUDE.md 排程搬家同步註明不建）。
+
+## [2026-11-04] 收錄 | 台指選擇權第 1 段：資料層與資料分支 claude/txo-data
+- 使用者決定：三條都做、資金保守、入口＝右下角「選」字、盤中提醒之後再說。新頁 `lab/txo.md`；`arm/lab/txodata.py`、`scripts/fetch_txo.py`、`txo_data.yml`（逐筆分 K、日行情 2002 起、5 秒指數 2016 起，寫進資料分支，絕不合併進 main）。改了 `lab/overview.md`；CLAUDE.md 鐵則加 `claude/txo-data`。

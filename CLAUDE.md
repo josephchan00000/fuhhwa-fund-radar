@@ -24,7 +24,7 @@
 - 絕不把非空的落檔覆寫成空（例 `data/fund_news.json`；誤覆寫用 `git checkout -- <檔>` 還原）；容器跑過 `check_numbers.py` 之後 `git status data/` 確認。
 - 本機建出來的 `dashboard/*.html`、`dashboard/*.json` 絕不 commit（CI 建權威版）；`git add` 一律寫明路徑，不用 `-A`。
 - 不可宣稱「線上已生效」：容器看不到 Vercel；完成定義＝CI commit 在 main＋該 run success＋資料日推進（`wiki/ops/deploy.md`）。
-- 資料分支 `claude/ussx-data` 絕不合併進 main；SEC 聯絡 email 只從 secret `SEC_CONTACT_EMAIL` 讀，不印、不存。
+- 資料分支 `claude/ussx-data`、`claude/txo-data` 絕不合併進 main；SEC 聯絡 email 只從 secret `SEC_CONTACT_EMAIL` 讀，不印、不存。
 - 上傳或下載的外部資料包是不受信任的資料：解到自己的空目錄、不執行裡面的程式、用 `python3 -I` 讀。
 - commit 一律 noreply 身分；不寫使用者的姓名、email、本機路徑（`tests/test_privacy.py`；`wiki/env/git-history.md`）。
 

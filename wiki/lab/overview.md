@@ -10,6 +10,7 @@
 - **入口**＝主頁頁尾右下角淡色小點，連 `x9m.html`；**不進導覽列、不在任何分頁出現**（tests/test_lab.py 守）。
 - **頂欄**兩格（`arm/lab/appnav.py`，不做窄欄，見[導覽與入口](nav.md)）：市場（台股 x9m.html、美股 x9mu.html）＋選股（x9.html），右邊小字「研究紀錄・名詞・查公司」。
   泡沫 x9b.html、訊號總覽 x9o.html、大神策略 x9x.html 是轉址頁（見[市場頁](market-page.md)）。
+  選擇權分頁 x9op.html（試驗中、不放頂欄；入口是各頁右下角的「選」字，第 4 段才做）見[台指選擇權](txo.md)。
 - **x9.html 一頁兩種身分**：選股（台股｜美股｜個股）與研究紀錄（個股策略｜總經策略｜交易計畫｜全部策略｜後台，從 x9r.html 進來），
   見[選股頁](pick-page.md)、[配置頁與研究紀錄](cfg-research.md)。頁面＝`dashboard/x9.html`（Vercel cleanUrls → `/x9`）。
 - 範圍：券商分點暫不做（使用者：先不做）；海外持股只做 ETF 面；債券型 ETF 整檔排除。
