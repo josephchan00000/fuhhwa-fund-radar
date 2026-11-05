@@ -13,11 +13,13 @@ from datetime import date, timedelta
 from . import txodata as T
 from . import txospec as S
 
-VER = 2               # VER 2（2026-11-05）：波動率用選擇權隱含的指數水準反推，不用 13:30 的指數收盤
+VER = 3               # VER 2（2026-11-05）：波動率用選擇權隱含的指數水準反推，不用 13:30 的指數收盤
+                      # VER 3（2026-11-05）：每批多存收盤 ±OI_BAND 內每個履約價的未平倉與最大痛點（盤前作戰圖用）
 N_STRIKES = 10          # 價平上下各幾檔（使用者 2026-11-05：各 10 檔）
 N_EXP = 4               # 列最近幾批到期
 TRADING_YEAR = 252
 FWD_STRIKES = 2       # 隱含指數水準用價平上下幾檔
+OI_BAND = 0.08          # 未平倉存收盤上下 8% 內的履約價（docs/lab_premarket_plan.md）
 
 
 def _ncdf(x: float) -> float:
@@ -86,6 +88,16 @@ def implied_forward(px: dict, atm: float, width: int = FWD_STRIKES) -> float | N
     return xs[m] if len(xs) % 2 else (xs[m - 1] + xs[m]) / 2
 
 
+def max_pain(px: dict) -> float | None:
+    """最大痛點：到期時買方（買權＋賣權）價值總和最小的履約價（用全部履約價的未平倉）。"""
+    oc = {k: v.get("C", (0, 0))[1] or 0 for k, v in px.items()}
+    op = {k: v.get("P", (0, 0))[1] or 0 for k, v in px.items()}
+    if not any(oc.values()) and not any(op.values()):
+        return None
+    ks = sorted(px)
+    return min(ks, key=lambda K: (sum(o * max(0, K - k) for k, o in oc.items()) + sum(o * max(0, k - K) for k, o in op.items()), K))
+
+
 def build(rows: list[list], close: float, asof: date) -> dict:
     """rows＝txodata.parse_day 的列（同一天、日盤）；close＝asof 當天加權指數收盤。"""
     C = {c: i for i, c in enumerate(T.COLS)}
@@ -113,7 +125,10 @@ def build(rows: list[list], close: float, asof: date) -> dict:
         for k in ks:
             c, p = e["px"][k].get("C", (0, 0)), e["px"][k].get("P", (0, 0))
             out.append([k, c[0], iv("C", c[0], f, k, t), p[0], iv("P", p[0], f, k, t), c[1], p[1]])
-        exps.append({"code": e["code"], "date": e["date"], "n": n, "tomorrow": xd == nxt, "f": round(f, 1), "rows": out})
+        oi = [[k, e["px"][k].get("C", (0, 0))[1] or 0, e["px"][k].get("P", (0, 0))[1] or 0]
+              for k in sorted(e["px"]) if abs(k - close) <= OI_BAND * close]
+        exps.append({"code": e["code"], "date": e["date"], "n": n, "tomorrow": xd == nxt, "f": round(f, 1), "rows": out,
+                     "oi": oi, "pain": max_pain(e["px"])})
     atm_iv = None
     for e in exps:
         if e["tomorrow"]:

@@ -63,15 +63,19 @@ jobs:
           fi
           echo "模式 $MODE 起點 ${START:-預設} 預算 ${BUDGET:-100} 分（事件 $EVENT）"
           timeout 17400 python3 scripts/fetch_txo.py --root txodata --mode "$MODE" --start "$START" --budget-min "${BUDGET:-100}"
-      - name: 作戰表（data/lab/txo_calc.json 寫回 main；docs/lab_txo_plan.md 第 17 節）
+      - name: 作戰表與盤前作戰圖（data/lab/txo_calc.json、premkt.json 寫回 main；docs/lab_txo_plan.md 第 17 節、docs/lab_premarket_plan.md）
         if: always() && github.ref == 'refs/heads/main'
         run: |
           python3 scripts/run_txocalc.py --root txodata --out data/lab/txo_calc.json || { echo "::warning::作戰表沒算出來"; exit 0; }
+          # 盤前作戰圖：作戰表（選擇權未平倉）一到就重算一次；夜盤還在進行，標「到幾點」（docs/lab_premarket_plan.md）
+          timeout 60 python3 scripts/fetch_night.py || echo "::warning::夜盤沒抓到"
+          timeout 120 python3 scripts/run_premkt.py || echo "::warning::盤前作戰圖沒算出來"
           python3 -c "from arm.lab import txopage; txopage.build()" || echo "::warning::選擇權頁沒建成"
-          [ -n "$(git status --porcelain -- data/lab/txo_calc.json dashboard/x9op.html)" ] || { echo "作戰表沒變"; exit 0; }
+          [ -n "$(git status --porcelain -- data/lab/txo_calc.json data/lab/premkt.json data/lab/fut/night.json dashboard/x9op.html)" ] || { echo "作戰表沒變"; exit 0; }
           git config user.name "josephchan00000"
           git config user.email "51159474+josephchan00000@users.noreply.github.com"
           git add data/lab/txo_calc.json
+          git add data/lab/premkt.json data/lab/fut/night.json 2>/dev/null || true
           git add -f dashboard/x9op.html 2>/dev/null || true
           git commit -q -m "chore: 選擇權作戰表 $(date '+%F %H:%M')"
           for i in 1 2 3; do

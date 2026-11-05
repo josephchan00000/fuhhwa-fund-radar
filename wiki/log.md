@@ -144,3 +144,6 @@
 
 ## [2026-11-05] 收錄 | 盤前作戰圖規劃
 - 新增 `docs/lab_premarket_plan.md`（壓力支撐、事實表、風險報酬試算、05:10 夜盤更新、06:35 推播；待使用者決定 D1～D6）。改了 `lab/txo.md`。
+
+## [2026-11-05] 收錄 | 盤前作戰圖第 1、2 段
+- 夜盤探針（MIS 盤後、每日行情盤後列都拿得到）；`premkt`／`premkpage`／`fetch_night`／`run_premkt`、三支 workflow 串接、06:35 推播第二行、`txocalc` VER 3。改了 `lab/txo.md`、`ops/daily-update.md`。
