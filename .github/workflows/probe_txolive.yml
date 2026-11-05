@@ -1,0 +1,22 @@
+name: 選擇權盤中報價探針
+# docs/lab_txo_plan.md 第 17 節第 3 點：手機瀏覽器能不能直接讀期交所／證交所的盤中報價（CORS、延遲）。只印、不寫任何檔。
+# 容器連不到這兩個站，借 CI 跑；workflow_dispatch 只能對已在 main 的檔觸發，所以另外留 push 觸發（只限 .ping/txolive）。
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["claude/**"]
+    paths: [".ping/txolive"]
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --quiet certifi
+      - name: 探針
+        run: TZ=Asia/Taipei python3 scripts/probe_txolive.py
