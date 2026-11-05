@@ -1,4 +1,5 @@
-"""選擇權分頁 x9op.html：風險／報酬計算機（docs/lab_txo_plan.md 第 17 節）。不在頂欄，籌碼雷達各頁右下角的「選」字進來。
+"""盤前・選擇權分頁 x9op.html：最上面是盤前作戰圖（arm/lab/premkpage.py；docs/lab_premarket_plan.md），下面是風險／報酬計算機
+（docs/lab_txo_plan.md 第 17 節）。不在頂欄，籌碼雷達各頁右下角的「選」字進來。
 
 作戰表資料 data/lab/txo_calc.json（arm/lab/txocalc.py，每晚 CI 寫）整份嵌進頁面；計算全部在瀏覽器裡（Black-Scholes、r＝0，
 和 txocalc.bs 同一個公式）：使用者只要輸入成交價，口數、最多賠、占帳戶、損益兩平、情境表就重算。帳戶金額與手續費只存在使用者自己的瀏覽器。
@@ -13,6 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "dashboard" / "x9op.html"
 DATA = ROOT / "data" / "lab" / "txo_calc.json"
+PM = ROOT / "data" / "lab" / "premkt.json"
 
 CSS = (".opm{max-width:1000px;margin:0 auto;padding:12px 16px 80px}"
        ".opm h1{font-size:21px;margin:6px 0 4px}.opm h2{font-size:16.5px;margin:22px 0 8px}"
@@ -71,7 +73,7 @@ JS = r"""
   const settle = r => cp === 'C' ? r[1] : r[3];
   const h = s => s.replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
   const md = d => +d.slice(5, 7) + '/' + +d.slice(8, 10);
-  const CAPN = {O1: '結算日順勢 2%', O2: '大事件跨式 3%', O3: '訊號改選擇權 5%'};
+  const CAPN = {O1: '每筆 2%', O2: '每筆 3%', O3: '每筆 5%'};
   function render() {
     const e = E(), r = row(); k = r[0];
     if (prem == null) prem = settle(r) || 0;
@@ -139,12 +141,12 @@ _HTML = """<!doctype html>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="data:,">
-<title>選擇權計算機</title>
+<title>盤前・選擇權</title>
 <style>{{CSS}}</style></head>
 <body>
 <div class="top">{{APPTAB}}<a class="back" href="./"><span class="bk1">返回</span>主頁</a></div>
-<main class="opm"><h1>選擇權計算機（試驗中）</h1>
-<p class="oplead">只算「買方」：最多賠的就是付出去的權利金加成本。下面的數字每天晚上自動更新，盤中只要改成交價。這裡只是計算，不是買賣建議；策略要等回測過了才會出現。</p>
+<main class="opm">{{PM}}<h2 id="calc">選擇權計算機</h2>
+<p class="oplead">只算「買方」：最多賠的就是付出去的權利金加成本。下面的數字每天晚上自動更新，盤中只要改成交價。這裡只是計算，不是買賣建議。</p>
 {{FACTS}}
 <div id="opapp"></div></main>
 <script type="application/json" id="opd">{{DATA}}</script>
@@ -169,19 +171,22 @@ def _facts(d: dict | None) -> str:
     return '<div class="opfacts">' + "".join(f"<div><b>{html.escape(a)}</b><span>{html.escape(b)}</span></div>" for a, b in items) + "</div>"
 
 
-def render(data: dict | None = None) -> str:
+def render(data: dict | None = None, pm: dict | None = None) -> str:
     from . import appnav
+    from . import premkpage
     from .heatpage import _CSS as HCSS
     if data is None and DATA.exists():
         data = json.loads(DATA.read_text(encoding="utf-8"))
+    if pm is None and PM.exists():
+        pm = json.loads(PM.read_text(encoding="utf-8"))
     blob = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
-    page = (_HTML.replace("{{CSS}}", HCSS + appnav.CSS + CSS).replace("{{APPTAB}}", appnav.bar(""))
-            .replace("{{FACTS}}", _facts(data)).replace("{{DATA}}", blob).replace("{{JS}}", JS))
+    page = (_HTML.replace("{{CSS}}", HCSS + appnav.CSS + CSS + premkpage.CSS).replace("{{APPTAB}}", appnav.bar(""))
+            .replace("{{PM}}", premkpage.block(pm)).replace("{{FACTS}}", _facts(data)).replace("{{DATA}}", blob).replace("{{JS}}", JS))
     return appnav.finish(page)
 
 
-def build(out: Path = OUT, data: dict | None = None) -> bool:
-    text = render(data)
+def build(out: Path = OUT, data: dict | None = None, pm: dict | None = None) -> bool:
+    text = render(data, pm)
     if out.exists() and out.read_text(encoding="utf-8") == text:
         return False
     out.parent.mkdir(parents=True, exist_ok=True)

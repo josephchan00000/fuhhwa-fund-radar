@@ -189,6 +189,12 @@ jobs:
         # 核對狀態（🔴 紅色警示），主會話驗證步驟看到 🔴 立即修正該數字重推。
         run: TZ=Asia/Taipei python3 scripts/check_numbers.py || true
 
+      - name: 夜盤＋盤前作戰圖（清晨 05:08 那班沒跑到時的備援；docs/lab_premarket_plan.md，失敗不擋）
+        if: steps.merge.outputs.skip != 'true'
+        run: |
+          TZ=Asia/Taipei timeout 60 python3 scripts/fetch_night.py || echo "  ⚠ 夜盤抓取失敗，沿用既有落檔"
+          TZ=Asia/Taipei timeout 120 python3 scripts/run_premkt.py || echo "  ⚠ 盤前作戰圖重算失敗，沿用既有結果"
+
       - name: 跑每日 routine（抓持股介紹 + 產新聞提示包 + 檢查簡介覆蓋 + 重建儀表板）
         if: steps.merge.outputs.skip != 'true'
         env:
