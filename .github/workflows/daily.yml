@@ -189,6 +189,12 @@ jobs:
         # 核對狀態（🔴 紅色警示），主會話驗證步驟看到 🔴 立即修正該數字重推。
         run: TZ=Asia/Taipei python3 scripts/check_numbers.py || true
 
+      - name: 夜盤＋盤前作戰圖（清晨 05:08 那班沒跑到時的備援；docs/lab_premarket_plan.md，失敗不擋）
+        if: steps.merge.outputs.skip != 'true'
+        run: |
+          TZ=Asia/Taipei timeout 60 python3 scripts/fetch_night.py || echo "  ⚠ 夜盤抓取失敗，沿用既有落檔"
+          TZ=Asia/Taipei timeout 120 python3 scripts/run_premkt.py || echo "  ⚠ 盤前作戰圖重算失敗，沿用既有結果"
+
       - name: 跑每日 routine（抓持股介紹 + 產新聞提示包 + 檢查簡介覆蓋 + 重建儀表板）
         if: steps.merge.outputs.skip != 'true'
         env:
@@ -274,6 +280,7 @@ jobs:
           git add -f dashboard/x9x.html 2>/dev/null || true            # 大神策略頁（docs/lab_nav_plan.md；分開 add）
           git add -f dashboard/x9xh.json 2>/dev/null || true           # 大神策略的淨值與每一筆（點開才下載；分開 add）
           git add -f dashboard/x9r.html 2>/dev/null || true            # 研究紀錄頁（docs/lab_ia_v5_plan.md 第 7 節；分開 add）
+          git add -f dashboard/x9op.html 2>/dev/null || true           # 選擇權計算機（docs/lab_txo_plan.md 第 17 節；分開 add）
           git add -f dashboard/x9muh-*.json 2>/dev/null || true        # 美股景氣頁各指數對照圖資料（分開 add）
           git add -f dashboard/x9mup-*.json 2>/dev/null || true        # 美股景氣頁各指數細項面板與內容（點到才下載，分開 add）
           git add -f dashboard/co 2>/dev/null || true                  # 公司分析：每檔資料檔（點進去才下載；內容沒變不改寫）
@@ -306,6 +313,7 @@ jobs:
             git add -f dashboard/x9x.html 2>/dev/null || true            # 大神策略頁（docs/lab_nav_plan.md；分開 add）
             git add -f dashboard/x9xh.json 2>/dev/null || true           # 大神策略的淨值與每一筆（點開才下載；分開 add）
             git add -f dashboard/x9r.html 2>/dev/null || true            # 研究紀錄頁（docs/lab_ia_v5_plan.md 第 7 節；分開 add）
+            git add -f dashboard/x9op.html 2>/dev/null || true           # 選擇權計算機（docs/lab_txo_plan.md 第 17 節；分開 add）
             git add -f dashboard/x9muh-*.json 2>/dev/null || true        # 美股景氣頁各指數對照圖資料（分開 add）
             git add -f dashboard/x9mup-*.json 2>/dev/null || true        # 美股景氣頁各指數細項面板與內容（點到才下載，分開 add）
             git add -f dashboard/co 2>/dev/null || true                  # 公司分析：每檔資料檔（點進去才下載；內容沒變不改寫）

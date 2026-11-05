@@ -3,7 +3,7 @@ name: 台指選擇權資料（資料分支）
 # docs/lab_txo_plan.md 第 10、15 節：期交所選擇權逐筆（只留 30 個交易日，所以每天存）、選擇權日行情（2002 起）、
 # 證交所每 5 秒加權指數（2016 起），寫進資料分支 claude/txo-data（只放資料，絕不合併進 main）。
 # 程式用這一次 checkout 的版本（排程＝main），資料分支 checkout 到 txodata/，寫完 commit 回資料分支。
-# 回補：workflow_dispatch（mode＝backfill／day／idx）；分支上測試：push .ping/txo（第一行「模式 起點 分鐘」，例「backfill - 150」）。
+# 回補：workflow_dispatch（mode＝backfill／day／idx；fomc＝聯準會會議行程頁，O2 用）；分支上測試：push .ping/txo（第一行「模式 起點 分鐘」，例「backfill - 150」）。
 
 on:
   schedule:
@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "daily｜bars｜day｜idx｜backfill"
+        description: "daily｜bars｜day｜idx｜backfill｜fomc"
         default: "daily"
       start:
         description: "起點（day：YYYY-MM；idx：YYYY-MM-DD；空白＝預設）"
@@ -63,6 +63,27 @@ jobs:
           fi
           echo "模式 $MODE 起點 ${START:-預設} 預算 ${BUDGET:-100} 分（事件 $EVENT）"
           timeout 17400 python3 scripts/fetch_txo.py --root txodata --mode "$MODE" --start "$START" --budget-min "${BUDGET:-100}"
+      - name: 作戰表與盤前作戰圖（data/lab/txo_calc.json、premkt.json 寫回 main；docs/lab_txo_plan.md 第 17 節、docs/lab_premarket_plan.md）
+        if: always() && github.ref == 'refs/heads/main'
+        run: |
+          python3 scripts/run_txocalc.py --root txodata --out data/lab/txo_calc.json || { echo "::warning::作戰表沒算出來"; exit 0; }
+          # 盤前作戰圖：作戰表（選擇權未平倉）一到就重算一次；夜盤還在進行，標「到幾點」（docs/lab_premarket_plan.md）
+          timeout 60 python3 scripts/fetch_night.py || echo "::warning::夜盤沒抓到"
+          timeout 120 python3 scripts/run_premkt.py || echo "::warning::盤前作戰圖沒算出來"
+          python3 -c "from arm.lab import txopage; txopage.build()" || echo "::warning::選擇權頁沒建成"
+          [ -n "$(git status --porcelain -- data/lab/txo_calc.json data/lab/premkt.json data/lab/fut/night.json dashboard/x9op.html)" ] || { echo "作戰表沒變"; exit 0; }
+          git config user.name "josephchan00000"
+          git config user.email "51159474+josephchan00000@users.noreply.github.com"
+          git add data/lab/txo_calc.json
+          git add data/lab/premkt.json data/lab/fut/night.json 2>/dev/null || true
+          git add -f dashboard/x9op.html 2>/dev/null || true
+          git commit -q -m "chore: 選擇權作戰表 $(date '+%F %H:%M')"
+          for i in 1 2 3; do
+            git push origin HEAD:main && exit 0
+            git pull --rebase origin main || git rebase --abort || true
+            sleep 5
+          done
+          echo "::warning::作戰表沒推上 main（資料分支照常 commit）"
       - name: commit 回資料分支
         if: always()
         working-directory: txodata

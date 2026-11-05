@@ -1,8 +1,19 @@
 {
- "as_of": "2026-11-04 21:25",
- "count": 0,
- "items": [],
- "pipeline_n": 5,
+ "as_of": "2026-11-05 11:31",
+ "count": 1,
+ "items": [
+  {
+   "code": null,
+   "name": "第一金全球加密科技ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "approved",
+   "cat": "ETF",
+   "approve": "115.11.02申報生效"
+  }
+ ],
+ "pipeline_n": 4,
  "pipeline": [
   {
    "code": null,
@@ -39,16 +50,6 @@
    "src": "cnyes",
    "stage": "applied",
    "cat": "主動式ETF"
-  },
-  {
-   "code": null,
-   "name": "第一金全球加密科技ETF基金",
-   "first_seen": null,
-   "kind": "offering",
-   "src": "cnyes",
-   "stage": "applied",
-   "cat": "ETF",
-   "approve": "審查中"
   }
  ]
 }

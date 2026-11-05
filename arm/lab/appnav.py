@@ -133,6 +133,12 @@ THEME_CSS = (".thm{display:inline-flex;align-items:center;gap:5px;align-self:cen
              ':root[data-theme="light"]{color-scheme:light}:root[data-theme="dark"]{color-scheme:dark}')
 
 BACK = '<a class="back" href="./"><span class="bk1">返回</span>主頁</a>'
+# 右下角小小的「選」字：選擇權計算機 x9op.html 的入口（藏起來、不在頂欄；docs/lab_txo_plan.md 第 11、17 節）
+OP_ENTRY = '<a class="opq" href="x9op.html" aria-label="選擇權計算機" title="選擇權計算機">選</a>'
+OP_CSS = (".opq{position:fixed;right:12px;bottom:12px;z-index:30;width:30px;height:30px;border-radius:50%;display:flex;"
+          "align-items:center;justify-content:center;font-size:13px;color:var(--mut);background:var(--bg);"
+          "border:1px solid var(--line2);text-decoration:none;opacity:.75}.opq:hover{opacity:1;color:var(--ink)}"
+          "@media print{.opq{display:none}}")
 
 
 def _rules(body: str) -> list[tuple[str, str]] | None:
@@ -196,4 +202,7 @@ def finish(page: str, note: str = "") -> str:
     if a >= 0 and b > a:
         head = head[:a + 7] + dual_dark(head[a + 7:b]) + THEME_CSS + head[b:]
     rest = page[h:].replace(BACK, THEME_BTN + BACK, 1)
+    if 'id="opd"' not in rest and "</body>" in rest:     # 選擇權分頁自己不放入口
+        head = head.replace("</style>", OP_CSS + "</style>", 1)
+        rest = rest.replace("</body>", OP_ENTRY + "</body>", 1)
     return head + THEME_HEAD + NAV_HEAD + rest

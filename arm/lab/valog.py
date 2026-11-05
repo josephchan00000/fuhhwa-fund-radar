@@ -368,6 +368,15 @@ def cand_line(cur: dict | None) -> str | None:
     return out + "。"
 
 
+def pm_line(last: str) -> str | None:
+    """盤前作戰圖的推播一行（arm/lab/premkt.push_line 先寫好在 premkt.json）；資料日不是 last 就不帶（過期的不推）。"""
+    from . import premkt as PM
+    pm = json.loads(PM.OUT.read_text(encoding="utf-8")) if PM.OUT.exists() else None
+    if not pm or pm.get("d") != last:
+        return None
+    return pm.get("push")
+
+
 def rare_state() -> dict | None:
     """少見但勝率高的策略：建議試用的規則接下來幾個交易日內要買或賣的（rarepage.reminders）。沒有＝None。"""
     from . import rarepage as RP
@@ -492,6 +501,8 @@ def push_lines(rec: dict) -> list[str]:
                     ("（試算名單）" if i.get("tent") else "") for i in xs))
         a = f"{_md(d)}（{_wd(d)}）" + "；".join(parts) + "。"
     out = [a]
+    if rec.get("pm"):                                     # 盤前作戰圖（docs/lab_premarket_plan.md）
+        out.append(rec["pm"])
     b = boom_line(rec.get("boom"))
     if b:
         out.append(b)
@@ -608,6 +619,12 @@ def update(data: dict, write_file: bool | None = None, now: datetime | None = No
                 rec["ksl"] = kl
     except Exception as e:                                # noqa: BLE001 —— 算不出來：不發提醒、不擋紀錄
         print(f"[ks] 熔斷狀態算不出來：{type(e).__name__}: {e}")
+    try:                                                  # 盤前作戰圖一行（premkt.json 的資料日＝這一筆紀錄的資料日才帶）
+        pl = pm_line(last)
+        if pl:
+            rec["pm"] = pl
+    except Exception:                                     # noqa: BLE001 —— 讀不到：不帶這一行
+        pass
     rec["push"] = push_lines(rec)
     old = days.get(last) or {}
     if {k: v for k, v in old.items() if k != "t"} != rec:   # 內容沒變就不動檔（時間戳也不改）

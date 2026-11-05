@@ -129,3 +129,21 @@
 
 ## [2026-11-05] 收錄 | 台指選擇權第 2 段：規格 txospec VER 1
 - 使用者說繼續。`arm/lab/txospec.py`（O1 結算日順勢、O2 CPI／FOMC 前買跨式、O3 農曆年前與聖誕行情改買權；成本、上限、判定）、`tests/test_txospec.py`，算成績之前 commit；規劃第 16 節、`lab/txo.md`。
+
+## [2026-11-05] 收錄 | 選擇權風險／報酬計算機第 1 段：作戰表資料
+- 使用者要計算機自動帶入數字與情境，先做計算機、回測往後排。`arm/lab/txocalc.py`、`scripts/run_txocalc.py`、`txo_data.yml` 寫回 main 的 `data/lab/txo_calc.json`；規劃第 17 節、`lab/txo.md`。
+
+## [2026-11-05] 收錄 | 選擇權計算機第 2 段：x9op.html 與右下角「選」字
+- `arm/lab/txopage.py`、`appnav.OP_ENTRY`／`OP_CSS`、gen_fund_dashboard 建頁、三支 workflow add；`tests/test_txopage.py`。改了 `lab/txo.md`、`lab/nav.md`。
+
+## [2026-11-05] 收錄 | 選擇權自我檢查與驗收步驟
+- 使用者要先檢查再交給其他模型測。修：作戰表波動率改用隱含指數水準（txocalc VER 2）、停損成本、過期紅字、表格 class 撞名。新增 `docs/lab_txo_test_plan.md`；改了 `lab/txo.md`。
+
+## [2026-11-05] 收錄 | 選擇權第 3 段：O2、O3 日資料回測
+- 盤中報價探針結果（規劃 17 節）、使用者改先做日資料；FOMC 排定聲明日（`txoevents`）、`txobt`／`run_txobt`；O2 沒過、O3 過關。改了 `lab/txo.md`。
+
+## [2026-11-05] 收錄 | 盤前作戰圖規劃
+- 新增 `docs/lab_premarket_plan.md`（壓力支撐、事實表、風險報酬試算、05:10 夜盤更新、06:35 推播；待使用者決定 D1～D6）。改了 `lab/txo.md`。
+
+## [2026-11-05] 收錄 | 盤前作戰圖第 1、2 段
+- 夜盤探針（MIS 盤後、每日行情盤後列都拿得到）；`premkt`／`premkpage`／`fetch_night`／`run_premkt`、三支 workflow 串接、06:35 推播第二行、`txocalc` VER 3。改了 `lab/txo.md`、`ops/daily-update.md`。

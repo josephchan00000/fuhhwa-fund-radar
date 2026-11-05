@@ -227,3 +227,68 @@ def near(d: str, contracts: dict) -> str | None:
     ym = d[:4] + d[5:7]
     cs = sorted(k for k in contracts if k >= ym)
     return cs[0] if cs else None
+
+
+# ── 夜盤（盤前作戰圖用；docs/lab_premarket_plan.md 第 9 節探針）──────────────────────────────────
+
+MIS = "https://mis.taifex.com.tw/futures/api/getQuoteList"
+NIGHT = "data/lab/fut/night.json"
+NIGHT_KEEP = 400
+
+
+def _mis_night() -> list[dict]:
+    """期交所 MIS 盤後（MarketType＝"1"）台指期報價；夜盤收了以後到下一場 15:00 開始前都還在（Status＝TC）。"""
+    import urllib.request
+    from ..http import _CTX  # noqa: PLC2701 —— 同一套 TLS 設定（certifi）
+    body = {"MarketType": "1", "SymbolType": "F", "KindID": "1", "CID": "TXF", "ExpireMonth": "", "RowSize": "全部",
+            "PageNo": "", "SortColumn": "", "AscDesc": "A"}
+    req = urllib.request.Request(MIS, data=json.dumps(body).encode(), headers={
+        **BROWSER, "Content-Type": "application/json;charset=UTF-8", "Origin": "https://mis.taifex.com.tw"})
+    with urllib.request.urlopen(req, timeout=30, context=_CTX) as r:
+        j = json.loads(r.read().decode("utf-8"))
+    return ((j.get("RtData") or {}).get("QuoteList")) or []
+
+
+def night_rec(quotes: list[dict]) -> tuple[str, dict] | None:
+    """MIS 報價 → (夜盤開始那天 YYYY-MM-DD, {sym, o, h, l, c, v, ref, t, done})；取近月（第一個 -M 結尾、有成交的台指期）。"""
+    def f(x):
+        try:
+            return float(x) if x not in (None, "", "-") else None
+        except ValueError:
+            return None
+    for q in quotes:
+        sym = q.get("SymbolID") or ""
+        if not sym.endswith("-M") or not f(q.get("CLastPrice")):
+            continue
+        d = q.get("CDate") or ""
+        if not re.fullmatch(r"\d{8}", d):
+            return None
+        t = q.get("CTime") or ""
+        return f"{d[:4]}-{d[4:6]}-{d[6:]}", {
+            "sym": sym, "o": f(q.get("COpenPrice")), "h": f(q.get("CHighPrice")), "l": f(q.get("CLowPrice")),
+            "c": f(q.get("CLastPrice")), "v": int(f(q.get("CTotalVolume")) or 0), "ref": f(q.get("CRefPrice")),
+            "t": f"{t[:2]}:{t[2:4]}:{t[4:6]}" if len(t) == 6 else t, "done": q.get("Status") == "TC"}
+    return None
+
+
+def update_night(root=None) -> dict | None:
+    """抓一次夜盤寫進 data/lab/fut/night.json（{夜盤開始那天: 紀錄}，只留最近 NIGHT_KEEP 筆；收了的那一場不再被進行中的覆蓋）。"""
+    from pathlib import Path
+    from .. import fileio
+    root = Path(root) if root else Path(__file__).resolve().parents[2]
+    p = root / NIGHT
+    got = night_rec(_mis_night())
+    if not got:
+        log("夜盤：MIS 沒有可用的近月報價")
+        return None
+    d, rec = got
+    doc = fileio.read_json(p, default={}) or {}
+    old = doc.get(d)
+    if old and old.get("done") and not rec["done"]:
+        return old
+    doc[d] = rec
+    for k in sorted(doc)[:-NIGHT_KEEP]:
+        doc.pop(k, None)
+    fileio.write_text(p, json.dumps(doc, ensure_ascii=False, sort_keys=True, indent=0) + "\n")
+    log(f"夜盤 {d}：{rec}")
+    return rec
