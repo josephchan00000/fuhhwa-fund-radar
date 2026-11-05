@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/11/05 17:04",
+  "as_of": "2026/11/06 06:46",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -9,7 +9,7 @@
       "source": "股感 StockFeel",
       "date": "2026-11-04 09:04",
       "datetime": "2026-11-04T09:04:34+08:00",
-      "summary": "2026 年的中國科技股市場，最熱門的關鍵字無疑是「AI 算力」。隨著官方持續投入建設、強化 AI 算力供給，並積極扶植 AI 優勢企業，5G 通訊設備與 AI 伺服器用光模組的需求跟著水漲船高；8 …"
+      "summary": "2026 年的中國科技股市場，最熱門的關鍵字無疑是「AI 算力」。隨著官方持續投入建設、強化 AI 算力供給， [&#8230;]\nThe post 00877 復華中國5G通信ETF｜成分股？配息？…"
     },
     {
       "title": "00929績效、配息雙亮眼！近月受益人數激增3萬人、官股也搶買逾23億",
@@ -24,13 +24,6 @@
       "source": "UDN",
       "date": "2026-11-03 08:40",
       "datetime": "2026-11-03T08:40:51+08:00"
-    },
-    {
-      "title": "00929配息再開獎！年化息率衝16% 連五度維持0.38元「底氣」何在？",
-      "url": "https://newtalk.tw/news/view/2026-11-02/1068838",
-      "source": "Newtalk新聞",
-      "date": "2026-11-02 17:01",
-      "datetime": "2026-11-02T17:01:49+08:00"
     },
     {
       "title": "00929再配0.38元！官股砸23億力挺 年配率破16%、11/16最後買進",
@@ -57,13 +50,6 @@
       ],
       "items": [
         {
-          "title": "高股息ETF瘋了！年化配息沒17％不行？00929連5月配0.38元還能再配24個月- 基金",
-          "url": "https://wantrich.chinatimes.com/news/20261105900322-420401",
-          "source": "旺得富理財網",
-          "date": "2026-11-05 15:21",
-          "datetime": "2026-11-05T15:21:00+08:00"
-        },
-        {
           "title": "00929暴配17%，股價26.X元能撿？他年領300萬股息「越跌越買」：不用羨慕軍公教18%了…明年配息會更高？算給你看",
           "url": "https://www.businesstoday.com.tw/article/category/183013/post/202611040034/",
           "source": "今周刊",
@@ -71,11 +57,11 @@
           "datetime": "2026-11-04T14:18:00+08:00"
         },
         {
-          "title": "40歲存0050，幾歲轉0056？達人揭最佳轉換年紀「100萬月領14萬」！00929配息率16%更香？00878、00919退休這樣搭",
-          "url": "https://www.businesstoday.com.tw/article/category/183013/post/202611030019/",
-          "source": "今周刊",
-          "date": "2026-11-03 15:36",
-          "datetime": "2026-11-03T15:36:49+08:00"
+          "title": "高股息ETF瘋了！年化配息沒17％不行？00929連5月配0.38元還能再配24個月- 基金",
+          "url": "https://wantrich.chinatimes.com/news/20261105900322-420401",
+          "source": "旺得富理財網",
+          "date": "2026-11-05 15:21",
+          "datetime": "2026-11-05T15:21:00+08:00"
         }
       ]
     },
@@ -86,15 +72,7 @@
       "short_names": [
         "00991A"
       ],
-      "items": [
-        {
-          "title": "00991A 主動復華未來50 - 11/4 主動式ETF共識｜8家經理人同步抄底大跌股- 股市爆料同學會",
-          "url": "https://www.cmoney.tw/forum/article/187694835",
-          "source": "CMoney",
-          "date": "2026-11-04 04:02",
-          "datetime": "2026-11-04T04:02:06+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "主動復華金融股息",
@@ -105,9 +83,16 @@
       ],
       "items": [
         {
+          "title": "00998A、00406A該選誰？大學生月存4000元想買ETF 內行建議：當然是998A",
+          "url": "https://tw.stock.yahoo.com/news/00998a-00406a%E8%A9%B2%E9%81%B8%E8%AA%B0-%E5%A4%A7%E5%AD%B8%E7%94%9F%E6%9C%88%E5%AD%984000%E5%85%83%E6%83%B3%E8%B2%B7etf-%E5%85%A7%E8%A1%8C%E5%BB%BA%E8%AD%B0-%E7%95%B6%E7%84%B6%E6%98%AF998a-124500048.html",
+          "source": "Yahoo股市",
+          "date": "2026-11-05 20:45",
+          "datetime": "2026-11-05T20:45:00+08:00"
+        },
+        {
           "title": "選舉落幕，AI股考驗未完！00998A早盤走揚 全球金融成配置另一條路",
           "url": "https://sunmedia.tw/news/finance/%E9%81%B8%E8%88%89%E8%90%BD%E5%B9%95%EF%BC%8CAI%E8%82%A1%E8%80%83%E9%A9%97%E6%9C%AA%E5%AE%8C%EF%BC%8100998A%E6%97%A9%E7%9B%A4%E8%B5%B0%E6%8F%9A%E3%80%80%E5%85%A8%E7%90%83%E9%87%91%E8%9E%8D%E6%88%90%E9%85%8D%E7%BD%AE%E5%8F%A6%E4%B8%80%E6%A2%9D%E8%B7%AF-1793850628561",
-          "source": "商傳媒",
+          "source": "ENN台灣電報",
           "date": "2026-11-05 11:50",
           "datetime": "2026-11-05T11:50:47+08:00"
         }
@@ -263,7 +248,15 @@
       "short_names": [
         "中國新經濟平衡新臺幣"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "復華中國新經濟平衡基金B配息(人民幣)115年10月收益分配- 股市爆料同學會",
+          "url": "https://www.cmoney.tw/forum/article/187805921",
+          "source": "CMoney",
+          "date": "2026-11-05 15:57",
+          "datetime": "2026-11-05T15:57:40+08:00"
+        }
+      ]
     },
     {
       "base": "復華亞太平衡基金",
@@ -453,10 +446,17 @@
   "social": [
     {
       "platform": "fundhot",
+      "board": "ETF",
+      "title": "近2年股災比較",
+      "url": "https://fundhot.com/forum/ETF/%E8%BF%912%E5%B9%B4%E8%82%A1%E7%81%BD%E6%AF%94%E8%BC%83/14051",
+      "date": "2026-11-06"
+    },
+    {
+      "platform": "fundhot",
       "board": "其他",
       "title": "股債FBI為何不再顯示排名",
       "url": "https://fundhot.com/forum/%E5%85%B6%E4%BB%96/%E8%82%A1%E5%82%B5FBI%E7%82%BA%E4%BD%95%E4%B8%8D%E5%86%8D%E9%A1%AF%E7%A4%BA%E6%8E%92%E5%90%8D/14049",
-      "date": "2026-11-04"
+      "first_seen": "2026-11-06"
     },
     {
       "platform": "fundhot",
@@ -501,27 +501,12 @@
       "first_seen": "2026-11-03"
     },
     {
-      "platform": "fundhot",
-      "board": "資產配置",
-      "title": "最新規劃的資產配置",
-      "url": "https://fundhot.com/forum/%E8%B3%87%E7%94%A2%E9%85%8D%E7%BD%AE/%E6%9C%80%E6%96%B0%E8%A6%8F%E5%8A%83%E7%9A%84%E8%B3%87%E7%94%A2%E9%85%8D%E7%BD%AE/14037",
-      "first_seen": "2026-11-02"
-    },
-    {
       "platform": "youtube",
-      "title": "🔥 幣安被盜60億！感謝大跌砸出「日線級買點」？BTC、0050、00929 罕見同步亮抄底訊號！底部驚見神秘買盤，我直接加碼2萬U！",
-      "channel": "JUSTIN投資日記",
-      "url": "https://www.youtube.com/watch?v=8VSo8m4_9Go",
-      "date": "2026-11-02",
-      "views": 4621
-    },
-    {
-      "platform": "youtube",
-      "title": "林昌興逆勢進場喊「再跌繼續接」！融資追繳潮恐來襲 4萬3支撐守得住？00878、00929高股息ETF成避風港？｜關我什麼事｜三立財經iNEWS",
-      "channel": "三立財經iNEWS",
-      "url": "https://www.youtube.com/watch?v=CLxx_PT_KRM",
+      "title": "台股狂殺「大跌大買」策略不變？高股息ETF成資金避風港！00878、00929誰更抗跌？專家示警「反一別亂追」曝台股止跌3大關鍵！│陳斐娟 主持 │20261103│關我什麼事",
+      "channel": "關我什麼事",
+      "url": "https://www.youtube.com/watch?v=It_vKvQLoSI",
       "date": "2026-11-04",
-      "views": 3121
+      "views": 37513
     },
     {
       "platform": "youtube",
@@ -529,7 +514,15 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=mlXZqnlEV34",
       "date": "2026-11-05",
-      "views": 1830
+      "views": 8647
+    },
+    {
+      "platform": "youtube",
+      "title": "🔥 幣安被盜60億！感謝大跌砸出「日線級買點」？BTC、0050、00929 罕見同步亮抄底訊號！底部驚見神秘買盤，我直接加碼2萬U！",
+      "channel": "JUSTIN投資日記",
+      "url": "https://www.youtube.com/watch?v=8VSo8m4_9Go",
+      "date": "2026-11-02",
+      "views": 4725
     },
     {
       "platform": "youtube",
@@ -537,7 +530,7 @@
       "channel": "施羅德投資 (台灣)",
       "url": "https://www.youtube.com/shorts/vlFqx1GeoiI",
       "date": "2026-11-02",
-      "views": 409762,
+      "views": 577935,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -548,20 +541,10 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/PTnYdznK2XI",
       "date": "2026-11-02",
-      "views": 265939,
+      "views": 280308,
       "peer": true,
       "short": true,
       "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "【費半-7.2%、買點到了？AI投資越多股價越跌？】|《股市先修班》EP35_20261101 #新聞 #Meta #亞馬遜 #費半 #AI #蔡明翰 #台股 #投資 #理財",
-      "channel": "財經震翰彈_蔡明翰",
-      "url": "https://www.youtube.com/watch?v=ql30CdVf2r0",
-      "date": "2026-11-01",
-      "views": 218871,
-      "peer": true,
-      "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
@@ -569,7 +552,7 @@
       "channel": "玩股網楚狂人",
       "url": "https://www.youtube.com/watch?v=ojaCN2_R6Tw",
       "date": "2026-11-04",
-      "views": 212606,
+      "views": 258598,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -579,10 +562,41 @@
       "channel": "施羅德投資 (台灣)",
       "url": "https://www.youtube.com/shorts/QFdqwnU5dn4",
       "date": "2026-11-02",
-      "views": 144940,
+      "views": 256529,
       "peer": true,
       "short": true,
       "cat": "主動式"
+    },
+    {
+      "platform": "youtube",
+      "title": "【台股三萬二 國安基金才進場?】2026/11/5 哲哲只有60秒 #shorts",
+      "channel": "郭哲榮分析師-摩爾證券投顧",
+      "url": "https://www.youtube.com/shorts/qQ3214-yLsM",
+      "date": "2026-11-05",
+      "views": 241040,
+      "peer": true,
+      "short": true,
+      "cat": "基金"
+    },
+    {
+      "platform": "youtube",
+      "title": "【費半-7.2%、買點到了？AI投資越多股價越跌？】|《股市先修班》EP35_20261101 #新聞 #Meta #亞馬遜 #費半 #AI #蔡明翰 #台股 #投資 #理財",
+      "channel": "財經震翰彈_蔡明翰",
+      "url": "https://www.youtube.com/watch?v=ql30CdVf2r0",
+      "date": "2026-11-01",
+      "views": 219622,
+      "peer": true,
+      "cat": "市場趨勢"
+    },
+    {
+      "platform": "youtube",
+      "title": "【台股三萬二 國安基金才進場?】2026/11/5(直播)",
+      "channel": "郭哲榮分析師-摩爾證券投顧",
+      "url": "https://www.youtube.com/watch?v=qhbLmXJd23w",
+      "date": "2026-11-05",
+      "views": 166298,
+      "peer": true,
+      "cat": "基金"
     },
     {
       "platform": "youtube",
@@ -590,20 +604,9 @@
       "channel": "理財達人秀 EBCmoneyshow",
       "url": "https://www.youtube.com/watch?v=3ZeGiG5It4M",
       "date": "2026-11-03",
-      "views": 132062,
+      "views": 133522,
       "peer": true,
       "cat": "債券"
-    },
-    {
-      "platform": "youtube",
-      "title": "吳子嘉怒問蘇家4500萬：蘇貞昌當院長時　國發基金投資女兒任董事的公司｜洋流變成蘇家擋箭牌｜董事長開講 臺北站",
-      "channel": "董事長開講",
-      "url": "https://www.youtube.com/shorts/1Hirnp6dW0g",
-      "date": "2026-11-03",
-      "views": 107732,
-      "peer": true,
-      "short": true,
-      "cat": "基金"
     },
     {
       "platform": "youtube",
@@ -611,36 +614,26 @@
       "channel": "阿格力博識",
       "url": "https://www.youtube.com/shorts/amKeZNJBj5I",
       "date": "2026-11-03",
-      "views": 92876,
+      "views": 117121,
       "peer": true,
       "short": true,
       "cat": "市值型"
     },
     {
       "platform": "youtube",
-      "title": "0050最大對手來了！006208拆股只要3萬塊！現在換股能多賺嗎？",
-      "channel": "施雅棠",
-      "url": "https://www.youtube.com/watch?v=Bt-_Ab7FBrE",
-      "date": "2026-11-01",
-      "views": 80046,
+      "title": "台股大跌是送分題還是逃命潮 , 0050、009816現在還能買嗎？3個數據告訴你，該加碼還是等更低！",
+      "channel": "杉本來了",
+      "url": "https://www.youtube.com/watch?v=MxUGIGyGHSo",
+      "date": "2026-11-04",
+      "views": 92128,
       "peer": true,
       "cat": "市值型"
-    },
-    {
-      "platform": "youtube",
-      "title": "配息17%根本沒賺到？這檔ETF被外資盯上 !｜楚狂人 ft. 退休教授 朱岳中 ｜財富狂犇｜玩股網20261031",
-      "channel": "玩股網楚狂人",
-      "url": "https://www.youtube.com/watch?v=TMi8kLk99ss",
-      "date": "2026-10-31",
-      "views": 66487,
-      "peer": true,
-      "cat": "高股息"
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00418A（詳下方新聞標籤）",
+    "近 7 天有專屬報導的基金／ETF：00929、00998A、00418A、中國新經濟平衡（詳下方新聞標籤）",
     "品牌焦點：00877 復華中國5G通信ETF｜成分股？配息？優缺點？（股感 StockFeel）",
-    "社群聲量最高：股債FBI為何不再顯示排名（0 推）",
-    "YouTube 熱片：投資AI，何必繞遠路？30秒看懂台股AI投資機會｜施羅德00419A（施羅德投資 (台灣)・409,762 次觀看）"
+    "社群聲量最高：近2年股災比較（0 推）",
+    "YouTube 熱片：投資AI，何必繞遠路？30秒看懂台股AI投資機會｜施羅德00419A（施羅德投資 (台灣)・577,935 次觀看）"
   ]
 }
