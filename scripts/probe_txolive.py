@@ -93,31 +93,32 @@ def main() -> int:
         for x in q[:3]:
             print("   ", {k: x.get(k) for k in ("DispCName", "SymbolID", "CLastPrice", "CTime", "CDate", "Status")})
 
-    # 2. 期交所：選擇權的幾種寫法（找得到報價的那一種）
-    exp_lists = {}
-    for api, body in (("getCmdyMonthDDLItemByKind", {"SymbolID": "TXO", "SymbolType": "O", "KindID": "1", "CID": "TXO"}),
-                      ("getCmdyMonthDDLItemByKind", tf_body("O", "TXO")),
-                      ("getCmdyDDLItemByKind", {"SymbolType": "O", "KindID": "1"})):
-        st, h, j, b = tf_post(api, body, f"期交所 {api}（到期月份清單）")
-        if j is not None:
-            print("    回應", json.dumps(j, ensure_ascii=False)[:600])
-            exp_lists[api] = j
-    exps = []
-    for j in exp_lists.values():
-        for it in ((j.get("RtData") or {}).get("Items") or j.get("Items") or []) if isinstance(j, dict) else []:
-            v = it.get("ExpireMonth") or it.get("Value") or it.get("CID") if isinstance(it, dict) else None
-            if v and v not in exps:
-                exps.append(v)
-    print("\n[txolive] 找到的到期月份：", exps[:12])
-    tries = exps[:3] or ["202611W2", "202611F2", "202611"]
+    # 2. 期交所：選擇權。到期清單的代碼在 getCmdyMonthDDLItemByKind 回應的 item（例 202611F1、202611W2、202611）
+    st, h, j, b = tf_post("getCmdyMonthDDLItemByKind", {"SymbolID": "TXO", "SymbolType": "O", "KindID": "1", "CID": "TXO"},
+                          "期交所 getCmdyMonthDDLItemByKind（到期清單）")
+    exps = [it["item"] for it in ((j or {}).get("RtData") or {}).get("Items") or []
+            if isinstance(it, dict) and it.get("item") and it["item"][:1].isdigit()]
+    print("\n[txolive] 到期清單：", exps)
+    tries = exps[:2] or ["202611F1", "202611W2"]
+    chain_ok = None
     for api in ("getQuoteListOption", "getQuoteList"):
-        for exp in tries[:2]:
-            st, h, j, b = tf_post(api, tf_body("O", "TXO", exp), f"期交所 選擇權 {api} 到期 {exp}")
-            q = quotes(j)
-            print("    筆數", len(q), (("欄位 " + str(sorted(q[0])[:45])) if q else "回應 " + b[:300].decode("utf-8", "replace")))
-            for x in q[:4]:
-                print("   ", {k: x.get(k) for k in x if k in ("DispCName", "SymbolID", "StrikePrice", "CLastPrice", "CTime",
-                                                             "CBidPrice1", "CAskPrice1", "CTotalVolume", "Status")})
+        for kind in ("1", ""):
+            for exp in tries:
+                body = {**tf_body("O", "TXO", exp), "KindID": kind}
+                st, h, j, b = tf_post(api, body, f"期交所 選擇權 {api} KindID={kind!r} 到期 {exp}")
+                q = quotes(j)
+                print("    筆數", len(q), (("欄位 " + str(sorted(q[0]))) if q else "回應 " + b[:200].decode("utf-8", "replace")))
+                for x in q[:2] + q[len(q) // 2:len(q) // 2 + 2]:
+                    print("   ", {k: x.get(k) for k in x if k in ("DispCName", "SymbolID", "StrikePrice", "CLastPrice", "CTime",
+                                                                 "CBidPrice1", "CAskPrice1", "CBestBidPrice", "CBestAskPrice",
+                                                                 "CTotalVolume", "CRefPrice", "Status")})
+                if q and chain_ok is None:
+                    chain_ok = (api, body)
+            if chain_ok:
+                break
+        if chain_ok:
+            break
+    print("\n[txolive] 選擇權報價寫法：", chain_ok and (chain_ok[0], chain_ok[1]["KindID"], chain_ok[1]["ExpireMonth"]))
 
     # 3. CORS 預檢（瀏覽器 POST JSON 之前會先送這個）
     for api in ("getQuoteList", "getQuoteListOption"):
@@ -138,18 +139,38 @@ def main() -> int:
     for x in (j or {}).get("msgArray", [])[:2]:
         print("   ", {k: x.get(k) for k in ("c", "n", "z", "t", "d", "tlong")})
 
-    # 6. 延遲與更新頻率：每 10 秒抓一次台指期與加權指數，共 6 次
+    # 6. 延遲與更新頻率：每 10 秒抓一次（期交所現貨、近月台指期、價平附近一檔選擇權、證交所加權指數），共 8 次
     print("\n[txolive] 延遲與更新頻率（現在時間 vs 報價時間）", flush=True)
-    for i in range(6):
+    for i in range(8):
         st, h, b, dt = req(TF + "getQuoteList", json.dumps(tf_body("F", "TXF")).encode(),
                            headers={"Content-Type": "application/json;charset=UTF-8", "Origin": "https://mis.taifex.com.tw"})
         q = quotes(parse(b) if st == 200 else None)
-        near = q[0] if q else {}
+        spot = next((x for x in q if x.get("SymbolID", "").endswith("-S")), {})
+        fut = next((x for x in q if x.get("SymbolID", "").endswith("-F")), {})
+        line = (f"    {now():%H:%M:%S}  期交所現貨 {spot.get('CLastPrice')} @ {spot.get('CTime')}  "
+                f"近月期 {fut.get('CLastPrice')} @ {fut.get('CTime')}（{dt*1000:.0f} ms）")
+        if chain_ok:
+            st3, h3, b3, dt3 = req(TF + chain_ok[0], json.dumps(chain_ok[1]).encode(),
+                                   headers={"Content-Type": "application/json;charset=UTF-8", "Origin": "https://mis.taifex.com.tw"})
+            oq = quotes(parse(b3) if st3 == 200 else None)
+            try:
+                s0 = float(spot.get("CLastPrice") or 0)
+            except ValueError:
+                s0 = 0
+            def strike(x):
+                try:
+                    return float(x.get("StrikePrice") or 0)
+                except ValueError:
+                    return 0
+            near = sorted(oq, key=lambda x: abs(strike(x) - s0))[:2]
+            for x in near:
+                line += (f"  {x.get('SymbolID')} {x.get('CLastPrice')} @ {x.get('CTime')} "
+                         f"買{x.get('CBestBidPrice') or x.get('CBidPrice1')}／賣{x.get('CBestAskPrice') or x.get('CAskPrice1')}")
+            line += f"（{len(oq)} 檔、{len(b3)} bytes、{dt3*1000:.0f} ms）"
         st2, h2, b2, dt2 = req(f"https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=tse_t00.tw&json=1&delay=0&_={int(time.time()*1000)}",
                                headers={"Referer": "https://mis.twse.com.tw/stock/index.jsp"})
         ix = ((parse(b2) or {}).get("msgArray") or [{}])[0] if st2 == 200 else {}
-        print(f"    {now():%H:%M:%S}  台指期 {near.get('CLastPrice')} @ {near.get('CTime')}（{dt*1000:.0f} ms）  "
-              f"加權指數 {ix.get('z')} @ {ix.get('t')}（{dt2*1000:.0f} ms）", flush=True)
+        print(line + f"  證交所加權 {ix.get('z')} @ {ix.get('t')}", flush=True)
         time.sleep(10)
     print(f"\n[txolive] 結束 {now():%H:%M:%S}", flush=True)
     return 0
