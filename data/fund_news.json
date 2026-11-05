@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/11/06 06:46",
+  "as_of": "2026/11/06 06:54",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -514,7 +514,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=mlXZqnlEV34",
       "date": "2026-11-05",
-      "views": 8647
+      "views": 8704
     },
     {
       "platform": "youtube",
@@ -530,7 +530,7 @@
       "channel": "施羅德投資 (台灣)",
       "url": "https://www.youtube.com/shorts/vlFqx1GeoiI",
       "date": "2026-11-02",
-      "views": 577935,
+      "views": 578237,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -541,7 +541,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/PTnYdznK2XI",
       "date": "2026-11-02",
-      "views": 280308,
+      "views": 280327,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -552,7 +552,7 @@
       "channel": "玩股網楚狂人",
       "url": "https://www.youtube.com/watch?v=ojaCN2_R6Tw",
       "date": "2026-11-04",
-      "views": 258598,
+      "views": 258659,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -562,7 +562,7 @@
       "channel": "施羅德投資 (台灣)",
       "url": "https://www.youtube.com/shorts/QFdqwnU5dn4",
       "date": "2026-11-02",
-      "views": 256529,
+      "views": 256694,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -573,7 +573,7 @@
       "channel": "郭哲榮分析師-摩爾證券投顧",
       "url": "https://www.youtube.com/shorts/qQ3214-yLsM",
       "date": "2026-11-05",
-      "views": 241040,
+      "views": 241253,
       "peer": true,
       "short": true,
       "cat": "基金"
@@ -584,7 +584,7 @@
       "channel": "財經震翰彈_蔡明翰",
       "url": "https://www.youtube.com/watch?v=ql30CdVf2r0",
       "date": "2026-11-01",
-      "views": 219622,
+      "views": 219623,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -594,7 +594,7 @@
       "channel": "郭哲榮分析師-摩爾證券投顧",
       "url": "https://www.youtube.com/watch?v=qhbLmXJd23w",
       "date": "2026-11-05",
-      "views": 166298,
+      "views": 166316,
       "peer": true,
       "cat": "基金"
     },
@@ -614,7 +614,7 @@
       "channel": "阿格力博識",
       "url": "https://www.youtube.com/shorts/amKeZNJBj5I",
       "date": "2026-11-03",
-      "views": 117121,
+      "views": 117135,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -625,7 +625,7 @@
       "channel": "杉本來了",
       "url": "https://www.youtube.com/watch?v=MxUGIGyGHSo",
       "date": "2026-11-04",
-      "views": 92128,
+      "views": 92159,
       "peer": true,
       "cat": "市值型"
     }
@@ -634,6 +634,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00998A、00418A、中國新經濟平衡（詳下方新聞標籤）",
     "品牌焦點：00877 復華中國5G通信ETF｜成分股？配息？優缺點？（股感 StockFeel）",
     "社群聲量最高：近2年股災比較（0 推）",
-    "YouTube 熱片：投資AI，何必繞遠路？30秒看懂台股AI投資機會｜施羅德00419A（施羅德投資 (台灣)・577,935 次觀看）"
+    "YouTube 熱片：投資AI，何必繞遠路？30秒看懂台股AI投資機會｜施羅德00419A（施羅德投資 (台灣)・578,237 次觀看）"
   ]
 }
