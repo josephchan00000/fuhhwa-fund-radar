@@ -19,7 +19,8 @@ CAL = "fomccalendars.htm"
 FIRST_YEAR = 2002
 MONTHS = {m: i for i, m in enumerate(("january", "february", "march", "april", "may", "june", "july", "august",
                                        "september", "october", "november", "december"), 1)}
-_MON = "|".join(m.capitalize() for m in MONTHS)
+_MON = "(?:" + "|".join([m.capitalize() for m in MONTHS]
+                       + ["Jan", "Feb", "Mar", "Apr", "Jun", "Jul", "Aug", "Sept", "Sep", "Oct", "Nov", "Dec"]) + r")\.?"
 _ABBR = {m[:3]: i for m, i in MONTHS.items()}
 
 
@@ -77,31 +78,37 @@ def _mon(s: str) -> int | None:
 
 def stmt_links(page: str) -> list[str]:
     """頁面上的聲明連結 → 日期（2006 年起 monetaryYYYYMMDDa.htm；更早 boarddocs/press/monetary/YYYY/YYYYMMDD/）。"""
-    ds = set(re.findall(r"monetary(\d{8})a\.htm", page)) | set(re.findall(r"boarddocs/press/monetary/\d{4}/(\d{8})/", page))
+    ds = (set(re.findall(r"monetary/?(\d{8})a\.htm", page))
+          | set(re.findall(r"boarddocs/press/(?:monetary|general)/\d{4}/(\d{8})/", page)))
     return sorted(f"{d[:4]}-{d[4:6]}-{d[6:]}" for d in ds)
 
 
-_HIST = re.compile(rf"({_MON})(?:/({_MON}))?\s+(\d{{1,2}})(?:\s*-\s*(?:({_MON})\s+)?(\d{{1,2}}))?\s+"
-                   r"(Meeting|Conference Call)(\s*\(unscheduled\))?(?:\s*-\s*(\d{4}))?", re.I)
+_HIST = re.compile(rf"({_MON})(?:/({_MON}))?\s+(\d{{1,2}})(?:\s*-\s*(?:({_MON})\s+)?(\d{{1,2}}))?\s*"
+                   r"(?:\(([^)]*)\)\s*)?(Meeting|Conference Call)\s*-\s*(\d{4})")
 
 
 def parse_hist(page: str, year: int) -> list[dict]:
-    """歷史頁（fomchistorical{年}.htm）：標題「January 29-30 Meeting - 2008」「April 30-May 1 Meeting」「March 10 Conference Call」。"""
+    """歷史頁（fomchistorical{年}.htm）的標題：「January 29-30 Meeting - 2008」「Jan/Feb 31-1 Meeting - 2017」
+    「March 2 (unscheduled) Meeting - 2020」「March 17-18 (cancelled) Meeting - 2020」「March 10 Conference Call - 2008」。
+    排定＝Meeting、括號裡沒有 unscheduled／cancelled、而且那一塊（到下一個標題為止）有 Statement（2003-09-15 那種沒發聲明的不算）。"""
+    t = _text(page)
+    ms = list(_HIST.finditer(t))
     out, seen = [], set()
-    for m in _HIST.finditer(_text(page)):
-        m1, m1b, d1, m2, d2, kind, unsch, yy = m.groups()
-        y = int(yy) if yy else year
-        if y != year:
+    for n, m in enumerate(ms):
+        m1, m1b, d1, m2, d2, note, kind, yy = m.groups()
+        if int(yy) != year:
             continue
-        mon = _mon(m2 or m1b or m1)
-        day = int(d2 or d1)
+        cross = m1b and d2 and int(d2) < int(d1)
+        mon = _mon(m2 or (m1b if cross else m1))
         try:
-            d = date(y, mon, day).isoformat()
+            d = date(year, mon, int(d2 or d1)).isoformat()
         except (TypeError, ValueError):
             continue
-        sched = kind.lower() == "meeting" and not unsch
-        if (d, sched) not in seen:
-            seen.add((d, sched))
+        block = t[m.end():ms[n + 1].start() if n + 1 < len(ms) else len(t)]
+        note = (note or "").lower()
+        sched = kind == "Meeting" and "unscheduled" not in note and "cancel" not in note and "Statement" in block
+        if d not in seen:
+            seen.add(d)
             out.append({"d": d, "sched": sched, "how": _text(m.group(0))})
     return out
 
