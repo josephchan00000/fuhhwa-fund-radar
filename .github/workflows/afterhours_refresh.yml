@@ -106,16 +106,17 @@ jobs:
       - name: 台指期早盤策略研究重算（只讀已存的逐筆、不發請求，幾秒；docs/lab_fut_plan.md，失敗不擋）
         run: TZ=Asia/Taipei timeout 120 python3 scripts/run_fut.py || echo "  ⚠ 台指期早盤研究重算失敗，沿用既有結果"
 
-      - name: 夜盤＋盤前作戰圖（清晨 05:08 那班＝夜盤剛收；只讀已存的資料重算，幾秒；docs/lab_premarket_plan.md，失敗不擋）
-        run: |
-          TZ=Asia/Taipei timeout 60 python3 scripts/fetch_night.py || echo "  ⚠ 夜盤抓取失敗，沿用既有落檔"
-          TZ=Asia/Taipei timeout 120 python3 scripts/run_premkt.py || echo "  ⚠ 盤前作戰圖重算失敗，沿用既有結果"
 
       - name: 法人預估（鉅亨 FactSet 快訊補到現在＋Yahoo 分析師一天一次；docs/lab_forward_plan.md，失敗不擋）
         run: timeout 420 python3 scripts/fetch_fcst.py || echo "  ⚠ 法人預估抓取失敗，沿用既有落檔"
 
       - name: 景氣溫度頁資料（融資、法人、期權、匯率、美國利率物價、國發會、廣度；docs/lab_heat_plan.md，失敗不擋）
         run: timeout 420 python3 scripts/fetch_heat.py || echo "  ⚠ 景氣溫度資料抓取失敗，沿用既有落檔"
+
+      - name: 夜盤＋盤前作戰圖（清晨 05:08 那班＝夜盤剛收；放在景氣溫度資料之後＝收盤指數檔已更新；只讀已存的資料重算，幾秒；docs/lab_premarket_plan.md，失敗不擋）
+        run: |
+          TZ=Asia/Taipei timeout 60 python3 scripts/fetch_night.py || echo "  ⚠ 夜盤抓取失敗，沿用既有落檔"
+          TZ=Asia/Taipei timeout 120 python3 scripts/run_premkt.py || echo "  ⚠ 盤前作戰圖重算失敗，沿用既有結果"
 
       - name: 美股景氣頁資料（指數、聯準會、CFTC、BLS、Shiller、LPPLS 每週；docs/lab_heat_us_plan.md，失敗不擋）
         env:

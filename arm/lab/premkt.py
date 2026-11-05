@@ -388,14 +388,17 @@ def build(asof: str | None = None) -> dict | None:
     from . import heatbubble as BB
     from . import heatdata as HD
     from . import txocalc as TC
-    cl = BB.taiex_daily()
-    days = [x for x in _idx_days() if x in cl and (asof is None or x <= asof)]
+    cl = dict(BB.taiex_daily())
+    days = [x for x in _idx_days() if asof is None or x <= asof]
     if not days:
         return None
     d = days[-1]
     idx = F.load_idx(d) or []
     if len(idx) < 2:
         return None
+    if d not in cl:                                       # 收盤指數檔還沒更新（盤後那班的步驟順序）：用 13:30 那個 5 秒指數
+        cl[d] = idx[-1]
+    days = [x for x in days if x in cl]
     hi, lo, close = max(idx[1:]), min(idx[1:]), float(cl[d])
     ds = sorted(k for k in cl if k <= d)
     closes = [float(cl[k]) for k in ds]

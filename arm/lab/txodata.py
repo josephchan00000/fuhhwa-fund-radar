@@ -354,3 +354,71 @@ def read_state(root: Path) -> dict:
 
 def write_state(root: Path, st: dict) -> None:
     (root / "state.json").write_text(json.dumps(st, ensure_ascii=False, sort_keys=True, indent=1) + "\n", "utf-8")
+
+
+# ── 台指期每日行情（日盤＋夜盤；盤前作戰圖第 3 段驗證用，docs/lab_premarket_plan.md 第 11 節）────────────
+
+FUT_COLS = ["d", "exp", "sess", "o", "h", "l", "c", "v", "s", "oi"]   # sess：D＝一般（日盤）、N＝盤後（夜盤，交易日期記下一個交易日）
+FUT_FIRST = "2017-05"                                                  # 夜盤 2017-05-15 開始
+
+
+def parse_futday(txt: str) -> list[list]:
+    """期貨每日交易行情 CSV（futDataDown，契約 TX）→ 單一月份契約的列（價差單不收）。"""
+    lines = [x for x in txt.splitlines() if x.strip()]
+    if not lines or "交易日期" not in lines[0]:
+        raise ValueError(f"表頭不對：{lines[:1]!r}")
+    head = [h.strip() for h in next(csv.reader([lines[0]]))]
+
+    def ix(name: str) -> int | None:
+        return next((i for i, h in enumerate(head) if h.startswith(name)), None)
+    I = {k: ix(n) for k, n in (("d", "交易日期"), ("pid", "契約"), ("exp", "到期月份"), ("o", "開盤價"), ("h", "最高價"),
+                                ("l", "最低價"), ("c", "收盤價"), ("v", "成交量"), ("s", "結算價"), ("oi", "未沖銷契約數"),
+                                ("sess", "交易時段"))}
+    out = []
+    for r in csv.reader(lines[1:]):
+        if len(r) <= max(v for v in I.values() if v is not None):
+            continue
+        if r[I["pid"]].strip() != "TX":
+            continue
+        exp = r[I["exp"]].strip()
+        if "/" in exp or not exp:
+            continue
+        sess = r[I["sess"]].strip() if I["sess"] is not None else "一般"
+        d = r[I["d"]].strip().replace("/", "-")
+        out.append([d, exp, "N" if sess == "盤後" else "D", _num(r[I["o"]]), _num(r[I["h"]]), _num(r[I["l"]]),
+                    _num(r[I["c"]]), _num(r[I["v"]]) or 0, _num(r[I["s"]]), _num(r[I["oi"]])])
+    return sorted(out)
+
+
+def fetch_futday_month(y: int, m: int, today: date) -> dict | None:
+    a = date(y, m, 1)
+    z = min(date(y + (m == 12), m % 12 + 1, 1) - timedelta(days=1), today)
+    b = _get(TFX + "/cht/3/futDataDown", {"down_type": "1", "commodity_id": "TX", "commodity_id2": "",
+                                          "queryStartDate": f"{a:%Y/%m/%d}", "queryEndDate": f"{z:%Y/%m/%d}"})
+    txt = b.decode("cp950", "replace")
+    if "交易日期" not in txt[:200]:
+        log(f"期貨日行情 {y}-{m:02d}：回應不是 CSV（{txt[:80]!r}）")
+        return None
+    return {"m": f"{y}-{m:02d}", "src": "taifex", "cols": FUT_COLS, "rows": parse_futday(txt)}
+
+
+def update_futday(root: Path, start: str, today: date, deadline: float) -> int:
+    """futday/{年-月}.json.gz：start 起每個月一檔；已存的跳過，這個月與上個月一定重抓。"""
+    y, m = int(start[:4]), int(start[5:7])
+    keep = {f"{today.year}-{today.month:02d}", f"{(today.replace(day=1) - timedelta(days=1)):%Y-%m}"}
+    n = 0
+    while (y, m) <= (today.year, today.month) and time.time() < deadline:
+        tag = f"{y}-{m:02d}"
+        rel = f"futday/{tag}.json.gz"
+        if not (root / rel).exists() or tag in keep:
+            try:
+                doc = fetch_futday_month(y, m, today)
+            except Exception as e:  # noqa: BLE001 —— 一個月失敗就跳過，下次再補
+                log(f"期貨日行情 {tag}：{type(e).__name__}: {e}")
+                doc = None
+            if doc and doc["rows"] and write(root, rel, doc):
+                n += 1
+                log(f"期貨日行情 {tag}：{len(doc['rows']):,} 列")
+            time.sleep(1.0)
+        y, m = (y + (m == 12), m % 12 + 1)
+    return n
