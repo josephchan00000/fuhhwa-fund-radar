@@ -133,11 +133,10 @@ THEME_CSS = (".thm{display:inline-flex;align-items:center;gap:5px;align-self:cen
              ':root[data-theme="light"]{color-scheme:light}:root[data-theme="dark"]{color-scheme:dark}')
 
 BACK = '<a class="back" href="./"><span class="bk1">返回</span>主頁</a>'
-# 右下角小小的「選」字：選擇權計算機 x9op.html 的入口（藏起來、不在頂欄；docs/lab_txo_plan.md 第 11、17 節）
-OP_ENTRY = '<a class="opq" href="x9op.html" aria-label="選擇權計算機" title="選擇權計算機">選</a>'
-OP_CSS = (".opq{position:fixed;right:12px;bottom:12px;z-index:30;width:30px;height:30px;border-radius:50%;display:flex;"
-          "align-items:center;justify-content:center;font-size:13px;color:var(--mut);background:var(--bg);"
-          "border:1px solid var(--line2);text-decoration:none;opacity:.75}.opq:hover{opacity:1;color:var(--ink)}"
+# 盤前・選擇權 x9op.html 的入口：頁面最底下空白處右邊一個「.」（藏起來、不在頂欄；使用者 2026-11-05：原本固定在右下角的「選」字太顯眼）
+OP_ENTRY = '<div class="opq"><a href="x9op.html" aria-label="盤前・選擇權" title="盤前・選擇權">.</a></div>'
+OP_CSS = (".opq{display:flex;justify-content:flex-end;padding:36px 14px 10px}"
+          ".opq a{color:var(--mut);text-decoration:none;font-size:15px;line-height:1;padding:8px 10px;opacity:.6}.opq a:hover{opacity:1}"
           "@media print{.opq{display:none}}")
 
 
