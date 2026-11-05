@@ -19,4 +19,9 @@ jobs:
           python-version: "3.12"
       - run: pip install --quiet certifi
       - name: 探針
-        run: TZ=Asia/Taipei python3 scripts/probe_txolive.py
+        run: |
+          if head -1 .ping/txolive 2>/dev/null | grep -q '^night'; then
+            TZ=Asia/Taipei python3 scripts/probe_txonight.py
+          else
+            TZ=Asia/Taipei python3 scripts/probe_txolive.py
+          fi
