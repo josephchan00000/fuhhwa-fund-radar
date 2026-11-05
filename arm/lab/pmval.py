@@ -16,6 +16,7 @@ import numpy as np
 from . import premktspec as S
 
 ROOT = Path(__file__).resolve().parents[2]
+OT = S.OPEN_T          # 開盤是 5 秒指數的第幾個值之後（09:00:00＋OT×5 秒）；run(open_t=1) 重現 VER 1
 
 
 # ── 資料 ──────────────────────────────────────────────────────────────────────
@@ -151,10 +152,10 @@ def q1(idx: dict, closes: dict, em: dict, fday: dict, fnight: dict, tx1330: dict
         v = idx[d]
         c0 = closes[prev]
         e1 = c0 + fnight[d][k][3] - fday[prev][k][3]
-        rows.append((d, float(v[1]), float(v[60]), e1, c0, em[d]))
+        rows.append((d, float(v[OT]), float(v[60]), e1, c0, em[d], float(v[1])))
         t = (tx1330 or {}).get(prev)
         if t and t[0] in fnight[d]:
-            rows0.append((d, float(v[1]), float(v[60]), c0 + fnight[d][t[0]][3] - t[1], c0, em[d], e1))
+            rows0.append((d, float(v[OT]), float(v[60]), c0 + fnight[d][t[0]][3] - t[1], c0, em[d], e1))
     if not rows:
         return {"n": 0}
 
@@ -167,7 +168,8 @@ def q1(idx: dict, closes: dict, em: dict, fday: dict, fnight: dict, tx1330: dict
                 "bias": round(float(np.mean(e)), 1)}
     half = _split([r[0] for r in rows])
     out = {"n": len(rows), "first": rows[0][0], "last": rows[-1][0],
-           "E1_open": stats(3, 1), "N_open": stats(4, 1), "E1_o5": stats(3, 2), "N_o5": stats(4, 2)}
+           "E1_open": stats(3, 1), "N_open": stats(4, 1), "E1_o5": stats(3, 2), "N_o5": stats(4, 2),
+           "E1_o0": stats(3, 6), "N_o0": stats(4, 6), "open_t": OT}
     halves = {}
     for nm, sel in (("h1", [r for r in rows if r[0] < half]), ("h2", [r for r in rows if r[0] >= half])):
         a = np.median([abs(r[1] - r[3]) for r in sel])
@@ -190,7 +192,7 @@ def q2(idx: dict, em: dict) -> dict:
     for d, v in idx.items():
         if d not in em:
             continue
-        o, p, e = float(v[1]), v[1:], em[d]
+        o, p, e = float(v[OT]), v[OT:], em[d]
         hi, lo = float(p.max()), float(p.min())
         for x in S.TOUCH_X:
             up[x].append(hi >= o + x * e)
@@ -237,7 +239,7 @@ def day_levels(prev: str, d: str, idx: dict, closes: dict, em: dict, oi: dict, f
         if mp:
             out.append(("opt_pain", float(mp)))
     if e:
-        o = float(idx[d][1])
+        o = float(idx[d][OT])
         k0 = math.floor((o - S.MAX_X * e) / S.ROUND) * S.ROUND
         while k0 <= o + S.MAX_X * e:
             out.append(("round500", float(k0)))
@@ -258,7 +260,7 @@ def _placebo_bins(idx: dict, em: dict) -> dict:
         e = em.get(d)
         if not e:
             continue
-        o, p = float(v[1]), v[1:]
+        o, p = float(v[OT]), v[OT:]
         for j in range(nb):
             x = S.MIN_X + j * S.BIN
             for side, lv in (("up", o + x * e), ("dn", o - x * e)):
@@ -327,7 +329,7 @@ def q3(idx: dict, closes: dict, em: dict, oi: dict, fday: dict, fnight: dict, rn
         if not e:
             continue
         v = idx[d]
-        o, p = float(v[1]), v[1:]
+        o, p = float(v[OT]), v[OT:]
         lv = day_levels(prev, d, idx, closes, em, oi, fday, fnight)
 
         def test(price):
@@ -456,7 +458,7 @@ def q4(days: list[str], idx: dict, closes: dict, fday: dict, fnight: dict) -> di
     for prev, d in zip(days[:-1], days[1:]):
         v = idx[d]
         c1 = float(v[-1])                                   # 收盤＝13:30 的 5 秒指數（規格「共同」）
-        ret[d] = {"oc": c1 / float(v[1]) - 1, "cc": c1 / closes[prev] - 1}
+        ret[d] = {"oc": c1 / float(v[OT]) - 1, "cc": c1 / closes[prev] - 1}
     out = {}
     for f, (direction, desc, targets) in S.FACTORS.items():
         st = {d: s for d, s in states[f].items() if s and d in ret}
@@ -492,8 +494,10 @@ def q4(days: list[str], idx: dict, closes: dict, fday: dict, fnight: dict) -> di
 
 # ── 全部 ─────────────────────────────────────────────────────────────────────
 
-def run(root: Path, log=print) -> dict:
+def run(root: Path, log=print, open_t: int | None = None) -> dict:
     from . import heatbubble as BB
+    global OT
+    OT = S.OPEN_T if open_t is None else open_t
     rng = random.Random(S.SEED)
     idx = {d: v for d, v in load_idx(root).items() if d >= S.IDX_FIRST}
     closes = {k: float(v) for k, v in BB.taiex_daily().items() if v}
@@ -508,7 +512,7 @@ def run(root: Path, log=print) -> dict:
     oi = load_oi(root, set(days))
     log(f"5 秒指數 {len(days)} 天（{days[0]}～{days[-1]}），有正常波動 {len(em)} 天，期貨日行情 {len(fday)} 天、夜盤 {len(fnight)} 天，"
         f"選擇權未平倉 {len(oi)} 天")
-    out = {"ver": S.VER, "spec_fp": S.fingerprint(), "asof": days[-1], "days": len(days), "em_days": len(em)}
+    out = {"ver": S.VER if OT == S.OPEN_T else None, "spec_fp": S.fingerprint(), "open_t": OT, "asof": days[-1], "days": len(days), "em_days": len(em)}
     out["q1"] = q1(idx, closes, em, fday, fnight, tx1330s())
     log(f"Q1 完成：{out['q1'].get('n')} 天")
     out["q2"] = q2(idx, em)

@@ -21,9 +21,10 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", required=True, help="資料分支 claude/txo-data 的 checkout")
     ap.add_argument("--out", default=str(ROOT / "data/lab/premkt_research.json"))
+    ap.add_argument("--open-t", type=int, default=None, help="開盤＝第幾個 5 秒（1＝重現 VER 1 的 09:00:05；預設照規格）")
     a = ap.parse_args()
     t0 = time.time()
-    out = V.run(Path(a.root).resolve(), log=lambda s: print(f"[pmval] {s}", flush=True))
+    out = V.run(Path(a.root).resolve(), log=lambda s: print(f"[pmval] {s}", flush=True), open_t=a.open_t)
     Path(a.out).write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":"), sort_keys=True) + "\n", "utf-8")
     print(f"[pmval] 寫入 {a.out}（{(time.time() - t0):.0f} 秒）", flush=True)
     return 0
