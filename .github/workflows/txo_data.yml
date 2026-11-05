@@ -3,7 +3,7 @@ name: 台指選擇權資料（資料分支）
 # docs/lab_txo_plan.md 第 10、15 節：期交所選擇權逐筆（只留 30 個交易日，所以每天存）、選擇權日行情（2002 起）、
 # 證交所每 5 秒加權指數（2016 起），寫進資料分支 claude/txo-data（只放資料，絕不合併進 main）。
 # 程式用這一次 checkout 的版本（排程＝main），資料分支 checkout 到 txodata/，寫完 commit 回資料分支。
-# 回補：workflow_dispatch（mode＝backfill／day／idx）；分支上測試：push .ping/txo（第一行「模式 起點 分鐘」，例「backfill - 150」）。
+# 回補：workflow_dispatch（mode＝backfill／day／idx；fomc＝聯準會會議行程頁，O2 用）；分支上測試：push .ping/txo（第一行「模式 起點 分鐘」，例「backfill - 150」）。
 
 on:
   schedule:
@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "daily｜bars｜day｜idx｜backfill"
+        description: "daily｜bars｜day｜idx｜backfill｜fomc"
         default: "daily"
       start:
         description: "起點（day：YYYY-MM；idx：YYYY-MM-DD；空白＝預設）"

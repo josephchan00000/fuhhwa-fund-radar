@@ -5,6 +5,7 @@ claude/txo-data checkout 到 txodata/ 後執行，寫完由 workflow commit 回�
   python3 scripts/fetch_txo.py --root txodata --mode day --start 2002-01   # 回補日行情（已存的月份跳過）
   python3 scripts/fetch_txo.py --root txodata --mode idx --start 2016-01-04 # 回補 5 秒指數（已存與證交所說沒有的日子跳過）
   python3 scripts/fetch_txo.py --root txodata --mode backfill             # 日行情從 2002 起、5 秒指數從 2016 起，照 --budget-min 能做多少做多少
+  python3 scripts/fetch_txo.py --root txodata --mode fomc                 # 聯準會會議行程頁（O2 的 FOMC 聲明日；arm/lab/txoevents.py）
 
 容器連不到期交所與證交所，不要在容器裡跑（wiki/env/container.md）。
 """
@@ -26,7 +27,7 @@ from arm.lab import txodata as T  # noqa: E402
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", required=True, help="資料分支 checkout 的位置（例 txodata）")
-    ap.add_argument("--mode", default="daily", choices=["daily", "bars", "day", "idx", "backfill"])
+    ap.add_argument("--mode", default="daily", choices=["daily", "bars", "day", "idx", "backfill", "fomc"])
     ap.add_argument("--start", default="", help="day：YYYY-MM；idx：YYYY-MM-DD")
     ap.add_argument("--budget-min", type=float, default=100)
     a = ap.parse_args()
@@ -47,6 +48,10 @@ def main() -> int:
     if a.mode in ("day", "backfill"):
         out["day"] = T.update_day(root, a.start[:7] if a.mode == "day" and a.start else "2002-01", today,
                                   deadline if a.mode == "day" else t0 + a.budget_min * 60 * 0.4)
+    if a.mode == "fomc":
+        from arm.lab import txoevents as E
+        out["fomc"] = E.update_pages(root, today)
+        E.summary(E.parse_all(E.load_pages(root)))
     if a.mode in ("idx", "backfill"):
         s = date.fromisoformat(a.start) if a.mode == "idx" and a.start else T.IDX_FIRST
         out["idx"] = T.update_idx(root, max(s, T.IDX_FIRST), today, deadline)
