@@ -6,6 +6,7 @@ claude/txo-data checkout 到 txodata/ 後執行，寫完由 workflow commit 回�
   python3 scripts/fetch_txo.py --root txodata --mode idx --start 2016-01-04 # 回補 5 秒指數（已存與證交所說沒有的日子跳過）
   python3 scripts/fetch_txo.py --root txodata --mode backfill             # 日行情從 2002 起、5 秒指數從 2016 起，照 --budget-min 能做多少做多少
   python3 scripts/fetch_txo.py --root txodata --mode fomc                 # 聯準會會議行程頁（O2 的 FOMC 聲明日；arm/lab/txoevents.py）
+  python3 scripts/fetch_txo.py --root txodata --mode futday --start 2017-05  # 台指期每日行情（日盤＋夜盤；盤前作戰圖第 3 段）
 
 容器連不到期交所與證交所，不要在容器裡跑（wiki/env/container.md）。
 """
@@ -27,7 +28,7 @@ from arm.lab import txodata as T  # noqa: E402
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", required=True, help="資料分支 checkout 的位置（例 txodata）")
-    ap.add_argument("--mode", default="daily", choices=["daily", "bars", "day", "idx", "backfill", "fomc"])
+    ap.add_argument("--mode", default="daily", choices=["daily", "bars", "day", "idx", "backfill", "fomc", "futday"])
     ap.add_argument("--start", default="", help="day：YYYY-MM；idx：YYYY-MM-DD")
     ap.add_argument("--budget-min", type=float, default=100)
     a = ap.parse_args()
@@ -45,9 +46,12 @@ def main() -> int:
         prev = (today.replace(day=1) - timedelta(days=1))
         out["day"] = T.update_day(root, f"{prev:%Y-%m}", today, deadline)
         out["idx"] = T.update_idx(root, today - timedelta(days=10), today, deadline)
+        out["futday"] = T.update_futday(root, f"{prev:%Y-%m}", today, deadline)
     if a.mode in ("day", "backfill"):
         out["day"] = T.update_day(root, a.start[:7] if a.mode == "day" and a.start else "2002-01", today,
                                   deadline if a.mode == "day" else t0 + a.budget_min * 60 * 0.4)
+    if a.mode == "futday":
+        out["futday"] = T.update_futday(root, a.start[:7] if a.start else T.FUT_FIRST, today, deadline)
     if a.mode == "fomc":
         from arm.lab import txoevents as E
         out["fomc"] = E.update_pages(root, today)

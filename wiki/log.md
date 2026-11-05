@@ -147,3 +147,6 @@
 
 ## [2026-11-05] 收錄 | 盤前作戰圖第 1、2 段
 - 夜盤探針（MIS 盤後、每日行情盤後列都拿得到）；`premkt`／`premkpage`／`fetch_night`／`run_premkt`、三支 workflow 串接、06:35 推播第二行、`txocalc` VER 3。改了 `lab/txo.md`、`ops/daily-update.md`。
+
+## [2026-11-05] 收錄 | 盤前作戰圖第 3 段驗證
+- `futday` 回補（台指期日盤＋夜盤 2017-05 起）、premktspec VER 1→2（開盤改 09:01）、`pmval`／`run_pmval`、規劃第 12、13 節。改了 `lab/txo.md`、`lessons.md`（09:00:05 不是開盤水準）。
