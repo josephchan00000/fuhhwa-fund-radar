@@ -1,7 +1,7 @@
 """台指選擇權日資料回測：O2 大事件前買跨式、O3 已驗證訊號改買買權（txospec VER 1；docs/lab_txo_plan.md 第 16、18 節）。
 
 規格在 arm/lab/txospec.py（常數）與規劃第 18.2 節（看任何成績之前寫定的實作細節），這裡照做、不改：
-  · 交易日＝日行情裡有資料的日子（2002 起）；價平用的收盤指數＝data/lab/heat/taiex.json.gz。
+  · 交易日＝日行情裡有資料的日子（2002 起）；價平用的收盤指數＝heatbubble.taiex_daily()（含週六補班日）。
   · 價格＝收盤價，沒有成交（空或 0）用結算價；兩個都沒有那筆不做。
   · 成本＝txospec.side_cost（手續費＋期交稅＋1 檔滑價，每口每邊）；判定用兩倍成本。
   · 口數＝floor(帳戶 × 上限 ÷ 一組的權利金與一邊成本)；帳戶＝ACCOUNT＋已實現損益；一天、一個月停損照 txospec（每條各自一個帳戶）。
@@ -60,9 +60,11 @@ def load_book(root: Path) -> tuple[list[str], dict]:
     return sorted(book), book
 
 
-def load_close(path: Path | None = None) -> dict[str, float]:
-    p = path or ROOT / "data/lab/heat/taiex.json.gz"
-    return {k: float(v) for k, v in json.loads(gzip.decompress(Path(p).read_bytes()))["d"].items()}
+def load_close() -> dict[str, float]:
+    """加權指數收盤：heatbubble.taiex_daily()（少見策略、總經策略用的同一份；含週六補班日）。
+    第一輪用 data/lab/heat/taiex.json.gz，少了 24 個週六補班日與 4 個平日，2026-11-05 改（規劃第 18.3 節）。"""
+    from . import heatbubble as BB
+    return {k: float(v) for k, v in BB.taiex_daily().items() if v}
 
 
 class Mkt:

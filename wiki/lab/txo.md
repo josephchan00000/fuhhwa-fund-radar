@@ -1,8 +1,8 @@
 # 台指選擇權（試驗中）
 
 > 藏起來的選擇權分頁：只做買方、即時停損、只抓大波動；三條候選策略（結算日順勢、大事件跨式、已驗證訊號改用選擇權）、期交所逐筆與日行情的資料分支、規格先寫死再回測。
-> 原始資料：`docs/lab_txo_plan.md`；程式：`arm/lab/txodata.py`、`scripts/fetch_txo.py`、`scripts/probe_txo.py`；CI：`.github/workflows/txo_data.yml`、`probe_txo.yml`；資料分支 `claude/txo-data`
-> 最後更新：2026-11-05
+> 原始資料：`docs/lab_txo_plan.md`；程式：`arm/lab/txodata.py`、`scripts/fetch_txo.py`、`scripts/probe_txo.py`、回測 `arm/lab/txobt.py`、`scripts/run_txobt.py`；CI：`.github/workflows/txo_data.yml`、`probe_txo.yml`；資料分支 `claude/txo-data`
+> 最後更新：2026-11-05（第 3 段 O2、O3）
 
 ## 現在怎麼運作
 
@@ -14,6 +14,8 @@
   （帳戶＝總資產 3～5%，每筆 O1 2%／O2 3%／O3 5%，一天最多賠 4%、一個月 12%）；入口＝籌碼雷達各頁右下角一個「選」字；盤中提醒等策略過了再說；
   手續費先用每口每邊 25 元（另試 50 元）；不做夜盤。
 - **分段**：①資料 → ②規格 `txospec` VER 1（算任何成績之前 commit）→ ③研究與判定 → ④頁面 `x9op.html`＋紙上紀錄 → ⑤（選配）盤中提醒。第 1 段 2026-11-04 完成（規劃第 15 節：逐筆 30 天、日行情 2002-01 起 299 個月、5 秒指數 2016 起 2,631 天，約 128 MB），第 2 段規格 `arm/lab/txospec.py` VER 1 2026-11-05 寫定（規劃第 16 節、`tests/test_txospec.py` 鎖住），使用者 2026-11-05 決定先做風險／報酬計算機（規劃第 17 節），第 3 段回測往後排。
+- **第 3 段日資料回測（2026-11-05，規劃第 18 節）**：使用者「還是先做以天為單位的模擬呢？我也沒有要做高頻交易」→ 先做 O2、O3，O1（結算日盤中）等使用者決定、盤中報價轉接擱置。程式 `arm/lab/txobt.py`、`scripts/run_txobt.py --root <資料分支>`（容器裡跑，只讀資料），結果 `data/lab/txo_research.json`。FOMC 排定聲明日：`fetch_txo.py --mode fomc` 在 CI 把聯準會行程頁存進資料分支 `events/fomc/`，`run_txobt.py --events` 解析成 `data/lab/txo_events.json`（`arm/lab/txoevents.py`；每年 8 場、2020 年 7 場）。**O2 沒過**（220 筆、平均每筆 −1,350 元、賺錢的 17%，連賣方對照也賠）；**O3 過關**（49 筆、平均每筆 +16,777 元、對權利金中位數 +12.8%、最大回落 8.9%、打亂 0.8%），但 O3 的日子本來就是已判定 good 的少見策略，驗的是「改買買權划不划算」。下一步：O3 先記 63 個交易日紙上紀錄。
+- **盤中報價（探針，2026-11-05）**：期交所網站伺服器拿得到整張選擇權報價，但手機瀏覽器不能直接讀（沒有 Access-Control-*、預檢 403），報價慢 20～60 秒；要自動帶入只能經伺服器轉接，目前擱置（規劃第 17 節第 3 點）。
 - **作戰表**：`arm/lab/txocalc.py`、`scripts/run_txocalc.py`；`txo_data.yml` 每晚算完寫 `data/lab/txo_calc.json` 回 main（收盤、下一個交易日、最近 4 批到期價平上下 10 檔的結算價與波動率、明天的正常波動範圍、成本與上限）。波動率用選擇權隱含的指數水準 `f`（`txocalc.implied_forward`）反推，不用 13:30 的指數收盤（選擇權 13:45 才收）。頁面在下一行。
 - **計算機頁 `x9op.html`**（`arm/lab/txopage.py`；作戰表整份嵌進頁面，計算在瀏覽器裡、公式同 `txocalc.bs`）：帳戶金額、手續費、每筆上限只存在使用者瀏覽器；選到期、買權／賣權、履約價、成交價、口數 → 最多賠、占帳戶（超過上限標紅）、到期損益兩平、跌一半停損賠多少、情境表（指數 ±1／2／3％與正常波動上下緣 × 10:00／11:30／13:00／到期結算，已扣兩邊成本）、作戰表（點一列帶入）。入口：`appnav.finish` 在每個籌碼雷達頁右下角加「選」字（`appnav.OP_ENTRY`，計算機頁自己不加）。daily／afterhours 建頁，`txo_data.yml` 算完作戰表也重建一次。
 - **資料（第 1 段）**：全部在 CI 跑，寫進資料分支 `claude/txo-data`（只放資料，絕不合併進 main），`txo_data.yml` 每天台北 18:35、22:05 兩班：
@@ -31,8 +33,12 @@
 - 資料分支 `claude/txo-data` 絕不合併進 main；程式一律在 main，workflow 把資料分支 checkout 到 `txodata/` 再寫；每次 commit 前把兩支 `vercel.json` 複製進去，Vercel 才不會試著預覽部署這個分支（[部署](../ops/deploy.md)）。
 - 策略規格先寫死、commit，才算成績（`txospec` VER 1，指紋鎖在 `tests/test_txospec.py`）；改＝VER＋1；只做買方，不做賣方、不做夜盤、不自動下單（規劃第 6 節）。
 - 探針只看資料長相與某一天的價格路徑，不算策略成績。
+- 回測的實作細節寫在規劃第 18.2 節（看成績之前寫定）；價平用的收盤指數一律 `heatbubble.taiex_daily()`（`data/lab/heat/taiex.json.gz` 少了週六補班日）。
+- FOMC 只收事先排定、有發聲明的會議；臨時會議前一天收盤時還不知道，不能事先進場。
 
 ## 歷史
+
+- 2026-11-05：盤中報價探針（瀏覽器不能直接讀）；使用者改先做日資料回測；FOMC 行程頁；O2 沒過、O3 過關；第一輪收盤指數少了補班日，改來源後重跑、判定相同。
 
 - 2026-11-04：規劃、兩次探針（11/4 逐筆 3.0 MB／173 MB／118.8 萬筆；日行情 2002 起、一次一個月；5 秒指數 2016 起；分 K 大小）、使用者決定；
   第 1 段資料層與資料分支。同日個股報告排程暫停（[個股報告](equity-report.md)）。
