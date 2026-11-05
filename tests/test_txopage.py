@@ -1,4 +1,4 @@
-"""選擇權計算機頁 x9op.html（arm/lab/txopage.py；docs/lab_txo_plan.md 第 17 節）與各頁右下角的「選」字入口。"""
+"""盤前・選擇權頁 x9op.html（arm/lab/txopage.py；docs/lab_txo_plan.md 第 17 節）與各頁最底下右邊的「.」入口。"""
 import json
 from pathlib import Path
 
@@ -32,6 +32,8 @@ def test_other_lab_pages_get_entry():
     page = "<html><head><style>a{}</style></head><body>" + appnav.BACK + "x</body></html>"
     t = appnav.finish(page)
     assert t.count(appnav.OP_ENTRY) == 1 and ".opq{" in t and 'href="x9op.html"' in t
+    assert t.index(appnav.OP_ENTRY) > t.index("x</body>".replace("</body>", ""))      # 放在頁面最後
+    assert '>.</a>' in appnav.OP_ENTRY and "position:fixed" not in appnav.OP_CSS     # 一個「.」、不固定在畫面上（使用者 2026-11-05）
 
 
 def test_workflows_commit_page():

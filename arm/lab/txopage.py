@@ -1,5 +1,5 @@
-"""盤前・選擇權分頁 x9op.html：最上面是盤前作戰圖（arm/lab/premkpage.py；docs/lab_premarket_plan.md），下面是風險／報酬計算機
-（docs/lab_txo_plan.md 第 17 節）。不在頂欄，籌碼雷達各頁右下角的「選」字進來。
+"""盤前・選擇權分頁 x9op.html：最上面是盤前戰情（arm/lab/premkpage.py；docs/lab_premarket_plan.md），下面收起來的是風險／報酬計算機
+（docs/lab_txo_plan.md 第 17 節）。不在頂欄，籌碼雷達各頁最底下右邊的「.」進來（appnav.OP_ENTRY）。
 
 作戰表資料 data/lab/txo_calc.json（arm/lab/txocalc.py，每晚 CI 寫）整份嵌進頁面；計算全部在瀏覽器裡（Black-Scholes、r＝0，
 和 txocalc.bs 同一個公式）：使用者只要輸入成交價，口數、最多賠、占帳戶、損益兩平、情境表就重算。帳戶金額與手續費只存在使用者自己的瀏覽器。
@@ -42,7 +42,13 @@ CSS = (".opm{max-width:1000px;margin:0 auto;padding:12px 16px 80px}"
        ".opnote{font-size:12.5px;color:var(--mut);line-height:1.6;margin:6px 0}"
        ".opexp{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.opexp button{font:inherit;font-size:13px;padding:4px 10px;"
        "border:1px solid var(--line2);border-radius:999px;background:var(--bg);color:var(--ink2);cursor:pointer}"
-       ".opexp button.on{border-color:var(--acc);color:var(--acc);font-weight:600}")
+       ".opexp button.on{border-color:var(--acc);color:var(--acc);font-weight:600}"
+       ".opcalc{margin:14px 0;border-radius:16px;padding:0 14px;border:1px solid var(--line2);background:var(--panel)}"
+       ".opcalc>summary{list-style:none;cursor:pointer;display:flex;flex-direction:column;gap:2px;padding:14px 26px 14px 0;position:relative}"
+       ".opcalc>summary::-webkit-details-marker{display:none}"
+       ".opcalc>summary::after{content:'＋';position:absolute;right:2px;top:50%;transform:translateY(-50%);font-size:18px;color:var(--acc)}"
+       ".opcalc[open]>summary::after{content:'－'}.opcalc>summary b{font-size:17px}.opcalc>summary small{font-size:12.5px;color:var(--mut)}"
+       ".opcalc[open]{padding-bottom:12px}.opcalc[open]>summary{border-bottom:1px solid var(--line);margin-bottom:8px}")
 
 JS = r"""
 (function () {
@@ -145,10 +151,10 @@ _HTML = """<!doctype html>
 <style>{{CSS}}</style></head>
 <body>
 <div class="top">{{APPTAB}}<a class="back" href="./"><span class="bk1">返回</span>主頁</a></div>
-<main class="opm">{{PM}}<h2 id="calc">選擇權計算機</h2>
-<p class="oplead">只算「買方」：最多賠的就是付出去的權利金加成本。下面的數字每天晚上自動更新，盤中只要改成交價。這裡只是計算，不是買賣建議。</p>
+<main class="opm">{{PM}}<details class="opcalc" id="calc"><summary><b>選擇權計算機</b><small>輸入成交價：最多賠多少、可買幾口、指數走到哪賺賠多少</small></summary>
+<p class="oplead">只算「買方」：最多賠的就是付出去的權利金加成本。數字每天晚上自動更新，盤中只要改成交價。這裡只是計算，不是買賣建議。</p>
 {{FACTS}}
-<div id="opapp"></div></main>
+<div id="opapp"></div></details></main>
 <script type="application/json" id="opd">{{DATA}}</script>
 <script>{{JS}}</script>
 </body></html>

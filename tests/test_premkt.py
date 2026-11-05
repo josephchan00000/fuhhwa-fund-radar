@@ -82,8 +82,61 @@ def test_push_line_nearest_bands():
           "bands": [{"lo": 44000, "hi": 44000, "side": "up"}, {"lo": 43200, "hi": 43300, "side": "up"},
                     {"lo": 42700, "hi": 42800, "side": "dn"}, {"lo": 42000, "hi": 42000, "side": "dn"}]}
     s = P.push_line(pm)
-    assert s.startswith("盤前 11/6（五）：預估開 43,000（夜盤收盤）")
+    assert s.startswith("盤前 11/6（五）：預估 09:01 約 43,000（夜盤收盤）")
     assert "壓力 43,200～43,300" in s and "支撐 42,700～42,800" in s and "正常波動 ±900" in s
+    pm["v"] = {"typ": 207}
+    assert P.push_line(pm).startswith("盤前 11/6（五）：預估 09:01 約 43,000（平常差 ±207）")
+
+
+Q2 = {"x": [0.25, 0.5, 1.0], "up": [0.6, 0.3, 0.1], "dn": [0.7, 0.4, 0.2]}
+
+
+def test_touch_interpolates_from_one_at_open():
+    assert P.touch(0, "up", Q2) == 1.0
+    assert abs(P.touch(0.25, "up", Q2) - 0.6) < 1e-9
+    assert abs(P.touch(0.375, "dn", Q2) - 0.55) < 1e-9
+    assert abs(P.touch(0.125, "up", Q2) - 0.8) < 1e-9
+    assert P.touch(3, "dn", Q2) == 0.2                     # 超過表的最遠一格＝最後一格
+    assert P.touch(1, "up", {}) is None
+
+
+def _heat(n=260):
+    import datetime as dt
+    days = [(dt.date(2025, 1, 1) + dt.timedelta(days=i)).isoformat() for i in range(n)]
+    futi = {d: {"TX": {"外資": [100 + i, 50]}, "MTX": {"外資": [10, 10 + (i % 7)], "投信": [0, 0], "自營商": [5, 5]}} for i, d in enumerate(days)}
+    mtxoi = {d: 1000 for d in days}
+    margin = {d: [1e11 + (i % 5) * 1e8, 0, 0] for i, d in enumerate(days)}
+    return days, {"futi": futi, "mtxoi": mtxoi, "margin": margin}
+
+
+def test_chip_states_same_rules_as_research():
+    days, heat = _heat()
+    st = P.chip_states(heat, days[-1], 250)
+    assert st["fx_fut_chg"][:2] == (days[-1], 1)          # 淨部位每天多 1 口
+    assert st["retail"][0] == days[-1] and st["retail"][1] in (-1, 0, 1)
+    assert st["margin"][0] == days[-1]
+    few = P.chip_states(heat, days[10], 250)
+    assert few["retail"][1] == 0 and few["margin"][1] == 0   # 不到 250 天不分三分位
+
+
+def test_validated_marks_bands_cards_and_leans():
+    from arm.lab import premktspec as S
+    days, heat = _heat()
+    pm = {"d": days[-1], "est": 43000, "em": 1000,
+          "bands": [{"lo": 43500, "hi": 43500, "mid": 43500, "side": "up"}, {"lo": 42900, "hi": 43100, "mid": 43000, "side": "at"}],
+          "sc": [{"entry": 42750, "stop": 42600, "target": 43500}]}
+    res = {"ver": S.VER, "asof": "2026-11-04", "q1": {"n": 10, "use_night": True, "E1_open": {"med_em": 0.2, "p80_em": 0.5}},
+           "q2": Q2, "q3": {"kinds": {"pivot_p": {"ok": False, "base": 0.45}}, "strength_ok": False},
+           "q4": {"fx_fut_chg": {"oc": {"ok": True, "bull_mean_bp": -3.0, "bull_up": 0.49, "bull_n": 10, "bear_mean_bp": -11.0,
+                                        "bear_up": 0.47, "bear_n": 9, "score_bp": 4.4}},
+                  "sox": {"oc": {"ok": False}}}}
+    v = P.validated(pm, res, heat)
+    assert v["typ"] == 200 and v["p80"] == 500 and v["lv_ok"] == [] and v["strength_ok"] is False
+    assert abs(pm["bands"][0]["touch"] - 0.3) < 1e-3 and pm["bands"][1]["touch"] == 1.0   # 往上 0.5 倍＝0.3；包住預估開盤＝1
+    assert abs(pm["sc"][0]["hit"] - 0.7) < 1e-3          # 0.25 倍往下
+    assert [x["k"] for x in v["leans"]] == ["fx_fut_chg"] and v["leans"][0]["lean"] == 1 and v["leans"][0]["mean"] == -3.0
+    assert P.validated(dict(pm), {**res, "ver": S.VER - 1}, heat) is None   # 研究版本對不上就不標
+
 
 
 def test_night_rec_picks_near_month_and_session_date():
@@ -119,12 +172,36 @@ def test_page_block_renders_and_fits(tmp_path):
           "sc": [], "facts": [{"k": "x", "t": "外資台指期", "v": "淨空 1 口", "d": "2026-11-04"}], "warn": ["夜盤還沒抓到"],
           "check": [{"d": "2026-11-05", "est": 43321, "open": 42666}]}
     h = premkpage.block(pm)
-    assert "盤前作戰圖 11/5（四）" in h and "43,321" in h and "夜盤還沒抓到" in h and "實際開 42,666（差 −655）" in h
-    assert h.index("43,500～43,507") < h.index("預估開盤</span>") < h.index("43,000～43,084")   # 壓力在上、預估開盤、支撐在下
+    assert "盤前戰情" in h and "11/5（四）開盤前" in h and 'data-to="43321"' in h and "夜盤還沒抓到" in h
+    assert "09:01 實際 42,666（−655）" in h and h.count('class="pz-b"') == 2 and 'class="pz-s"' not in h
     out = tmp_path / "x9op.html"
     txopage.build(out=out, data=None, pm=pm)
-    assert "盤前作戰圖" in out.read_text(encoding="utf-8")
-    assert "盤前作戰圖還沒準備好" in premkpage.block(None)
+    assert "盤前戰情" in out.read_text(encoding="utf-8")
+    assert "還沒準備好" in premkpage.block(None)
+
+
+def test_page_cards_ladder_and_data_match():
+    import json
+
+    from arm.lab import premkpage
+    sc = [{"k": "long", "name": "回測支撐做多", "why": "w", "entry": 43084, "stop": 42906, "target": 43500, "risk": 178, "reward": 416,
+           "rr": 2.33, "mtx": {"loss": 9163, "gain": 20548}, "opt": None, "hit": 0.9},
+          {"k": "breakdown", "name": "跌破支撐追空", "why": "w2", "entry": 42906, "stop": 43042, "target": 42500, "risk": 136, "reward": 406,
+           "rr": 3.0, "mtx": {"loss": 7055, "gain": 20053}, "opt": None}]
+    pm = {"d": "2026-11-04", "next": "2026-11-05", "close": 42949, "hi": 43741, "lo": 41856, "est": 43321, "est_src": "夜盤收盤",
+          "em": 942, "night": {"c": 43404.0, "ref": 43203.0, "done": True}, "made": "2026-11-05 05:12",
+          "bands": [{"lo": 43500, "hi": 43507, "mid": 43504, "n": 2, "side": "up", "src": [["整數關卡", 43500]], "touch": 0.42},
+                    {"lo": 43000, "hi": 43084, "mid": 43042, "n": 3, "side": "dn", "src": [["布林下緣", 43084]], "touch": 0.6}],
+          "sc": sc, "facts": [], "warn": [], "check": [],
+          "v": {"typ": 216, "p80": 434, "leans": [{"k": "retail", "t": "散戶小台", "d": "2026-11-04", "s": 1, "lean": -1, "txt": "t",
+                                                    "mean": -13.4, "up": 0.43}], "chips_ok": ["retail"], "q2": {}, "n1": 1, "n2": 1}}
+    h = premkpage.block(pm)
+    assert h.count('class="pz-c ') == 2 and h.count('class="pz-s"') == 2
+    assert "做多" in h and "追空" in h and "43,084" in h and "1 : <b>2.3</b>" in h and "今天碰到進場價的機會 <b>90%</b>" in h
+    assert "平常差 <b>±216</b>" in h and "±434" in h and "散戶小台　偏空" in h and "平均 −0.13%、上漲 43%" in h
+    assert "碰 42%" in h and "碰 60%" in h
+    d = json.loads(h.split('<script type="application/json" id="pzd">', 1)[1].split("</script>", 1)[0])
+    assert [c["entry"] for c in d["sc"]] == [43084, 42906] and len(d["bands"]) == 2
 
 
 def test_write_keeps_file_when_only_timestamp_changes(tmp_path, monkeypatch):
@@ -138,3 +215,16 @@ def test_write_keeps_file_when_only_timestamp_changes(tmp_path, monkeypatch):
     assert out.read_bytes() == b1                 # 只有時間戳不同 → 不動檔
     P.write(out)
     assert json.loads(out.read_text())["x"] == 2
+
+
+def test_parse_futday_keeps_single_month_rows_and_sessions():
+    from arm.lab import txodata as T
+    txt = ("交易日期,契約,到期月份(週別),開盤價,最高價,最低價,收盤價,漲跌價,漲跌%,成交量,結算價,未沖銷契約數,最後最佳買價,"
+           "最後最佳賣價,歷史最高價,歷史最低價,是否因訊息面暫停交易,交易時段,價差對單式委託成交量\n"
+           "2026/11/04,TX,202611  ,43450,43774,42050,43204,-149,-0.34%,113674,43203,122629,43195,43205,50440,42050,,一般,,\n"
+           "2026/11/05,TX,202611  ,43430,44274,43141,43404,201,0.47%,66939,-,-,43383,43400,50440,42050,,盤後,,\n"
+           "2026/11/04,TX,202611/202612    ,85,87,71,76,-,-,115,-,-,74,76,170,71,,一般,494,\n"
+           "2026/11/04,MTX,202611  ,1,1,1,1,-,-,1,-,-,1,1,1,1,,一般,,\n")
+    rows = T.parse_futday(txt)
+    assert rows == [["2026-11-04", "202611", "D", 43450, 43774, 42050, 43204, 113674, 43203, 122629],
+                    ["2026-11-05", "202611", "N", 43430, 44274, 43141, 43404, 66939, None, None]]

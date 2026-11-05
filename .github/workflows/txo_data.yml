@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "daily｜bars｜day｜idx｜backfill｜fomc"
+        description: "daily｜bars｜day｜idx｜backfill｜fomc｜futday"
         default: "daily"
       start:
         description: "起點（day：YYYY-MM；idx：YYYY-MM-DD；空白＝預設）"

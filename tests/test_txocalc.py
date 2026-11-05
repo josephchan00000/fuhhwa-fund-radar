@@ -59,3 +59,12 @@ def test_implied_forward_fixes_close_time_mismatch():
     r = next(x for x in e["rows"] if x[0] == 43000)
     assert abs(r[2] - 0.3) < 2e-3 and abs(r[4] - 0.3) < 2e-3
     assert C.implied_forward({}, 43000) is None
+
+
+def test_atm_is_nearest_listed_strike_when_rounded_one_missing():
+    """2026-11-05 大跌：收盤 41,574.72 → 四捨五入 41,550 沒掛牌（新履約價 100 點一檔），價平要用 41,600，波動率不能變成空的。"""
+    asof = date(2026, 11, 5)
+    ks = list(range(41100, 41700, 100)) + list(range(41700, 42100, 50))
+    rows = [_row("2026-11-05", "202611W2", k, cp, C.bs(cp, 41575, k, 4 / 252, 0.42), "2026-11-11") for k in ks for cp in "CP"]
+    doc = C.build(rows, 41574.72, asof)
+    assert doc["atm"] == 41600 and abs(doc["atm_iv"] - 0.42) < 3e-3 and doc["em"] > 0

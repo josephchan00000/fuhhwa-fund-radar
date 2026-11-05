@@ -1,7 +1,9 @@
 """盤前作戰圖（docs/lab_premarket_plan.md）：以加權指數為基準，每天盤前一張圖——預估開盤、正常波動範圍、上下的壓力支撐帶
 （每個價位寫出來源、好幾個來源擠在一起＝共振）、籌碼期貨指標的事實、幾個情境的風險報酬試算（小台與選擇權買方）。
 
-第 2 段只放公式與事實，不放「偏多偏空」與「碰到的機率」：那些要第 3 段先寫規格、驗證過才加（使用者 2026-11-05 決定 D4）。
+第 2 段只放公式與事實；第 3 段驗證（premktspec VER 2，data/lab/premkt_research.json）過的才加上去（使用者 2026-11-05 決定 D4）：
+預估開盤的誤差範圍、每一帶「過去離開盤這麼遠，當天碰到的比例」、過了的籌碼因素今天偏多偏空（validated()）。
+「開盤」＝09:01:00 那個 5 秒指數（09:00:05 那一點只吃進一部分跳空，規劃第 12 節）。
 本模組只讀已存的資料、不連網；夜盤由 scripts/fetch_night.py（CI）先抓進 data/lab/fut/night.json。
 
   build() → data/lab/premkt.json（scripts/run_premkt.py 寫）；頁面在 txopage（選擇權頁最上面），推播一行在 valog.pm_line。
@@ -17,9 +19,10 @@ ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "data" / "lab" / "premkt.json"
 NIGHT = ROOT / "data" / "lab" / "fut" / "night.json"
 CALC = ROOT / "data" / "lab" / "txo_calc.json"
+RESEARCH = ROOT / "data" / "lab" / "premkt_research.json"
 MACRO = ROOT / "data" / "macro_chips.json"
 
-VER = 1
+VER = 2                 # 2：加上驗證過的數字（validated）、實際開盤改用 09:01
 CLUSTER = 0.0025        # 價位相差 0.25% 以內併成一帶
 NEAR = 3                # 預估開盤上下各列幾帶
 FAR = 2.0               # 超過 2 倍正常波動的價位不列
@@ -191,10 +194,11 @@ def _opt(entry: float, stop: float, target: float, cp: str, exp: dict, close: fl
     """買一口選擇權（履約價＝進場價最近的 50 點）：用今天的波動率與到期時間（10:30）估進場、停損、目標時的權利金。"""
     from . import txocalc as TC
     from . import txospec as S
-    k = round(entry / S.STRIKE_STEP) * S.STRIKE_STEP
-    row = next((r for r in exp.get("rows") or [] if r[0] == k), None)
-    iv = (row[2] if cp == "C" else row[4]) if row else None
-    iv = iv or atm_iv
+    j = 2 if cp == "C" else 4
+    rows = [r for r in exp.get("rows") or [] if r[j]]
+    row = min(rows, key=lambda r: (abs(r[0] - entry), r[0]), default=None)   # 離進場價最近、有掛牌的履約價（大跌後新履約價 100 點一檔）
+    k = row[0] if row else round(entry / S.STRIKE_STEP) * S.STRIKE_STEP
+    iv = (row[j] if row else None) or atm_iv
     n = exp.get("n") or 0
     if not iv or n <= 0:
         return None
@@ -367,8 +371,9 @@ def _tx1330(F, d: str) -> float | None:
 
 
 def checks(days: list[str], cl: dict, night: dict, n: int = 5) -> list[dict]:
-    """最近幾天「用夜盤估的開盤」和實際開盤（5 秒指數 09:00:05 那一點）差多少；只算夜盤、逐筆、隔天 5 秒指數都有的日子。"""
+    """最近幾天「用夜盤估的開盤」和實際開盤（09:01:00 的 5 秒指數，premktspec.OPEN_T）差多少；只算夜盤、逐筆、隔天 5 秒指數都有的日子。"""
     from . import futdata as F
+    from .premktspec import OPEN_T
     out = []
     for a, b in zip(days[:-1], days[1:]):
         nt = night.get(a)
@@ -376,9 +381,9 @@ def checks(days: list[str], cl: dict, night: dict, n: int = 5) -> list[dict]:
             continue
         t = _tx1330(F, a)
         v = F.load_idx(b)
-        if t is None or not v or len(v) < 2:
+        if t is None or not v or len(v) <= OPEN_T:
             continue
-        out.append({"d": b, "est": round(float(cl[a]) + nt["c"] - t), "open": round(v[1])})
+        out.append({"d": b, "est": round(float(cl[a]) + nt["c"] - t), "open": round(v[OPEN_T])})
     return out[-n:]
 
 
@@ -388,14 +393,17 @@ def build(asof: str | None = None) -> dict | None:
     from . import heatbubble as BB
     from . import heatdata as HD
     from . import txocalc as TC
-    cl = BB.taiex_daily()
-    days = [x for x in _idx_days() if x in cl and (asof is None or x <= asof)]
+    cl = dict(BB.taiex_daily())
+    days = [x for x in _idx_days() if asof is None or x <= asof]
     if not days:
         return None
     d = days[-1]
     idx = F.load_idx(d) or []
     if len(idx) < 2:
         return None
+    if d not in cl:                                       # 收盤指數檔還沒更新（盤後那班的步驟順序）：用 13:30 那個 5 秒指數
+        cl[d] = idx[-1]
+    days = [x for x in days if x in cl]
     hi, lo, close = max(idx[1:]), min(idx[1:]), float(cl[d])
     ds = sorted(k for k in cl if k <= d)
     closes = [float(cl[k]) for k in ds]
@@ -493,7 +501,7 @@ def build(asof: str | None = None) -> dict | None:
             k0 += ROUND
     bands = pick_bands(cluster(L, est), est, em)
     sc = scenarios(bands, est, em, calc_ok, close)
-    heat = {n: HD.load(n) or {} for n in ("futi", "opti", "pcr", "mtxoi")}
+    heat = {n: HD.load(n) or {} for n in ("futi", "opti", "pcr", "mtxoi", "margin")}
     fx = facts(d, close, tx1330, night, txclose, closes, hl, _read(MACRO, {}) or {}, heat)
     out = {
         "ver": VER, "made": clock.now_tw().strftime("%Y-%m-%d %H:%M"),
@@ -505,8 +513,107 @@ def build(asof: str | None = None) -> dict | None:
                   for b in bands],
         "oi_note": oi_note, "sc": sc, "facts": fx, "warn": warn, "check": checks(days, cl, _read(NIGHT, {}) or {}),
     }
+    validated(out, _read(RESEARCH), heat)
     out["push"] = push_line(out)
     return out
+
+
+# ── 第 3 段驗證過的數字（premktspec VER 2；data/lab/premkt_research.json） ─────────────────────────
+
+LEAN = {"fx_fut_chg": "外資台指期", "retail": "散戶小台", "margin": "融資"}
+
+
+def touch(x: float, side: str, q2: dict) -> float | None:
+    """離開盤 x 倍正常波動、往上（up）或往下（dn）的價位，過去當天碰到的比例（Q2 表線性內插；0 倍＝1）。"""
+    xs, ps = [0.0] + list(q2.get("x") or []), [1.0] + list(q2.get(side) or [])
+    if len(xs) < 2 or len(xs) != len(ps):
+        return None
+    if x >= xs[-1]:
+        return ps[-1]
+    for (a, pa), (b, pb) in zip(zip(xs, ps), zip(xs[1:], ps[1:])):
+        if a <= x <= b:
+            return pa + (pb - pa) * (x - a) / (b - a)
+    return None
+
+
+def _tercile(hist: list[float], x: float, n: int) -> int:
+    """同 pmval._tercile：過去 n 個（不含今天）的三分位；前三分之一＝1、後三分之一＝−1。"""
+    if len(hist) < n:
+        return 0
+    w = sorted(hist[-n:])
+    lo, hi = w[len(w) // 3], w[2 * len(w) // 3]
+    return 1 if x > hi else -1 if x < lo else 0
+
+
+def chip_states(heat: dict, upto: str, n: int) -> dict:
+    """三個籌碼因素在 upto 當天或之前最後一筆的狀態（定義同 pmval.factor_states）→ {因素: (資料日, 狀態, 數字)}。"""
+    futi, mtxoi, margin = heat.get("futi") or {}, heat.get("mtxoi") or {}, heat.get("margin") or {}
+    out = {}
+    fk = sorted(k for k in futi if k <= upto and (futi[k].get("TX") or {}).get("外資"))
+    if len(fk) >= 2:
+        net = [futi[k]["TX"]["外資"][0] - futi[k]["TX"]["外資"][1] for k in fk[-2:]]
+        out["fx_fut_chg"] = (fk[-1], 1 if net[1] > net[0] else -1 if net[1] < net[0] else 0, net[1] - net[0])
+    rk = [k for k in sorted(futi) if k <= upto and futi[k].get("MTX") and mtxoi.get(k)]
+    if rk:
+        rs = [-sum(a - b for a, b in futi[k]["MTX"].values()) / mtxoi[k] for k in rk]
+        out["retail"] = (rk[-1], _tercile(rs[:-1], rs[-1], n), rs[-1])
+    mk = [k for k in sorted(margin) if k <= upto and margin[k] and margin[k][0] is not None]
+    if len(mk) >= 2:
+        dv = [margin[b][0] - margin[a][0] for a, b in zip(mk[:-1], mk[1:])]
+        out["margin"] = (mk[-1], _tercile(dv[:-1], dv[-1], n), dv[-1])
+    return out
+
+
+def _lean_text(f: str, st: int, val: float) -> str:
+    if f == "fx_fut_chg":
+        return f"淨部位比前一天{'增加' if st > 0 else '減少' if st < 0 else '不變'} {abs(val):,.0f} 口"
+    if f == "retail":
+        return {1: "淨多在過去一年前三分之一（散戶偏多）", -1: "淨多在過去一年後三分之一（散戶偏空）"}.get(st, "在過去一年中間三分之一")
+    return {1: f"增加 {val / 1e8:,.1f} 億，在過去一年前三分之一", -1: f"{'增加' if val >= 0 else '減少'} {abs(val) / 1e8:,.1f} 億，在過去一年後三分之一"}.get(
+        st, f"{'增加' if val >= 0 else '減少'} {abs(val) / 1e8:,.1f} 億，在過去一年中間")
+
+
+def validated(pm: dict, research: dict | None, heat: dict) -> dict | None:
+    """把驗證過的數字掛到 pm 上（就地改 bands、sc）；回傳 pm["v"]。research 版本不是 premktspec.VER 就不掛（過期的研究不拿來標）。"""
+    from . import premktspec as S
+    if not research or research.get("ver") != S.VER:
+        return None
+    em, est = pm.get("em"), pm["est"]
+    q1, q2, q3, q4 = (research.get(k) or {} for k in ("q1", "q2", "q3", "q4"))
+    v = {"ver": S.VER, "asof": research.get("asof"), "n1": q1.get("n"), "n2": q2.get("n"), "use_night": bool(q1.get("use_night")),
+         "q2": {"x": q2.get("x"), "up": q2.get("up"), "dn": q2.get("dn")},
+         "lv_ok": sorted(k for k, x in (q3.get("kinds") or {}).items() if x.get("ok")), "strength_ok": bool(q3.get("strength_ok")),
+         "hold_base": round(sum(x.get("base", 0) for x in (q3.get("kinds") or {}).values()) / max(1, len(q3.get("kinds") or {})), 3)}
+    e1 = q1.get("E1_open") or {}
+    if em and e1.get("med_em") is not None:
+        v["typ"], v["p80"] = round(e1["med_em"] * em), round(e1["p80_em"] * em)
+    if em and q2.get("x"):
+        for b in pm.get("bands") or []:
+            if b["side"] == "at":
+                b["touch"] = 1.0
+            else:
+                t = touch(abs(b["mid"] - est) / em, b["side"], q2)
+                b["touch"] = None if t is None else round(t, 3)
+        for c in pm.get("sc") or []:
+            t = touch(abs(c["entry"] - est) / em, "up" if c["entry"] > est else "dn", q2)
+            c["hit"] = None if t is None else round(t, 3)
+    leans = []
+    states = chip_states(heat, pm["d"], S.RANK_N)
+    for f, name in LEAN.items():
+        r = (q4.get(f) or {}).get("oc") or {}
+        if not r.get("ok") or f not in states:
+            continue
+        d, st, val = states[f]
+        direction = S.FACTORS[f][0]
+        sig = direction * st
+        grp = "bull" if sig > 0 else "bear" if sig < 0 else None
+        leans.append({"k": f, "t": name, "d": d, "s": st, "lean": sig, "txt": _lean_text(f, st, val), "rule": S.FACTORS[f][1],
+                      "mean": None if grp is None else r.get(f"{grp}_mean_bp"), "up": None if grp is None else r.get(f"{grp}_up"),
+                      "n": None if grp is None else r.get(f"{grp}_n"), "edge": r.get("score_bp")})
+    v["leans"] = leans
+    v["chips_ok"] = [f for f, x in q4.items() if any((x.get(t) or {}).get("ok") for t in ("oc", "cc"))]
+    pm["v"] = v
+    return v
 
 
 def push_line(pm: dict) -> str:
@@ -515,7 +622,8 @@ def push_line(pm: dict) -> str:
 
     def rng(b):
         return f"{b['lo']:,}" if b["lo"] == b["hi"] else f"{b['lo']:,}～{b['hi']:,}"
-    s = f"盤前 {md(pm['next'])}（{wd(pm['next'])}）：預估開 {pm['est']:,}（{pm['est_src']}）"
+    v = pm.get("v") or {}
+    s = f"盤前 {md(pm['next'])}（{wd(pm['next'])}）：預估 09:01 約 {pm['est']:,}" + (f"（平常差 ±{v['typ']:,}）" if v.get("typ") else f"（{pm['est_src']}）")
     if up:
         s += f"｜壓力 {rng(up[0])}"
     if dn:
