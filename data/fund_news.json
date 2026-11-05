@@ -1,14 +1,15 @@
 {
-  "as_of": "2026/11/05 15:37",
+  "as_of": "2026/11/05 17:04",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
     {
       "title": "00877 復華中國5G通信ETF｜成分股？配息？優缺點？",
-      "url": "https://www.stockfeel.com.tw/00877-%E5%BE%A9%E8%8F%AF%E4%B8%AD%E5%9C%8B5g%E9%80%9A%E4%BF%A1-etf/",
-      "source": "StockFeel 股感",
+      "url": "https://www.stockfeel.com.tw/00877-%e5%be%a9%e8%8f%af%e4%b8%ad%e5%9c%8b5g%e9%80%9a%e4%bf%a1-etf/",
+      "source": "股感 StockFeel",
       "date": "2026-11-04 09:04",
-      "datetime": "2026-11-04T09:04:34+08:00"
+      "datetime": "2026-11-04T09:04:34+08:00",
+      "summary": "2026 年的中國科技股市場，最熱門的關鍵字無疑是「AI 算力」。隨著官方持續投入建設、強化 AI 算力供給，並積極扶植 AI 優勢企業，5G 通訊設備與 AI 伺服器用光模組的需求跟著水漲船高；8 …"
     },
     {
       "title": "00929績效、配息雙亮眼！近月受益人數激增3萬人、官股也搶買逾23億",
@@ -92,13 +93,6 @@
           "source": "CMoney",
           "date": "2026-11-04 04:02",
           "datetime": "2026-11-04T04:02:06+08:00"
-        },
-        {
-          "title": "主動ETF打敗0050神話破滅？00991A、00982A落後清流君酸：當初推薦的達人呢| 存股族愛ETF | 股市",
-          "url": "https://udn.com/news/story/123006/9853460",
-          "source": "UDN",
-          "date": "2026-11-03 09:43",
-          "datetime": "2026-11-03T09:43:04+08:00"
         }
       ]
     },
@@ -116,13 +110,6 @@
           "source": "商傳媒",
           "date": "2026-11-05 11:50",
           "datetime": "2026-11-05T11:50:47+08:00"
-        },
-        {
-          "title": "成交最熱，未必最抗跌！00406A早盤跌逾5% 00998A逆勢漲4.21%",
-          "url": "https://tw.news.yahoo.com/%E6%88%90%E4%BA%A4%E6%9C%80%E7%86%B1-%E6%9C%AA%E5%BF%85%E6%9C%80%E6%8A%97%E8%B7%8C-00406a%E6%97%A9%E7%9B%A4%E8%B7%8C%E9%80%BE5-00998a%E9%80%86%E5%8B%A2%E6%BC%B24-21-030743514.html",
-          "source": "觀傳媒",
-          "date": "2026-11-05 11:07",
-          "datetime": "2026-11-05T11:07:40+08:00"
         }
       ]
     },
@@ -158,7 +145,15 @@
       "short_names": [
         "00418A"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "台股急跌逾1500點 00418A迎建倉時機、逢低布局受關注",
+          "url": "https://www.watchmedia01.com/archives/564368",
+          "source": "蕃新聞",
+          "date": "2026-10-30 11:54",
+          "datetime": "2026-10-30T11:54:28+08:00"
+        }
+      ]
     },
     {
       "base": "復華美國新星基金",
@@ -518,7 +513,7 @@
       "channel": "JUSTIN投資日記",
       "url": "https://www.youtube.com/watch?v=8VSo8m4_9Go",
       "date": "2026-11-02",
-      "views": 4600
+      "views": 4621
     },
     {
       "platform": "youtube",
@@ -526,16 +521,15 @@
       "channel": "三立財經iNEWS",
       "url": "https://www.youtube.com/watch?v=CLxx_PT_KRM",
       "date": "2026-11-04",
-      "views": 3044
+      "views": 3121
     },
     {
       "platform": "youtube",
-      "title": "00929配00918有買重複嗎？持股只重疊24%，大跌卻一起跌｜懶得變有錢 #Shorts",
-      "channel": "懶得變有錢",
-      "url": "https://www.youtube.com/shorts/CmPUJsZF66c",
-      "date": "2026-10-30",
-      "views": 1347,
-      "short": true
+      "title": "高股息ETF迎升&quot;息&quot;潮 00878對上00929選誰？#金臨天下 #黃斐瑜 @TVBSFinanceLive  20261104",
+      "channel": "TVBS財經",
+      "url": "https://www.youtube.com/watch?v=mlXZqnlEV34",
+      "date": "2026-11-05",
+      "views": 1830
     },
     {
       "platform": "youtube",
@@ -543,7 +537,7 @@
       "channel": "施羅德投資 (台灣)",
       "url": "https://www.youtube.com/shorts/vlFqx1GeoiI",
       "date": "2026-11-02",
-      "views": 399169,
+      "views": 409762,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -554,7 +548,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/PTnYdznK2XI",
       "date": "2026-11-02",
-      "views": 264251,
+      "views": 265939,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -565,7 +559,7 @@
       "channel": "財經震翰彈_蔡明翰",
       "url": "https://www.youtube.com/watch?v=ql30CdVf2r0",
       "date": "2026-11-01",
-      "views": 218802,
+      "views": 218871,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -575,7 +569,7 @@
       "channel": "玩股網楚狂人",
       "url": "https://www.youtube.com/watch?v=ojaCN2_R6Tw",
       "date": "2026-11-04",
-      "views": 198950,
+      "views": 212606,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -585,7 +579,7 @@
       "channel": "施羅德投資 (台灣)",
       "url": "https://www.youtube.com/shorts/QFdqwnU5dn4",
       "date": "2026-11-02",
-      "views": 133318,
+      "views": 144940,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -596,7 +590,7 @@
       "channel": "理財達人秀 EBCmoneyshow",
       "url": "https://www.youtube.com/watch?v=3ZeGiG5It4M",
       "date": "2026-11-03",
-      "views": 131941,
+      "views": 132062,
       "peer": true,
       "cat": "債券"
     },
@@ -606,7 +600,7 @@
       "channel": "董事長開講",
       "url": "https://www.youtube.com/shorts/1Hirnp6dW0g",
       "date": "2026-11-03",
-      "views": 106589,
+      "views": 107732,
       "peer": true,
       "short": true,
       "cat": "基金"
@@ -617,9 +611,19 @@
       "channel": "阿格力博識",
       "url": "https://www.youtube.com/shorts/amKeZNJBj5I",
       "date": "2026-11-03",
-      "views": 88742,
+      "views": 92876,
       "peer": true,
       "short": true,
+      "cat": "市值型"
+    },
+    {
+      "platform": "youtube",
+      "title": "0050最大對手來了！006208拆股只要3萬塊！現在換股能多賺嗎？",
+      "channel": "施雅棠",
+      "url": "https://www.youtube.com/watch?v=Bt-_Ab7FBrE",
+      "date": "2026-11-01",
+      "views": 80046,
+      "peer": true,
       "cat": "市值型"
     },
     {
@@ -628,25 +632,15 @@
       "channel": "玩股網楚狂人",
       "url": "https://www.youtube.com/watch?v=TMi8kLk99ss",
       "date": "2026-10-31",
-      "views": 66395,
+      "views": 66487,
       "peer": true,
       "cat": "高股息"
-    },
-    {
-      "platform": "youtube",
-      "title": "股市反彈，反攻號角? 外資瘋狂砍倉近兆元！台股面臨斷頭潮，ETF逆勢狂接5527億？美國期中選舉前夕，暗藏什麼玄機？美股、台積電、輝達、友達、群創、聯電、南亞、財經趨勢 11/02/26【宏爺講股】",
-      "channel": "宏爺講股",
-      "url": "https://www.youtube.com/watch?v=pFjvg2XIyu4",
-      "date": "2026-11-02",
-      "views": 63825,
-      "peer": true,
-      "cat": "綜合"
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A（詳下方新聞標籤）",
-    "品牌焦點：00877 復華中國5G通信ETF｜成分股？配息？優缺點？（StockFeel 股感）",
+    "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00418A（詳下方新聞標籤）",
+    "品牌焦點：00877 復華中國5G通信ETF｜成分股？配息？優缺點？（股感 StockFeel）",
     "社群聲量最高：股債FBI為何不再顯示排名（0 推）",
-    "YouTube 熱片：投資AI，何必繞遠路？30秒看懂台股AI投資機會｜施羅德00419A（施羅德投資 (台灣)・399,169 次觀看）"
+    "YouTube 熱片：投資AI，何必繞遠路？30秒看懂台股AI投資機會｜施羅德00419A（施羅德投資 (台灣)・409,762 次觀看）"
   ]
 }
