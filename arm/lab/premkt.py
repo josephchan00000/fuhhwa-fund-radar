@@ -194,10 +194,11 @@ def _opt(entry: float, stop: float, target: float, cp: str, exp: dict, close: fl
     """買一口選擇權（履約價＝進場價最近的 50 點）：用今天的波動率與到期時間（10:30）估進場、停損、目標時的權利金。"""
     from . import txocalc as TC
     from . import txospec as S
-    k = round(entry / S.STRIKE_STEP) * S.STRIKE_STEP
-    row = next((r for r in exp.get("rows") or [] if r[0] == k), None)
-    iv = (row[2] if cp == "C" else row[4]) if row else None
-    iv = iv or atm_iv
+    j = 2 if cp == "C" else 4
+    rows = [r for r in exp.get("rows") or [] if r[j]]
+    row = min(rows, key=lambda r: (abs(r[0] - entry), r[0]), default=None)   # 離進場價最近、有掛牌的履約價（大跌後新履約價 100 點一檔）
+    k = row[0] if row else round(entry / S.STRIKE_STEP) * S.STRIKE_STEP
+    iv = (row[j] if row else None) or atm_iv
     n = exp.get("n") or 0
     if not iv or n <= 0:
         return None

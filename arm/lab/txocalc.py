@@ -13,8 +13,9 @@ from datetime import date, timedelta
 from . import txodata as T
 from . import txospec as S
 
-VER = 3               # VER 2（2026-11-05）：波動率用選擇權隱含的指數水準反推，不用 13:30 的指數收盤
+VER = 4               # VER 2（2026-11-05）：波動率用選擇權隱含的指數水準反推，不用 13:30 的指數收盤
                       # VER 3（2026-11-05）：每批多存收盤 ±OI_BAND 內每個履約價的未平倉與最大痛點（盤前作戰圖用）
+                      # VER 4（2026-11-05）：價平＝有掛牌、離收盤最近的履約價（大跌後新加的履約價 100 點一檔，四捨五入到 50 點會找不到）
 N_STRIKES = 10          # 價平上下各幾檔（使用者 2026-11-05：各 10 檔）
 N_EXP = 4               # 列最近幾批到期
 TRADING_YEAR = 252
@@ -113,7 +114,8 @@ def build(rows: list[list], close: float, asof: date) -> dict:
         px = r[C["s"]] or r[C["c"]] or 0
         e["px"].setdefault(r[C["k"]], {})[r[C["cp"]]] = (px, r[C["oi"]] or 0)
     nxt = next_trading(asof)
-    atm = round(close / S.STRIKE_STEP) * S.STRIKE_STEP
+    listed = sorted({k for e in by.values() for k, v in e["px"].items() if v.get("C", (0,))[0] and v.get("P", (0,))[0]})
+    atm = min(listed, key=lambda k: (abs(k - close), k)) if listed else round(close / S.STRIKE_STEP) * S.STRIKE_STEP
     exps = []
     for e in sorted(by.values(), key=lambda e: e["date"])[:N_EXP]:
         xd = date.fromisoformat(e["date"])
@@ -133,7 +135,8 @@ def build(rows: list[list], close: float, asof: date) -> dict:
     for e in exps:
         if e["tomorrow"]:
             continue
-        r = next((x for x in e["rows"] if x[0] == atm), None)
+        both = [x for x in e["rows"] if x[2] and x[4]]
+        r = next((x for x in both if x[0] == atm), None) or min(both, key=lambda x: (abs(x[0] - close), x[0]), default=None)
         vs = [v for v in (r[2], r[4]) if v] if r else []
         if vs:
             atm_iv = round(sum(vs) / len(vs), 4)
