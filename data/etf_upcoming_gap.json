@@ -1,37 +1,18 @@
 {
- "as_of": "2026-11-06 06:48",
- "count": 1,
- "items": [
-  {
-   "code": null,
-   "name": "第一金全球加密科技ETF基金",
-   "first_seen": null,
-   "kind": "offering",
-   "src": "cnyes",
-   "stage": "approved",
-   "cat": "ETF",
-   "approve": "115.11.02申報生效"
-  }
- ],
+ "as_of": "2026-11-06 11:28",
+ "count": 0,
+ "items": [],
  "pipeline_n": 4,
  "pipeline": [
   {
    "code": null,
-   "name": "統一台股千里馬主動式ETF基金",
+   "name": "野村臺灣科技收益主動式ETF基金",
    "first_seen": null,
    "kind": "offering",
    "src": "cnyes",
    "stage": "applied",
-   "cat": "主動式ETF"
-  },
-  {
-   "code": null,
-   "name": "凱基全球AI生態系主動式ETF基金",
-   "first_seen": null,
-   "kind": "offering",
-   "src": "cnyes",
-   "stage": "applied",
-   "cat": "主動式ETF"
+   "cat": "主動式ETF",
+   "approve": "115.11.11申報生效"
   },
   {
    "code": null,
@@ -40,16 +21,28 @@
    "kind": "offering",
    "src": "cnyes",
    "stage": "applied",
-   "cat": "主動式ETF"
+   "cat": "主動式ETF",
+   "approve": "115.12.8申報生效"
   },
   {
    "code": null,
-   "name": "野村臺灣科技收益主動式ETF基金",
+   "name": "凱基全球AI生態系主動式ETF基金",
    "first_seen": null,
    "kind": "offering",
    "src": "cnyes",
    "stage": "applied",
-   "cat": "主動式ETF"
+   "cat": "主動式ETF",
+   "approve": "115.12.9申報生效"
+  },
+  {
+   "code": null,
+   "name": "統一台股千里馬主動式ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "applied",
+   "cat": "主動式ETF",
+   "approve": "115.11.16申報生效"
   }
  ]
 }
