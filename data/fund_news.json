@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/11/06 06:54",
+  "as_of": "2026/11/06 11:27",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -130,15 +130,7 @@
       "short_names": [
         "00418A"
       ],
-      "items": [
-        {
-          "title": "台股急跌逾1500點 00418A迎建倉時機、逢低布局受關注",
-          "url": "https://www.watchmedia01.com/archives/564368",
-          "source": "蕃新聞",
-          "date": "2026-10-30 11:54",
-          "datetime": "2026-10-30T11:54:28+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華美國新星基金",
@@ -446,9 +438,9 @@
   "social": [
     {
       "platform": "fundhot",
-      "board": "ETF",
-      "title": "近2年股災比較",
-      "url": "https://fundhot.com/forum/ETF/%E8%BF%912%E5%B9%B4%E8%82%A1%E7%81%BD%E6%AF%94%E8%BC%83/14051",
+      "board": "股票",
+      "title": "近2年台股股災比較",
+      "url": "https://fundhot.com/forum/%E8%82%A1%E7%A5%A8/%E8%BF%912%E5%B9%B4%E5%8F%B0%E8%82%A1%E8%82%A1%E7%81%BD%E6%AF%94%E8%BC%83/14051",
       "date": "2026-11-06"
     },
     {
@@ -506,7 +498,7 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=It_vKvQLoSI",
       "date": "2026-11-04",
-      "views": 37513
+      "views": 38300
     },
     {
       "platform": "youtube",
@@ -514,7 +506,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=mlXZqnlEV34",
       "date": "2026-11-05",
-      "views": 8704
+      "views": 9079
     },
     {
       "platform": "youtube",
@@ -522,7 +514,7 @@
       "channel": "JUSTIN投資日記",
       "url": "https://www.youtube.com/watch?v=8VSo8m4_9Go",
       "date": "2026-11-02",
-      "views": 4725
+      "views": 4728
     },
     {
       "platform": "youtube",
@@ -530,7 +522,7 @@
       "channel": "施羅德投資 (台灣)",
       "url": "https://www.youtube.com/shorts/vlFqx1GeoiI",
       "date": "2026-11-02",
-      "views": 578237,
+      "views": 594249,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -541,31 +533,10 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/PTnYdznK2XI",
       "date": "2026-11-02",
-      "views": 280327,
+      "views": 284533,
       "peer": true,
       "short": true,
       "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "台股摔近8000點 多頭要變天了嗎？｜楚狂人 ft. 資深分析師 杜金龍 ｜財富狂犇｜玩股網20261104",
-      "channel": "玩股網楚狂人",
-      "url": "https://www.youtube.com/watch?v=ojaCN2_R6Tw",
-      "date": "2026-11-04",
-      "views": 258659,
-      "peer": true,
-      "cat": "市場趨勢"
-    },
-    {
-      "platform": "youtube",
-      "title": "投資AI，何必繞遠路？60秒看懂台股AI投資機會｜施羅德00419A",
-      "channel": "施羅德投資 (台灣)",
-      "url": "https://www.youtube.com/shorts/QFdqwnU5dn4",
-      "date": "2026-11-02",
-      "views": 256694,
-      "peer": true,
-      "short": true,
-      "cat": "主動式"
     },
     {
       "platform": "youtube",
@@ -573,10 +544,31 @@
       "channel": "郭哲榮分析師-摩爾證券投顧",
       "url": "https://www.youtube.com/shorts/qQ3214-yLsM",
       "date": "2026-11-05",
-      "views": 241253,
+      "views": 280577,
       "peer": true,
       "short": true,
       "cat": "基金"
+    },
+    {
+      "platform": "youtube",
+      "title": "台股摔近8000點 多頭要變天了嗎？｜楚狂人 ft. 資深分析師 杜金龍 ｜財富狂犇｜玩股網20261104",
+      "channel": "玩股網楚狂人",
+      "url": "https://www.youtube.com/watch?v=ojaCN2_R6Tw",
+      "date": "2026-11-04",
+      "views": 267785,
+      "peer": true,
+      "cat": "市場趨勢"
+    },
+    {
+      "platform": "youtube",
+      "title": "投資AI，何必繞遠路？120秒看懂台股AI投資機會｜施羅德00419A",
+      "channel": "施羅德投資 (台灣)",
+      "url": "https://www.youtube.com/shorts/PIig1r3R_hk",
+      "date": "2026-11-02",
+      "views": 265903,
+      "peer": true,
+      "short": true,
+      "cat": "主動式"
     },
     {
       "platform": "youtube",
@@ -584,7 +576,7 @@
       "channel": "財經震翰彈_蔡明翰",
       "url": "https://www.youtube.com/watch?v=ql30CdVf2r0",
       "date": "2026-11-01",
-      "views": 219623,
+      "views": 219860,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -594,7 +586,7 @@
       "channel": "郭哲榮分析師-摩爾證券投顧",
       "url": "https://www.youtube.com/watch?v=qhbLmXJd23w",
       "date": "2026-11-05",
-      "views": 166316,
+      "views": 170986,
       "peer": true,
       "cat": "基金"
     },
@@ -604,7 +596,7 @@
       "channel": "理財達人秀 EBCmoneyshow",
       "url": "https://www.youtube.com/watch?v=3ZeGiG5It4M",
       "date": "2026-11-03",
-      "views": 133522,
+      "views": 133659,
       "peer": true,
       "cat": "債券"
     },
@@ -614,7 +606,7 @@
       "channel": "阿格力博識",
       "url": "https://www.youtube.com/shorts/amKeZNJBj5I",
       "date": "2026-11-03",
-      "views": 117135,
+      "views": 118667,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -625,15 +617,15 @@
       "channel": "杉本來了",
       "url": "https://www.youtube.com/watch?v=MxUGIGyGHSo",
       "date": "2026-11-04",
-      "views": 92159,
+      "views": 102108,
       "peer": true,
       "cat": "市值型"
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金／ETF：00929、00998A、00418A、中國新經濟平衡（詳下方新聞標籤）",
+    "近 7 天有專屬報導的基金／ETF：00929、00998A、中國新經濟平衡（詳下方新聞標籤）",
     "品牌焦點：00877 復華中國5G通信ETF｜成分股？配息？優缺點？（股感 StockFeel）",
-    "社群聲量最高：近2年股災比較（0 推）",
-    "YouTube 熱片：投資AI，何必繞遠路？30秒看懂台股AI投資機會｜施羅德00419A（施羅德投資 (台灣)・578,237 次觀看）"
+    "社群聲量最高：近2年台股股災比較（0 推）",
+    "YouTube 熱片：投資AI，何必繞遠路？30秒看懂台股AI投資機會｜施羅德00419A（施羅德投資 (台灣)・594,249 次觀看）"
   ]
 }
