@@ -1,9 +1,9 @@
 {
- "as_of": "2026-11-07 00:57",
- "count": 8,
+ "as_of": "2026-11-07 23:56",
+ "count": 14,
  "fund_count": 0,
  "etf_count": 8,
- "usqm_count": 0,
+ "usqm_count": 6,
  "items": [
   {
    "src": "etf",
@@ -84,6 +84,36 @@
     "00990A"
    ],
    "weight": 0.22
+  },
+  {
+   "src": "usqm",
+   "name": "Sezzle Inc.",
+   "ticker": "SEZL"
+  },
+  {
+   "src": "usqm",
+   "name": "SharkNinja Inc.",
+   "ticker": "SN"
+  },
+  {
+   "src": "usqm",
+   "name": "Magnite Inc.",
+   "ticker": "MGNI"
+  },
+  {
+   "src": "usqm",
+   "name": "Exelixis Inc.",
+   "ticker": "EXEL"
+  },
+  {
+   "src": "usqm",
+   "name": "Manhattan Associates Inc.",
+   "ticker": "MANH"
+  },
+  {
+   "src": "usqm",
+   "name": "Progyny Inc.",
+   "ticker": "PGNY"
   }
  ]
 }
