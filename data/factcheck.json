@@ -1,25 +1,25 @@
 {
  "date": "2026-11-07",
- "as_of": "2026-11-07 06:47",
- "green": 3,
+ "as_of": "2026-11-07 10:48",
+ "green": 1,
  "red": 0,
- "skipped": 1,
+ "skipped": 3,
  "items": [
   {
-   "status": "🟢",
+   "status": "⚪",
    "file": "2026-11-07.md",
    "kind": "index_close",
    "claimed": 39701.64,
-   "official": 39701.64,
+   "official": null,
    "day": "11/06",
    "sentence": "加權指數 11/6 **收 39,701.64 點、跌 1,873.08 點（-4.51%）**，為史上第四大收盤跌點"
   },
   {
-   "status": "🟢",
+   "status": "⚪",
    "file": "2026-11-07.md",
    "kind": "index_close",
    "claimed": 39701.64,
-   "official": 39701.64,
+   "official": null,
    "day": "11/06",
    "sentence": "### 台股11/6崩跌1,873點收39,701.64點，盤中最大跌點3,737點，單週重挫12.19%（經濟日報，11/6｜【延伸】｜重要度9/10）"
   },

@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/11/07 06:47",
+  "as_of": "2026/11/07 10:48",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -14,7 +14,7 @@
     {
       "title": "00929績效、配息雙亮眼！近月受益人數激增3萬人、官股也搶買逾23億",
       "url": "https://www.scooptw.com/yesmedia/548806/00929%E7%B8%BE%E6%95%88%E3%80%81%E9%85%8D%E6%81%AF%E9%9B%99%E4%BA%AE%E7%9C%BC%EF%BC%81%E8%BF%91%E6%9C%88%E5%8F%97%E7%9B%8A%E4%BA%BA%E6%95%B8%E6%BF%80%E5%A2%9E3%E8%90%AC%E4%BA%BA%E3%80%81%E5%AE%98/",
-      "source": "yam 蕃薯藤",
+      "source": "Life 生活網",
       "date": "2026-11-04 08:00",
       "datetime": "2026-11-04T08:00:17+08:00"
     },
@@ -90,11 +90,11 @@
           "datetime": "2026-11-05T20:45:00+08:00"
         },
         {
-          "title": "美國選後美股漲，台股ETF為何還跌？00998A早盤逆勢漲4.21%",
-          "url": "https://enn.tw/803305/",
-          "source": "ENN台灣電報",
-          "date": "2026-11-05 20:02",
-          "datetime": "2026-11-05T20:02:29+08:00"
+          "title": "全球央行步調各異英國金融股占00998A近一成半跨國布局互補",
+          "url": "https://tw.news.yahoo.com/%E5%85%A8%E7%90%83%E5%A4%AE%E8%A1%8C%E6%AD%A5%E8%AA%BF%E5%90%84%E7%95%B0%E8%8B%B1%E5%9C%8B%E9%87%91%E8%9E%8D%E8%82%A1%E5%8D%A000998a%E8%BF%91-%E6%88%90%E5%8D%8A%E8%B7%A8%E5%9C%8B%E5%B8%83%E5%B1%80%E4%BA%92%E8%A3%9C-030224976.html",
+          "source": "Yahoo新聞",
+          "date": "2026-11-05 11:02",
+          "datetime": "2026-11-05T11:02:24+08:00"
         }
       ]
     },
@@ -285,6 +285,13 @@
           "source": "CMoney",
           "date": "2026-11-06 11:29",
           "datetime": "2026-11-06T11:29:19+08:00"
+        },
+        {
+          "title": "00991A 主動復華未來50 - 11/4 主動式ETF共識｜8家經理人同步抄底大跌股- 股市爆料同學會",
+          "url": "https://www.cmoney.tw/forum/article/187694835",
+          "source": "CMoney",
+          "date": "2026-11-04 04:02",
+          "datetime": "2026-11-04T04:02:06+08:00"
         }
       ]
     },
@@ -506,7 +513,7 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=It_vKvQLoSI",
       "date": "2026-11-04",
-      "views": 40366
+      "views": 40447
     },
     {
       "platform": "youtube",
@@ -522,7 +529,7 @@
       "channel": "JUSTIN投資日記",
       "url": "https://www.youtube.com/watch?v=8VSo8m4_9Go",
       "date": "2026-11-02",
-      "views": 4819
+      "views": 4820
     },
     {
       "platform": "youtube",
@@ -530,7 +537,7 @@
       "channel": "施羅德投資 (台灣)",
       "url": "https://www.youtube.com/shorts/vlFqx1GeoiI",
       "date": "2026-11-02",
-      "views": 681325,
+      "views": 681329,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -541,7 +548,7 @@
       "channel": "郭哲榮分析師-摩爾證券投顧",
       "url": "https://www.youtube.com/shorts/qQ3214-yLsM",
       "date": "2026-11-05",
-      "views": 341315,
+      "views": 341960,
       "peer": true,
       "short": true,
       "cat": "基金"
@@ -552,7 +559,7 @@
       "channel": "施羅德投資 (台灣)",
       "url": "https://www.youtube.com/shorts/PIig1r3R_hk",
       "date": "2026-11-02",
-      "views": 319260,
+      "views": 319262,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -563,7 +570,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/PTnYdznK2XI",
       "date": "2026-11-02",
-      "views": 307222,
+      "views": 311147,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -574,7 +581,7 @@
       "channel": "玩股網楚狂人",
       "url": "https://www.youtube.com/watch?v=ojaCN2_R6Tw",
       "date": "2026-11-04",
-      "views": 274745,
+      "views": 275224,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -604,7 +611,7 @@
       "channel": "理財達人秀 EBCmoneyshow",
       "url": "https://www.youtube.com/watch?v=3ZeGiG5It4M",
       "date": "2026-11-03",
-      "views": 134535,
+      "views": 134578,
       "peer": true,
       "cat": "債券"
     },
@@ -614,7 +621,7 @@
       "channel": "阿格力博識",
       "url": "https://www.youtube.com/shorts/amKeZNJBj5I",
       "date": "2026-11-03",
-      "views": 126436,
+      "views": 128204,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -625,7 +632,7 @@
       "channel": "董事長開講",
       "url": "https://www.youtube.com/shorts/1Hirnp6dW0g",
       "date": "2026-11-03",
-      "views": 121951,
+      "views": 122681,
       "peer": true,
       "short": true,
       "cat": "基金"
@@ -635,6 +642,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00998A、中國新經濟平衡、（詳下方新聞標籤）",
     "品牌焦點：00877 復華中國5G通信ETF｜成分股？配息？優缺點？（股感 StockFeel）",
     "社群聲量最高：20261106關於AI資料中心建設與國運之爭，新德州州長發言與個人看法（0 推）",
-    "YouTube 熱片：投資AI，何必繞遠路？30秒看懂台股AI投資機會｜施羅德00419A（施羅德投資 (台灣)・681,325 次觀看）"
+    "YouTube 熱片：投資AI，何必繞遠路？30秒看懂台股AI投資機會｜施羅德00419A（施羅德投資 (台灣)・681,329 次觀看）"
   ]
 }
