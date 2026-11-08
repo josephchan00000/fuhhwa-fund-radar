@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-11-01",
+  "as_of": "2026-11-08",
   "note": "新策略候選（docs/lab_ia_v5_plan.md 第 6、24 節；框架規格 arm/lab/candspec.py）。一條一筆，程式在 arm/lab/cands/{編號}.py；寫定之後一字不改，要改就用新的編號（prev 指到舊的）。使用者的決定記在 config/strategy_board.json 的 cand。",
   "items": [
     {
@@ -198,6 +198,57 @@
       },
       "note": "財報是公開資訊觀測站彙總表回補的數字（可能含之後的更正）；金融業資產負債表結構不同，成長率可比性較差但照樣排；後續研究指出此效應部分來自下市報酬缺漏，原論文未處理。",
       "sha": "38028a70c14ecd8a9bfe1585b1f7b17c9cb96de1af0bc01e202b8242b781c340"
+    },
+    {
+      "id": "c005",
+      "found": "2026-11-08",
+      "name": "接近一年高點（大型股）",
+      "mk": "tw",
+      "engine": "tw_stock",
+      "kind": "per",
+      "how": "每個月底，大型股依收盤價占過去一年最高收盤的比例排序，買最接近高點的兩成，抱到下一個月底",
+      "src": [
+        {
+          "t": "George & Hwang, The 52-Week High and Momentum Investing（Journal of Finance 2004，59(5)）",
+          "u": "https://doi.org/10.1111/j.1540-6261.2004.00695.x"
+        },
+        {
+          "t": "CXO Advisory：The 52-Week High as a Momentum Indicator for Individual Stocks",
+          "u": "https://cxoadvisory.com/technical-trading/the-52-week-high-as-a-momentum-indicator-for-individual-stocks"
+        }
+      ],
+      "why": "股價離一年高點越近的股票之後報酬越高，作者發現這個比例比過去報酬更能預測未來，而且後續不會長期反轉；作者認為是投資人不願修正對高價股的看法。國際研究在 20 個市場中有 18 個賺錢。頁面上的個股策略沒有「接近高點」這一類（c003 看波動、c004 看總資產成長）。原論文用月報酬形成期六個月；這裡每月底重排一次、持有一個月。",
+      "p": {
+        "n": 250
+      },
+      "grid": {
+        "n": [
+          125,
+          250,
+          375
+        ],
+        "pick": [
+          [
+            0.1,
+            5
+          ],
+          [
+            0.2,
+            5
+          ],
+          [
+            0.3,
+            5
+          ]
+        ]
+      },
+      "b": "L",
+      "pick": {
+        "top": 0.2,
+        "nmin": 5
+      },
+      "note": "價格是還原權息後的收盤（長歷史面板 2013 起，第一期約 2014 年初）；只用收盤算高點（原論文用日內最高價）；原論文是美國全市場，這裡只有台股大型股。",
+      "sha": "2f3945a52f9ddcf8294b983dc364cc6880d2b6153d719f2bd1b35f93a8af18ef"
     }
   ]
 }
