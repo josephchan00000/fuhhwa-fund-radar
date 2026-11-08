@@ -1,0 +1,152 @@
+#!/usr/bin/env python3
+"""面向指標盤查：新資料來源探針（docs/lab_dims_plan.md；只在 CI 跑、只印不存檔、不算任何指標值或成績）。
+
+使用者 2026-11-08：「你的投資面向分數我覺得不夠完整，像是籌碼面應該還要加入融資維持率之類的吧？幫我深度盤查各面向應該要加入什麼指標」。
+寫規格之前先知道哪些來源拿得到、從哪天起、多久一次：每個網址印 HTTP 狀態、大小、前幾行或欄位、找得到的最早／最晚日期。
+
+  python3 scripts/probe_dims.py            # lab_backfill.yml 的 dimsprobe 模式（.ping/lab 第一行 dimsprobe）
+  python3 scripts/probe_dims.py tw us      # 只跑某幾組
+"""
+from __future__ import annotations
+
+import json
+import re
+import ssl
+import sys
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+TWCA = ROOT / "config" / "certs" / "twca_ssl_ca.pem"
+
+
+def _ctx(tw: bool) -> ssl.SSLContext | None:
+    if not tw:
+        return None
+    try:
+        import certifi
+        c = ssl.create_default_context(cafile=certifi.where())
+        if TWCA.exists():
+            c.load_verify_locations(cafile=str(TWCA))
+        return c
+    except Exception:                                     # noqa: BLE001
+        return None
+
+
+def get(url: str, tw: bool = False, timeout: int = 60, data: bytes | None = None, headers: dict | None = None) -> tuple[int, bytes]:
+    req = urllib.request.Request(url, data=data, headers={"User-Agent": UA, "Accept": "*/*", **(headers or {})})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout, context=_ctx(tw)) as r:
+            return r.status, r.read()
+    except urllib.error.HTTPError as e:
+        try:
+            return e.code, e.read()[:300]
+        except Exception:                                 # noqa: BLE001
+            return e.code, b""
+    except Exception as e:                                # noqa: BLE001
+        return -1, f"{type(e).__name__}: {e}".encode()
+
+
+DATE_RE = re.compile(rb"(19[5-9]\d|20[0-3]\d)[-/.]?(0[1-9]|1[0-2])(?:[-/.]?(0[1-9]|[12]\d|3[01]))?")
+ROC_RE = re.compile(r"\b(\d{2,3})/(\d{2})/(\d{2})\b")
+
+
+def show(title: str, url: str, tw: bool = False, n: int = 300, data: bytes | None = None, headers: dict | None = None) -> bytes:
+    st, b = get(url, tw=tw, data=data, headers=headers)
+    ds = sorted({m.group(0).decode()[:7].replace("/", "-").replace(".", "-") for m in DATE_RE.finditer(b[:5_000_000])})
+    print(f"\n--- {title}\n    {url}\n    狀態 {st}，{len(b):,} bytes，年月 {ds[0] if ds else '—'} ～ {ds[-1] if ds else '—'}（{len(ds)} 個）", flush=True)
+    txt = b[:n].decode("utf-8", "replace") if not b[:4] in (b"PK\x03\x04", b"\xd0\xcf\x11\xe0") else f"(二進位檔 {b[:4]!r})"
+    print("    " + txt.replace("\n", " ⏎ ")[:n], flush=True)
+    return b
+
+
+def head(t: str) -> None:
+    print("\n" + "=" * 10, t, "=" * 10, flush=True)
+
+
+def tw() -> None:
+    head("台股：籌碼、資金、基本面的新來源")
+    # 證交所 OpenAPI 目錄：找當沖、開戶、借券、本益比、投資人類別
+    st, b = get("https://openapi.twse.com.tw/v1/swagger.json", tw=True)
+    print(f"\n--- 證交所 OpenAPI 目錄 狀態 {st}，{len(b):,} bytes")
+    try:
+        doc = json.loads(b.decode("utf-8"))
+        for p, v in (doc.get("paths") or {}).items():
+            s = json.dumps(v, ensure_ascii=False)
+            if any(k in s for k in ("當沖", "開戶", "借券", "本益比", "投資人", "自然人", "融資", "週轉", "市值")):
+                summ = next((x.get("summary") for x in v.values() if isinstance(x, dict)), "")
+                print(f"    {p}  {summ}")
+    except Exception as e:                                # noqa: BLE001
+        print("    解析失敗", e)
+    for d in ("20140106", "20170502", "20261106"):
+        show(f"證交所 當日沖銷交易統計 TWTB4U {d}", f"https://www.twse.com.tw/rwd/zh/dayTrading/TWTB4U?date={d}&selectType=All&response=json", tw=True, n=500)
+    for d in ("20050103", "20160104", "20261106"):
+        show(f"證交所 融券借券賣出餘額 TWT93U {d}", f"https://www.twse.com.tw/rwd/zh/marginTrading/TWT93U?date={d}&response=json", tw=True, n=400)
+    show("證交所 融資融券彙總 MI_MARGN 2001-01-03（全市場）", "https://www.twse.com.tw/rwd/zh/marginTrading/MI_MARGN?date=20010103&selectType=MS&response=json", tw=True, n=500)
+    # 期交所：三大法人期貨、選擇權的最早一天；大額交易人
+    for a, z in (("2007/07/02", "2007/07/31"), ("2012/01/02", "2012/01/31")):
+        show(f"期交所 三大法人 期貨（臺指期）{a}", f"https://www.taifex.com.tw/cht/3/futContractsDateDown?queryStartDate={a}&queryEndDate={z}&commodityId=TXF", tw=True, n=400)
+        show(f"期交所 三大法人 選擇權（臺指選）{a}", f"https://www.taifex.com.tw/cht/3/callsAndPutsDateDown?queryStartDate={a}&queryEndDate={z}&commodityId=TXO", tw=True, n=400)
+    for a in ("2004/07/01", "2010/01/04", "2026/11/06"):
+        show(f"期交所 大額交易人未沖銷部位（期貨）{a}", f"https://www.taifex.com.tw/cht/3/largeTraderFutDown?queryStartDate={a}&queryEndDate={a}", tw=True, n=500)
+    # 國發會 PMI 檔：看裡面有沒有非製造業 NMI
+    from arm.lab import heatfetch as HF
+    show("國發會 PMI／NMI 下載檔", HF.NDC_PMI, tw=True, n=800)
+    # 櫃買指數（Yahoo）
+    show("Yahoo ^TWOII 櫃買指數", "https://query1.finance.yahoo.com/v8/finance/chart/%5ETWOII?range=max&interval=1mo", n=300)
+    # 央行統計資料庫：列舉表名找「劃撥」「證券」「交割」「重貼現」
+    head("央行統計資料庫 DataAPI 表名")
+    for pre, rng in (("EF", range(1, 81)), ("EG", range(1, 61)), ("EH", range(1, 21))):
+        for i in rng:
+            f = f"{pre}{i:02d}M01"
+            st, b = get(f"https://cpx.cbc.gov.tw/API/DataAPI/Get?FileName={f}", tw=True, timeout=40)
+            if st != 200 or len(b) < 50:
+                continue
+            t = b[:4000].decode("utf-8", "replace")
+            names = re.findall(r'"(?:TableName|Title|title|Name)"\s*:\s*"([^"]+)"', t)[:2]
+            hit = any(k in t for k in ("劃撥", "交割", "證券", "重貼現", "利率", "股價"))
+            if hit or names:
+                cols = re.findall(r'"([^"]{2,30})"', t)[:14]
+                print(f"    {f}  {'★' if hit else ' '} {' / '.join(names)}  欄：{' | '.join(cols)[:220]}", flush=True)
+
+
+def us() -> None:
+    head("美股：情緒籌碼、資金、基本面的新來源")
+    show("FINRA 融資餘額頁", "https://www.finra.org/finra-data/browse-catalog/margin-statistics", n=200)
+    st, b = get("https://www.finra.org/finra-data/browse-catalog/margin-statistics")
+    for u in sorted(set(re.findall(rb'href="([^"]+\.xlsx?)"', b)))[:5]:
+        u = u.decode()
+        u = u if u.startswith("http") else "https://www.finra.org" + u
+        show("FINRA 融資餘額 Excel", u, n=120)
+    show("AAII 散戶情緒調查 Excel", "https://www.aaii.com/files/surveys/sentiment.xls", n=120)
+    st, b = get("https://naaim.org/programs/naaim-exposure-index/")
+    print(f"\n--- NAAIM 頁 狀態 {st}，{len(b):,} bytes")
+    for u in sorted(set(re.findall(rb'href="([^"]+\.(?:xlsx?|csv))"', b)))[:5]:
+        show("NAAIM 經理人持股水位", u.decode(), n=120)
+    show("CBOE 股票選擇權 P/C（2006～2019 檔）", "https://cdn.cboe.com/resources/options/volume_and_call_put_ratios/equitypc.csv", n=300)
+    show("CBOE 全部 P/C（檔）", "https://cdn.cboe.com/resources/options/volume_and_call_put_ratios/totalpc.csv", n=200)
+    show("CBOE 每日市場統計 2026-11-06", "https://www.cboe.com/us/options/market_statistics/daily/?dt=2026-11-06", n=200)
+    for s in ("%5ESKEW", "%5EVVIX", "%5EVIX9D"):
+        show(f"Yahoo {s}", f"https://query1.finance.yahoo.com/v8/finance/chart/{s}?range=max&interval=1mo", n=200)
+    show("芝加哥聯準銀行 NFCI 金融情勢", "https://www.chicagofed.org/-/media/publications/nfci/nfci-data-series-csv.csv", n=300)
+    for sid in ("NFCI", "PERMIT", "PAYEMS", "BAMLH0A0HYM2", "DRTSCILM", "BOGZ1FL663067003Q", "TOTBKCR"):
+        show(f"FRED {sid}", f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={sid}", n=160)
+    show("Baker–Wurgler 投資人情緒", "https://pages.stern.nyu.edu/~jwurgler/data/Investor_Sentiment_Data_20190327_POST.xlsx", n=80)
+    show("DBnomics FED 搜尋 margin", "https://api.db.nomics.world/v22/search?q=margin%20debt&limit=5", n=600)
+
+
+def main(argv: list[str]) -> int:
+    groups = argv or ["tw", "us"]
+    if "tw" in groups:
+        tw()
+    if "us" in groups:
+        us()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))
