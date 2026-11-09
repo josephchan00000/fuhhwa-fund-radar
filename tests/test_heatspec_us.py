@@ -8,13 +8,16 @@ from arm.lab import heatspec_us as U
 
 def test_us_spec_v1_is_locked():
     # VER 2：補缺月、資料過期（docs/lab_audit_plan.md）；VER 3：情緒籌碼改成各指數自己的項目（docs/lab_us_chip_plan.md）
-    assert U.VER == 5 and U.SPEC_DATE == "2026-10-31" and U.MARKET == "us"
+    assert U.VER == 6 and U.SPEC_DATE == "2026-11-09" and U.MARKET == "us"     # VER 6：面向指標盤查（docs/lab_dims_plan.md 第 11 節）
+    assert U.CAND == ("F12", "S10", "R11", "T15", "T16", "T17") and U.SHOW_ONLY == ()
+    assert U.EXPECT == {"fund": -1, "sent": -1, "liq": 1, "tech": -1, "bubl": -1}
+    assert (U.GATE_MIN_WEEKS, U.GATE_FRESH_DAYS, U.GATE_FILE) == (416, 21, "data/lab/heat_us_gate.json")
     assert U.GDP_LATE == {"1995-12": "1996-02-23", "2013-09": "2013-11-07", "2018-12": "2019-02-28", "2025-09": "2025-12-23",
                           "2025-12": "2026-02-20"}                                       # VER 5（含補充）：GDP 停擺改期
     assert U.Z1_SKIP == ("2025-09", "2025-12")                                           # VER 5 補充：不算進「歷年最晚」
     assert U.RELEASE_LATE == {"F5": {"2013-09": "2013-10-22", "2013-10": "2013-11-08", "2025-09": "2025-11-20",
                                      "2025-10": "2025-12-16", "2025-11": "2025-12-16", "2026-01": "2026-02-11"},
-                              "F6": U.CPI_LATE, "F7": U.CPI_LATE}   # VER 4：停擺延後公布（VER 5 補充加 2026-01）
+                              "F6": U.CPI_LATE, "F7": U.CPI_LATE, "F12": U.JOBS_LATE}   # VER 4：停擺延後公布（VER 5 補充加 2026-01；VER 6 加 F12）
     assert U.CPI_LAG_ITEMS == ("X1", "X4", "X6", "X7")              # VER 4 補充：用前 cpi_lag 個月 CPI 的項目
     assert list(U.INDICES) == list(U.INDEX_ORDER) == ["spx", "ixic", "ndx", "sox"]
     assert {k: v["sym"] for k, v in U.INDICES.items()} == {"spx": "^GSPC", "ixic": "^IXIC", "ndx": "^NDX", "sox": "^SOX"}
@@ -25,27 +28,28 @@ def test_us_spec_v1_is_locked():
         "fund": ((120, 250), "m"), "sent": ((10, 60), "d"), "liq": ((60, 250), "d"), "tech": ((10, 60), "d"),
         "bubl": ((120, 250), "m")}
     hot = {k: h for k, _, _, _, h, _, _ in U.IND}
-    assert hot == {"F1": 1, "F2": 1, "F3": 1, "F4": -1, "F5": -1, "F6": 1, "F7": 1, "F8": 1, "F9": 1, "F10": 1, "F11": 1,
-                   "S1": 1, "S2": 1, "S3": -1, "S4": -1, "S5": 1, "S6": 1, "S7": -1, "S8": 1, "S9": 1,
-                   "R1": -1, "R2": -1, "R3": -1, "R4": 1, "R5": 1, "R6": -1, "R7": 1, "R8": 1, "R9": -1, "R10": 1,
+    assert hot == {"F1": 1, "F2": 1, "F3": 1, "F4": -1, "F5": -1, "F6": 1, "F7": 1, "F8": 1, "F9": 1, "F10": 1, "F11": 1, "F12": 1,
+                   "S1": 1, "S2": 1, "S3": -1, "S4": -1, "S5": 1, "S6": 1, "S7": -1, "S8": 1, "S9": 1, "S10": 1,
+                   "R1": -1, "R2": -1, "R3": -1, "R4": 1, "R5": 1, "R6": -1, "R7": 1, "R8": 1, "R9": -1, "R10": 1, "R11": -1,
                    "T1": 1, "T2": 1, "T3": 1, "T4": 1, "T8": -1, "T9": -1, "T11": 1, "T12": 1, "T13": 1, "T14": 1,
+                   "T15": 1, "T16": 1, "T17": 1,
                    "X1": 1, "X2": 1, "X3": 1, "X4": 1, "X5": 1, "X6": 1, "X7": -1, "X8": 1, "X9": 1, "X10": 1, "X11": 1}
     freq = {k: f for k, _, _, _, _, f, _ in U.IND}
-    assert [k for k in freq if freq[k] == "m"] == ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11",
+    assert [k for k in freq if freq[k] == "m"] == ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",
                                                    "S5", "R6", "R7", "R10", "X1", "X4", "X6", "X7", "X8", "X9", "X10"]
     assert set(U.RELEASE) == {k for k in freq if freq[k] == "m"}             # 每個月資料都有公布時間差
     assert U.RELEASE == {"F1": (0, 22), "F2": (1, 1), "F9": (1, 1), "F3": (1, 20), "F4": (1, 15), "F5": (1, 8),   # VER 5
                          "F6": (1, 16), "F7": (1, 16), "F8": (6, 1), "F10": (2, 14), "F11": (1, 11), "S5": (3, 15),
                          "R6": (2, 1), "R7": (2, 1), "R10": (1, 20), "X1": (1, 1), "X4": (1, 1), "X6": (1, 1),
-                         "X7": (1, 1), "X8": (1, 1), "X9": (1, 1), "X10": (1, 1)}
+                         "X7": (1, 1), "X8": (1, 1), "X9": (1, 1), "X10": (1, 1), "F12": (1, 8)}
     assert U.ONLY == {"F10": ("sox",), "F11": ("sox",), "T14": ("ixic", "ndx", "sox"), "X10": ("spx",),
                       "X11": ("ixic", "ndx", "sox"), "S1": ("spx",), "S2": ("spx",), "S8": ("ixic", "ndx", "sox"),
-                      "S9": ("ixic", "ndx", "sox")}
+                      "S9": ("ixic", "ndx", "sox"), "T17": ("spx", "ixic", "ndx")}
     assert U.DIRECT == {"T11": 6} and U.PRESCORED == ("X1", "X4", "X5", "X10")
     assert U.PCT_WIN_ITEM == {"X2": (2500, 1250), "X3": (2500, 1250), "X11": (2500, 1250), "S5": (40, 20)}
     assert U.US == ("R1",) and U.PROXY == {}
-    assert U.STALE == {"S1": 14, "S2": 14, "S3": 14, "S8": 14, "S9": 14, "R8": 14, "X5": 14}
-    assert U.AVAIL_DAYS == {"S1": 4, "S2": 4, "S3": 4, "S8": 4, "S9": 4, "R8": 2, "S7": 1}
+    assert U.STALE == {"S1": 14, "S2": 14, "S3": 14, "S8": 14, "S9": 14, "R8": 14, "X5": 14, "S10": 14, "R11": 14}
+    assert U.AVAIL_DAYS == {"S1": 4, "S2": 4, "S3": 4, "S8": 4, "S9": 4, "R8": 2, "S7": 1, "S10": 0, "R11": 5}
     # VER 3：S6 槓桿 ETF 成交金額多空比、S7 成分股內部人淨買比例
     assert U.LEV == {"spx": ("SPXL", "SPXS"), "ixic": ("TQQQ", "SQQQ"), "ndx": ("TQQQ", "SQQQ"), "sox": ("SOXL", "SOXS")}
     assert (U.LEV_DAYS, U.LEV_MODE) == (20, "vol")
@@ -83,10 +87,11 @@ def test_us_shares_default_bound_constants_with_taiwan():
 
 
 def test_spec_for_each_index():
-    want = {"spx": {"fund": 9, "sent": 7, "liq": 10, "tech": 9, "bubl": 10},
-            "ixic": {"fund": 9, "sent": 7, "liq": 10, "tech": 10, "bubl": 10},
-            "ndx": {"fund": 9, "sent": 7, "liq": 10, "tech": 10, "bubl": 10},
-            "sox": {"fund": 11, "sent": 7, "liq": 10, "tech": 10, "bubl": 10}}
+    # VER 6：每個指數多 F12、S10、R11、T15、T16；T17 只在 S&P 500 與那斯達克兩檔（費半沒有等權 ETF）
+    want = {"spx": {"fund": 10, "sent": 8, "liq": 11, "tech": 12, "bubl": 10},
+            "ixic": {"fund": 10, "sent": 8, "liq": 11, "tech": 13, "bubl": 10},
+            "ndx": {"fund": 10, "sent": 8, "liq": 11, "tech": 13, "bubl": 10},
+            "sox": {"fund": 12, "sent": 8, "liq": 11, "tech": 12, "bubl": 10}}
     for idx, n in want.items():
         sp = U.spec_for(idx)
         assert {d: len(v) for d, v in sp["ITEMS"].items()} == n
@@ -98,10 +103,10 @@ def test_spec_for_each_index():
     assert "X11" in U.keys_for("sox") and "F10" in U.keys_for("sox") and "F10" not in U.keys_for("ndx")
     assert [H.need(n) for n in (9, 7, 10, 11)] == [6, 5, 7, 8]
     # VER 3：S&P 500 用 S&P 500 期貨（S1、S2），其他三個用那斯達克 100 期貨（S8、S9）；第六版核心項目跟著換
-    assert U.spec_for("spx")["ITEMS"]["sent"] == ["S1", "S2", "S3", "S4", "S5", "S6", "S7"]
+    assert U.spec_for("spx")["ITEMS"]["sent"] == ["S1", "S2", "S3", "S4", "S5", "S6", "S7", "S10"]
     for idx in ("ixic", "ndx", "sox"):
         sp = U.spec_for(idx)
-        assert sp["ITEMS"]["sent"] == ["S3", "S4", "S5", "S6", "S7", "S8", "S9"]
+        assert sp["ITEMS"]["sent"] == ["S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10"]
         assert list(sp["DERIV"]) == ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "R7", "S8", "S9", "R1", "R2"]
         assert sp["DERIV"]["S8"] == U.DERIV["S1"] and sp["DERIV"]["S9"] == U.DERIV["S2"]
         assert sp["M6_GROUPS"]["lev"] == ("S8", "S9") and set(sp["DERIV"]) <= set(sp["KEYS"])
@@ -111,8 +116,8 @@ def test_spec_for_each_index():
 def test_use_switches_and_restores():
     tw = (S.VER, S.MARKET, list(S.KEYS), dict(S.ITEMS), S.US, S.DSHORT)
     with S.use(U.spec_for("ndx")):
-        assert (S.VER, S.MARKET, S.INDEX) == (5, "us", "ndx")
-        assert S.ITEMS["tech"][-1] == "T14" and S.US == ("R1",) and S.band(85) == "過熱"
+        assert (S.VER, S.MARKET, S.INDEX) == (6, "us", "ndx")
+        assert S.ITEMS["tech"][-1] == "T17" and S.US == ("R1",) and S.band(85) == "過熱"
     assert (S.VER, S.MARKET, list(S.KEYS), dict(S.ITEMS), S.US, S.DSHORT) == tw
     assert not hasattr(S, "INDEX") and not hasattr(S, "INDICES")      # 美股才有的名稱離開時拿掉
     try:
@@ -120,4 +125,4 @@ def test_use_switches_and_restores():
             raise RuntimeError("x")
     except RuntimeError:
         pass
-    assert S.VER == 12 and S.MARKET == "tw"                             # 中途出錯也換回來
+    assert S.VER == 13 and S.MARKET == "tw"                             # 中途出錯也換回來

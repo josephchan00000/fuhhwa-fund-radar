@@ -10,7 +10,7 @@ from arm.lab import heatspec as S
 
 
 def test_spec_v7_is_locked():
-    assert S.VER == 12 and S.SPEC_DATE == "2026-10-31" and S.MARKET == "tw"     # VER 12：一般月份的公布日對官方（docs/lab_signal_quality_plan.md 第 11.2 節）
+    assert S.VER == 13 and S.SPEC_DATE == "2026-11-09" and S.MARKET == "tw"     # VER 13：面向指標盤查（docs/lab_dims_plan.md 第 11 節）
     assert S.RELEASE_LATE == {"B8": {"2013-09": "2013-10-30", "2013-10": "2013-11-20",          # 官方改期公告（勞工統計局）
                                      "2025-09": "2025-10-24", "2025-11": "2025-12-18"}}
     assert (S.US_TW_DAYS, S.REV_DEADLINE) == (1, 10)                                            # VER 12：美國資料台股隔天用、月營收申報期限
@@ -19,29 +19,40 @@ def test_spec_v7_is_locked():
     assert {d: (v["fwd"], v["freq"]) for d, v in S.DIMS.items()} == {
         "fund": ((120, 250), "m"), "chip": ((10, 60), "d"), "gliq": ((60, 250), "d"), "tliq": ((60, 250), "d"),
         "tech": ((10, 60), "d"), "bubl": ((120, 250), "m")}
-    assert S.ITEMS == {"fund": ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8"],
-                       "chip": ["C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8"],
-                       "gliq": ["G1", "G2", "G3", "G4", "G5"],
+    assert S.ITEMS == {"fund": ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B9", "B10", "B11"],
+                       "chip": ["C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9", "C10", "C11", "C12", "C13", "C14"],
+                       "gliq": ["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9"],
                        "tliq": ["L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "L9", "L10"],
                        "tech": ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12", "T13"],
-                       "bubl": ["X1", "X2", "X3", "X4", "X5", "X6", "X7"]}
+                       "bubl": ["X1", "X2", "X3", "X4", "X5", "X6", "X7", "X8"]}
+    # VER 13：新項目過關才算分（GATE）；當沖只顯示
+    assert S.CAND == ("C9", "C10", "C11", "C12", "C13", "C14", "B9", "B10", "B11", "G6", "G7", "G8", "G9", "X8", "T10")
+    assert S.SHOW_ONLY == ("C14",) and S.EXPECT == {"fund": -1, "chip": -1, "gliq": 1, "tliq": 1, "tech": -1, "bubl": -1}
+    assert (S.GATE_MIN_WEEKS, S.GATE_FRESH_DAYS, S.GATE_FILE, S.CAP_RELEASE) == (416, 21, "data/lab/heat_gate.json", (2, 1))
     assert S.HOT == {"B1": 1, "B2": 1, "B3": 1, "B4": 1, "B5": 1, "B6": 1, "B7": 1, "B8": 1,
                      "C1": 1, "C2": 1, "C3": -1, "C4": 1, "C5": -1, "C6": -1, "C7": -1, "C8": 1,
                      "G1": -1, "G2": -1, "G3": -1, "G4": 1, "G5": 1,
                      "L1": 1, "L2": 1, "L3": 1, "L4": -1, "L5": 1, "L6": 1, "L7": 1, "L8": 1, "L9": -1, "L10": 1,
                      "T1": 1, "T2": 1, "T3": 1, "T4": 1, "T5": 1, "T6": 1, "T7": 1, "T8": -1, "T9": -1, "T10": -1,
-                     "T11": 1, "T12": 1, "T13": 1, "X1": 1, "X2": 1, "X3": 1, "X4": 1, "X5": 1, "X6": 1, "X7": 1}
-    assert [k for k in S.KEYS if S.FREQ_OF[k] == "m"] == ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "G5",
-                                                           "L1", "L2", "L6", "L8", "L9", "L10", "X1", "X4", "X6", "X7"]
+                     "T11": 1, "T12": 1, "T13": 1, "X1": 1, "X2": 1, "X3": 1, "X4": 1, "X5": 1, "X6": 1, "X7": 1,
+                     "C9": 1, "C10": 1, "C11": -1, "C12": -1, "C13": 1, "C14": 1, "B9": 1, "B10": 1, "B11": 1,
+                     "G6": -1, "G7": 1, "G8": -1, "G9": -1, "X8": 1}
+    assert [k for k in S.KEYS if S.FREQ_OF[k] == "m"] == ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B9", "B10", "B11",
+                                                           "G5", "G8", "L1", "L2", "L6", "L8", "L9", "L10",
+                                                           "X1", "X4", "X6", "X7", "X8"]
     assert S.RELEASE == {"B1": (3, 1), "B2": (3, 1), "B5": (3, 1), "B3": (1, 8), "B4": (1, 24), "B6": (1, 11),   # VER 12
                          "B7": (1, 14), "B8": (1, 16), "L1": (2, 1), "L2": (2, 1), "L8": (2, 1), "L9": (2, 1),
-                         "L10": (2, 1), "L6": (1, 10), "G5": (1, 20), "X1": (1, 1), "X4": (1, 1), "X6": (1, 1), "X7": (1, 1)}
+                         "L10": (2, 1), "L6": (1, 10), "G5": (1, 20), "X1": (1, 1), "X4": (1, 1), "X6": (1, 1), "X7": (1, 1),
+                         "B9": (2, 15), "B10": (1, 11), "B11": (1, 11), "G8": (2, 2), "X8": (2, 1)}       # VER 13
     assert set(S.RELEASE) == {k for k in S.KEYS if S.FREQ_OF[k] == "m"}     # 每個月資料都有公布時間差
     assert S.PCT_WIN == {"d": 750, "m": 120} and S.PCT_MIN == {"d": 375, "m": 60}
-    assert S.DAILY_LAG == 1 and S.US == ("G1", "G2", "G3", "G4", "T9") and S.PROXY == {"T10": "T9"}
-    assert S.DIRECT == {"T11": 6} and S.STALE == {"C8": 14, "L7": 10, "X5": 14} and S.AVAIL_DAYS == {"C8": 7}
+    assert S.DAILY_LAG == 1 and S.US == ("G1", "G2", "G3", "G4", "T9", "G6", "G7", "G9") and S.PROXY == {}
+    assert S.DIRECT == {"T11": 6} and S.STALE == {"C8": 14, "L7": 10, "X5": 14, "C13": 10, "C14": 10, "G7": 14, "G9": 14}
+    assert S.AVAIL_DAYS == {"C8": 7, "G7": 2, "G9": 6}
     assert (S.MIN_AVAIL, S.CHG_DAYS, S.MIN_N) == (2 / 3, 5, {"d": 750, "m": 96})
-    assert [H.need(len(v)) for v in S.ITEMS.values()] == [6, 6, 4, 7, 9, 5]  # 8 要 6、8 要 6（VER 9 回到 8 項）、5 要 4、10 要 7、13 要 9、7 要 5
+    # 2/3 規則按「算分的項數」：新項目都沒過關時同 VER 12（8 要 6、8 要 6、5 要 4、10 要 7、12 要 8〔T10 VER 12 本來就沒有自己的歷史〕、7 要 5）
+    old = {d: [k for k in v if k not in S.CAND] for d, v in S.ITEMS.items()}
+    assert [H.need(len(v)) for v in old.values()] == [6, 6, 4, 7, 8, 5]
     assert (S.BOOT_N, S.BOOT_SEED, S.CI) == (2000, 20261017, 0.95)
     assert S.SPLIT_REF == {"d": (("2014-01-01", "2019-12-31"), ("2020-01-01", None)),
                            "m": (("1999-01-01", "2012-12-31"), ("2013-01-01", None))}
