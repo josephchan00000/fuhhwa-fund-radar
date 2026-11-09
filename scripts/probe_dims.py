@@ -170,6 +170,13 @@ def nfci() -> None:
             if bb[:4] != b"PK\x03\x04":
                 t = bb.decode("utf-8", "replace").strip().splitlines()
                 print("    最後一列：", (t[-1] if t else "")[:160], flush=True)
+    # 第 3 輪：頁面靠 fedrelease.js 載入資料 → 印出 JS 裡的網址與路徑
+    st, b = get("https://www.chicagofed.org/-/media/admin/scripts/fedrelease/fedrelease.js")
+    print(f"\n--- fedrelease.js 狀態 {st}，{len(b):,} bytes", flush=True)
+    for x in sorted(set(re.findall(rb'(?:https?://[\w.\-/%?=&]+|/(?:api|-/media|data|research)[\w.\-/%?=&{}$]*)', b)))[:40]:
+        print("    路徑：", x.decode("utf-8", "replace")[:160], flush=True)
+    for m in re.finditer(rb'(?:ajax|fetch|getJSON|url)\s*[:(]\s*[^,;]{0,160}', b):
+        print("    呼叫：", m.group(0).decode("utf-8", "replace")[:180], flush=True)
     show("DBnomics 搜尋 NFCI", "https://api.db.nomics.world/v22/search?q=NFCI&limit=5", n=800)
     show("DBnomics 搜尋 national financial conditions", "https://api.db.nomics.world/v22/search?q=national%20financial%20conditions&limit=5", n=800)
 
