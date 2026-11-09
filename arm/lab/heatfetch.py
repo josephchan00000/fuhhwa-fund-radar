@@ -26,6 +26,13 @@
   uscpi     勞工統計局 CPI-U（未季調）           {YYYY-MM: 指數}                                       1985 起
   ust       美國財政部 每日公債殖利率            {日期: [3 個月, 2 年, 10 年]}                           1990 起
   breadth   自算廣度（heatdata.breadth）          {日期: [上漲, 下跌, 站上 60 日線, 有 60 日線, 創新高, 創新低, 有 250 日]}  2013 起
+  large     期交所 大額交易人未沖銷部位（期貨）   {日期: {商品: {交易人類別: [前五大買, 前五大賣, 前十大買, 前十大賣, 全市場未沖銷]}}}
+            只留全部月份（999999）；商品 TX 臺股期貨、MTX 小型臺指；類別 "0"＝全部交易人、"1"＝特定法人   2004-07 起
+  sbl       證交所 TWT93U 信用額度總量管制餘額表 {日期: [融券今日餘額合計(股), 借券賣出當日餘額合計(股), 檔數]}
+            回補每週一天（qfii_days）、之後每天                                                         2005-07 起
+  daytrade  證交所 TWTB4U 當日沖銷交易統計      {日期: [當沖成交股數占市場%, 當沖買進金額占市場%, 當沖賣出金額占市場%, 當沖買進金額(元)]}
+            回補每週一天、之後每天                                                                       2014-01 起
+（large、sbl、daytrade：docs/lab_dims_plan.md 面向指標盤查第 1 段新加）
 """
 from __future__ import annotations
 
@@ -819,3 +826,132 @@ def bdepth_update(force: bool = False) -> int:
     P = bt3d.Panel()
     HD.extend(P, SP)
     return _replace("bdepth", "v3px+mkt+v3_tr", BDP.tw_bdepth(P))
+
+
+# ── 面向指標盤查的新來源（docs/lab_dims_plan.md 第 3、8 節；探針 CI run 42537259417） ─────────────
+
+LARGE_START = date(2004, 7, 1)
+LARGE_CODES = ("TX", "MTX")
+SBL_START = "2005-07-01"                                   # 證交所：「查詢日期小於94年7月1日，請重新查詢!」
+DT_START = "2014-01-06"                                    # 現股當沖開放日
+LARGE_URL = "https://www.taifex.com.tw/cht/3/largeTraderFutDown?queryStartDate={a}&queryEndDate={z}"
+SBL_URL = "https://www.twse.com.tw/rwd/zh/marginTrading/TWT93U?date={d}&response=json"
+DT_URL = "https://www.twse.com.tw/rwd/zh/dayTrading/TWTB4U?date={d}&selectType=All&response=json"
+_CODE = re.compile(r"^[0-9A-Z]{4,6}$")
+
+
+def parse_large(txt: str) -> dict:
+    """大額交易人未沖銷部位（期貨）CSV（cp950）→ {日期: {商品: {類別: [前五大買, 前五大賣, 前十大買, 前十大賣, 全市場]}}}。
+    欄位：日期、商品代號、商品名稱、到期月份（999999＝全部月份）、交易人類別（0 全部、1 特定法人）、五個口數。"""
+    out: dict = {}
+    for ln in txt.splitlines():
+        c = [x.strip() for x in ln.split(",")]
+        if len(c) < 10:
+            continue
+        m = re.match(r"^(\d{4})/(\d{1,2})/(\d{1,2})$", c[0])
+        if not m or c[1] not in LARGE_CODES or c[3] != "999999" or c[4] not in ("0", "1"):
+            continue
+        vals = [_num(x) for x in c[5:10]]
+        if any(v is None for v in vals):
+            continue
+        d = f"{int(m.group(1)):04d}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
+        out.setdefault(d, {}).setdefault(c[1], {})[c[4]] = [int(v) for v in vals]
+    return out
+
+
+def _large_get(a: date, z: date) -> dict:
+    txt = _get(LARGE_URL.format(a=f"{a:%Y/%m/%d}", z=f"{z:%Y/%m/%d}"), timeout=60).decode("cp950", "replace")
+    return parse_large(txt)
+
+
+def taifex_large(a: date, z: date | None = None, budget_s: float = 900) -> int:
+    """每月一請求（起訖一個月）；如果期交所只回第一天（不吃區間），那個月改成一天一請求（用加權指數的交易日）。"""
+    z = z or today_tw()
+    out: dict = {}
+    t0 = time.time()
+    have = _have_months("large")
+    cal = sorted(HD.load("taiex"))
+    for y, m in _months(a, z):
+        if time.time() - t0 > budget_s:
+            log("[heat] 大額交易人回補時間到，下一輪續補")
+            break
+        if _skip_month(have, y, m, z):
+            continue
+        s = date(y, m, 1)
+        e = min(date(y + (m == 12), m % 12 + 1, 1) - timedelta(days=1), z)
+        try:
+            got = _large_get(s, e)
+        except Exception as ex:                           # noqa: BLE001
+            log(f"[heat] 大額交易人 {y}-{m:02d} ✗ {str(ex)[:80]}")
+            time.sleep(1)
+            continue
+        days = [d for d in cal if s.isoformat() <= d <= e.isoformat()]
+        if len(got) <= 1 < len(days):                     # 不吃區間 → 逐日
+            for d in days:
+                if d in got or time.time() - t0 > budget_s:
+                    continue
+                try:
+                    got.update(_large_get(date.fromisoformat(d), date.fromisoformat(d)))
+                except Exception as ex:                   # noqa: BLE001
+                    log(f"[heat] 大額交易人 {d} ✗ {str(ex)[:80]}")
+                time.sleep(0.5)
+        out.update(got)
+        time.sleep(0.5)
+    return _merge("large", "taifex", out)
+
+
+def parse_sbl(doc: dict) -> list | None:
+    """TWT93U（JSON）→ [融券今日餘額合計, 借券賣出當日餘額合計, 檔數]（股）。欄位照名稱找：第一組「今日餘額」＝融券、「當日餘額」＝借券賣出。"""
+    f = doc.get("fields") or []
+    rows = doc.get("data") or []
+    if "今日餘額" not in f or "當日餘額" not in f or not rows:
+        return None
+    i, j = f.index("今日餘額"), f.index("當日餘額")
+    a = b = n = 0
+    for r in rows:
+        if len(r) <= max(i, j) or not _CODE.match(str(r[0]).strip()):
+            continue                                       # 合計列、說明列
+        x, y = _num(r[i]), _num(r[j])
+        if x is None or y is None:
+            continue
+        a, b, n = a + x, b + y, n + 1
+    return [a, b, n] if n else None
+
+
+def parse_daytrade(doc: dict) -> list | None:
+    """TWTB4U（JSON）→ [當沖成交股數占市場%, 買進金額占市場%, 賣出金額占市場%, 買進金額(元)]（「當日沖銷交易統計資訊」那一表）。"""
+    keys = ("當日沖銷交易總成交股數占市場比重%", "當日沖銷交易總買進成交金額占市場比重%",
+            "當日沖銷交易總賣出成交金額占市場比重%", "當日沖銷交易總買進成交金額")
+    for t in doc.get("tables") or []:
+        f = t.get("fields") or []
+        if all(k in f for k in keys) and t.get("data"):
+            r = t["data"][0]
+            v = [_num(r[f.index(k)]) if f.index(k) < len(r) else None for k in keys]
+            return v if v[0] is not None else None
+    return None
+
+
+def twse_days(name: str, url: str, parse, days: list[str], budget_s: float = 1500) -> int:
+    """證交所逐日一請求（{d}＝YYYYMMDD），每請求間隔 3.5 秒；時間到就停、下一輪續補。"""
+    out: dict = {}
+    t0 = time.time()
+    for d in days:
+        if time.time() - t0 > budget_s:
+            log(f"[heat] {name} 回補時間到（還有 {len(days) - len(out)} 天），下一輪續補")
+            break
+        try:
+            v = parse(json.loads(_get(url.format(d=d.replace("-", "")), timeout=40).decode("utf-8")))
+            if v is not None:
+                out[d] = v
+        except Exception as ex:                               # noqa: BLE001
+            log(f"[heat] {name} {d} ✗ {str(ex)[:80]}")
+        time.sleep(3.5)
+    return _merge(name, "twse", out)
+
+
+def twse_sbl(days: list[str], budget_s: float = 1500) -> int:
+    return twse_days("sbl", SBL_URL, parse_sbl, days, budget_s)
+
+
+def twse_daytrade(days: list[str], budget_s: float = 1500) -> int:
+    return twse_days("daytrade", DT_URL, parse_daytrade, days, budget_s)
