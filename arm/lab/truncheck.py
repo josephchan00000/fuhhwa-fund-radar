@@ -38,14 +38,16 @@ REL = {"ndc": HS.RELEASE["B1"], "pmi": HS.RELEASE["B3"], "orders": HS.RELEASE["B
        "sfbflow": HS.RELEASE["L6"], "mmf": min(HS.RELEASE["G5"], U.RELEASE["R10"]), "rev": HS.RELEASE["B6"],
        "us_philly": U.RELEASE["F1"], "us_cli": U.RELEASE["F3"], "us_bls": U.RELEASE["F5"], "us_umich": U.RELEASE["F9"],
        "us_wsts": U.RELEASE["F10"], "us_z1": U.RELEASE["S5"], "us_ebp": U.RELEASE["R6"], "us_m2": U.RELEASE["R7"],
-       "us_shiller": (1, 1), "tsmc": U.RELEASE["F11"]}
+       "us_shiller": (1, 1), "tsmc": U.RELEASE["F11"],
+       # heatspec VER 13／heatspec_us VER 6 新項目：央行上市市值與資本額（C10、C13、X8）、非農就業（F12）
+       "twcap": HS.CAP_RELEASE, "us_payems": U.RELEASE["F12"]}
 
 
 def late_tables() -> dict:
     """實際拿得到的日子（和每天建頁同一份，heatspec VER 11～12、heatspec_us VER 4～5）：截斷也照實際日期，
     才看得出「當時真的拿得到什麼」。→ {落檔: {月: 日}}、勞工統計局三欄、月營收與台積電的申報期限。"""
     k = HU.known_late()
-    return {"uscpi": HC.late_b8(), "us_z1": k["S5"], "bls": (k["F5"], k["F6"], k["F7"])}
+    return {"uscpi": HC.late_b8(), "us_z1": k["S5"], "bls": (k["F5"], k["F6"], k["F7"]), "us_payems": k["F5"]}
 
 
 # 勞工統計局 us_bls 三欄各自的公布時間差（失業率、CPI、核心 CPI；heatspec_us.RELEASE 的 F5、F6、F7）
