@@ -73,6 +73,10 @@ VER 6（2026-11-09，docs/lab_dims_plan.md 第 9～11 節；同台股頁 heatspe
   非農 1947 起、NFCI 官方 CSV 停在 2026-04-24、S&P 500 漲跌家數 1996 起）。
   補充（2026-11-09，看過結果之後；只改頁面上的說明文字）：新項目說明文字裡的「VER 6」拿掉（市場頁不寫版本字，tests/test_plain.py）；
     項目、算法、門檻、過關名單都不變。
+VER 7（2026-11-09，docs/lab_dims_plan.md 第 15 節；同台股頁 heatspec VER 14 的 ③e，使用者選「改成看最近 20 天」）：
+  過關改看最近 GATE_DAYS＝20 個交易日（各指數自己的交易日、從驗證起點截過的那一份），每一天各判一次，算分 ≥ GATE_NEED＝15 天才算分。
+  誠實交代同台股頁：看過「那斯達克 100 的 S10 20 天裡 16 天會算分、最後一天（11/6）剛好不算」之後才寫；寫的時候已經知道那斯達克 100 會多算 S10，
+  S&P 500（T15 20 天）、那斯達克（S10 19 天）、費半（S10 20 天）不變。
 """
 from __future__ import annotations
 
@@ -94,7 +98,7 @@ from .heatspec import (BUB_BLOCK, BUB_BOOT, BUB_DD, BUB_EPI_GAP, BUB_EPI_MIN, BU
 from .heatspec import band  # noqa: F401
 from .heatspec import CPI_LATE, GAP_FILL_MAX, STALE_M  # noqa: F401  （VER 2：補缺月、資料過期，兩邊同一份）
 
-VER = 6
+VER = 7
 SPEC_DATE = "2026-11-09"
 # VER 4：已知延後公布的月份 → 實際公布日（官方改期公告；和 RELEASE 取晚的；來源同 heatspec.CPI_LATE）
 JOBS_LATE = {"2013-09": "2013-10-22", "2013-10": "2013-11-08", "2025-09": "2025-11-20", "2025-10": "2025-12-16",
@@ -307,6 +311,8 @@ EXPECT = {"fund": -1, "sent": -1, "liq": +1, "tech": -1, "bubl": -1}
 GATE_MIN = {"d": 2016, "m": 96}           # VER 6 補充：同台股頁 heatspec VER 13 補充
 GATE_FRESH_DAYS = 21
 GATE_FILE = "data/lab/heat_us_gate.json"
+GATE_DAYS = 20                            # VER 7：同台股頁 heatspec VER 14 ③e
+GATE_NEED = 15
 
 # 驗證（同台股頁）；對照用切分改成 2000 年以前／以後（只列等級相關，不判定）
 SPLIT_REF = {
