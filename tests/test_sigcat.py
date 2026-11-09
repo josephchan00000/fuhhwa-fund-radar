@@ -380,7 +380,8 @@ def test_research_has_inst_rows_and_no_duplicate_heat_rows():
     R = G.load_research()
     rows = [r for r in R["rows"] if r["cat"] == "inst"]
     assert len(rows) == 90 and len({r["id"] for r in rows}) == 90
-    assert not [r for r in R["rows"] if r["cat"] == "heat" and r["var"] in ("C9", "C10", "C11", "C12", "C13", "C14")]
+    # 法人買賣超只在 inst 類，heat 類不重複（heatspec VER 13 起 C9～C14 代號是籌碼新項目〔融資維持率等〕，所以改用名稱看；L3 原本就在台灣資金）
+    assert not [r for r in R["rows"] if r["cat"] == "heat" and "買賣超" in r["name"] and r["var"] != "L3"]
     for r in rows:
         assert r["mk"] == "tw" and r["grp"] in S.INST_WHO
         sig = r["sig"]
