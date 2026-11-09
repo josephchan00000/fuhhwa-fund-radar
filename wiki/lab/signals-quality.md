@@ -10,6 +10,7 @@
 
 - 第二套算法 `arm/lab/sigverify.py`（不呼叫網頁用的函式）、截斷重建 `arm/lab/truncheck.py`（原始資料截到某天，整條重算 0～100、邊際變化、訊號）、
   資料來源比對 `arm/lab/srccheck.py`，由 `scripts/run_verify.py` 一起跑 → `data/lab/verify_status.json`；手算固定案例 `tests/test_golden.py`。
+- 資料來源比對已核對、不再列的錯誤日：Yahoo ^TWII 2000-10-23（`KNOWN_YAHOO`）；溫度計的新台幣（Yahoo TWD=X）2026-11-06 是 33.109、央行 32.768、Yahoo 前後兩天正常（`KNOWN_YAHOO_FX`，使用者 2026-11-09 決定當 Yahoo 錯；沒有第二個可信來源，景氣頁與訊號用的是央行那一條）。
 - 每週六 13:17 `verify.yml`（main 上）先更新官方公布日表再核對；不一致標紅、推播、不擋發佈——見[籌碼雷達介面](chip-ui.md)「每週計算核對」。
 - 月／季資料照官方實際公布日（`arm/lab/reldates.py`）——見[台股景氣頁](heat-tw.md)、[美股景氣頁](heat-us.md)。
 

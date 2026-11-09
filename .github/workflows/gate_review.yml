@@ -1,0 +1,56 @@
+name: 籌碼雷達 新指標每年重驗
+
+# 2026-11-09 建立（docs/lab_dims_plan.md 第 14 節；使用者：「沒過的指標每年 1 月重驗」＋「先通知、你說好才換」）：
+#   · scripts/run_gate_review.py：用現在的資料、照同一套條件（heatspec GATE、heatspec_us）重算新項目過關判定，
+#     和現行過關檔（data/lab/heat_gate.json、heat_us_gate.json）比——只寫 data/lab/heat_gate_review.json，
+#     不改現行過關檔、不改研究檔，頁面不會自己變。
+#   · 名單有變、還沒換上：下一班建頁後 06:35 推播多一行、研究紀錄・後台「今天的驗證」列出（arm/lab/valog.py 的 gate_*）；
+#     使用者回「好」才重跑整套研究換上（scripts/run_heat.py、run_heat_us.py 與下游）。
+#   · 約 35～45 分鐘（VER 14／7 起最近 20 個交易日各判一次；repo 公開，一般機器不計分鐘）。排程只會用 main 上的這支檔。
+
+on:
+  schedule:
+    - cron: "41 2 10 1 *"    # 每年 1 月 10 日台北 10:41（前一年 12 月的月資料大多已公布）
+  workflow_dispatch:
+
+concurrency:
+  group: lab-gate-review
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      TZ: Asia/Taipei
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main            # 一律用 main 的資料與程式
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 安裝相依（numpy）
+        run: pip install --quiet certifi numpy
+
+      - name: 重驗新項目過關
+        run: python3 scripts/run_gate_review.py
+
+      - name: commit 結果（進 main）
+        run: |
+          git config user.name "josephchan00000"
+          git config user.email "51159474+josephchan00000@users.noreply.github.com"
+          git add -f data/lab/heat_gate_review.json
+          git commit -q -m "chore: 籌碼雷達新指標每年重驗 $(date +%F)" || { echo "無變更"; exit 0; }
+          for i in 1 2 3; do
+            git push origin HEAD:main && exit 0
+            echo "push 被拒（第 $i 次），rebase 後重試…"
+            git pull --rebase -X theirs origin main || git rebase --abort || true
+            sleep 5
+          done
+          echo "::error::push 連續失敗——重驗結果未入 main"; exit 1

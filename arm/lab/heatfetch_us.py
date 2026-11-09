@@ -644,7 +644,9 @@ def latest_us_close_day(now: datetime | None = None) -> str:
 
 # ── 面向指標盤查的新來源（docs/lab_dims_plan.md 第 3、8 節；探針 CI run 42537259417） ─────────────
 
-NFCI_URL = "https://www.chicagofed.org/-/media/publications/nfci/nfci-data-series-csv.csv"
+# NFCI：舊網址（www.chicagofed.org/-/media/publications/nfci/…）停在 2026-04-24；2026-11-09 用無頭瀏覽器開現行網頁（探針第 4 輪）
+# 看到改從 api.data.chicagofed.org 載入，同名檔、同欄位，一般下載就抓得到（第 5 輪）。
+NFCI_URL = "https://api.data.chicagofed.org/NFCI/nfci-data-series-csv.csv"
 AAII_URL = "https://www.aaii.com/files/surveys/sentiment.xls"
 
 

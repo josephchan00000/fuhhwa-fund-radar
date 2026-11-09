@@ -650,11 +650,11 @@ def with_adm(B: dict, adm) -> dict:
 
 
 def research(B: dict | None = None) -> dict:
-    """每一項、每個面向總分的驗證（只當資訊，不拿來刪項目）。VER 13：先用「新項目都不算分」的 B 判定過關（heatgate），
+    """每一項、每個面向總分的驗證（只當資訊，不拿來刪項目）。VER 13：先用「新項目都不算分」的 B 判定過關（heatgate；VER 14 看最近 20 天），
     再用過關後的面向分數做其他研究；結果多一個 "gate"（scripts/run_heat.py 另存成 heatspec.GATE_FILE）。"""
     from . import heatgate as G
     B = B if B is not None else build(adm=())
-    gate = G.compute(with_adm(B, ()))
+    gate = G.compute_stable(with_adm(B, ()))              # VER 14 ③e：最近 20 個交易日各判一次，算分 ≥ 15 天
     B = with_adm(B, gate["admit"])
     cal, px, comp = B["cal"], B["px"], B["comp"]
     D = B["D"]

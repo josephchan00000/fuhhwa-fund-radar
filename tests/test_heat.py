@@ -10,7 +10,8 @@ from arm.lab import heatspec as S
 
 
 def test_spec_v7_is_locked():
-    assert S.VER == 13 and S.SPEC_DATE == "2026-11-09" and S.MARKET == "tw"     # VER 13：面向指標盤查（docs/lab_dims_plan.md 第 11 節）
+    assert S.VER == 14 and S.SPEC_DATE == "2026-11-09" and S.MARKET == "tw"     # VER 13：面向指標盤查；VER 14：過關看最近 20 天（docs/lab_dims_plan.md 第 11、15 節）
+    assert (S.GATE_DAYS, S.GATE_NEED) == (20, 15)                                # VER 14 ③e：最近 20 個交易日至少 15 天算分
     assert S.RELEASE_LATE == {"B8": {"2013-09": "2013-10-30", "2013-10": "2013-11-20",          # 官方改期公告（勞工統計局）
                                      "2025-09": "2025-10-24", "2025-11": "2025-12-18"}}
     assert (S.US_TW_DAYS, S.REV_DEADLINE) == (1, 10)                                            # VER 12：美國資料台股隔天用、月營收申報期限
