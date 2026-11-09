@@ -465,6 +465,18 @@ def verify_line(cur: dict | None) -> str | None:
     return None
 
 
+def gate_state(now: datetime) -> dict | None:
+    """新項目過關每年重驗的結果（data/lab/heat_gate_review.json，gatereview.state）；檔案讀不到＝None。"""
+    from . import gatereview
+    return gatereview.state(now)
+
+
+def gate_line(cur: dict | None) -> str | None:
+    """推播多一行：重驗後 30 天內、過關名單有變而且還沒換上（使用者 2026-11-09：先通知、說好才換）。"""
+    from . import gatereview
+    return gatereview.push_line(cur)
+
+
 def verify_note(cur: dict | None) -> str:
     """市場頁、研究紀錄頁頂欄下面的紅字：不一致時才有（過期只推播，不上頁面）。"""
     if not cur or cur["ok"]:
@@ -518,6 +530,9 @@ def push_lines(rec: dict) -> list[str]:
     v = verify_line(rec.get("vfy"))
     if v:
         out.append(v)
+    g = gate_line(rec.get("gate"))
+    if g:
+        out.append(g)
     if rec.get("ksl"):
         out.append(rec["ksl"])
     ev = rec.get("ev") or []
@@ -607,6 +622,12 @@ def update(data: dict, write_file: bool | None = None, now: datetime | None = No
         vf = verify_state(now)
         if vf:
             rec["vfy"] = vf
+    except Exception:                                     # noqa: BLE001 —— 讀不到：不發提醒
+        pass
+    try:                                                  # 新項目過關每年重驗（gatereview；名單有變、還沒換上才推播）
+        gs = gate_state(now)
+        if gs:
+            rec["gate"] = gs
     except Exception:                                     # noqa: BLE001 —— 讀不到：不發提醒
         pass
     try:                                                  # 策略熔斷（落後大盤超過邊界就暫停那一份；CI 時寫回 ks_live.json）
