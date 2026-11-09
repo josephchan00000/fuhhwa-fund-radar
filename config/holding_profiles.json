@@ -3975,6 +3975,90 @@
    "intro": "摩根士丹利（Morgan Stanley）發行之金融債，票面利率 7.25%、2032 年 4 月到期；該集團為美國大型投資銀行，業務涵蓋證券交易、投資銀行與財富管理。",
    "ticker": "US617446HD43",
    "verified": true
+  },
+  "RY 7 1/2 05/02/2084": {
+   "country": "加拿大",
+   "intro": "加拿大皇家銀行（Royal Bank of Canada）發行之限追索資本票據（Series 4）；票面利率 7.5%，2029 年 5 月前固定、之後每五年重設，2084 年 5 月到期；發行銀行為加拿大最大的商業銀行。",
+   "ticker": "US780082AR49",
+   "verified": true
+  },
+  "惠頓貴金屬公司": {
+   "country": "加拿大",
+   "intro": "加拿大惠頓貴金屬（Wheaton Precious Metals），貴金屬權利金與串流公司；向礦商預付資金，換取金、銀等副產品的長期低價購買權，自己不經營礦場。",
+   "ticker": "WPM",
+   "verified": true
+  },
+  "TENET HEALTHCARE CORP": {
+   "country": "美國",
+   "intro": "美國 Tenet Healthcare，醫院與門診手術中心營運商；旗下含急性照護醫院與 USPI 門診手術平台，總部在德州達拉斯。",
+   "ticker": "THC",
+   "verified": true
+  },
+  "SHIFT INC": {
+   "country": "日本",
+   "intro": "日本 SHIFT，軟體測試與品質保證外包服務商；由測試委外起家，近年擴及數位轉型與系統開發顧問。",
+   "ticker": "3697",
+   "verified": true
+  },
+  "新紀元能源公司": {
+   "country": "美國",
+   "intro": "美國新紀元能源（NextEra Energy），電力公用事業與再生能源業者；旗下佛羅里達電力照明公司服務佛州用戶，並開發風電、太陽能與儲能專案。",
+   "ticker": "NEE",
+   "verified": true
+  },
+  "紐蒙特公司": {
+   "country": "美國",
+   "intro": "美國紐蒙特（Newmont），全球最大的黃金生產商之一；在多國經營金礦與銅等副產品礦場。",
+   "ticker": "NEM",
+   "verified": true
+  },
+  "洛基特集團股份有限公司": {
+   "country": "美國",
+   "intro": "美國洛基特集團（Rocket Companies），住宅房貸與房地產金融平台；以線上房貸品牌 Rocket Mortgage 為主，總部在底特律。",
+   "ticker": "RKT",
+   "verified": true
+  },
+  "TOHO CO LTD": {
+   "country": "日本",
+   "intro": "日本東寶（TOHO），電影與演劇綜合娛樂公司；業務含電影製作配給、TOHO 影城、動畫與演劇製作，以及東京市中心的不動產出租。",
+   "ticker": "9602",
+   "verified": true
+  },
+  "Sezzle Inc.": {
+   "country": "美國",
+   "intro": "美國 Sezzle，先買後付（BNPL）金融科技公司；提供消費者分期付款服務給網路與實體商家，總部在明尼蘇達州。",
+   "ticker": "SEZL",
+   "verified": true
+  },
+  "SharkNinja Inc.": {
+   "country": "美國",
+   "intro": "美國 SharkNinja，家用小家電品牌商；旗下 Shark 與 Ninja 兩大品牌，產品含吸塵器、氣炸鍋與廚房小家電，總部在麻州。",
+   "ticker": "SN",
+   "verified": true
+  },
+  "Magnite Inc.": {
+   "country": "美國",
+   "intro": "美國 Magnite，數位廣告賣方平台（SSP）；協助網站與連網電視業者自動化出售廣告版位，總部在加州洛杉磯。",
+   "ticker": "MGNI",
+   "verified": true
+  },
+  "Exelixis Inc.": {
+   "country": "美國",
+   "intro": "美國 Exelixis，腫瘤藥物生技公司；主力產品 Cabometyx 為腎細胞癌等癌症的口服標靶藥，總部在加州。",
+   "ticker": "EXEL",
+   "verified": true
+  },
+  "Manhattan Associates Inc.": {
+   "country": "美國",
+   "intro": "美國 Manhattan Associates，供應鏈與倉儲管理軟體商；提供倉庫、運輸與全通路訂單管理雲端軟體，總部在喬治亞州亞特蘭大。",
+   "ticker": "MANH",
+   "verified": true
+  },
+  "Progyny Inc.": {
+   "country": "美國",
+   "intro": "美國 Progyny，生育福利管理公司；替雇主承辦員工的生育與家庭規劃保險給付，總部在紐約。",
+   "ticker": "PGNY",
+   "verified": true
   }
  }
 }
