@@ -458,6 +458,15 @@ def test_srccheck_taiex_monthly_and_yields():
     assert r["n"] == 2 and [b[0] for b in r["bad"]] == ["美債 10 年"]
 
 
+def test_srccheck_same_skips_known_yahoo_fx():
+    from arm.lab import srccheck as SC
+    tw = {"2026-11-05": 32.876, "2026-11-06": 32.768, "2026-11-09": 32.7}
+    A = {"vix": {}, "us_dxy": {}, "us_px_sox": {}, "usdtwd": tw}
+    M = {"usdtwd": {"2026-11-05": 32.821, "2026-11-06": 33.1093, "2026-11-09": 33.5}}
+    r = SC.same(load=lambda n: A[n], M=M)
+    assert r["n"] == 2 and [b[1] for b in r["bad"]] == ["2026-11-09"]       # 11/6 Yahoo 錯（使用者 2026-11-09 決定）不比，其他照比
+
+
 def test_srccheck_real_data_clean():
     """入庫的資料現在應該全部一致（2026-10-31 實測：約 12 萬筆、0 不一致）。"""
     from arm.lab import heatdata as HD
