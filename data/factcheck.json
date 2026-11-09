@@ -1,9 +1,9 @@
 {
  "date": "2026-11-09",
- "as_of": "2026-11-09 12:49",
- "green": 3,
- "red": 0,
- "skipped": 2,
+ "as_of": "2026-11-09 15:41",
+ "green": 4,
+ "red": 1,
+ "skipped": 0,
  "items": [
   {
    "status": "🟢",
@@ -24,20 +24,20 @@
    "sentence": "外資台指期淨空單增至 **99,930 口**，11/5 為 95,651 口"
   },
   {
-   "status": "⚪",
+   "status": "🔴",
    "file": "2026-11-09.md",
    "kind": "inst_foreign",
    "claimed": 500.0,
-   "official": null,
+   "official": -900.56371911,
    "day": "11/09",
    "sentence": "後續觀察：**11/9 外資現貨賣超能否降至 500 億元以下**"
   },
   {
-   "status": "⚪",
+   "status": "🟢",
    "file": "2026-11-09.md",
    "kind": "tx_net",
    "claimed": 99930.0,
-   "official": null,
+   "official": -101771.0,
    "day": "11/09",
    "sentence": "後續觀察：**11/9 收盤後外資期貨淨空單是否低於 99,930 口**"
   },
