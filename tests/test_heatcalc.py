@@ -146,7 +146,8 @@ def test_sample_idx_month_ends_for_fund():
     assert C.sample_idx(cal, "d") == [0, 1, 2, 3, 4]
 
 
-def test_build_proxy_for_tw_vix_and_composite_needs_two_thirds():
+def test_build_t10_own_iv_and_composite_uses_admitted_items():
+    """heatspec VER 13：台指 VIX 改成自算隱含波動率（有自己的歷史、不再用美國 VIX 代替）；面向分數只算舊項目＋過關的新項目。"""
     rnd = random.Random(5)
     cal = _days(800)
     px, p = [], 10000.0
@@ -155,20 +156,23 @@ def test_build_proxy_for_tw_vix_and_composite_needs_two_thirds():
         px.append(p)
     D = {"turnover": {d: [1e11, px[i]] for i, d in enumerate(cal)},
          "vix": {d: 15 + rnd.random() * 10 for d in cal},
-         "vixtw": {d: 20 + rnd.random() * 10 for d in cal[-20:]}}
-    B = C.build(D)
+         "txoiv": {d: [20 + rnd.random() * 10, 22.0, 15] for d in cal}}
+    B = C.build(D, adm=())
     i = len(cal) - 1
-    assert B["proxy"]["T10"][i] and B["heat"]["T10"][i] == B["heat"]["T9"][i]     # 歷史不夠：用美國 VIX 的 0～100
-    assert B["hc"]["T10"][i] is None                                              # 不算進總分
-    have = [k for k in S.ITEMS["tech"] if B["hc"][k][i] is not None]
+    assert B["proxy"] == {} and B["hc"]["T10"][i] is not None and B["adm"] == []
+    assert B["inc"]["tech"] == [k for k in S.ITEMS["tech"] if k != "T10"]          # 新項目沒過關＝不算分
+    have = [k for k in B["inc"]["tech"] if B["hc"][k][i] is not None]
     assert have == ["T1", "T2", "T3", "T4", "T8", "T9", "T11", "T12", "T13"]
-    assert abs(B["comp"]["tech"][i] - sum(B["hc"][k][i] for k in have) / 9) < 1e-9   # 9 項＝13 項的 2/3
+    assert abs(B["comp"]["tech"][i] - sum(B["hc"][k][i] for k in have) / 9) < 1e-9   # 9 項 ≥ 12 項的 2/3
     assert B["heat"]["T11"][i] == 100.0 * B["raw"]["T11"][i] / 6                   # 均線排列不經百分位
-    assert not B["proxy"]["T10"][i - 25] and B["heat"]["T10"][i - 25] is None     # 沒有台指 VIX 的日子不代替
-    assert B["vixcorr"]["n"] == 20 and B["vixcorr"]["a"] == cal[-20]
-    eight = {k: B["hc"][k][i] for k in ("T1", "T2", "T3", "T4", "T8", "T9", "T11", "T12")}
-    assert H.composite(eight, S.ITEMS["tech"]) is None                             # 8 項不夠
-    assert H.composite(eight | {"T5": 50.0}, S.ITEMS["tech"]) is not None          # 9 項就給分
+    B2 = C.build(D, adm={"T10", "C14"})
+    assert "T10" in B2["inc"]["tech"] and "C14" not in B2["inc"]["chip"]            # 當沖只顯示，就算列在過關也不算
+    have2 = have + ["T10"]
+    assert abs(B2["comp"]["tech"][i] - sum(B2["hc"][k][i] for k in have2) / 10) < 1e-9
+    eight = {k: B["hc"][k][i] for k in ("T1", "T2", "T3", "T4", "T8", "T9", "T11")}
+    assert H.composite(eight, B["inc"]["tech"]) is None                             # 7 項不夠（12 項要 8）
+    assert H.composite(eight | {"T12": 50.0}, B["inc"]["tech"]) is not None         # 8 項就給分
+    assert C.with_adm(B, {"T10"})["comp"]["tech"][i] == B2["comp"]["tech"][i]       # 換一組過關項目只重算面向分數
 
 
 def test_evaluate_on_synthetic_market(monkeypatch):

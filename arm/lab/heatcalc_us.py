@@ -33,6 +33,7 @@ FILES = list(PX.values()) + [
     "us_cftc_am", "us_cftc_vix", "us_cftc_big", "us_cftc_mini", "us_philly", "us_ads", "us_cli", "us_claims",
     "us_bls", "us_umich", "us_ebp", "us_shiller", "us_wsts", "vix", "hyg", "ief", "effr", "mmf",
     "us_cftc_am_nq", "us_cftc_big_nq", "us_cftc_mini_nq",                     # VER 3：那斯達克 100 期貨（S8、S9）
+    "us_payems", "us_aaii", "us_nfci", "us_breadth", "us_qqq", "us_qqew",      # VER 6（docs/lab_dims_plan.md）
 ] + list(LPPLS.values()) + sorted({f"us_lev_{s}" for pair in U.LEV.values() for s in pair})   # VER 3：槓桿 ETF（S6）
 CLAIMS_FROM = "1987-01-01"        # 各州初領救濟金：1987 年以前有些州沒有資料
 UMICH_FROM = "1978-01"            # 密大消費者信心：1978 年以前是季資料
@@ -64,6 +65,9 @@ def prep(D: dict, tsmc: dict) -> dict:
     D["us_bls"] = fill_bls(bls)                            # VER 2：2025-10 政府停擺缺一個月
     D["tsmc"] = tsmc
     D["late"]["F11"] = HC.late_rev(tsmc)                   # VER 5：台積電月營收同台股月營收的申報期限
+    pay = {k: v for k, v in (D.get("us_payems") or {}).items() if v is not None}       # VER 6 F12：同就業報告的公布日
+    D["late"]["F12"] = H.late_dates(pay, U.RELEASE["F12"], known["F5"], U.GAP_FILL_MAX)
+    D["us_payems"] = H.fill_gaps(pay, U.GAP_FILL_MAX, geo=False)
     return D
 
 
@@ -288,6 +292,16 @@ def shared(D: dict) -> dict:
     nl = {d: v[0] - v[1] - v[2] for d, v in h41.items() if v and None not in v[:3]}
     N["R8"] = shift_days(C.native(nl, lambda v: H.chg(v, 13)), ad.get("R8"))
     N["R9"] = C.native(D.get("us_dxy") or {}, lambda v: H.chg(v, 60))
+    # VER 6 新項目（CAND）
+    N["R11"] = shift_days({d: v[0] for d, v in (D.get("us_nfci") or {}).items() if v and v[0] is not None}, ad.get("R11"))
+    N["S10"] = shift_days({d: 100.0 * (v[0] - v[2]) for d, v in (D.get("us_aaii") or {}).items() if v and len(v) > 2},
+                          ad.get("S10"))
+    from . import breadth as BDP
+    from . import breadthspec as BS
+    adv, upv = BDP.us_adv(D.get("us_breadth") or {}, BS.ADV_W) if D.get("us_breadth") else ({}, {})
+    N["T15"], N["T16"] = {d: float(v) for d, v in adv.items()}, {d: float(v) for d, v in upv.items()}
+    pay = D.get("us_payems") or {}
+    M["F12"] = {ym: (v - pay[C.ym_add(ym, -3)]) / 3.0 for ym, v in pay.items() if pay.get(C.ym_add(ym, -3)) is not None}
     # 基本面（月）
     M["F1"] = {ym: v for ym, v in (D.get("us_philly") or {}).items() if v is not None}
     M["F2"] = C.month_avg(D.get("us_ads") or {})
@@ -414,6 +428,11 @@ def index_items(D: dict, idx: str, cal: list[str], px: list, SH: dict) -> tuple[
     a, b = U.LEV[idx]                                         # VER 3：S6 槓桿 ETF 做多比重、S7 成分股內部人
     N["S6"] = lev_share(D.get(f"us_lev_{a}") or {}, D.get(f"us_lev_{b}") or {})
     N["S7"] = ins_series(cal, idx, SH)
+    if idx in U.ONLY["T17"]:                                  # VER 6 T17：大型股撐盤（breadthspec 的 ETF 對、看多久）
+        from . import breadth as BDP
+        from . import breadthspec as BS
+        cw, ew = BS.EW_PAIRS[idx]
+        N["T17"] = BDP.ewgap_us(D.get(f"us_{cw.lower()}") or {}, D.get(f"us_{ew.lower()}") or {}, BS.LB)
     if idx != "spx":
         ref = H.asof_daily(cal, D.get(PX["spx"]) or {}, stale=7)
         rel = [None if a is None or b is None or not b else a / b for a, b in zip(px, ref)]
@@ -435,8 +454,9 @@ def ins_series(cal: list[str], idx: str, SH: dict) -> dict:
     return INS.ratio_series(cal, U.INS[idx], D, M, st) if D and M else {}
 
 
-def build(idx: str, D: dict | None = None, SH: dict | None = None) -> dict:
-    """→ 和台股 heatcalc.build 同格式的 B（多 "idx"）。SH＝shared(D) 的結果（四個指數一起算時只算一次）。"""
+def build(idx: str, D: dict | None = None, SH: dict | None = None, adm=None) -> dict:
+    """→ 和台股 heatcalc.build 同格式的 B（多 "idx"）。SH＝shared(D) 的結果（四個指數一起算時只算一次）。
+    adm＝算分的新項目（None＝讀過關檔 heatspec_us.GATE_FILE 裡這個指數的）。"""
     D = D if D is not None else load()
     SH = SH if SH is not None else shared(D)
     with S.use(U.spec_for(idx)):
@@ -446,7 +466,7 @@ def build(idx: str, D: dict | None = None, SH: dict | None = None) -> dict:
         N = {**{k: v for k, v in SH["N"].items() if k in keys}, **N}
         M = {**{k: v for k, v in SH["M"].items() if k in keys}, **M}
         PRE = {**{k: v for k, v in SH["PRE"].items() if k in keys}, **PRE}
-        B = C.score(D, cal, px, info, N, M, PRE, dict(SH["REF"]))
+        B = C.score(D, cal, px, info, N, M, PRE, dict(SH["REF"]), adm)
         # 大跌後買點（bottomspec）的 C5 照原規格四個指數都用 S&P 500 期貨（S2）；VER 3 起 S2 只在 S&P 500 是面向項目，另外放
         B["xraw"] = C.align_daily(cal, {"S2": SH["N"].get("S2") or {}}) if "S2" not in keys else {}
     B["idx"] = idx
@@ -481,9 +501,12 @@ def trim(B: dict, start: str | None) -> dict:
 
 def research(idx: str, B: dict) -> dict:
     """一個指數的研究檔（同台股：每一項與面向分數的等級相關、五區、技術事件、第五版單項分析、第六版多層回歸；另加泡沫事件）。"""
+    from . import heatgate as G
     from . import heatrel, heatreg
     with S.use(U.spec_for(idx)):
         V = trim(B, S.VAL_START.get(idx))
+        gate = G.compute(V)                                   # VER 6：B 要是新項目都不算分的那一份（_research_one 用 adm＝()）
+        V = C.with_adm(V, gate["admit"])
         cal, px, comp = V["cal"], V["px"], V["comp"]
         dims = {}
         for dim in S.DIMS:
@@ -503,12 +526,12 @@ def research(idx: str, B: dict) -> dict:
         rel = heatrel.run(V)
         return {"ver": S.VER, "spec_date": S.SPEC_DATE, "idx": idx, "cal": V["cal_info"], "data": data, "dims": dims,
                 "events": events, "wk": rel["wk"], "rel": rel["rel"], "deriv": heatrel.deriv_all(V),
-                "m6": heatreg.run(V), "bub": BB.bubble_research(V)}
+                "m6": heatreg.run(V), "bub": BB.bubble_research(V), "gate": gate}
 
 
 def _research_one(idx: str) -> tuple[str, dict]:
     D = load()
-    return idx, research(idx, build(idx, D, shared(D)))
+    return idx, research(idx, build(idx, D, shared(D), adm=()))
 
 
 def research_all(procs: int = 4) -> dict:

@@ -73,6 +73,13 @@ def research() -> None:
     t0 = time.time()
     R = CU.research_all()
     OUT.write_text(json.dumps(R, ensure_ascii=False, sort_keys=True, separators=(",", ":")), encoding="utf-8")
+    from arm.lab import heatgate as G                  # VER 6：各指數的過關檔
+    from arm.lab import heatspec_us as U
+    from run_heat import gate_report
+    gdoc = {"ver": U.VER, "spec_date": U.SPEC_DATE, "idx": {ix: r["gate"] for ix, r in R["idx"].items()}}
+    (ROOT / U.GATE_FILE).write_text(json.dumps(gdoc, ensure_ascii=False, sort_keys=True, indent=1) + "\n", encoding="utf-8")
+    for ix, g in gdoc["idx"].items():
+        gate_report(g, ix)
     print(f"[heat-us] 研究檔 {OUT.relative_to(ROOT)}：{OUT.stat().st_size // 1024} KB，{time.time() - t0:.0f} 秒", flush=True)
 
 

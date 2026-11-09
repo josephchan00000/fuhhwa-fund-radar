@@ -294,6 +294,13 @@ def mr_chip(mk: str | None) -> str:
         return ""
 
 
+def outwhy(k: str) -> str:
+    """VER 13：沒算進面向分數的項目為什麼沒算（只顯示的、新項目還沒通過驗證的）。"""
+    if k in getattr(S, "SHOW_ONLY", ()):
+        return "只顯示，不算進分數"
+    return "新項目，驗證沒過，不算進分數"
+
+
 def view(B: dict | None = None, R: dict | None = None) -> dict:
     B = B if B is not None else C.build()
     R = R if R is not None else (load_research() or {})
@@ -308,9 +315,10 @@ def view(B: dict | None = None, R: dict | None = None) -> dict:
     for dim, L in shown_dims().items():
         rd = (R.get("dims") or {}).get(dim) or {}
         keys = S.ITEMS[dim]
+        inc = (B.get("inc") or {}).get(dim) or keys          # VER 13：算分的項目（舊項目＋過關的新項目）
         hn = {k: B["hc"][k][t] for k in keys}
         ha = {k: B["hc"][k][t0] for k in keys}
-        cn, ca = H.contrib(hn, keys), H.contrib(ha, keys)
+        cn, ca = H.contrib(hn, inc), H.contrib(ha, inc)
         items = []
         for k in keys:
             ind = S.IND[S.KEYS.index(k)]
@@ -322,7 +330,7 @@ def view(B: dict | None = None, R: dict | None = None) -> dict:
             items.append({
                 "k": k, "name": ind[2], "how": ind[6], "hot": ind[4], "freq": ind[5],
                 "val": _fmt(k, B["raw"][k][t]), "src": _src_date(B, k, t), "heat": heat, "ago": B["heat"][k][t0],
-                "proxy": prox, "why": why,
+                "proxy": prox, "why": why, "out": k not in inc, "outwhy": outwhy(k) if k not in inc else None,
                 "pull": (cn.get(k) or {}).get("pull"), "share": (cn.get(k) or {}).get("share"),
                 "dpull": cn[k]["pull"] - ca[k]["pull"] if k in cn and k in ca else None,
                 "first": (rd.get("first") or {}).get(k), "ev": (rd.get("items") or {}).get(k) or {},
@@ -481,6 +489,8 @@ def _items(L: dict) -> str:
             tag = f'<em class="px">{_e(stale_txt(it["stale"]))}</em>'
         elif it["proxy"]:
             tag = '<em class="px">用美國 VIX 的排名代替，不算進分數</em>'
+        elif it.get("outwhy") and it["heat"] is not None:
+            tag = f'<em class="px">{_e(it["outwhy"])}</em>'
         elif it["why"]:
             tag = f'<em class="px">{_e(it["why"])}</em>'
         cls = "it" if it["pull"] is not None else "it it0"
