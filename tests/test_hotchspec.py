@@ -60,7 +60,8 @@ def test_spec_matches_other_studies():
         assert k in ("Dchip", "W1", "W2") or HS.DIM_OF[k] == "chip"
     for idx in ("spx", "ixic", "ndx", "sox"):
         with HS.use(U.spec_for(idx)):
-            assert set(X.CHIP_VARS[idx]) == {"Dsent"} | set(HS.ITEMS["sent"])     # 就是那個指數的情緒籌碼項目
+            # 就是那個指數原本的情緒籌碼項目（heatspec_us VER 6 的新項目〔CAND〕不加進這份研究，要加＝hotchspec VER＋1）
+            assert set(X.CHIP_VARS[idx]) == {"Dsent"} | (set(HS.ITEMS["sent"]) - set(HS.CAND))
     assert all(v["mk"] in X.MARKETS for v in X.PRIMARY.values())
     assert all(v["key"] in (X.STATES_A if v["part"] == "A" else X.TECH_EVENTS) for v in X.PRIMARY.values())
     assert all(v["var"] in X.CHIP_VARS["tw"] for v in X.PRIMARY.values() if v["part"] == "A")

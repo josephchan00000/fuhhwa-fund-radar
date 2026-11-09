@@ -265,3 +265,15 @@ def test_inst_note_and_pending_param_names():
     p = {**r, "why": "param", "pdims": ["e10", "c3lo", "psy", "c7g"]}
     h2 = HV.tq_pend(p, "2026-10-27")
     assert "（從 60 日高點跌幾 %、落底訊號的設定、價格連續爆發幾個月）" in h2 and S.INST_NOTE in h2
+
+
+def test_buy_days_skips_buys_not_yet_reached():
+    """事件在最近幾天、規則要等 N 天才買（例 W10）：買進日超過資料最後一天 → 跳過，不出錯（2026-11-09 踩到）。"""
+    import numpy as np
+    from arm.lab import sigage as A
+    T = 300
+    px = list(100 + np.cumsum(np.sin(np.arange(T) / 7.0)))
+    sd = {"ev": "E10", "samp": np.arange(T), "buys": [(10, 50, {}, None), (295, 305, {}, None)]}
+    r = A.buy_days({"px": px}, sd, "tw")
+    assert int(r["t"].max(initial=-1)) < T                                    # 以前這裡 IndexError
+    assert len(A.buy_days({"px": px}, {**sd, "buys": [(295, 305, {}, None)]}, "tw")["t"]) == 0

@@ -185,7 +185,7 @@ def key_states(B: dict, V: dict, we: list[int]) -> list[dict]:
         add("dim", d, S.DSHORT[d], d, L["freq"], L["score"], L["cev"], (V["strips"].get(d) or {}).get("weeks") or 0)
     for d, L in V["dims"].items():
         for it in L["items"]:
-            if it["heat"] is None or it["proxy"]:
+            if it["heat"] is None or it["proxy"] or it.get("out"):
                 continue
             add("item", it["k"], it["name"], d, L["freq"], it["heat"], it["ev"], _run_weeks(B["heat"][it["k"]], we))
     out.sort(key=lambda a: (a["kind"] != "dim", -a["gap"], a["k"]))
@@ -739,7 +739,8 @@ def sig_items(B: dict, V: dict) -> dict:
                       "pos": HP.pos_line(k, pos) if pos else "",
                       "dv": HP.acc_label(k, dv) if dv and k in HP.DLABEL else "",
                       "why": (HP.stale_txt(it["stale"]) if it.get("stale") else
-                              "用美國 VIX 的排名代替，不算進分數" if it["proxy"] else (it["why"] or "")),
+                              "用美國 VIX 的排名代替，不算進分數" if it["proxy"] else
+                              (it.get("outwhy") or it["why"] or "")),
                       "u": S.IND[S.KEYS.index(k)][3], "dec": HP.DEC.get(k, 2), "hot": it["hot"], "sp": sp(B["heat"][k])}
     out.update((V.get("signow") or {}).get("cv") or {})      # 大跌風險項目（景氣頁沒有這幾項，sigcat.crash_now）
     return out
@@ -1589,6 +1590,8 @@ def item_tpl(it: dict, d: str, L: dict, V: dict) -> str:
         why = f'<p class="warn">{_e(HP.stale_txt(it["stale"]))}。</p>'
     elif it["proxy"]:
         why = '<p class="warn">用美國 VIX 的排名代替，不算進分數。</p>'
+    elif it.get("outwhy"):
+        why = f'<p class="warn">{_e(it["outwhy"])}。</p>'
     elif it["why"]:
         why = f'<p class="warn">{_e(it["why"])}</p>'
     cells = [("現值", _e(it["val"]), _e(HP._md(it["src"]))),

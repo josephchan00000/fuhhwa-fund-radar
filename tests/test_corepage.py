@@ -1,5 +1,6 @@
 """交易計畫卡片（arm/lab/corepage.py；docs/lab_core70_plan.md 第 10 節）：版面結構、數字跟研究檔一致、
 沒有內部術語與禁用詞、class 一律 pln 開頭、訊號總覽・研究結論怎麼接。"""
+import html
 import json
 import re
 
@@ -68,7 +69,7 @@ STK = {"d": "2026-10-23", "w": 0.8 * 0.5 / 3, "bw": 0.4, "boom": BOOM,
 def _text(h: str) -> str:
     h = re.sub(r"<style.*?</style>|<script.*?</script>", "", h, flags=re.S)
     h = re.sub(r'\s(?:title|aria-label|class|id|style|viewBox|d|data-[a-z]+)="[^"]*"', "", h)
-    return re.sub(r"<[^>]+>", " ", h)
+    return html.unescape(re.sub(r"<[^>]+>", " ", h))                             # 畫面上看到的字（「Abercrombie &amp; Fitch」→「&」）
 
 
 @pytest.fixture(scope="module")
