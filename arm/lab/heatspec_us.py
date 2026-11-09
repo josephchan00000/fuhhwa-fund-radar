@@ -302,7 +302,7 @@ PROXY: dict = {}
 CAND = ("F12", "S10", "R11", "T15", "T16", "T17")
 SHOW_ONLY: tuple = ()
 EXPECT = {"fund": -1, "sent": -1, "liq": +1, "tech": -1, "bubl": -1}
-GATE_MIN_WEEKS = 416
+GATE_MIN = {"d": 2016, "m": 96}           # VER 6 補充：同台股頁 heatspec VER 13 補充
 GATE_FRESH_DAYS = 21
 GATE_FILE = "data/lab/heat_us_gate.json"
 

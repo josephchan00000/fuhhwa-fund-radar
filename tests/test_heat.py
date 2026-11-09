@@ -28,7 +28,7 @@ def test_spec_v7_is_locked():
     # VER 13：新項目過關才算分（GATE）；當沖只顯示
     assert S.CAND == ("C9", "C10", "C11", "C12", "C13", "C14", "B9", "B10", "B11", "G6", "G7", "G8", "G9", "X8", "T10")
     assert S.SHOW_ONLY == ("C14",) and S.EXPECT == {"fund": -1, "chip": -1, "gliq": 1, "tliq": 1, "tech": -1, "bubl": -1}
-    assert (S.GATE_MIN_WEEKS, S.GATE_FRESH_DAYS, S.GATE_FILE, S.CAP_RELEASE) == (416, 21, "data/lab/heat_gate.json", (2, 1))
+    assert (S.GATE_MIN, S.GATE_FRESH_DAYS, S.GATE_FILE, S.CAP_RELEASE) == ({"d": 2016, "m": 96}, 21, "data/lab/heat_gate.json", (2, 1))
     assert S.HOT == {"B1": 1, "B2": 1, "B3": 1, "B4": 1, "B5": 1, "B6": 1, "B7": 1, "B8": 1,
                      "C1": 1, "C2": 1, "C3": -1, "C4": 1, "C5": -1, "C6": -1, "C7": -1, "C8": 1,
                      "G1": -1, "G2": -1, "G3": -1, "G4": 1, "G5": 1,

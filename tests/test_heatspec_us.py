@@ -11,7 +11,7 @@ def test_us_spec_v1_is_locked():
     assert U.VER == 6 and U.SPEC_DATE == "2026-11-09" and U.MARKET == "us"     # VER 6：面向指標盤查（docs/lab_dims_plan.md 第 11 節）
     assert U.CAND == ("F12", "S10", "R11", "T15", "T16", "T17") and U.SHOW_ONLY == ()
     assert U.EXPECT == {"fund": -1, "sent": -1, "liq": 1, "tech": -1, "bubl": -1}
-    assert (U.GATE_MIN_WEEKS, U.GATE_FRESH_DAYS, U.GATE_FILE) == (416, 21, "data/lab/heat_us_gate.json")
+    assert (U.GATE_MIN, U.GATE_FRESH_DAYS, U.GATE_FILE) == ({"d": 2016, "m": 96}, 21, "data/lab/heat_us_gate.json")
     assert U.GDP_LATE == {"1995-12": "1996-02-23", "2013-09": "2013-11-07", "2018-12": "2019-02-28", "2025-09": "2025-12-23",
                           "2025-12": "2026-02-20"}                                       # VER 5（含補充）：GDP 停擺改期
     assert U.Z1_SKIP == ("2025-09", "2025-12")                                           # VER 5 補充：不算進「歷年最晚」
