@@ -1,7 +1,7 @@
 {
   "as_of": "2026-11-09",
   "perf_asof": "2026-11-09",
-  "fetched_at": "2026/11/09 15:37",
+  "fetched_at": "2026/11/09 17:16",
   "source": "規模／配息殖利率 ← etfinfo.tw（Tier B）；過去一週／一月報酬 ← Yahoo 還原收盤（總報酬口徑）／FinMind／TWSE 官方自算；當月預估配息 ← 證交所／櫃買除權除息預告表、MOPS、主流媒體新聞（2 檔，另 5 檔金額待公告）。正式對外前以各投信官網核對",
   "items": [
     {
@@ -214,8 +214,8 @@
       "est_div": 3.88,
       "est_div_date": "2026-11-17",
       "est_pend": null,
-      "est_from": "自由財經",
-      "est_url": "https://news.google.com/rss/articles/CBMiX0FVX3lxTE9rbmtqQVoweExTSi1CbktLeTlyN2tPUThEZkp1bDhiRWVwMkp1aW9OaDRYeVpzMGRIa3BRYlFZRW9SVVFWUVM3OElWSWFLM1BlR3hRM1dENXc5QlZjNEY00gFkQVVfeXFMT3Nhek16OTB3a2VNak51cnRySWxyczlfY2lrY05TS1dIWVNYNjBhXzNkQWdMMThTZTIwSGNDU3Q4dHBYWTlfcE1HM2dXcXA5Rl92c3dpSS1kVUUxdkliVnFhYWNpcA?oc=5",
+      "est_from": "Yahoo新聞",
+      "est_url": "https://news.google.com/rss/articles/CBMikAJBVV95cUxOUjM0TmN2UGVxaGQ1cjZ0X0p6clNLVmd6RXNieDNaVzRMZ1dQMDFsamdqTmdleTg3SV9tTU1wdmFtdnFxZjBSRmc5ZVRCUFJULTMydDFVYVpXOVpVaENoblRnazZ6aXA1T2pnYkc4bXJlX2JCSC0yVW9Fclh6cjBJdHhyV3NMMlF3a2ZfWHpsc19xN1JTbzRHai1YT0Jkem5WY2x4ZW9CMmg3TTJ6NDNBTTZQNnlrUENjUjNGMGpvZWZ2WkQzbXg4WUZFZkstQzhPYm1OMDZPYk9vWUVma1lOMXJHUElzenUwYkY0UWpaVFNvd3hSeXFWeGsxRGZla1g2RjhheldlSGQ5eXAteGxETg?oc=5",
       "yield_pct": 3.47,
       "freq": "半年配",
       "chg_pct": 6.43,
