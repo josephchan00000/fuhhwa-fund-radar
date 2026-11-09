@@ -181,10 +181,61 @@ def nfci() -> None:
     show("DBnomics 搜尋 national financial conditions", "https://api.db.nomics.world/v22/search?q=national%20financial%20conditions&limit=5", n=800)
 
 
+def nfci_browser() -> None:
+    """第 4 輪（2026-11-09，使用者同意）：一般下載找不到現行資料 → 用無頭瀏覽器（runner 內建 Chrome）開現行網頁，
+    記下它載入的每個資料請求（網址、狀態、類型、大小），內容提到 NFCI 或像資料表的印前面一段。只印不存。"""
+    from playwright.sync_api import sync_playwright
+    pages = ("https://www.chicagofed.org/research/data/nfci/current-data",
+             "https://www.chicagofed.org/research/data/nfci/background")
+    skip = re.compile(r"\.(?:png|jpe?g|gif|svg|woff2?|ttf|ico|css)(?:\?|$)|google|doubleclick|analytics|siteimprove|facebook|twitter|linkedin", re.I)
+    with sync_playwright() as p:
+        b = p.chromium.launch(channel="chrome", headless=True)
+        for url in pages:
+            print(f"\n=== 無頭瀏覽器開 {url}", flush=True)
+            pg = b.new_page(user_agent=UA)
+            seen = []
+
+            def on_resp(r, seen=seen):
+                if skip.search(r.url):
+                    return
+                ct = (r.headers or {}).get("content-type", "")
+                try:
+                    body = r.body() if r.request.resource_type in ("xhr", "fetch", "document", "other", "script") else b""
+                except Exception:                         # noqa: BLE001
+                    body = b""
+                seen.append((r.url, r.status, ct, r.request.resource_type, body))
+            pg.on("response", on_resp)
+            try:
+                pg.goto(url, wait_until="networkidle", timeout=90_000)
+                pg.wait_for_timeout(8_000)
+            except Exception as e:                        # noqa: BLE001
+                print("  開頁失敗：", repr(e)[:300], flush=True)
+            for u, st, ct, rt, body in seen:
+                print(f"  {st} {rt:8s} {ct[:40]:40s} {len(body):>9,}  {u[:180]}", flush=True)
+            for u, st, ct, rt, body in seen:
+                t = body[:200_000].decode("utf-8", "replace")
+                if rt in ("xhr", "fetch", "other") or re.search(r"(?i)nfci", u) or ("json" in ct or "csv" in ct):
+                    if re.search(r"(?i)nfci|anfci|\d{4}-\d{2}-\d{2}|\d{1,2}/\d{1,2}/\d{4}", t):
+                        dates = re.findall(r"\d{4}-\d{2}-\d{2}|\d{1,2}/\d{1,2}/\d{4}", t)
+                        print(f"\n--- {u[:200]}（{len(body):,} bytes，日期 {len(dates)} 個，"
+                              f"最早 {dates[0] if dates else '—'}、最後 {dates[-1] if dates else '—'}）", flush=True)
+                        print("   ", t[:700].replace("\n", " | "), flush=True)
+            try:
+                txt = pg.inner_text("body")
+                i = max(0, txt.find("NFCI") - 200)
+                print("\n  頁面文字：", re.sub(r"\s+", " ", txt[i:i + 1500]), flush=True)
+            except Exception as e:                        # noqa: BLE001
+                print("  讀頁面文字失敗：", repr(e)[:200], flush=True)
+            pg.close()
+        b.close()
+
+
 def main(argv: list[str]) -> int:
     groups = argv or ["tw", "us"]
     if "nfci" in groups:
         nfci()
+    if "nfcib" in groups:
+        nfci_browser()
     if "tw" in groups:
         tw()
     if "us" in groups:

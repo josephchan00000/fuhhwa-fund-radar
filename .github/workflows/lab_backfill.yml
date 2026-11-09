@@ -160,6 +160,8 @@ jobs:
             timeout 3300 python3 scripts/fetch_heat_us.py --backfill --only "${ONLY:-cftc_nq,lev,ins}"
           elif [ "${MODE#dimsprobe}" != "$MODE" ]; then
             # 面向指標盤查（docs/lab_dims_plan.md）：新資料來源探針；只印不寫
+            # nfcib＝無頭瀏覽器開芝加哥聯準銀行現行網頁（playwright＋runner 內建 Chrome，零下載；同 daily.yml 煙測）
+            case "$MODE" in *nfcib*) pip install --quiet playwright ;; esac
             timeout 1500 python3 scripts/probe_dims.py $(echo "${MODE#dimsprobe}" | tr ":," "  ")
           elif [ "${MODE#uschipprobe}" != "$MODE" ]; then
             # 美股各指數自己的籌碼（docs/lab_us_chip_plan.md）：CFTC 那斯達克 100、槓桿 ETF、SEC 內部人資料的探針；只印不寫
