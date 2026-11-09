@@ -832,7 +832,9 @@ def bdepth_update(force: bool = False) -> int:
 
 LARGE_START = date(2004, 7, 1)
 LARGE_CODES = ("TX", "MTX")
-SBL_START = "2005-07-01"                                   # 證交所：「查詢日期小於94年7月1日，請重新查詢!」
+# 證交所說「查詢日期小於94年7月1日」，但 2026-11-09 回補第 1 輪：2005-07～2012-03 約 350 個週資料點全部是空表，
+# 第一筆有資料的是 2012-03-23 → 從 2012-03 起補，省掉每輪約 30 分鐘的空查詢
+SBL_START = "2012-03-01"
 DT_START = "2014-01-06"                                    # 現股當沖開放日
 LARGE_URL = "https://www.taifex.com.tw/cht/3/largeTraderFutDown?queryStartDate={a}&queryEndDate={z}"
 SBL_URL = "https://www.twse.com.tw/rwd/zh/marginTrading/TWT93U?date={d}&response=json"
