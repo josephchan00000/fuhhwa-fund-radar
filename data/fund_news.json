@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/11/09 17:15",
+  "as_of": "2026/11/09 19:18",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -123,7 +123,15 @@
       "short_names": [
         "00418A"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "小編下班聊點錢》00418A九倍女戰神踢館！00981A瑤池金母、00412A女將軍迎勁敵 誰才是真女王？內行「一句話點破」：別拿國小比大學",
+          "url": "https://wantrich.chinatimes.com/news/20261109900006-420401",
+          "source": "旺得富理財網",
+          "date": "2026-11-09 19:00",
+          "datetime": "2026-11-09T19:00:00+08:00"
+        }
+      ]
     },
     {
       "base": "復華美國新星基金",
@@ -491,7 +499,7 @@
       "channel": "三立財經iNEWS",
       "url": "https://www.youtube.com/watch?v=nkz_1DrxKEY",
       "date": "2026-11-08",
-      "views": 64260
+      "views": 64821
     },
     {
       "platform": "youtube",
@@ -499,7 +507,7 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=It_vKvQLoSI",
       "date": "2026-11-04",
-      "views": 42394
+      "views": 42397
     },
     {
       "platform": "youtube",
@@ -507,7 +515,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=mlXZqnlEV34",
       "date": "2026-11-05",
-      "views": 13474
+      "views": 13527
     },
     {
       "platform": "youtube",
@@ -515,7 +523,7 @@
       "channel": "郭哲榮分析師-摩爾證券投顧",
       "url": "https://www.youtube.com/shorts/qQ3214-yLsM",
       "date": "2026-11-05",
-      "views": 402989,
+      "views": 403457,
       "peer": true,
       "short": true,
       "cat": "基金"
@@ -526,7 +534,7 @@
       "channel": "玩股網楚狂人",
       "url": "https://www.youtube.com/watch?v=ojaCN2_R6Tw",
       "date": "2026-11-04",
-      "views": 283216,
+      "views": 283217,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -536,7 +544,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=jBrTD0O1yBo",
       "date": "2026-11-07",
-      "views": 223629,
+      "views": 225002,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -546,7 +554,7 @@
       "channel": "財經震翰彈_蔡明翰",
       "url": "https://www.youtube.com/watch?v=CYeRvHBwlCc",
       "date": "2026-11-08",
-      "views": 218952,
+      "views": 220846,
       "peer": true,
       "cat": "基金"
     },
@@ -556,7 +564,7 @@
       "channel": "TVBS娛樂頭條",
       "url": "https://www.youtube.com/shorts/277FjfTo8vI",
       "date": "2026-11-06",
-      "views": 196864,
+      "views": 198327,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -577,17 +585,17 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=JG1-NrN-iYk",
       "date": "2026-11-05",
-      "views": 172495,
+      "views": 173317,
       "peer": true,
       "cat": "市值型"
     },
     {
       "platform": "youtube",
-      "title": "高股息拖累財富？40歲提早退休 砍光飆股只留這檔！獨創「505退休提領法」10年多賺1700萬？解密正2槓桿迷思與新ETF真相！【#財經鈔能力】｜20261030 應佳臻 ft.理財達人 黃柏仁",
+      "title": "高股息拖累財富？40歲提早退休 砍光飆股只留這檔！獨創「505退休提領法」10年多賺1700萬？解密正2槓桿迷思與新ETF真相！【#財經鈔能力】｜20261106 應佳臻 ft.理財達人 黃柏仁",
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=sb9bbZFYm5w",
       "date": "2026-11-06",
-      "views": 135588,
+      "views": 138300,
       "peer": true,
       "cat": "高股息"
     },
@@ -597,7 +605,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=2uipJmP6jew",
       "date": "2026-11-06",
-      "views": 106719,
+      "views": 107525,
       "peer": true,
       "cat": "綜合"
     },
@@ -607,15 +615,15 @@
       "channel": "永豐金證券",
       "url": "https://www.youtube.com/watch?v=wj2eugArOAA",
       "date": "2026-11-05",
-      "views": 58582,
+      "views": 58583,
       "peer": true,
       "cat": "主動式"
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金／ETF：00929、00998A、中國新經濟平衡（詳下方新聞標籤）",
+    "近 7 天有專屬報導的基金／ETF：00929、00998A、00418A、中國新經濟平衡（詳下方新聞標籤）",
     "品牌焦點：00877 復華中國5G通信ETF｜成分股？配息？優缺點？（股感 StockFeel）",
     "社群聲量最高：19次全漲、平均漲32％的甜美報酬，藏在這張經典藏金圖（0 推）",
-    "YouTube 熱片：【台股三萬二 國安基金才進場?】2026/11/5 哲哲只有60秒 #shorts（郭哲榮分析師-摩爾證券投顧・402,989 次觀看）"
+    "YouTube 熱片：【台股三萬二 國安基金才進場?】2026/11/5 哲哲只有60秒 #shorts（郭哲榮分析師-摩爾證券投顧・403,457 次觀看）"
   ]
 }
