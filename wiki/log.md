@@ -159,3 +159,6 @@
 
 ## [2026-11-09] 收錄 | 面向指標盤查：新項目先驗證過關才算分（heatspec VER 13、heatspec_us VER 6）
 - 使用者：「籌碼面應該還要加入融資維持率之類的吧？」→ 21 個新項目（台股 15、美股 6）＋自算台指選擇權隱含波動率（2002 起）＋大額交易人、借券（2012-03 起）、當沖、NFCI、AAII、非農就業的資料；`arm/lab/heatgate.py` 過關判定（a 方向對且成立、b 樣本 8 年、c 資料新、d 面向不變差），存 `data/lab/heat_gate.json`／`heat_us_gate.json`。過關 6 個（台股 B9、B11、C11；美股 T15、S10×2），融資維持率沒過；NFCI 檔停在 4 月（美股頁早寫過，規劃時沒先查）。下游研究全部重跑；順手修 sigage 買進日超過資料最後一天的 IndexError。改了 `lab/heat-tw.md`、`lab/heat-us.md`（規劃 `docs/lab_dims_plan.md` 第 10～13 節）。
+
+## [2026-11-09] 收錄 | 新台幣 11/6 溫度計那筆當 Yahoo 錯誤
+- 資料來源比對抓到溫度計新台幣 11/6 33.109 vs 央行 32.768（差 1.03%），使用者決定當 Yahoo 錯：`srccheck.KNOWN_YAHOO_FX`。改了 `lab/signals-quality.md`。

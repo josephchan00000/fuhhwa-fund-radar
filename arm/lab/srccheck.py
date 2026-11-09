@@ -13,6 +13,8 @@
   etf       S&P 500 vs SPY、那斯達克 100 vs QQQ 的每天漲跌（ETF_SINCE 起），差 > TOL_ETF。
             2010 年以前 Yahoo 的 ETF 有幾天價格明顯有問題（2008-09-29 QQQ、2008-10-10～13 SPY），這兩檔只用在寬度的參考讀數，不比。
   same      同一個數字兩條抓取管線：VIX、美元指數、費半（景氣頁落檔 vs 全球溫度計），差 > TOL_SAME；新台幣（央行 vs 溫度計）差 > TOL_FX。
+            溫度計的新台幣（Yahoo TWD=X）2026-11-06 是 33.1093，央行收盤 32.768、Yahoo 前後兩天 32.821／32.773——
+            使用者 2026-11-09 決定當 Yahoo 錯誤（KNOWN_YAHOO_FX；沒有第二個可信來源，景氣頁與訊號用的是央行那一條）。
   jumps     單日跳動：|日對數報酬| > JUMP（各序列自己的門檻），或值 ≤ 0。KNOWN_JUMPS＝核對過真的發生的日子（1987 股災等），不列。
 """
 from __future__ import annotations
@@ -37,6 +39,7 @@ TOL_ETF = 0.025           # 日報酬差（對數）
 ETF_SINCE = "2010-01-01"
 TOL_SAME = 0.005          # 同來源兩條管線：相對差
 TOL_FX = 0.01             # 新台幣：央行收盤 vs Yahoo，收盤時點不同
+KNOWN_YAHOO_FX = ("2026-11-06",)   # 溫度計（Yahoo）新台幣錯的日子，不比（見檔頭 same）
 JUMP = {"taiex": 0.12, "us_px_spx": 0.15, "us_px_ixic": 0.15, "us_px_ndx": 0.15, "us_px_sox": 0.15,
         "vix": 1.0, "us_dxy": 0.05, "usdtwd": 0.05}
 KNOWN_JUMPS = {"us_px_spx": ("1933-03-15", "1987-10-19"), "us_px_ndx": ("1987-10-19", "2001-01-03"),
@@ -143,7 +146,8 @@ def same(load=HD.load, M: dict | None = None) -> dict:
     return _merge(compare("VIX", load("vix"), M.get("vix") or {}, TOL_SAME, rel=True),
                   compare("美元指數", load("us_dxy"), M.get("dxy") or {}, TOL_SAME, rel=True),
                   compare("費半", load("us_px_sox"), M.get("sox") or {}, TOL_SAME, rel=True),
-                  compare("新台幣（央行 vs 溫度計）", load("usdtwd"), M.get("usdtwd") or {}, TOL_FX, rel=True))
+                  compare("新台幣（央行 vs 溫度計）", load("usdtwd"),
+                          {k: v for k, v in (M.get("usdtwd") or {}).items() if k not in KNOWN_YAHOO_FX}, TOL_FX, rel=True))
 
 
 def jumps(load=HD.load, thr: dict | None = None, known: dict | None = None) -> dict:
