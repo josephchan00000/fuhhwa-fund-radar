@@ -230,12 +230,33 @@ def nfci_browser() -> None:
         b.close()
 
 
+def nfci_api() -> None:
+    """第 5 輪（2026-11-09）：第 4 輪無頭瀏覽器看到網頁改從 data.chicagofed.org 的清單、api.data.chicagofed.org 的 CSV 載入
+    → 用一般下載（不開瀏覽器）確認每天抓得到：印清單全文、各 CSV 的狀態、表頭、最後幾列。只印不存。"""
+    st, b = get("https://data.chicagofed.org/cfed-drm-chicago/NFCI")
+    print(f"\n--- 清單 狀態 {st}，{len(b):,} bytes\n", b[:4000].decode("utf-8", "replace"), flush=True)
+    urls = []
+    try:
+        urls = [u for u in json.loads(b.decode("utf-8")).get("data", {}).values() if isinstance(u, str) and u.endswith(".csv")]
+    except ValueError:
+        pass
+    for u in sorted(set(urls) | {"https://api.data.chicagofed.org/NFCI/nfci-chart-series-csv.csv",
+                                 "https://api.data.chicagofed.org/NFCI/nfci-data-series-csv.csv"}):
+        st, b = get(u)
+        lines = b.decode("utf-8", "replace").strip().splitlines()
+        print(f"\n--- {u}\n    狀態 {st}，{len(b):,} bytes，{len(lines)} 列", flush=True)
+        for ln in lines[:2] + ["…"] + lines[-4:]:
+            print("   ", ln[:200], flush=True)
+
+
 def main(argv: list[str]) -> int:
     groups = argv or ["tw", "us"]
     if "nfci" in groups:
         nfci()
     if "nfcib" in groups:
         nfci_browser()
+    if "nfciapi" in groups:
+        nfci_api()
     if "tw" in groups:
         tw()
     if "us" in groups:
