@@ -203,7 +203,10 @@ def buy_days(I: dict, sd: dict, mk: str) -> dict:
         alive = {a: min(a + BS.SIG_WIN + 1, nxt[a]) for a in e5}
     else:
         alive = {a: (T if z is None else z) for a, z in BO.e10_segments(px)}
-    pairs = sorted((b - S.LAG, alive.get(te, te)) for te, b, _, _ in sd["buys"])
+    # 買進日還沒到（事件在最近幾天、規則要等 N 天才買，例 W10）→ 不是過去的樣本，跳過（sigcat、sigoos 用 samp 篩，結果相同）
+    pairs = sorted((b - S.LAG, alive.get(te, te)) for te, b, _, _ in sd["buys"] if b - S.LAG < T)
+    if not pairs:
+        return _empty()
     D = np.asarray([p[0] for p in pairs], dtype=np.int64)
     end = np.minimum(D + S.H_BUY, np.asarray([p[1] for p in pairs], dtype=np.int64))
     smask = np.zeros(T, dtype=bool)
