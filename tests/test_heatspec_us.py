@@ -8,10 +8,11 @@ from arm.lab import heatspec_us as U
 
 def test_us_spec_v1_is_locked():
     # VER 2：補缺月、資料過期（docs/lab_audit_plan.md）；VER 3：情緒籌碼改成各指數自己的項目（docs/lab_us_chip_plan.md）
-    assert U.VER == 6 and U.SPEC_DATE == "2026-11-09" and U.MARKET == "us"     # VER 6：面向指標盤查（docs/lab_dims_plan.md 第 11 節）
+    assert U.VER == 7 and U.SPEC_DATE == "2026-11-09" and U.MARKET == "us"     # VER 6：面向指標盤查；VER 7：過關看最近 20 天（docs/lab_dims_plan.md 第 11、15 節）
     assert U.CAND == ("F12", "S10", "R11", "T15", "T16", "T17") and U.SHOW_ONLY == ()
     assert U.EXPECT == {"fund": -1, "sent": -1, "liq": 1, "tech": -1, "bubl": -1}
     assert (U.GATE_MIN, U.GATE_FRESH_DAYS, U.GATE_FILE) == ({"d": 2016, "m": 96}, 21, "data/lab/heat_us_gate.json")
+    assert (U.GATE_DAYS, U.GATE_NEED) == (20, 15)                              # VER 7：同台股頁 heatspec VER 14 ③e
     assert U.GDP_LATE == {"1995-12": "1996-02-23", "2013-09": "2013-11-07", "2018-12": "2019-02-28", "2025-09": "2025-12-23",
                           "2025-12": "2026-02-20"}                                       # VER 5（含補充）：GDP 停擺改期
     assert U.Z1_SKIP == ("2025-09", "2025-12")                                           # VER 5 補充：不算進「歷年最晚」
@@ -116,7 +117,7 @@ def test_spec_for_each_index():
 def test_use_switches_and_restores():
     tw = (S.VER, S.MARKET, list(S.KEYS), dict(S.ITEMS), S.US, S.DSHORT)
     with S.use(U.spec_for("ndx")):
-        assert (S.VER, S.MARKET, S.INDEX) == (6, "us", "ndx")
+        assert (S.VER, S.MARKET, S.INDEX) == (7, "us", "ndx")
         assert S.ITEMS["tech"][-1] == "T17" and S.US == ("R1",) and S.band(85) == "過熱"
     assert (S.VER, S.MARKET, list(S.KEYS), dict(S.ITEMS), S.US, S.DSHORT) == tw
     assert not hasattr(S, "INDEX") and not hasattr(S, "INDICES")      # 美股才有的名稱離開時拿掉
@@ -125,4 +126,4 @@ def test_use_switches_and_restores():
             raise RuntimeError("x")
     except RuntimeError:
         pass
-    assert S.VER == 13 and S.MARKET == "tw"                             # 中途出錯也換回來
+    assert S.VER == 14 and S.MARKET == "tw"                             # 中途出錯也換回來

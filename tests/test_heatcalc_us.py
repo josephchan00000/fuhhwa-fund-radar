@@ -91,7 +91,7 @@ def built():
 
 def test_build_all_indices_and_spec_restored(built):
     D, SH, BS = built
-    assert S.MARKET == "tw" and S.VER == 13                                    # 算完換回台股規格
+    assert S.MARKET == "tw" and S.VER == 14                                    # 算完換回台股規格
     for idx, B in BS.items():
         keys = U.keys_for(idx)
         assert B["idx"] == idx and set(B["comp"]) == set(U.DIMS)
@@ -120,7 +120,7 @@ def test_research_wiring_under_us_spec(built, monkeypatch):
         return {"n": len(cal)}
     monkeypatch.setattr(C, "evaluate", ev)
     from arm.lab import heatgate as G                                           # VER 6：過關判定在美股規格下呼叫
-    monkeypatch.setattr(G, "compute", lambda V: seen.update(gate=(S.MARKET, S.VER)) or {"admit": [], "items": {}, "dims": {}})
+    monkeypatch.setattr(G, "compute_stable", lambda V: seen.update(gate=(S.MARKET, S.VER)) or {"admit": [], "items": {}, "dims": {}})  # VER 7：看 20 天
     monkeypatch.setattr(heatrel, "run", lambda V: seen.update(rel=(S.MARKET, V["cal"][0])) or {"wk": [], "rel": {}})
     monkeypatch.setattr(heatrel, "deriv_all", lambda V: {"m": S.MARKET})
     monkeypatch.setattr(heatreg, "run", lambda V, A=None: {"hike": S.M6_HIKE, "ext": A, "items": sorted(S.DERIV)})

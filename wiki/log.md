@@ -166,3 +166,6 @@
 ## [2026-11-09] 收錄 | NFCI 接上新資料站、新指標每年 1 月重驗
 - NFCI：無頭瀏覽器探針找到芝加哥聯準銀行新資料站 `api.data.chicagofed.org`（一般下載就抓得到），`heatfetch_us.NFCI_URL` 改過去、重抓到 2026-10-30；G9、R11 重驗照樣看不出、不算分。
 - 每年 1 月重驗（使用者：「先通知、你說好才換」）：`arm/lab/gatereview.py`、`scripts/run_gate_review.py`、`gate_review.yml`（1/10）；只寫 `data/lab/heat_gate_review.json`，名單有變推播一行、後台列出。試跑看到 C10 多一天資料就過關（卡在門檻邊，`docs/lab_dims_plan.md` 第 14.4～14.5 節）。改了 `lab/heat-tw.md`、`lab/heat-us.md`、`lab/chip-ui.md`、`ops/daily-update.md`。
+
+## [2026-11-09] 收錄 | 新項目過關改看最近 20 天（heatspec VER 14、heatspec_us VER 7）
+- 使用者選「改成看最近 20 天」：每一項在最近 20 個交易日各判一次，算分 ≥ 15 天才算（`heatgate.compute_stable`；研究與每年 1 月重驗都用它）。結果只有那斯達克 100 多算 S10 AAII（16 天），情緒籌碼 45 → 41；台股 C10 10 天不算。改了 `lab/heat-tw.md`、`lab/heat-us.md`。

@@ -76,15 +76,21 @@ VERD = {"weak": "較弱", "strong": "較強", "none": "看不出", "few": "樣�
 
 
 def gate_report(g: dict, label: str = "台股") -> None:
-    print(f"\n■ {label} 新項目過關（heatspec GATE）：算分 {', '.join(g['admit']) or '（沒有）'}")
+    st = g.get("stable") or {}
+    print(f"\n■ {label} 新項目過關（heatspec GATE）：算分 {', '.join(g['admit']) or '（沒有）'}"
+          + (f"（{st['from']}～{st['to']} {st['n']} 天，算分 ≥ {st['need']} 天才算）" if st else ""))
     for k, e in g["items"].items():
         hs = "；".join(f"{h} 日 {VERD.get(v['verdict'], v['verdict'])} ρ={v['rho']} n={v['n']}" for h, v in e["h"].items())
-        print(f"  {k:4s} {'過' if e['pass'] else '沒過'}（成立且方向對 {e['a']}、樣本夠 {e['b']}、資料新 {e['c']}）  {hs}")
+        dd = f"算分 {e['days']}/{st['n']} 天 → {'算' if e['adm'] else '不算'}；" if 'days' in e else ""
+        print(f"  {k:4s} {dd}最後一天{'過' if e['pass'] else '沒過'}（成立且方向對 {e['a']}、樣本夠 {e['b']}、資料新 {e['c']}）  {hs}")
     for d, r in g["dims"].items():
         cmp = r.get("cmp") or {}
         cs = "；".join(f"{h} 日 舊 {VERD.get(v['old']['verdict'])} {v['old']['rho']} → 新 {VERD.get(v['new']['verdict'])} {v['new']['rho']}"
                       for h, v in cmp.items())
-        print(f"  面向 {d}：過關 {r['passed']}，{'變差、整批不算' if r.get('worse') else '加入 ' + str(r['admit'])}  {cs}")
+        if st:                                          # VER 14：名單看 20 天；面向比較是最後一天的
+            print(f"  面向 {d}：最後一天過關 {r['passed']}{'（最後一天加進去變差）' if r.get('worse') else ''}，算分 {r['admit']}  {cs}")
+        else:
+            print(f"  面向 {d}：過關 {r['passed']}，{'變差、整批不算' if r.get('worse') else '加入 ' + str(r['admit'])}  {cs}")
 
 
 def rel_report(res: dict) -> None:
