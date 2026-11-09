@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/11/09 12:49",
+  "as_of": "2026/11/09 15:36",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -29,11 +29,11 @@
           "datetime": "2026-11-09T10:36:00+08:00"
         },
         {
-          "title": "年化配息率飆破16%！00929每月爽領0.38元 股魚曝配息底氣：還能再發33次！",
-          "url": "https://tw.stock.yahoo.com/news/%E5%B9%B4%E5%8C%96%E9%85%8D%E6%81%AF%E7%8E%87%E9%A3%86%E7%A0%B416-00929%E6%AF%8F%E6%9C%88%E7%88%BD%E9%A0%980-38%E5%85%83-%E8%82%A1%E9%AD%9A%E6%9B%9D%E9%85%8D%E6%81%AF%E5%BA%95%E6%B0%A3-%E9%82%84%E8%83%BD%E5%86%8D%E7%99%BC33%E6%AC%A1-003000233.html",
-          "source": "Yahoo股市",
-          "date": "2026-11-09 08:30",
-          "datetime": "2026-11-09T08:30:00+08:00"
+          "title": "00929配息底氣曝光！強勁平準金撐腰 投資達人股魚估0.38元可連發33次",
+          "url": "https://n.yam.com/Article/20261109194897",
+          "source": "https://www.yesmedia.com.tw/",
+          "date": "2026-11-09 08:00",
+          "datetime": "2026-11-09T08:00:12+08:00"
         },
         {
           "title": "00929 復華台灣科技優息 - 只準漲，不能做空來了 - 股市爆料同學會",
@@ -498,7 +498,7 @@
       "channel": "三立財經iNEWS",
       "url": "https://www.youtube.com/watch?v=nkz_1DrxKEY",
       "date": "2026-11-08",
-      "views": 63063
+      "views": 63746
     },
     {
       "platform": "youtube",
@@ -506,7 +506,7 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=It_vKvQLoSI",
       "date": "2026-11-04",
-      "views": 42381
+      "views": 42394
     },
     {
       "platform": "youtube",
@@ -514,7 +514,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=mlXZqnlEV34",
       "date": "2026-11-05",
-      "views": 13382
+      "views": 13418
     },
     {
       "platform": "youtube",
@@ -522,7 +522,7 @@
       "channel": "郭哲榮分析師-摩爾證券投顧",
       "url": "https://www.youtube.com/shorts/qQ3214-yLsM",
       "date": "2026-11-05",
-      "views": 402118,
+      "views": 402670,
       "peer": true,
       "short": true,
       "cat": "基金"
@@ -533,17 +533,17 @@
       "channel": "玩股網楚狂人",
       "url": "https://www.youtube.com/watch?v=ojaCN2_R6Tw",
       "date": "2026-11-04",
-      "views": 283097,
+      "views": 283170,
       "peer": true,
       "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
-      "title": "台股周一跟糖漿加碼台積電？專家示警外資狂賣1.5兆「小心先拉後殺」反被套【理財密碼】",
-      "channel": "57東森財經新聞",
-      "url": "https://www.youtube.com/watch?v=ptRAwLkXGGk",
-      "date": "2026-11-08",
-      "views": 220645,
+      "title": "川普撞牆 AI崩壞　美股跌完？台股槓桿大清洗？｜#黃斐瑜｜#游庭皓｜#金臨天下 20261107 美股金週報  @TVBSFinanceLive  #美股 #AI股 #川普",
+      "channel": "TVBS財經",
+      "url": "https://www.youtube.com/watch?v=jBrTD0O1yBo",
+      "date": "2026-11-07",
+      "views": 222454,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -553,7 +553,7 @@
       "channel": "財經震翰彈_蔡明翰",
       "url": "https://www.youtube.com/watch?v=CYeRvHBwlCc",
       "date": "2026-11-08",
-      "views": 214056,
+      "views": 217631,
       "peer": true,
       "cat": "基金"
     },
@@ -563,7 +563,7 @@
       "channel": "TVBS娛樂頭條",
       "url": "https://www.youtube.com/shorts/277FjfTo8vI",
       "date": "2026-11-06",
-      "views": 194136,
+      "views": 195814,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -574,7 +574,7 @@
       "channel": "東森新聞 CH51",
       "url": "https://www.youtube.com/watch?v=tHNoS60jrZI",
       "date": "2026-11-06",
-      "views": 190538,
+      "views": 190708,
       "peer": true,
       "cat": "市值型"
     },
@@ -584,7 +584,7 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=JG1-NrN-iYk",
       "date": "2026-11-05",
-      "views": 170688,
+      "views": 171835,
       "peer": true,
       "cat": "市值型"
     },
@@ -594,17 +594,17 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=sb9bbZFYm5w",
       "date": "2026-11-06",
-      "views": 129815,
+      "views": 133616,
       "peer": true,
       "cat": "高股息"
     },
     {
       "platform": "youtube",
-      "title": "台股血洗11月!半導體ETF越跌越買?!受益人突破60萬為何散戶敢抄底?!關鍵在&quot;含息&quot;..專家破解關鍵陷阱│陳斐娟 主持 │20261104│關我什麼事",
-      "channel": "關我什麼事",
-      "url": "https://www.youtube.com/watch?v=HjrGxII0Tew",
-      "date": "2026-11-05",
-      "views": 105556,
+      "title": "台股大跌睡不著？定期定額先別急著停，聽聽老師們怎麼撐過來｜ETF錢滾錢",
+      "channel": "【CMoney理財寶】官方頻道",
+      "url": "https://www.youtube.com/watch?v=2uipJmP6jew",
+      "date": "2026-11-06",
+      "views": 106108,
       "peer": true,
       "cat": "綜合"
     },
@@ -614,7 +614,7 @@
       "channel": "永豐金證券",
       "url": "https://www.youtube.com/watch?v=wj2eugArOAA",
       "date": "2026-11-05",
-      "views": 58578,
+      "views": 58580,
       "peer": true,
       "cat": "主動式"
     }
@@ -623,6 +623,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00998A、中國新經濟平衡（詳下方新聞標籤）",
     "品牌焦點：00877 復華中國5G通信ETF｜成分股？配息？優缺點？（股感 StockFeel）",
     "社群聲量最高：19次全漲、平均漲32％的甜美報酬，藏在這張經典藏金圖（0 推）",
-    "YouTube 熱片：【台股三萬二 國安基金才進場?】2026/11/5 哲哲只有60秒 #shorts（郭哲榮分析師-摩爾證券投顧・402,118 次觀看）"
+    "YouTube 熱片：【台股三萬二 國安基金才進場?】2026/11/5 哲哲只有60秒 #shorts（郭哲榮分析師-摩爾證券投顧・402,670 次觀看）"
   ]
 }
