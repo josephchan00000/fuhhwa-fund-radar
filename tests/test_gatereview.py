@@ -70,3 +70,32 @@ def test_workflow_runs_in_january_and_commits_only_review_file():
     steps = " ".join(s.get("run", "") for s in wf["jobs"]["review"]["steps"])
     assert "scripts/run_gate_review.py" in steps and "git add -f data/lab/heat_gate_review.json" in steps
     assert "heat_gate.json" not in steps and "heat_us_gate.json" not in steps
+
+
+def test_compute_stable_counts_last_20_days(monkeypatch):
+    """heatspec VER 14 ③e：最近 20 個交易日各判一次（compute），算分 ≥ 15 天才算分；平行和依序結果相同。"""
+    from arm.lab import heatgate as G
+    from arm.lab import heatspec as S
+    assert (S.GATE_DAYS, S.GATE_NEED) == (20, 15)
+    cal = [f"2026-10-{d:02d}" for d in range(1, 26)]                            # 25 天 → 結尾是第 6～25 天
+    B = {"cal": cal, "px": list(range(25)), "hc": {"A": list(range(25))}}
+    seen = []
+
+    def fake(Bc):
+        T = len(Bc["cal"])
+        assert len(Bc["px"]) == len(Bc["hc"]["A"]) == T                            # 日曆、價格、0～100 一起截
+        seen.append(T)
+        adm = ["A"] + (["B"] if T % 2 else []) + (["C"] if T not in (7, 9, 11, 13) else [])
+        its = {k: {"pass": k in adm, "a": True, "b": True, "c": True, "h": {}} for k in "ABCD"}
+        return {"ver": S.VER, "admit": adm, "items": its,
+                "dims": {"chip": {"cands": list("ABCD"), "passed": adm, "admit": adm}}}
+
+    monkeypatch.setattr(G, "compute", fake)
+    one = G.compute_stable(B, procs=1)
+    assert sorted(seen) == list(range(6, 26))
+    assert one["admit"] == ["A", "C"] and one["dims"]["chip"]["admit"] == ["A", "C"]
+    assert {k: e["days"] for k, e in one["items"].items()} == {"A": 20, "B": 10, "C": 16, "D": 0}
+    assert one["items"]["B"]["pass"] and not one["items"]["B"]["adm"]                # 最後一天過，但只有 10 天 → 不算
+    st = one["stable"]
+    assert (st["n"], st["need"], st["from"], st["to"]) == (20, 15, cal[5], cal[24]) and len(st["lists"]) == 20
+    assert G.compute_stable(B, procs=2) == one                                       # fork 平行算，結果一樣

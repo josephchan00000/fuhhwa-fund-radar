@@ -1,6 +1,6 @@
 """新項目過關每年重驗（使用者 2026-11-09：「沒過的指標每年 1 月重驗」＋「先通知、你說好才換」）。
 
-規格不改（heatspec GATE、heatspec_us 同一套條件 a～d）：用現在的資料重算一次過關判定，和現行過關檔比。
+規格不改（heatspec GATE、heatspec_us 同一套條件；VER 14／7 起看最近 20 個交易日、算分 ≥ 15 天，heatgate.compute_stable）：用現在的資料重算一次過關判定，和現行過關檔比。
 只寫 data/lab/heat_gate_review.json——不改現行過關檔（heat_gate.json、heat_us_gate.json）、不改研究檔，頁面不會自己變。
 名單有變、還沒換上時：06:35 推播多一行、研究紀錄・後台「今天的驗證」列出；使用者回「好」才重跑整套研究換上
 （scripts/run_heat.py、run_heat_us.py 與下游研究；做法見 wiki/lab/heat-tw.md「新項目過關」）。
@@ -25,14 +25,15 @@ def _diff(live, new) -> dict:
 
 
 def _items(g: dict) -> dict:
-    return {k: {"pass": bool(e["pass"]), "a": e["a"], "b": e["b"], "c": e["c"]} for k, e in (g.get("items") or {}).items()}
+    return {k: {"pass": bool(e["pass"]), "a": e["a"], "b": e["b"], "c": e["c"], "days": e.get("days")}
+            for k, e in (g.get("items") or {}).items()}
 
 
 def review_tw() -> dict:
     from . import heatcalc as C
     from . import heatgate as G
     B = C.build(adm=())
-    g = G.compute(C.with_adm(B, ()))
+    g = G.compute_stable(C.with_adm(B, ()))
     return {**_diff(G.admitted(), g["admit"]), "items": _items(g)}
 
 
@@ -45,7 +46,7 @@ def review_us() -> dict:
     for idx in U.INDEX_ORDER:
         B = CU.build(idx, D, sh, adm=())
         with S.use(U.spec_for(idx)):                      # 同 heatcalc_us.research：先截到驗證起點再判定
-            g = G.compute(CU.trim(B, S.VAL_START.get(idx)))
+            g = G.compute_stable(CU.trim(B, S.VAL_START.get(idx)))
             live = G.admitted(idx)
         out[idx] = {**_diff(live, g["admit"]), "items": _items(g)}
     return out

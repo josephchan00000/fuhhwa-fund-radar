@@ -505,7 +505,7 @@ def research(idx: str, B: dict) -> dict:
     from . import heatrel, heatreg
     with S.use(U.spec_for(idx)):
         V = trim(B, S.VAL_START.get(idx))
-        gate = G.compute(V)                                   # VER 6：B 要是新項目都不算分的那一份（_research_one 用 adm＝()）
+        gate = G.compute_stable(V)                            # VER 6：B 要是新項目都不算分的那一份（_research_one 用 adm＝()）；VER 7 看最近 20 天
         V = C.with_adm(V, gate["admit"])
         cal, px, comp = V["cal"], V["px"], V["comp"]
         dims = {}
