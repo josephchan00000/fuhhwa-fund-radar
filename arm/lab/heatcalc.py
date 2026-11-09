@@ -23,7 +23,9 @@ from . import store
 
 FILES = ["margin", "inst", "futi", "opti", "mtxoi", "pcr", "vixtw", "taiex", "vix", "hyg", "ief", "turnover",
          "usdtwd", "money", "ndc", "exports", "pmi", "orders", "twcpi", "effr", "uscpi", "ust", "breadth",
-         "mmf", "spx", "qfii", "cbcbank", "sitca", "sfbflow", "taiexm", "taiex90", "twgdp", "tw_lppls"]
+         "mmf", "spx", "qfii", "cbcbank", "sitca", "sfbflow", "taiexm", "taiex90", "twgdp", "tw_lppls",
+         # VER 13 新項目（docs/lab_dims_plan.md）
+         "mratio", "twcap", "large", "sbl", "daytrade", "txoiv", "us_wsts", "us_dxy", "us_h41", "us_ebp", "us_nfci"]
 BREADTH = ("T5", "T6", "T7")
 MONTH_AVG_MIN = 10          # 日資料取當月平均：當月至少 10 天有值
 FIN = "金融保險"             # B6 不算的產業（月營收含投資損益）
@@ -35,6 +37,31 @@ def fin_codes() -> set[str]:
     except (OSError, ValueError):
         return set()
     return {c for c, v in ind.items() if v == FIN}
+
+
+def rev_diffusion(shards, fin: set[str]) -> dict:
+    """VER 13 B11：每個月營收年增率 > 0 的公司占比（%；同 rev_sums 的篩選：營收 > 0、年增率有值且 > −100%、不含金融保險）。"""
+    out = {}
+    for ym, doc in shards:
+        a = n = 0
+        for c, v in ((doc or {}).get("s") or {}).items():
+            if c in fin or not v or len(v) < 2 or v[0] is None or v[1] is None or v[0] <= 0 or v[1] <= -100:
+                continue
+            n += 1
+            a += v[1] > 0
+        if n:
+            out[ym[:7]] = 100.0 * a / n
+    return out
+
+
+def rev_code(shards, code: str) -> dict:
+    """一家公司的 {年-月: [營收, 去年同期]}（去年同期＝營收 ÷（1＋公布的年增率），同 rev_sums）。"""
+    out = {}
+    for ym, doc in shards:
+        v = ((doc or {}).get("s") or {}).get(code)
+        if v and len(v) >= 2 and v[0] and v[1] is not None and v[1] > -100:
+            out[ym[:7]] = [v[0], v[0] / (1.0 + v[1] / 100.0)]
+    return out
 
 
 def rev_sums(shards, fin: set[str]) -> dict:
@@ -85,8 +112,14 @@ def prep(D: dict, rev_docs) -> dict:
     raw = D.get("uscpi") or {}
     D["late"] = {"B8": H.late_dates(raw, S.RELEASE["B8"], late_b8(), S.GAP_FILL_MAX)}
     D["uscpi"] = H.fill_gaps(raw, S.GAP_FILL_MAX, geo=True)                     # VER 10：2025-10 政府停擺缺 CPI
-    D["rev"] = rev_sums(rev_docs, fin_codes())
+    rev_docs = list(rev_docs)
+    fin = fin_codes()
+    D["rev"] = rev_sums(rev_docs, fin)
     D["late"]["B6"] = late_rev(D["rev"])                                         # VER 12：申報期限遇假日順延
+    D["revdiff"] = rev_diffusion(rev_docs, fin)                                  # VER 13 B11
+    D["tsmc"] = rev_code(rev_docs, "2330")                                       # VER 13 B10
+    D["late"]["B10"] = late_rev(D["tsmc"])
+    D["late"]["B11"] = late_rev(D["revdiff"])
     return D
 
 
@@ -270,6 +303,15 @@ def native_daily(D: dict, cal: list[str], px: list) -> dict[str, dict]:
     for d, v in (D.get("sitca") or {}).items():           # 週資料：週末日期 + 7 天才算拿得到
         sw[(date.fromisoformat(d) + timedelta(days=S.AVAIL_DAYS["C8"])).isoformat()] = v
     N["C8"] = sw
+    # VER 13 新項目（CAND）
+    mr = D.get("mratio") or {}
+    N["C9"] = {d: v[0] for d, v in mr.items() if v and v[0]}         # 第三欄是來源（0 回補、1 官方分片）；涵蓋率不夠的日子本來就沒存
+    capd, shd = cap_daily(cal, px, D.get("twcap") or {})
+    N["C10"] = {d: 100.0 * mg[d] / capd[d] for d in mg if capd.get(d)}
+    N["C11"] = {d: v[5] for d, v in (D.get("pcr") or {}).items() if v and len(v) > 5 and v[5] is not None}
+    N["C12"] = large_net(D.get("large") or {})
+    N["C13"] = {d: 100.0 * v[1] / shd[d] for d, v in (D.get("sbl") or {}).items() if v and v[1] is not None and shd.get(d)}
+    N["C14"] = {d: v[0] for d, v in (D.get("daytrade") or {}).items() if v and v[0] is not None}
     # 全球資金（美國資料，在來源自己的日期上算）
     ff = D.get("effr") or {}
     N["G1"] = native(ff, lambda v: H.chg(H.roll_mean(v, 5), 126, pct=False))
@@ -281,6 +323,11 @@ def native_daily(D: dict, cal: list[str], px: list) -> dict[str, dict]:
     hy, ie = D.get("hyg") or {}, D.get("ief") or {}
     rat = {d: hy[d] / ie[d] for d in hy if ie.get(d)}
     N["G4"] = native(rat, lambda v: H.chg(v, 60))
+    N["G6"] = native(D.get("us_dxy") or {}, lambda v: H.chg(v, 60))                 # VER 13
+    h41 = D.get("us_h41") or {}
+    nl = {d: v[0] - v[1] - v[2] for d, v in h41.items() if v and None not in v[:3]}
+    N["G7"] = shift_days(native(nl, lambda v: H.chg(v, 13)), S.AVAIL_DAYS["G7"])
+    N["G9"] = shift_days({d: v[0] for d, v in (D.get("us_nfci") or {}).items() if v and v[0] is not None}, S.AVAIL_DAYS["G9"])
     # 台灣資金
     inst = D.get("inst") or {}
     fx = {d: sum(x for n, x in v.items() if n.startswith("Foreign")) for d, v in inst.items()
@@ -303,7 +350,7 @@ def native_daily(D: dict, cal: list[str], px: list) -> dict[str, dict]:
         N[k] = bi[k]
     N["T8"] = on_cal(H.roll_std_ret(px, 20))
     N["T9"] = dict(D.get("vix") or {})
-    N["T10"] = dict(D.get("vixtw") or {})
+    N["T10"] = {d: v[0] for d, v in (D.get("txoiv") or {}).items() if v and v[0]}      # VER 13：自算隱含波動率（2002 起）
     M = TT.mas(px)
     conds = [(px, M[5]), (M[5], M[10]), (M[10], M[20]), (M[20], M[60]), (M[60], M[120]), (M[120], M[240])]
     N["T11"] = on_cal([None if M[240][i] is None else sum(1 for a, b in conds if a[i] > b[i]) for i in range(len(cal))])
@@ -334,6 +381,16 @@ def raw_monthly(D: dict) -> dict[str, dict]:
         if all(ms) and sum(m[1] for m in ms):
             b6[ym] = 100.0 * (sum(m[0] for m in ms) / sum(m[1] for m in ms) - 1.0)
     M["B6"] = b6
+    M["B9"] = yoy3({ym: v for ym, v in (D.get("us_wsts") or {}).items() if v})            # VER 13
+    tr = D.get("tsmc") or {}
+    b10 = {}
+    for ym in tr:
+        ms = [tr.get(ym_add(ym, -j)) for j in range(3)]
+        if all(ms) and sum(m[1] for m in ms):
+            b10[ym] = 100.0 * (sum(m[0] for m in ms) / sum(m[1] for m in ms) - 1.0)
+    M["B10"] = b10
+    rd = D.get("revdiff") or {}
+    M["B11"] = {ym: sum(rd[ym_add(ym, -j)] for j in range(3)) / 3 for ym in rd if all(ym_add(ym, -j) in rd for j in range(3))}
     tc = D.get("twcpi") or {}
     idx = {k: v[0] for k, v in tc.items() if v[0]}
     M["B7"] = {ym: (v[1] if v[1] is not None else yoy(idx, ym)) for ym, v in tc.items()
@@ -369,7 +426,53 @@ def raw_monthly(D: dict) -> dict[str, dict]:
     M["L9"] = {ym: v[3] - cb[ym_add(ym, -3)][3] for ym, v in cb.items()
                if v and v[3] is not None and (cb.get(ym_add(ym, -3)) or [None] * 4)[3] is not None}
     M["L10"] = {ym: v[1] - v[2] for ym, v in cb.items() if v and v[1] is not None and v[2] is not None}
+    M["G8"] = {ym: v[1] for ym, v in (D.get("us_ebp") or {}).items() if v and len(v) > 1 and v[1] is not None}   # VER 13
+    tw = D.get("twcap") or {}
+    tv = {m: v[3] for m, v in tw.items() if v and len(v) > 3 and v[3]}
+    ms = sorted(tv)
+    M["X8"] = {ms[i]: 100.0 * sum(tv[m] for m in ms[i - 11:i + 1]) / tw[ms[i]][2] for i in range(11, len(ms))
+               if ym_add(ms[i - 11], 11) == ms[i] and tw[ms[i]][2]}
     return M
+
+
+# ── VER 13 新項目的小工具 ───────────────────────────────────────────
+
+def shift_days(ser: dict, n: int | None) -> dict:
+    """週資料：資料日期之後 n 個日曆天才算拿得到（同 heatcalc_us.shift_days）。"""
+    if not n:
+        return dict(ser)
+    return {(date.fromisoformat(d) + timedelta(days=n)).isoformat(): v for d, v in ser.items()}
+
+
+def cap_daily(cal: list[str], px: list, twcap: dict) -> tuple[dict, dict]:
+    """央行月資料（上市市值、資本額）照 CAP_RELEASE 才用 → ({日: 估計市值（元）}, {日: 上市股數}）：
+    市值＝最近一個拿得到的月底市值 × 加權指數從那個月底起的漲跌；股數＝那個月的資本額 ÷ 面額 10 元。"""
+    me = {}
+    for d, p in zip(cal, px):
+        if p:
+            me[d[:7]] = p
+    av = sorted((H.avail_date(m, S.CAP_RELEASE), m) for m, v in twcap.items() if v and len(v) > 2 and v[2] and v[1] and m in me)
+    cap, sh = {}, {}
+    j = -1
+    for d, p in zip(cal, px):
+        while j + 1 < len(av) and av[j + 1][0] <= d:
+            j += 1
+        if j < 0 or not p:
+            continue
+        m = av[j][1]
+        cap[d] = twcap[m][2] * 1e6 * p / me[m]
+        sh[d] = twcap[m][1] * 1e6 / 10.0
+    return cap, sh
+
+
+def large_net(large: dict, code: str = "TX", cat: str = "1") -> dict:
+    """C12：前十大特定法人（類別 1）臺股期貨全部月份（買方 − 賣方）÷ 全市場未沖銷（%）。"""
+    out = {}
+    for d, v in large.items():
+        x = ((v or {}).get(code) or {}).get(cat)
+        if x and len(x) >= 5 and x[4]:
+            out[d] = 100.0 * (x[2] - x[3]) / x[4]
+    return out
 
 
 # ── 0～100 與面向總分 ─────────────────────────────────────────────────
@@ -387,8 +490,8 @@ def align_daily(cal: list[str], N: dict) -> dict[str, list]:
     return {k: H.asof_daily(cal, N[k], after=k in S.US, stale=4 if k in BREADTH else S.STALE.get(k, 7)) for k in N}
 
 
-def build(D: dict | None = None) -> dict:
-    """台股：→ score() 的結果（見 score 的說明）。"""
+def build(D: dict | None = None, adm=None) -> dict:
+    """台股：→ score() 的結果（見 score 的說明）。adm＝算分的新項目（None＝讀過關檔 heatspec.GATE_FILE）。"""
     D = D if D is not None else load()
     cal, px, info = calendar(D)
     N = native_daily(D, cal, px)
@@ -397,11 +500,11 @@ def build(D: dict | None = None) -> dict:
     REF: dict[str, dict] = {}
     from . import heatcalc_bub                          # 第七版泡沫面向（放另一支檔，避免這支太長）
     heatcalc_bub.tw_bubble(D, N, M, PRE, REF)
-    return score(D, cal, px, info, N, M, PRE, REF)
+    return score(D, cal, px, info, N, M, PRE, REF, adm)
 
 
 def score(D: dict, cal: list[str], px: list, info: dict, N: dict, M: dict, PRE: dict | None = None,
-          REF: dict | None = None) -> dict:
+          REF: dict | None = None, adm=None) -> dict:
     """台股、美股共用的計分（規格用當下的 heatspec）：
     N＝日資料在來源日期上的值、M＝月資料 {YYYY-MM: 值}、PRE＝組資料時就算好 0～100 的項目（heatspec.PRESCORED）、
     REF＝參考讀數（不進分數）。
@@ -449,7 +552,10 @@ def score(D: dict, cal: list[str], px: list, info: dict, N: dict, M: dict, PRE: 
         proxy[k] = [own[i] is None and raw[k][i] is not None and heat[src][i] is not None for i in range(T)]
         heat[k] = [heat[src][i] if proxy[k][i] else own[i] for i in range(T)]
         hc[k] = own
-    comp = {d: [H.composite({k: hc[k][i] for k in S.ITEMS[d]}, S.ITEMS[d]) for i in range(T)] for d in S.DIMS}
+    from . import heatgate as G                          # VER 13：面向分數＝舊項目＋過關的新項目（adm＝None 時讀過關檔）
+    adm = G.admitted(getattr(S, "INDEX", None)) if adm is None else set(adm)
+    inc = {d: G.inc(d, adm) for d in S.DIMS}
+    comp = {d: G.comp_series(hc, inc[d], T) for d in S.DIMS}
     vc = {"n": 0, "r": None, "a": None}
     for k, src in S.PROXY.items():                     # 代替項目和來源的相關（台股：台指 VIX 對美國 VIX）
         pairs = [(raw[k][i], raw[src][i]) for i in range(T) if raw[k][i] is not None and raw[src][i] is not None]
@@ -462,7 +568,8 @@ def score(D: dict, cal: list[str], px: list, info: dict, N: dict, M: dict, PRE: 
         if last and len(due) >= S.STALE_M:
             stale[k] = {"last": last, "due": due}
     return {"cal": cal, "px": px, "cal_info": info, "raw": raw, "heat": heat, "hc": hc, "proxy": proxy, "ym": ymu,
-            "mraw": M, "nat": N, "comp": comp, "vixcorr": vc, "ref": REF or {}, "pre": PRE, "D": D, "stale": stale}
+            "mraw": M, "nat": N, "comp": comp, "vixcorr": vc, "ref": REF or {}, "pre": PRE, "D": D, "stale": stale,
+            "inc": inc, "adm": sorted(adm)}
 
 
 # ── 驗證（第 12.7 節） ─────────────────────────────────────────────────
@@ -533,9 +640,22 @@ def _round_ev(r: dict) -> dict:
     return out
 
 
+def with_adm(B: dict, adm) -> dict:
+    """VER 13：換一組算分的新項目，重算面向分數（0～100 不變）。"""
+    from . import heatgate as G
+    adm = set(adm or ())
+    inc = {d: G.inc(d, adm) for d in S.DIMS}
+    T = len(B["cal"])
+    return {**B, "inc": inc, "adm": sorted(adm), "comp": {d: G.comp_series(B["hc"], inc[d], T) for d in S.DIMS}}
+
+
 def research(B: dict | None = None) -> dict:
-    """每一項、每個面向總分的驗證（只當資訊，不拿來刪項目）。"""
-    B = B if B is not None else build()
+    """每一項、每個面向總分的驗證（只當資訊，不拿來刪項目）。VER 13：先用「新項目都不算分」的 B 判定過關（heatgate），
+    再用過關後的面向分數做其他研究；結果多一個 "gate"（scripts/run_heat.py 另存成 heatspec.GATE_FILE）。"""
+    from . import heatgate as G
+    B = B if B is not None else build(adm=())
+    gate = G.compute(with_adm(B, ()))
+    B = with_adm(B, gate["admit"])
     cal, px, comp = B["cal"], B["px"], B["comp"]
     D = B["D"]
     dims = {}
@@ -560,5 +680,6 @@ def research(B: dict | None = None) -> dict:
             "cal": B["cal_info"], "data": data, "dims": dims, "events": events,
             "wk": rel["wk"], "rel": rel["rel"], "deriv": heatrel.deriv_all(B),
             "m6": heatreg.run(B, HD.load("taiexm")),
-            "bub": {"main": heatbubble.bubble_research(B), "ext": heatbubble.bubble_ext(B.get("pre") or {}, tw_month_avg(D))}}
+            "bub": {"main": heatbubble.bubble_research(B), "ext": heatbubble.bubble_ext(B.get("pre") or {}, tw_month_avg(D))},
+            "gate": gate}
 

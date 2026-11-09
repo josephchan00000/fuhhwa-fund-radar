@@ -35,7 +35,7 @@ NAMES = ["us_px_spx", "us_px_ixic", "us_px_ndx", "us_px_sox", "us_vxn", "us_vix3
          "taiex90", "twgdp"] + [f"us_lppls_{k}" for k in U.US_INDEX_SYM] + ["tw_lppls"] \
     + ["us_ff49x", "us_ff49n", "us_ff49s"] + [f"us_etf_{s}" for s in BF.etf_names()] \
     + [f"us_vol_{k}" for k in U.US_INDEX_SYM] + ["us_breadth"] + [f"us_lev_{s}" for s in U.lev_names()] \
-    + ["ins_members", "ins_state"]
+    + ["ins_members", "ins_state", "us_payems", "us_nfci", "us_aaii"]
 YAHOO = [("us_px_spx", "^GSPC", "1927-01-01"), ("us_px_ixic", "^IXIC", "1971-01-01"),
          ("us_px_ndx", "^NDX", "1985-01-01"), ("us_px_sox", "^SOX", "1994-01-01"),
          ("us_vxn", "^VXN", "2001-01-01"), ("us_vix3m", "^VIX3M", "2006-01-01"), ("us_dxy", "DX-Y.NYB", "1971-01-01")]
@@ -123,7 +123,7 @@ def daily() -> None:
         once(name, U.cftc, name, (max(have) if have else "1986-01-01")[:4] + "-01-01")
     for key, fn in (("us_philly", U.philly), ("us_ads", U.ads), ("us_cli", U.oecd_cli), ("us_claims", U.claims),
                     ("us_umich", U.umich), ("us_ebp", U.ebp), ("us_m2", U.m2), ("us_z1", U.z1), ("us_gdp", U.gdp), ("us_cp", U.cp),
-                    ("us_shiller", U.shiller), ("us_wsts", U.wsts)):
+                    ("us_shiller", U.shiller), ("us_wsts", U.wsts), ("us_nfci", U.nfci), ("us_aaii", U.aaii)):
         once(key, fn)
     # 公布日重抓（行事曆官方自動補值，docs/macrocal_fill_plan.md 第二段）：失業率每月第一個週五、CPI 10～15 日，
     # 都是台北 20:30／21:30 公布——上個月的還沒有就讓 21 點以後的班次再抓（heatdata.waiting）
@@ -161,7 +161,8 @@ def next_quarter(ym: str) -> str:
 
 def backfill(only: set | None = None) -> None:
     if only:                                                  # --only：只回補這幾個（例：us_cp）
-        jobs = {"us_cp": U.cp, "us_z1": U.z1, "us_gdp": U.gdp, "us_wsts": U.wsts, "us_shiller": U.shiller}
+        jobs = {"us_cp": U.cp, "us_z1": U.z1, "us_gdp": U.gdp, "us_wsts": U.wsts, "us_shiller": U.shiller,
+                "us_nfci": U.nfci, "us_aaii": U.aaii, "us_payems": lambda: U.bls(1947)}   # 後三個：面向指標盤查（docs/lab_dims_plan.md）
         if only & {"us_spf", "us_tech", "fwd_us", "fwd_tw"}:              # 泡沫頁 VER 4 的未來獲利
             from arm.lab import fwdfetch as F
             jobs.update({"us_spf": F.spf, "us_tech": F.tech, "fwd_us": lambda: F.update_us(budget_s=900),
@@ -212,7 +213,7 @@ def backfill(only: set | None = None) -> None:
         run(name, U.cftc, name)
     for key, fn in (("us_philly", U.philly), ("us_ads", U.ads), ("us_cli", U.oecd_cli), ("us_claims", U.claims),
                     ("us_umich", U.umich), ("us_ebp", U.ebp), ("us_shiller", U.shiller), ("us_wsts", U.wsts),
-                    ("twgdp", U.twgdp)):
+                    ("twgdp", U.twgdp), ("us_nfci", U.nfci), ("us_aaii", U.aaii)):
         run(key, fn)
     run("us_bls", U.bls, 1947)
     run("taiex90", U.taiex90)

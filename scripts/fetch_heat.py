@@ -31,7 +31,8 @@ from arm.clock import now_tw, today_tw  # noqa: E402
 
 NAMES = ["margin", "inst", "futi", "opti", "mtxoi", "pcr", "vixtw", "taiex", "vix", "hyg", "ief", "turnover",
          "usdtwd", "money", "ndc", "ndc_first", "exports", "pmi", "orders", "twcpi", "effr", "fedtgt", "uscpi", "ust",
-         "breadth", "mmf", "spx", "qfii", "cbcbank", "sitca", "sfbflow", "taiexm", "twcap", "twmgn", "mratio"]
+         "breadth", "mmf", "spx", "qfii", "cbcbank", "sitca", "sfbflow", "taiexm", "twcap", "twmgn", "mratio",
+         "large", "sbl", "daytrade", "txoiv"]
 # 月資料「新的一個月該出來了」的最早日子（第 m＋1 個月的第幾天）：只用來決定要不要抓，不影響驗證（驗證用 heatspec.RELEASE）
 DUE = {"twcpi": (1, 5)}
 # 公布日重抓（行事曆官方自動補值要當晚拿到，docs/macrocal_fill_plan.md 第二段）：{檔名: (下個月第幾天起, 台北幾點以後, 看第幾欄)}；
@@ -117,6 +118,11 @@ def daily() -> None:
     cal = sorted(HD.load("turnover"))
     qf = HD.load("qfii")
     tw_run("外資持股", "qfii", F.twse_qfiis, [d for d in cal[-15:] if d not in qf], 120)
+    # 面向指標盤查新來源（docs/lab_dims_plan.md）：大額交易人每月一請求；借券賣出、當沖逐日（最近 15 個交易日缺的）
+    tw_run("大額交易人", "large", F.taifex_large, first, None, 120)
+    for key, name, fn in (("sbl", "借券賣出", F.twse_sbl), ("daytrade", "當沖", F.twse_daytrade)):
+        have = HD.load(key)
+        tw_run(name, key, fn, [d for d in cal[-15:] if d not in have], 120)
     run("有效聯邦基金利率", F.nyfed_effr, since("effr", 15, F.NYFED_START))
     run("美國公債殖利率", F.treasury, today.year - (today.month == 1))
     run("S&P 500", F.yahoo, "spx", "^GSPC", since("spx", 10, "2010-01-01"))
@@ -205,6 +211,14 @@ def backfill(budget_min: float, only: set[str] | None) -> None:
     if want("qfii"):                                          # 每週一天（2004 起）＋最近 15 天；每請求 3.5 秒，分兩輪
         days = F.qfii_days(sorted(HD.load("turnover")), HD.load("qfii"))
         run("外資持股", F.twse_qfiis, days, max(60.0, t_end - time.time() - 60))
+    # 面向指標盤查新來源（docs/lab_dims_plan.md 第 1 段）：大額交易人每月一請求；借券賣出（2005-07 起）、當沖（2014 起）每週一天＋最近 15 天
+    if want("large"):
+        run("大額交易人", F.taifex_large, F.LARGE_START, None, max(60.0, t_end - time.time() - 60))
+    for key, name, fn, start in (("sbl", "借券賣出", F.twse_sbl, F.SBL_START), ("daytrade", "當沖", F.twse_daytrade, F.DT_START)):
+        if want(key):
+            days = F.qfii_days(sorted(HD.load("turnover")), HD.load(key), start)
+            log(f"[heat] {name}：要補 {len(days)} 天")
+            run(name, fn, days, max(60.0, t_end - time.time() - 60))
 
 
 def summary() -> None:

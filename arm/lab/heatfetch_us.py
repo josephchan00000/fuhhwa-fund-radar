@@ -30,6 +30,10 @@
   us_wsts                   WSTS 全球半導體銷售（千美元）            {YYYY-MM: 金額}        1986 起
   taiex90                   證交所 FMTQIK 加權指數收盤（1990～1998） {日期: 收盤}           1990-01-04 起（台股頁的 turnover 從 1999 起）
   twgdp                     主計總處 名目 GDP（季，百萬元）          {季底 YYYY-MM: 金額}   1981 起
+  us_payems                 勞工統計局 非農就業（季調，千人；和 us_bls 同一個請求） {YYYY-MM: 千人}  1947 起
+  us_nfci                   芝加哥聯準銀行 全國金融情勢指數（每週整段改寫，整段換） {週五: [NFCI, ANFCI, Risk, Credit, Leverage]}  1971 起
+  us_aaii                   AAII 散戶情緒調查（xls，要 xlrd）        {週四: [看多, 中立, 看空]}  1987-07 起
+  （us_payems、us_nfci、us_aaii：docs/lab_dims_plan.md 面向指標盤查第 1 段新加）
 """
 from __future__ import annotations
 
@@ -421,6 +425,7 @@ def ebp() -> int:
 # ── 勞工統計局（失業率、CPI、核心 CPI） ─────────────────────────────────────────
 
 BLS_SERIES = ("LNS14000000", "CUUR0000SA0", "CUUR0000SA0L1E")
+PAYEMS = "CES0000000001"                                  # 非農就業（季調，千人）：同一個請求一起抓、另存 us_payems（docs/lab_dims_plan.md）
 
 
 def parse_bls(doc: dict) -> dict:
@@ -437,16 +442,31 @@ def parse_bls(doc: dict) -> dict:
     return out
 
 
+def parse_payems(doc: dict) -> dict:
+    """非農就業 → {YYYY-MM: 千人}。"""
+    out: dict = {}
+    for s in ((doc.get("Results") or {}).get("series")) or []:
+        if s.get("seriesID") != PAYEMS:
+            continue
+        for r in s.get("data") or []:
+            p, v = str(r.get("period") or ""), _num(r.get("value"))
+            if re.match(r"^M(0[1-9]|1[0-2])$", p) and v is not None:
+                out[f"{r.get('year')}-{p[1:]}"] = v
+    return out
+
+
 def bls(y0: int, y1: int | None = None) -> int:
-    """API v1（不用金鑰）：POST 一次最多 10 年；三條序列一起抓。"""
+    """API v1（不用金鑰）：POST 一次最多 10 年；三條序列＋非農就業一起抓（非農另存 us_payems）。"""
     y1 = y1 or today_tw().year
     out: dict = {}
+    pay: dict = {}
     a = y0
     while a <= y1:
         z = min(a + 9, y1)
-        doc = _post_json(BLS, {"seriesid": list(BLS_SERIES), "startyear": str(a), "endyear": str(z)})
+        doc = _post_json(BLS, {"seriesid": list(BLS_SERIES) + [PAYEMS], "startyear": str(a), "endyear": str(z)})
         if doc.get("status") != "REQUEST_SUCCEEDED":
             raise RuntimeError(f"BLS {a}–{z} {doc.get('status')} {str(doc.get('message'))[:120]}")
+        pay.update(parse_payems(doc))
         for k, v in parse_bls(doc).items():
             row = out.setdefault(k, [None, None, None])
             for j, x in enumerate(v):
@@ -458,7 +478,7 @@ def bls(y0: int, y1: int | None = None) -> int:
     for k, v in out.items():
         prev = old.get(k) or [None, None, None]
         out[k] = [x if x is not None else p for x, p in zip(v, prev)]
-    return _merge("us_bls", "bls", out)
+    return _merge("us_bls", "bls", out) + _merge("us_payems", "bls", pay)
 
 
 # ── Shiller、WSTS ────────────────────────────────────────────────────────────
@@ -620,3 +640,62 @@ def latest_us_close_day(now: datetime | None = None) -> str:
     while d.weekday() >= 5:
         d -= timedelta(days=1)
     return d.isoformat()
+
+
+# ── 面向指標盤查的新來源（docs/lab_dims_plan.md 第 3、8 節；探針 CI run 42537259417） ─────────────
+
+NFCI_URL = "https://www.chicagofed.org/-/media/publications/nfci/nfci-data-series-csv.csv"
+AAII_URL = "https://www.aaii.com/files/surveys/sentiment.xls"
+
+
+def parse_nfci(txt: str) -> dict:
+    """芝加哥聯準銀行全國金融情勢指數 CSV（Friday_of_Week, NFCI, ANFCI, Risk, Credit, Leverage, …）
+    → {週五日期: [NFCI, ANFCI, Risk, Credit, Leverage]}（正＝比平均緊、負＝比平均鬆）。每週整段改寫，所以整段換。"""
+    rows = _rows(txt)
+    if not rows:
+        return {}
+    head = [h.strip() for h in rows[0]]
+    need = ("NFCI", "ANFCI", "Risk", "Credit", "Leverage")
+    if head[:1] != ["Friday_of_Week"] or any(k not in head for k in need):
+        return {}
+    ix = [head.index(k) for k in need]
+    out: dict = {}
+    for r in rows[1:]:
+        m = re.match(r"^(\d{1,2})/(\d{1,2})/(\d{4})$", (r[0] if r else "").strip())
+        if not m or len(r) <= max(ix):
+            continue
+        v = [_num(r[i]) for i in ix]
+        if v[0] is None:
+            continue
+        out[f"{int(m.group(3)):04d}-{int(m.group(1)):02d}-{int(m.group(2)):02d}"] = v
+    return out
+
+
+def nfci() -> int:
+    return _replace("us_nfci", "chicagofed", parse_nfci(_get(NFCI_URL, timeout=60).decode("utf-8", "replace")))
+
+
+def parse_aaii_rows(rows: list) -> dict:
+    """AAII 散戶情緒調查（每列 [日期 ISO, 看多, 中立, 看空]，比例 0～1）→ {日期: [看多, 中立, 看空]}；三個加起來要接近 1。"""
+    out: dict = {}
+    for r in rows:
+        if len(r) < 4 or not isinstance(r[0], str) or not re.match(r"^\d{4}-\d{2}-\d{2}$", r[0]):
+            continue
+        v = [x if isinstance(x, (int, float)) else _num(x) for x in r[1:4]]
+        if any(x is None or not 0 <= x <= 1 for x in v) or abs(sum(v) - 1) > 0.02:
+            continue
+        out[r[0]] = [round(float(x), 4) for x in v]
+    return out
+
+
+def aaii() -> int:
+    """sentiment.xls（舊式 Excel，要 xlrd）：第一個工作表，日期是 Excel 序號。"""
+    import xlrd                                           # CI 的 workflow 有裝（afterhours_refresh、daily、usfill）
+    book = xlrd.open_workbook(file_contents=_get(AAII_URL, timeout=90))
+    sh = book.sheet_by_index(0)
+    rows = []
+    for i in range(sh.nrows):
+        r = sh.row_values(i)
+        if r and isinstance(r[0], float) and 25000 < r[0] < 80000:
+            rows.append([xlrd.xldate_as_datetime(r[0], book.datemode).date().isoformat()] + list(r[1:4]))
+    return _merge("us_aaii", "aaii", parse_aaii_rows(rows))

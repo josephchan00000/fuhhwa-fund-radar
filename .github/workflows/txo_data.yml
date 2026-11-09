@@ -71,11 +71,14 @@ jobs:
           timeout 60 python3 scripts/fetch_night.py || echo "::warning::夜盤沒抓到"
           timeout 120 python3 scripts/run_premkt.py || echo "::warning::盤前作戰圖沒算出來"
           python3 -c "from arm.lab import txopage; txopage.build()" || echo "::warning::選擇權頁沒建成"
-          [ -n "$(git status --porcelain -- data/lab/txo_calc.json data/lab/premkt.json data/lab/fut/night.json dashboard/x9op.html)" ] || { echo "作戰表沒變"; exit 0; }
+          # 自算台指 30 天隱含波動率（景氣頁技術面 T10 的歷史；docs/lab_dims_plan.md 第 4 節）：最近 2 個月重算
+          timeout 120 python3 scripts/run_txoiv.py --root txodata || echo "::warning::台指隱含波動率沒算出來"
+          [ -n "$(git status --porcelain -- data/lab/txo_calc.json data/lab/premkt.json data/lab/fut/night.json dashboard/x9op.html data/lab/heat/txoiv.json.gz)" ] || { echo "作戰表沒變"; exit 0; }
           git config user.name "josephchan00000"
           git config user.email "51159474+josephchan00000@users.noreply.github.com"
           git add data/lab/txo_calc.json
           git add data/lab/premkt.json data/lab/fut/night.json 2>/dev/null || true
+          git add data/lab/heat/txoiv.json.gz 2>/dev/null || true
           git add -f dashboard/x9op.html 2>/dev/null || true
           git commit -q -m "chore: 選擇權作戰表 $(date '+%F %H:%M')"
           for i in 1 2 3; do

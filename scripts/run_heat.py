@@ -43,6 +43,9 @@ def main() -> None:
     t0 = time.time()
     res = C.research()
     OUT.write_text(json.dumps(res, ensure_ascii=False, separators=(",", ":"), sort_keys=True) + "\n", encoding="utf-8")
+    from arm.lab import heatgate as G                  # VER 13：過關檔（每天建頁讀它決定新項目算不算分）
+    G.write(res["gate"])
+    gate_report(res["gate"])
     print(f"資料日曆 {res['cal']}")
     for dim, R in res["dims"].items():
         L = S.DIMS[dim]
@@ -70,6 +73,18 @@ def main() -> None:
 
 
 VERD = {"weak": "較弱", "strong": "較強", "none": "看不出", "few": "樣本不足"}
+
+
+def gate_report(g: dict, label: str = "台股") -> None:
+    print(f"\n■ {label} 新項目過關（heatspec GATE）：算分 {', '.join(g['admit']) or '（沒有）'}")
+    for k, e in g["items"].items():
+        hs = "；".join(f"{h} 日 {VERD.get(v['verdict'], v['verdict'])} ρ={v['rho']} n={v['n']}" for h, v in e["h"].items())
+        print(f"  {k:4s} {'過' if e['pass'] else '沒過'}（成立且方向對 {e['a']}、樣本夠 {e['b']}、資料新 {e['c']}）  {hs}")
+    for d, r in g["dims"].items():
+        cmp = r.get("cmp") or {}
+        cs = "；".join(f"{h} 日 舊 {VERD.get(v['old']['verdict'])} {v['old']['rho']} → 新 {VERD.get(v['new']['verdict'])} {v['new']['rho']}"
+                      for h, v in cmp.items())
+        print(f"  面向 {d}：過關 {r['passed']}，{'變差、整批不算' if r.get('worse') else '加入 ' + str(r['admit'])}  {cs}")
 
 
 def rel_report(res: dict) -> None:

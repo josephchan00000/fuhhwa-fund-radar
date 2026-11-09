@@ -174,16 +174,16 @@ def test_each_item_has_own_heat_and_pulls_sum_to_score(built):
     for dim, L in V["dims"].items():
         assert L["score"] is not None, dim
         pulls = [it["pull"] for it in L["items"] if it["pull"] is not None]
-        assert len(pulls) == L["n_have"] >= H.need(len(S.ITEMS[dim]))
+        assert len(pulls) == L["n_have"] >= H.need(len(built[0]["inc"][dim]))   # VER 13：2/3 按算分的項數
         assert abs(50 + sum(pulls) - L["score"]) < 1e-9                   # 拉動加起來＋50＝分數
         shares = [it["share"] for it in L["items"] if it["share"] is not None]
         assert abs(sum(shares) - 100) < 1e-6
         for it in L["items"]:
             assert it["heat"] is None or 0 <= it["heat"] <= 100            # 每一項都有自己的 0～100
-            assert it["pull"] is not None or it["proxy"] or it["why"]       # 沒算進分數的寫原因
+            assert it["pull"] is not None or it["proxy"] or it["why"] or it["outwhy"]   # 沒算進分數的寫原因
+            assert it["out"] == (it["k"] not in built[0]["inc"][dim])                    # VER 13：沒過關的新項目
     t10 = next(it for it in V["dims"]["tech"]["items"] if it["k"] == "T10")
-    t9 = next(it for it in V["dims"]["tech"]["items"] if it["k"] == "T9")
-    assert t10["proxy"] and t10["pull"] is None and t10["heat"] == t9["heat"]   # 台指 VIX 用美國 VIX 代替、不算進分數
+    assert not t10["proxy"] and t10["pull"] is None and t10["out"]             # VER 13：台指 VIX 自算、沒過關前不算分
 
 
 def test_render_structure_and_wording(built):
@@ -206,7 +206,8 @@ def test_render_structure_and_wording(built):
     for nm in ("月線（20 日）", "季線（60 日）", "年線（240 日）", "扣抵值", "前波高點", "近 60 個交易日的事件"):
         assert nm in page, nm
     assert "證期局只公開最新一期新聞稿" in page                                  # 外資淨匯入沒有 0～100 的原因
-    assert "用美國 VIX 的排名代替，不算進分數" in page and "前一半" in page and "後一半" in page
+    assert "用美國 VIX 的排名代替" not in page and "前一半" in page and "後一半" in page       # VER 13：台指 VIX 自算、不再代替
+    assert "驗證沒過，不算進分數" in page or "只顯示，不算進分數" in page                    # 沒算分的新項目要寫出來
     assert "熱＝散戶擁擠、槓桿高、外資站在對面" in page
     assert "出現在哪幾年" in page and "2004、2010、2021–2022" in page               # 樣本集中在哪幾段要看得出來（研究畫面的分區表）
     assert P._yrs(["2021", "2022", "2024", "2025", "2026"]) == "2021–2022、2024–2026" and P._yrs(None) == ""
@@ -410,7 +411,7 @@ def test_coupling_replaced_by_scenarios():
 def test_week_change_and_source_dates(built):
     B, _, V, _ = built
     t, t0 = len(B["cal"]) - 1, len(B["cal"]) - 1 - P.WEEK
-    keys = S.ITEMS["chip"]
+    keys = B["inc"]["chip"]                                                     # VER 13：拉動只算算分的項目
     hn = {x: B["hc"][x][t] for x in keys}
     ha = {x: B["hc"][x][t0] for x in keys}
     it = next(i for i in V["dims"]["chip"]["items"] if i["k"] == "C1")
