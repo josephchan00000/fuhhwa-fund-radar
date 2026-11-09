@@ -139,8 +139,36 @@ def us() -> None:
     show("DBnomics FED 搜尋 margin", "https://api.db.nomics.world/v22/search?q=margin%20debt&limit=5", n=600)
 
 
+def nfci() -> None:
+    """NFCI CSV 只到 2026-04-24（2026-11-09 回補看到）：找現行的下載檔、試加參數避開快取。"""
+    import time as _t
+    head("芝加哥聯準銀行 NFCI 現行下載檔")
+    base = "https://www.chicagofed.org/-/media/publications/nfci/nfci-data-series-csv.csv"
+    for u in (base, f"{base}?v={int(_t.time())}", base.replace("-csv.csv", "-xlsx.xlsx"),
+              "https://www.chicagofed.org/-/media/publications/nfci/nfci-indexes-recent.csv"):
+        b = show("NFCI 檔", u, n=120)
+        if b[:4] != b"PK\x03\x04":
+            t = b.decode("utf-8", "replace").strip().splitlines()
+            print("    最後兩列：", " ⏎ ".join(t[-2:])[:200], flush=True)
+    for page in ("https://www.chicagofed.org/research/data/nfci/current-data",
+                 "https://www.chicagofed.org/research/data/nfci/background",
+                 "https://www.chicagofed.org/publications/nfci/index"):
+        st, b = get(page)
+        links = sorted(set(re.findall(rb'href="([^"]*(?:nfci|NFCI)[^"]*\.(?:csv|xlsx?|txt)[^"]*)"', b)))
+        print(f"\n--- 頁 {page} 狀態 {st}，{len(b):,} bytes，連結 {len(links)} 個", flush=True)
+        for u in links[:8]:
+            u = u.decode()
+            u = u if u.startswith("http") else "https://www.chicagofed.org" + u
+            bb = show("  連結", u, n=80)
+            if bb[:4] != b"PK\x03\x04":
+                t = bb.decode("utf-8", "replace").strip().splitlines()
+                print("    最後一列：", (t[-1] if t else "")[:160], flush=True)
+
+
 def main(argv: list[str]) -> int:
     groups = argv or ["tw", "us"]
+    if "nfci" in groups:
+        nfci()
     if "tw" in groups:
         tw()
     if "us" in groups:
