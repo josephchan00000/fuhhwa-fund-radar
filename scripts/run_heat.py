@@ -87,7 +87,10 @@ def gate_report(g: dict, label: str = "台股") -> None:
         cmp = r.get("cmp") or {}
         cs = "；".join(f"{h} 日 舊 {VERD.get(v['old']['verdict'])} {v['old']['rho']} → 新 {VERD.get(v['new']['verdict'])} {v['new']['rho']}"
                       for h, v in cmp.items())
-        print(f"  面向 {d}：過關 {r['passed']}，{'變差、整批不算' if r.get('worse') else '加入 ' + str(r['admit'])}  {cs}")
+        if st:                                          # VER 14：名單看 20 天；面向比較是最後一天的
+            print(f"  面向 {d}：最後一天過關 {r['passed']}{'（最後一天加進去變差）' if r.get('worse') else ''}，算分 {r['admit']}  {cs}")
+        else:
+            print(f"  面向 {d}：過關 {r['passed']}，{'變差、整批不算' if r.get('worse') else '加入 ' + str(r['admit'])}  {cs}")
 
 
 def rel_report(res: dict) -> None:
