@@ -156,6 +156,13 @@ def nfci() -> None:
         st, b = get(page)
         links = sorted(set(re.findall(rb'href="([^"]*(?:nfci|NFCI)[^"]*\.(?:csv|xlsx?|txt)[^"]*)"', b)))
         print(f"\n--- 頁 {page} 狀態 {st}，{len(b):,} bytes，連結 {len(links)} 個", flush=True)
+        # 第 2 輪（2026-11-09）：頁面上沒有 href 連結 → 印出所有提到 nfci、csv、xlsx 的字串（含 JSON 裡的路徑）
+        bits = sorted(set(re.findall(rb'[\w/\-.:%]*(?:nfci|NFCI)[\w/\-.:%?=&]*\.(?:csv|xlsx?|txt|json)[\w?=&.%-]*', b)))
+        bits += sorted(set(re.findall(rb'/-/media/[\w/\-.%]+', b)))[:20]
+        for x in bits[:30]:
+            print("    字串：", x.decode("utf-8", "replace")[:160], flush=True)
+        for m in re.findall(rb'(?:[A-Z][a-z]+ \d{1,2}, 20\d\d)', b)[:6]:
+            print("    日期字樣：", m.decode(), flush=True)
         for u in links[:8]:
             u = u.decode()
             u = u if u.startswith("http") else "https://www.chicagofed.org" + u
@@ -163,6 +170,8 @@ def nfci() -> None:
             if bb[:4] != b"PK\x03\x04":
                 t = bb.decode("utf-8", "replace").strip().splitlines()
                 print("    最後一列：", (t[-1] if t else "")[:160], flush=True)
+    show("DBnomics 搜尋 NFCI", "https://api.db.nomics.world/v22/search?q=NFCI&limit=5", n=800)
+    show("DBnomics 搜尋 national financial conditions", "https://api.db.nomics.world/v22/search?q=national%20financial%20conditions&limit=5", n=800)
 
 
 def main(argv: list[str]) -> int:
