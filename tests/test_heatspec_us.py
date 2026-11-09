@@ -117,7 +117,7 @@ def test_spec_for_each_index():
 def test_use_switches_and_restores():
     tw = (S.VER, S.MARKET, list(S.KEYS), dict(S.ITEMS), S.US, S.DSHORT)
     with S.use(U.spec_for("ndx")):
-        assert (S.VER, S.MARKET, S.INDEX) == (6, "us", "ndx")
+        assert (S.VER, S.MARKET, S.INDEX) == (7, "us", "ndx")
         assert S.ITEMS["tech"][-1] == "T17" and S.US == ("R1",) and S.band(85) == "過熱"
     assert (S.VER, S.MARKET, list(S.KEYS), dict(S.ITEMS), S.US, S.DSHORT) == tw
     assert not hasattr(S, "INDEX") and not hasattr(S, "INDICES")      # 美股才有的名稱離開時拿掉
