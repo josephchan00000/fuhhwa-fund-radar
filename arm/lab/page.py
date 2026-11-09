@@ -1508,7 +1508,7 @@ function boGate(G){if(!G)return '';                   // 新項目過關每年�
   const st=!G.changed?'過關名單沒有變':(G.pending?'<b>過關名單有變，還沒換上</b>':'過關名單有變，已經換上');
   return `<h4 class=sh>新指標年度重驗</h4><div class="${G.pending?'vfy':'card bop'}" style="margin:4px 0">${md(G.d)} 重驗：${st}。`+
     (ch.length?`<ul>${ch.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'')+`</div>`+
-    `<div class=note>每年 1 月用多一年的資料，照同一套條件重新檢查還沒算進分數的新指標（和已經算分的）。名單有變時 06:35 推播一行；回「好」才重跑整套研究換上，頁面不會自己變。完整結果在 data/lab/heat_gate_review.json。</div>`;}
+    `<div class=note>每年 1 月用多一年的資料，照同一套條件重新檢查新指標過不過關（已經算分的也一起檢查）。名單有變時 06:35 推播一行；回「好」才重跑整套研究換上，頁面不會自己變。完整結果在 data/lab/heat_gate_review.json。</div>`;}
 function boToday(){if(VL.err)return sec('bo-today','今日驗證','今天的驗證','',`<div class=st>驗證紀錄錯誤：${esc(VL.err)}</div>`);
   const T=VL.today||{},E=T.ev||[],S=T.st||{},ks=Object.keys(S);
   const fn=ks.reduce((a,k)=>a+(S[k].fn||0),0),full=ks.filter(k=>S[k].fn>=S[k].need).length;
