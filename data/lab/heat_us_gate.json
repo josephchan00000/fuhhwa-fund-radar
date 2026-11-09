@@ -1,0 +1,784 @@
+{
+ "idx": {
+  "ixic": {
+   "admit": [
+    "S10"
+   ],
+   "dims": {
+    "fund": {
+     "admit": [],
+     "cands": [
+      "F12"
+     ],
+     "passed": []
+    },
+    "liq": {
+     "admit": [],
+     "cands": [
+      "R11"
+     ],
+     "passed": []
+    },
+    "sent": {
+     "admit": [
+      "S10"
+     ],
+     "cands": [
+      "S10"
+     ],
+     "cmp": {
+      "10": {
+       "n": 4725,
+       "new": {
+        "ok": 0,
+        "rho": -0.074,
+        "verdict": "none"
+       },
+       "old": {
+        "ok": 0,
+        "rho": -0.072,
+        "verdict": "none"
+       }
+      },
+      "60": {
+       "n": 4675,
+       "new": {
+        "ok": 1,
+        "rho": -0.155,
+        "verdict": "weak"
+       },
+       "old": {
+        "ok": 1,
+        "rho": -0.143,
+        "verdict": "weak"
+       }
+      }
+     },
+     "common_from": "2008-01-11",
+     "passed": [
+      "S10"
+     ],
+     "worse": false
+    },
+    "tech": {
+     "admit": [],
+     "cands": [
+      "T15",
+      "T16",
+      "T17"
+     ],
+     "passed": []
+    }
+   },
+   "items": {
+    "F12": {
+     "a": false,
+     "b": false,
+     "c": true,
+     "dim": "fund",
+     "h": {
+      "120": {
+       "n": 663,
+       "ok": 0,
+       "rho": -0.068,
+       "verdict": "none"
+      },
+      "250": {
+       "n": 657,
+       "ok": 0,
+       "rho": -0.085,
+       "verdict": "none"
+      }
+     },
+     "pass": false
+    },
+    "R11": {
+     "a": false,
+     "b": false,
+     "c": false,
+     "dim": "liq",
+     "h": {
+      "250": {
+       "n": 13431,
+       "ok": 0,
+       "rho": -0.141,
+       "verdict": "none"
+      },
+      "60": {
+       "n": 13559,
+       "ok": 0,
+       "rho": -0.063,
+       "verdict": "none"
+      }
+     },
+     "pass": false
+    },
+    "S10": {
+     "a": true,
+     "b": true,
+     "c": true,
+     "dim": "sent",
+     "h": {
+      "10": {
+       "n": 9512,
+       "ok": 0,
+       "rho": -0.029,
+       "verdict": "none"
+      },
+      "60": {
+       "n": 9462,
+       "ok": 1,
+       "rho": -0.091,
+       "verdict": "weak"
+      }
+     },
+     "pass": true
+    },
+    "T15": {
+     "a": false,
+     "b": false,
+     "c": true,
+     "dim": "tech",
+     "h": {
+      "10": {
+       "n": 7369,
+       "ok": 0,
+       "rho": -0.04,
+       "verdict": "none"
+      },
+      "60": {
+       "n": 7319,
+       "ok": 0,
+       "rho": -0.03,
+       "verdict": "none"
+      }
+     },
+     "pass": false
+    },
+    "T16": {
+     "a": false,
+     "b": false,
+     "c": true,
+     "dim": "tech",
+     "h": {
+      "10": {
+       "n": 7369,
+       "ok": 0,
+       "rho": 0.001,
+       "verdict": "none"
+      },
+      "60": {
+       "n": 7319,
+       "ok": 0,
+       "rho": -0.011,
+       "verdict": "none"
+      }
+     },
+     "pass": false
+    },
+    "T17": {
+     "a": false,
+     "b": false,
+     "c": true,
+     "dim": "tech",
+     "h": {
+      "10": {
+       "n": 4657,
+       "ok": 0,
+       "rho": -0.026,
+       "verdict": "none"
+      },
+      "60": {
+       "n": 4607,
+       "ok": 0,
+       "rho": -0.131,
+       "verdict": "none"
+      }
+     },
+     "pass": false
+    }
+   },
+   "spec_date": "2026-11-09",
+   "ver": 6
+  },
+  "ndx": {
+   "admit": [],
+   "dims": {
+    "fund": {
+     "admit": [],
+     "cands": [
+      "F12"
+     ],
+     "passed": []
+    },
+    "liq": {
+     "admit": [],
+     "cands": [
+      "R11"
+     ],
+     "passed": []
+    },
+    "sent": {
+     "admit": [],
+     "cands": [
+      "S10"
+     ],
+     "cmp": {
+      "10": {
+       "n": 4725,
+       "new": {
+        "ok": 0,
+        "rho": -0.076,
+        "verdict": "none"
+       },
+       "old": {
+        "ok": 1,
+        "rho": -0.076,
+        "verdict": "weak"
+       }
+      },
+      "60": {
+       "n": 4675,
+       "new": {
+        "ok": 1,
+        "rho": -0.169,
+        "verdict": "weak"
+       },
+       "old": {
+        "ok": 1,
+        "rho": -0.156,
+        "verdict": "weak"
+       }
+      }
+     },
+     "common_from": "2008-01-11",
+     "passed": [
+      "S10"
+     ],
+     "worse": true
+    },
+    "tech": {
+     "admit": [],
+     "cands": [
+      "T15",
+      "T16",
+      "T17"
+     ],
+     "passed": []
+    }
+   },
+   "items": {
+    "F12": {
+     "a": false,
+     "b": false,
+     "c": true,
+     "dim": "fund",
+     "h": {
+      "120": {
+       "n": 487,
+       "ok": 0,
+       "rho": 0.033,
+       "verdict": "none"
+      },
+      "250": {
+       "n": 481,
+       "ok": 0,
+       "rho": 0.047,
+       "verdict": "none"
+      }
+     },
+     "pass": false
+    },
+    "R11": {
+     "a": false,
+     "b": false,
+     "c": false,
+     "dim": "liq",
+     "h": {
+      "250": {
+       "n": 9730,
+       "ok": 0,
+       "rho": -0.172,
+       "verdict": "none"
+      },
+      "60": {
+       "n": 9858,
+       "ok": 0,
+       "rho": -0.116,
+       "verdict": "none"
+      }
+     },
+     "pass": false
+    },
+    "S10": {
+     "a": true,
+     "b": true,
+     "c": true,
+     "dim": "sent",
+     "h": {
+      "10": {
+       "n": 9512,
+       "ok": 0,
+       "rho": -0.041,
+       "verdict": "none"
+      },
+      "60": {
+       "n": 9462,
+       "ok": 1,
+       "rho": -0.113,
+       "verdict": "weak"
+      }
+     },
+     "pass": true
+    },
+    "T15": {
+     "a": false,
+     "b": false,
+     "c": true,
+     "dim": "tech",
+     "h": {
+      "10": {
+       "n": 7369,
+       "ok": 0,
+       "rho": -0.045,
+       "verdict": "none"
+      },
+      "60": {
+       "n": 7319,
+       "ok": 0,
+       "rho": -0.054,
+       "verdict": "none"
+      }
+     },
+     "pass": false
+    },
+    "T16": {
+     "a": false,
+     "b": false,
+     "c": true,
+     "dim": "tech",
+     "h": {
+      "10": {
+       "n": 7369,
+       "ok": 0,
+       "rho": -0.004,
+       "verdict": "none"
+      },
+      "60": {
+       "n": 7319,
+       "ok": 0,
+       "rho": -0.027,
+       "verdict": "none"
+      }
+     },
+     "pass": false
+    },
+    "T17": {
+     "a": false,
+     "b": false,
+     "c": true,
+     "dim": "tech",
+     "h": {
+      "10": {
+       "n": 4657,
+       "ok": 0,
+       "rho": -0.021,
+       "verdict": "none"
+      },
+      "60": {
+       "n": 4607,
+       "ok": 0,
+       "rho": -0.136,
+       "verdict": "none"
+      }
+     },
+     "pass": false
+    }
+   },
+   "spec_date": "2026-11-09",
+   "ver": 6
+  },
+  "sox": {
+   "admit": [
+    "S10"
+   ],
+   "dims": {
+    "fund": {
+     "admit": [],
+     "cands": [
+      "F12"
+     ],
+     "passed": []
+    },
+    "liq": {
+     "admit": [],
+     "cands": [
+      "R11"
+     ],
+     "passed": []
+    },
+    "sent": {
+     "admit": [
+      "S10"
+     ],
+     "cands": [
+      "S10"
+     ],
+     "cmp": {
+      "10": {
+       "n": 4725,
+       "new": {
+        "ok": 0,
+        "rho": -0.051,
+        "verdict": "none"
+       },
+       "old": {
+        "ok": 0,
+        "rho": -0.045,
+        "verdict": "none"
+       }
+      },
+      "60": {
+       "n": 4675,
+       "new": {
+        "ok": 0,
+        "rho": -0.096,
+        "verdict": "none"
+       },
+       "old": {
+        "ok": 0,
+        "rho": -0.056,
+        "verdict": "none"
+       }
+      }
+     },
+     "common_from": "2008-01-11",
+     "passed": [
+      "S10"
+     ],
+     "worse": false
+    },
+    "tech": {
+     "admit": [],
+     "cands": [
+      "T15",
+      "T16"
+     ],
+     "passed": []
+    }
+   },
+   "items": {
+    "F12": {
+     "a": false,
+     "b": false,
+     "c": true,
+     "dim": "fund",
+     "h": {
+      "120": {
+       "n": 384,
+       "ok": 0,
+       "rho": 0.041,
+       "verdict": "none"
+      },
+      "250": {
+       "n": 378,
+       "ok": 0,
+       "rho": 0.051,
+       "verdict": "none"
+      }
+     },
+     "pass": false
+    },
+    "R11": {
+     "a": false,
+     "b": false,
+     "c": false,
+     "dim": "liq",
+     "h": {
+      "250": {
+       "n": 7558,
+       "ok": 0,
+       "rho": -0.095,
+       "verdict": "none"
+      },
+      "60": {
+       "n": 7686,
+       "ok": 0,
+       "rho": -0.023,
+       "verdict": "none"
+      }
+     },
+     "pass": false
+    },
+    "S10": {
+     "a": true,
+     "b": true,
+     "c": true,
+     "dim": "sent",
+     "h": {
+      "10": {
+       "n": 7798,
+       "ok": 0,
+       "rho": -0.034,
+       "verdict": "none"
+      },
+      "60": {
+       "n": 7748,
+       "ok": 1,
+       "rho": -0.127,
+       "verdict": "weak"
+      }
+     },
+     "pass": true
+    },
+    "T15": {
+     "a": false,
+     "b": false,
+     "c": true,
+     "dim": "tech",
+     "h": {
+      "10": {
+       "n": 7369,
+       "ok": 0,
+       "rho": -0.037,
+       "verdict": "none"
+      },
+      "60": {
+       "n": 7319,
+       "ok": 0,
+       "rho": -0.022,
+       "verdict": "none"
+      }
+     },
+     "pass": false
+    },
+    "T16": {
+     "a": false,
+     "b": false,
+     "c": true,
+     "dim": "tech",
+     "h": {
+      "10": {
+       "n": 7369,
+       "ok": 0,
+       "rho": -0.011,
+       "verdict": "none"
+      },
+      "60": {
+       "n": 7319,
+       "ok": 0,
+       "rho": -0.018,
+       "verdict": "none"
+      }
+     },
+     "pass": false
+    }
+   },
+   "spec_date": "2026-11-09",
+   "ver": 6
+  },
+  "spx": {
+   "admit": [
+    "T15"
+   ],
+   "dims": {
+    "fund": {
+     "admit": [],
+     "cands": [
+      "F12"
+     ],
+     "passed": []
+    },
+    "liq": {
+     "admit": [],
+     "cands": [
+      "R11"
+     ],
+     "passed": []
+    },
+    "sent": {
+     "admit": [],
+     "cands": [
+      "S10"
+     ],
+     "passed": []
+    },
+    "tech": {
+     "admit": [
+      "T15"
+     ],
+     "cands": [
+      "T15",
+      "T16",
+      "T17"
+     ],
+     "cmp": {
+      "10": {
+       "n": 19324,
+       "new": {
+        "ok": 0,
+        "rho": -0.03,
+        "verdict": "none"
+       },
+       "old": {
+        "ok": 0,
+        "rho": -0.03,
+        "verdict": "none"
+       }
+      },
+      "60": {
+       "n": 19274,
+       "new": {
+        "ok": 0,
+        "rho": 0.004,
+        "verdict": "none"
+       },
+       "old": {
+        "ok": 0,
+        "rho": 0.004,
+        "verdict": "none"
+       }
+      }
+     },
+     "common_from": "1950-01-03",
+     "passed": [
+      "T15"
+     ],
+     "worse": false
+    }
+   },
+   "items": {
+    "F12": {
+     "a": false,
+     "b": false,
+     "c": true,
+     "dim": "fund",
+     "h": {
+      "120": {
+       "n": 888,
+       "ok": 0,
+       "rho": -0.107,
+       "verdict": "none"
+      },
+      "250": {
+       "n": 882,
+       "ok": 0,
+       "rho": -0.159,
+       "verdict": "none"
+      }
+     },
+     "pass": false
+    },
+    "R11": {
+     "a": false,
+     "b": false,
+     "c": false,
+     "dim": "liq",
+     "h": {
+      "250": {
+       "n": 13448,
+       "ok": 0,
+       "rho": -0.105,
+       "verdict": "none"
+      },
+      "60": {
+       "n": 13576,
+       "ok": 0,
+       "rho": -0.028,
+       "verdict": "none"
+      }
+     },
+     "pass": false
+    },
+    "S10": {
+     "a": false,
+     "b": false,
+     "c": true,
+     "dim": "sent",
+     "h": {
+      "10": {
+       "n": 9512,
+       "ok": 0,
+       "rho": -0.043,
+       "verdict": "none"
+      },
+      "60": {
+       "n": 9462,
+       "ok": 0,
+       "rho": -0.07,
+       "verdict": "none"
+      }
+     },
+     "pass": false
+    },
+    "T15": {
+     "a": true,
+     "b": true,
+     "c": true,
+     "dim": "tech",
+     "h": {
+      "10": {
+       "n": 7369,
+       "ok": 1,
+       "rho": -0.056,
+       "verdict": "weak"
+      },
+      "60": {
+       "n": 7319,
+       "ok": 0,
+       "rho": -0.047,
+       "verdict": "none"
+      }
+     },
+     "pass": true
+    },
+    "T16": {
+     "a": false,
+     "b": false,
+     "c": true,
+     "dim": "tech",
+     "h": {
+      "10": {
+       "n": 7369,
+       "ok": 0,
+       "rho": -0.027,
+       "verdict": "none"
+      },
+      "60": {
+       "n": 7319,
+       "ok": 0,
+       "rho": -0.042,
+       "verdict": "none"
+      }
+     },
+     "pass": false
+    },
+    "T17": {
+     "a": false,
+     "b": false,
+     "c": true,
+     "dim": "tech",
+     "h": {
+      "10": {
+       "n": 5413,
+       "ok": 0,
+       "rho": -0.024,
+       "verdict": "none"
+      },
+      "60": {
+       "n": 5363,
+       "ok": 0,
+       "rho": -0.097,
+       "verdict": "none"
+      }
+     },
+     "pass": false
+    }
+   },
+   "spec_date": "2026-11-09",
+   "ver": 6
+  }
+ },
+ "spec_date": "2026-11-09",
+ "ver": 6
+}
