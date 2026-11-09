@@ -111,7 +111,8 @@ def test_sig_spec_v6_institutional_flows_are_locked():
     assert X.INST_VARIANTS == ("hot", "hot_in", "hot_out", "cold", "cold_in", "cold_out")
     assert set(X.INST_VARIANT_NAMES) == set(X.INST_VARIANTS) and X.INST_VARIANT_NAMES["hot"] == "大賣超中"
     assert X.INST_DAY == (95, 5) and X.INST_RUN == (5, 10) and X.INST_H == {1: 20, 5: 20, 20: 60, 60: 60, "run": 20}
-    assert not [k for k in HS.KEYS if k in ("C9", "C10", "C11", "C12", "C13", "C14")]
+    # VER 7：法人買賣超不算進任何面向（heatspec VER 13 起 C9～C14 是另外的籌碼新項目〔融資維持率等〕，所以改用名稱看）
+    assert not [k for k, _, nm, *_ in HS.IND if "買賣超" in nm and k in HS.KEYS and k != "L3"]   # L3 原本就在台灣資金（INST_SKIP）
     assert HS.DIM_OF["L3"] == "tliq" and HS.HOT["L3"] == 1
 
 
