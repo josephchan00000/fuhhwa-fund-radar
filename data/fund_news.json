@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/11/11 06:45",
+  "as_of": "2026/11/11 06:52",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -543,7 +543,7 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=It_vKvQLoSI",
       "date": "2026-11-04",
-      "views": 42470
+      "views": 42469
     },
     {
       "platform": "youtube",
@@ -551,7 +551,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=mlXZqnlEV34",
       "date": "2026-11-05",
-      "views": 15622
+      "views": 15686
     },
     {
       "platform": "youtube",
@@ -559,7 +559,7 @@
       "channel": "綠茶小師妹",
       "url": "https://www.youtube.com/shorts/QJ9aB1pf_SU",
       "date": "2026-11-07",
-      "views": 397398,
+      "views": 397451,
       "peer": true,
       "short": true,
       "cat": "市場趨勢"
@@ -570,7 +570,7 @@
       "channel": "郭哲榮分析師-摩爾證券投顧",
       "url": "https://www.youtube.com/shorts/uGj7xkW72_0",
       "date": "2026-11-09",
-      "views": 284516,
+      "views": 284536,
       "peer": true,
       "short": true,
       "cat": "基金"
@@ -581,7 +581,7 @@
       "channel": "理財達人秀 EBCmoneyshow",
       "url": "https://www.youtube.com/watch?v=pH3eAoCE1vM",
       "date": "2026-11-06",
-      "views": 236920,
+      "views": 236916,
       "peer": true,
       "cat": "市值型"
     },
@@ -591,7 +591,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=jBrTD0O1yBo",
       "date": "2026-11-07",
-      "views": 234196,
+      "views": 234199,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -611,7 +611,7 @@
       "channel": "TVBS娛樂頭條",
       "url": "https://www.youtube.com/shorts/277FjfTo8vI",
       "date": "2026-11-06",
-      "views": 211497,
+      "views": 211503,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -622,7 +622,7 @@
       "channel": "TVBS NEWS",
       "url": "https://www.youtube.com/shorts/UkrSGZ1W7KQ",
       "date": "2026-11-06",
-      "views": 203998,
+      "views": 204011,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -633,7 +633,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=sb9bbZFYm5w",
       "date": "2026-11-06",
-      "views": 174487,
+      "views": 174532,
       "peer": true,
       "cat": "高股息"
     },
@@ -643,7 +643,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=2uipJmP6jew",
       "date": "2026-11-06",
-      "views": 114196,
+      "views": 114202,
       "peer": true,
       "cat": "綜合"
     },
@@ -653,7 +653,7 @@
       "channel": "玩股網楚狂人",
       "url": "https://www.youtube.com/watch?v=5gAT6rtu8vk",
       "date": "2026-11-09",
-      "views": 94047,
+      "views": 94100,
       "peer": true,
       "cat": "高股息"
     }
@@ -662,6 +662,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00418A、中國新經濟平衡（詳下方新聞標籤）",
     "品牌焦點：00949 首次配息預估 3.02 元！一張領 3,020 元、11/18 除息，最後買進日與入帳時間一次看（果仁家）",
     "社群聲量最高：摩根士丹利美國增長基金轉換到摩根美國科技基金（0 推）",
-    "YouTube 熱片：台股股災近一月下跌一萬點 吳子嘉：年底選舉年輕人不可能放過賴清德 #台灣 #台股 #股災 #賴清德 #吳子嘉（綠茶小師妹・397,398 次觀看）"
+    "YouTube 熱片：台股股災近一月下跌一萬點 吳子嘉：年底選舉年輕人不可能放過賴清德 #台灣 #台股 #股災 #賴清德 #吳子嘉（綠茶小師妹・397,451 次觀看）"
   ]
 }

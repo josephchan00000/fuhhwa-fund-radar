@@ -1,5 +1,5 @@
 {
- "as_of": "2026-11-11 06:45",
+ "as_of": "2026-11-11 06:51",
  "series": {
   "vix": {
    "2026-09-09": 16.46,
@@ -140,7 +140,7 @@
    "2026-11-06": 102.3,
    "2026-11-08": 102.208,
    "2026-11-09": 101.65,
-   "2026-11-10": 102.229
+   "2026-11-10": 102.227
   },
   "usdtwd": {
    "2026-09-21": 31.7384,
@@ -757,47 +757,47 @@
  "src": {
   "vix": {
    "src": "yahoo:^VIX",
-   "fetched": "2026-11-11 06:45",
+   "fetched": "2026-11-11 06:51",
    "n": 22
   },
   "us10y": {
    "src": "yahoo:^TNX",
-   "fetched": "2026-11-11 06:45",
+   "fetched": "2026-11-11 06:51",
    "n": 22
   },
   "dxy": {
    "src": "yahoo:DX-Y.NYB",
-   "fetched": "2026-11-11 06:45",
+   "fetched": "2026-11-11 06:51",
    "n": 22
   },
   "usdtwd": {
    "src": "yahoo:TWD=X",
-   "fetched": "2026-11-11 06:45",
+   "fetched": "2026-11-11 06:51",
    "n": 22
   },
   "brent": {
    "src": "yahoo:BZ=F",
-   "fetched": "2026-11-11 06:45",
+   "fetched": "2026-11-11 06:51",
    "n": 22
   },
   "gold": {
    "src": "yahoo:GC=F",
-   "fetched": "2026-11-11 06:45",
+   "fetched": "2026-11-11 06:51",
    "n": 22
   },
   "inst_total": {
    "src": "twse:BFI82U",
-   "fetched": "2026-11-11 06:45",
+   "fetched": "2026-11-11 06:51",
    "n": 1
   },
   "inst_foreign": {
    "src": "twse:BFI82U",
-   "fetched": "2026-11-11 06:45",
+   "fetched": "2026-11-11 06:51",
    "n": 1
   },
   "tx_foreign_net": {
    "src": "taifex:futContractsDate",
-   "fetched": "2026-11-11 06:45",
+   "fetched": "2026-11-11 06:51",
    "n": 10
   },
   "margin_bal": {
@@ -812,27 +812,27 @@
   },
   "pc_ratio": {
    "src": "taifex:pcRatio",
-   "fetched": "2026-11-11 06:45",
+   "fetched": "2026-11-11 06:51",
    "n": 10
   },
   "inst_trust": {
    "src": "twse:BFI82U",
-   "fetched": "2026-11-11 06:45",
+   "fetched": "2026-11-11 06:51",
    "n": 1
   },
   "inst_dealer": {
    "src": "twse:BFI82U",
-   "fetched": "2026-11-11 06:45",
+   "fetched": "2026-11-11 06:51",
    "n": 1
   },
   "sox": {
    "src": "yahoo:^SOX",
-   "fetched": "2026-11-11 06:45",
+   "fetched": "2026-11-11 06:51",
    "n": 22
   },
   "tsm_adr": {
    "src": "yahoo:TSM",
-   "fetched": "2026-11-11 06:45",
+   "fetched": "2026-11-11 06:51",
    "n": 22
   }
  }
