@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/11/10 12:38",
+  "as_of": "2026/11/10 15:36",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -36,11 +36,11 @@
           "datetime": "2026-11-10T10:30:32+08:00"
         },
         {
-          "title": "「小時候羨慕軍公教18％！」存股達人華倫靠00929領息笑了：現在我有17％",
-          "url": "https://fnc.ebc.net.tw/fncnews/stock/222436",
-          "source": "東森電視",
-          "date": "2026-11-10 08:30",
-          "datetime": "2026-11-10T08:30:00+08:00"
+          "title": "抱緊台積電也要顧荷包！存股達人華倫靠00929補齊現金流缺口 連5月配0.38元超滿意",
+          "url": "https://www.moneyweekly.com.tw/ArticleData/Info/Article/261055",
+          "source": "理財周刊",
+          "date": "2026-11-10 08:00",
+          "datetime": "2026-11-10T08:00:16+08:00"
         },
         {
           "title": "0056、00878、00919...10檔高股息跌出CP值？00406A殖利率近18％、00929跌到年線...一表看現在存股哪檔最划算",
@@ -65,7 +65,15 @@
       "short_names": [
         "00991A"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "00410A績效16.36％居主動式ETF之首！和00981A、00991A持股差在哪？關鍵竟在這兩族群- 理財",
+          "url": "https://www.ctee.com.tw/news/20261110701369-430403",
+          "source": "工商時報",
+          "date": "2026-11-10 14:50",
+          "datetime": "2026-11-10T14:50:00+08:00"
+        }
+      ]
     },
     {
       "base": "主動復華金融股息",
@@ -83,25 +91,25 @@
           "datetime": "2026-11-10T09:49:47+08:00"
         },
         {
-          "title": "高股息ETF全跌 00998A逆勢漲2.31% 逢低布局領息等起漲",
-          "url": "https://tw.stock.yahoo.com/news/%E9%AB%98%E8%82%A1%E6%81%AFetf%E5%85%A8%E8%B7%8C-00998a%E9%80%86%E5%8B%A2%E6%BC%B22-31-%E9%80%A2%E4%BD%8E%E5%B8%83%E5%B1%80%E9%A0%98%E6%81%AF%E7%AD%89%E8%B5%B7%E6%BC%B2-010639812.html",
-          "source": "Yahoo股市",
-          "date": "2026-11-10 09:06",
-          "datetime": "2026-11-10T09:06:39+08:00"
-        },
-        {
           "title": "不能只買科技股！00998A低波動配置同期表現勝過高股息ETF",
           "url": "https://tw.stock.yahoo.com/news/%E4%B8%8D%E8%83%BD%E5%8F%AA%E8%B2%B7%E7%A7%91%E6%8A%80%E8%82%A1-00998a%E4%BD%8E%E6%B3%A2%E5%8B%95%E9%85%8D%E7%BD%AE%E5%90%8C%E6%9C%9F%E8%A1%A8%E7%8F%BE%E5%8B%9D%E9%81%8E%E9%AB%98%E8%82%A1%E6%81%AFetf-010851194.html",
-          "source": "Yahoo股市",
-          "date": "2026-11-10 09:41",
-          "datetime": "2026-11-10T09:41:49+08:00"
+          "source": "觀傳媒",
+          "date": "2026-11-10 09:08",
+          "datetime": "2026-11-10T09:08:49+08:00"
         },
         {
           "title": "台股金融股也跌！配置別單押一國 00998A全球布局反漲1.36%",
           "url": "https://n.yam.com/Article/20261110852615",
-          "source": "蕃新聞",
+          "source": "觀傳媒",
           "date": "2026-11-10 09:07",
-          "datetime": "2026-11-10T09:07:47+08:00"
+          "datetime": "2026-11-10T09:07:44+08:00"
+        },
+        {
+          "title": "高股息ETF全跌 00998A逆勢漲2.31% 逢低布局領息等起漲",
+          "url": "https://tw.stock.yahoo.com/news/%E9%AB%98%E8%82%A1%E6%81%AFetf%E5%85%A8%E8%B7%8C-00998a%E9%80%86%E5%8B%A2%E6%BC%B22-31-%E9%80%A2%E4%BD%8E%E5%B8%83%E5%B1%80%E9%A0%98%E6%81%AF%E7%AD%89%E8%B5%B7%E6%BC%B2-010639812.html",
+          "source": "觀傳媒",
+          "date": "2026-11-10 09:06",
+          "datetime": "2026-11-10T09:06:37+08:00"
         }
       ]
     },
@@ -513,7 +521,7 @@
       "channel": "三立財經iNEWS",
       "url": "https://www.youtube.com/watch?v=nkz_1DrxKEY",
       "date": "2026-11-08",
-      "views": 66980
+      "views": 67113
     },
     {
       "platform": "youtube",
@@ -529,7 +537,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=mlXZqnlEV34",
       "date": "2026-11-05",
-      "views": 14007
+      "views": 14242
     },
     {
       "platform": "youtube",
@@ -537,7 +545,7 @@
       "channel": "郭哲榮分析師-摩爾證券投顧",
       "url": "https://www.youtube.com/shorts/qQ3214-yLsM",
       "date": "2026-11-05",
-      "views": 406060,
+      "views": 406133,
       "peer": true,
       "short": true,
       "cat": "基金"
@@ -548,7 +556,7 @@
       "channel": "綠茶小師妹",
       "url": "https://www.youtube.com/shorts/QJ9aB1pf_SU",
       "date": "2026-11-07",
-      "views": 379402,
+      "views": 383573,
       "peer": true,
       "short": true,
       "cat": "市場趨勢"
@@ -559,10 +567,20 @@
       "channel": "郭哲榮分析師-摩爾證券投顧",
       "url": "https://www.youtube.com/shorts/uGj7xkW72_0",
       "date": "2026-11-09",
-      "views": 248454,
+      "views": 254597,
       "peer": true,
       "short": true,
       "cat": "基金"
+    },
+    {
+      "platform": "youtube",
+      "title": "【理財達人秀】最大盤中跌點.史上最高空單！台積也跌停 國安基金萬箭齊發？大股東拚解套護盤股！法人鎖績優AI！｜李兆華、鍾國忠、黃豐凱、紀緯明2026.11.06【電視完整版】",
+      "channel": "理財達人秀 EBCmoneyshow",
+      "url": "https://www.youtube.com/watch?v=pH3eAoCE1vM",
+      "date": "2026-11-06",
+      "views": 236244,
+      "peer": true,
+      "cat": "市值型"
     },
     {
       "platform": "youtube",
@@ -570,7 +588,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=jBrTD0O1yBo",
       "date": "2026-11-07",
-      "views": 231215,
+      "views": 232028,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -580,7 +598,7 @@
       "channel": "TVBS娛樂頭條",
       "url": "https://www.youtube.com/shorts/277FjfTo8vI",
       "date": "2026-11-06",
-      "views": 206621,
+      "views": 207382,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -591,17 +609,7 @@
       "channel": "東森新聞 CH51",
       "url": "https://www.youtube.com/watch?v=tHNoS60jrZI",
       "date": "2026-11-06",
-      "views": 191331,
-      "peer": true,
-      "cat": "市值型"
-    },
-    {
-      "platform": "youtube",
-      "title": "記憶體慘跌還能撿嗎？南亞科、華邦電這時進場安啦！攻5萬變守4萬 ETF傻買逆轉勝？0050、006208、00892教你選《鈔錢部署》盧燕俐 ft.許博傑 20261105",
-      "channel": "鈔錢部署–華視優選",
-      "url": "https://www.youtube.com/watch?v=JG1-NrN-iYk",
-      "date": "2026-11-05",
-      "views": 177698,
+      "views": 191178,
       "peer": true,
       "cat": "市值型"
     },
@@ -611,7 +619,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=sb9bbZFYm5w",
       "date": "2026-11-06",
-      "views": 155307,
+      "views": 159115,
       "peer": true,
       "cat": "高股息"
     },
@@ -621,25 +629,25 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=2uipJmP6jew",
       "date": "2026-11-06",
-      "views": 111176,
+      "views": 111725,
       "peer": true,
       "cat": "綜合"
     },
     {
       "platform": "youtube",
-      "title": "打破科技 ETF 緊箍咒！AI 盡頭是缺電，施羅德主動式 ETF #00419A 帶你 #重電 、#散熱 、#半導體 一網打盡！｜【台股萬人謎】EP114｜施羅德投信 游信凱",
-      "channel": "永豐金證券",
-      "url": "https://www.youtube.com/watch?v=wj2eugArOAA",
-      "date": "2026-11-05",
-      "views": 65757,
+      "title": "【Eng Sub】AI股追高、高息ETF陷阱！股票跌50%就值得買？投資新手最容易犯的錯｜US Stock Explained",
+      "channel": "City Spotlight 傾城計話",
+      "url": "https://www.youtube.com/watch?v=mjOZoQFPauU",
+      "date": "2026-11-09",
+      "views": 67893,
       "peer": true,
-      "cat": "主動式"
+      "cat": "高股息"
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金／ETF：00929、00998A、00418A、中國新經濟平衡（詳下方新聞標籤）",
+    "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00418A、中國新經濟平衡（詳下方新聞標籤）",
     "品牌焦點：00949 首次配息預估 3.02 元！一張領 3,020 元、11/18 除息，最後買進日與入帳時間一次看（果仁家）",
     "社群聲量最高：摩根士丹利美國增長基金轉換到摩根美國科技基金（0 推）",
-    "YouTube 熱片：【台股三萬二 國安基金才進場?】2026/11/5 哲哲只有60秒 #shorts（郭哲榮分析師-摩爾證券投顧・406,060 次觀看）"
+    "YouTube 熱片：【台股三萬二 國安基金才進場?】2026/11/5 哲哲只有60秒 #shorts（郭哲榮分析師-摩爾證券投顧・406,133 次觀看）"
   ]
 }
