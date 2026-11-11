@@ -131,7 +131,7 @@ def idle_of(C: dict, mk: str, mode: str | None = None) -> tuple[np.ndarray, floa
 
 
 def run(C: dict, sig: dict[int, list], mk: str = "spx", c_stk: float = X.COST["stk"], b: int | None = None,
-        idle: str | None = None) -> dict:
+        idle: str | None = None, cap: tuple | None = None) -> dict:
     """QM 的資金帳戶：QM_Y0 起；閒置的錢照 idle（None＝QM_IDLE：VER 4 放現金）。"""
     P = C["P"]
     a = a_of(C["cal"], X.QM_Y0)
@@ -139,7 +139,7 @@ def run(C: dict, sig: dict[int, list], mk: str = "spx", c_stk: float = X.COST["s
     ir, ci = idle_of(C, mk, idle)
     r = BK.run(P["O"], C["Cf"], P["C"], P["last"], sig, a, b or C["T"], ir, ex=X.QM_EXIT, style=X.QM_STYLE,
                MA=C["MA"], D20=C["D20"], DIV=C["DIV"], weight=w, max_pos=X.QM_SLOTS,
-               max_weight=max(w, X.TRADE["max_weight"]), c_stk=c_stk, c_idx=ci)
+               max_weight=max(w, X.TRADE["max_weight"]), c_stk=c_stk, c_idx=ci, cap=cap)
     r["a"] = a
     return r
 

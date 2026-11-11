@@ -25,7 +25,7 @@ def run(O: np.ndarray, Cf: np.ndarray, Cr: np.ndarray, last: np.ndarray, sig: di
         idle_r: np.ndarray, *, ex: dict, style: str = "fixed", MA: np.ndarray | None = None, D20: np.ndarray | None = None,
         DIV: np.ndarray | None = None, weight: float = X.TRADE["weight"], max_pos: int = X.TRADE["max_pos"],
         max_weight: float = X.TRADE["max_weight"], max_adv: float = X.TRADE["max_adv"], capital: float = X.TRADE["capital"],
-        c_stk: float = X.COST["stk"], c_idx: float = X.COST["idx"]) -> dict:
+        c_stk: float = X.COST["stk"], c_idx: float = X.COST["idx"], cap: tuple | None = None) -> dict:
     """O、Cf＝含息開盤、含息收盤（往前補齊）；Cr＝含息收盤（沒有成交＝nan，用來判斷那天有沒有收盤）；
     sig＝{訊號日: [(代號欄, RS)]}（已經依 RS 高到低、同分依代號排好）；idle_r＝閒置那份每天的報酬。
     → {"eq": 每天收盤總資產（a～b−1）, "stk": 股票占總資產, "n": 檔數, "div": 股票部分當天收到的股利（美元）, "trades": [...]}"""
@@ -63,6 +63,10 @@ def run(O: np.ndarray, Cf: np.ndarray, Cr: np.ndarray, last: np.ndarray, sig: di
         for j, sc in orders:
             if j in pos or len(pos) >= max_pos:
                 continue
+            if cap is not None:                     # 防守研究 D2（defspec）：cap＝(類別函式, 同一類最多幾檔)；None＝原本的做法
+                g = cap[0](j)
+                if g is not None and sum(1 for p in pos if cap[0](p) == g) >= cap[1]:
+                    continue
             o = O[i, j]
             if not (np.isfinite(o) and o > 0):
                 continue
