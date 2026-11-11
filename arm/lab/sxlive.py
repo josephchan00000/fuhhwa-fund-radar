@@ -787,6 +787,18 @@ def trial_list(ctx: dict, d: str, R: dict | None = None, why: dict | None = None
 
 
 YTD_COL = {"R60": 0, "N8B": 6}        # nav 的哪一欄（ytd_part 用）
+NAV_COL = {"R60": 0, "A": 1, "R1": 2, "TR": 3, "EW": 4, "N8": 5, "N8B": 6}   # nav 每一列的欄位（perf 的 rows）
+
+
+def book_curve(rec: dict, book: str | None = None) -> dict | None:
+    """選股頁成績單（docs/lab_stock_page_plan.md 第 4.1 節）：那本帳每天的淨值與同一天的加權報酬指數（都是 nav 那幾欄、100 起算）。
+    → {"d": [日期], "nav": [那本帳], "tr": [大盤]}（兩邊都有值的日子）；不到兩天＝None。從哪一天起算由頁面決定（還沒買的日子不算）。"""
+    col, tr = NAV_COL[book or S.PLAN_BOOK], NAV_COL["TR"]
+    rows = [(d, v[col], v[tr]) for d, v in sorted((rec.get("nav") or {}).items())
+            if v and len(v) > max(col, tr) and v[col] and v[tr]]
+    if len(rows) < 2:
+        return None
+    return {"d": [r[0] for r in rows], "nav": [float(r[1]) for r in rows], "tr": [float(r[2]) for r in rows]}
 
 
 def ytd_part(rec: dict, ctx: dict, last: str | None, book: str | None = None) -> dict | None:
@@ -938,6 +950,7 @@ def update(DL, ctx: dict | None = None, now=None, write_file: bool | None = None
         r2 = dict(rec, last=last)
         plan = plan_state(r2, ctx, nm, tr, R, seed, book=S.TAKE_BOOK, hist=hist)   # START 之前（資料停在 START 前一天）也要算下一次看名單的日子
         n8 = plan_state(r2, ctx, nm, tr, R, seed, book=S.PLAN_BOOK, hist=hist)
+        n8["curve"] = book_curve(rec)                      # 選股頁成績單：每天的淨值與同期大盤
         try:                                               # 選股頁的新飆股卡片：最新的名單（週中＝試算）照 N8 會買的、新上名單
             W = {**seed_weeks(seed), **(rec.get("weeks") or {})}
             if tfull:
