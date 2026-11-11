@@ -37,11 +37,16 @@ LOG = print
 class Sim(EN.Simulator):
     """固定 N 格：有空格時把現金平分給空格；一格不到總資產 1/N 的 MIN_SLOT 就不買。"""
 
-    def __init__(self, m, cfg, size: dict):
+    def __init__(self, m, cfg, size: dict, ind=None, cap_k: int | None = None):
         super().__init__(m, cfg, exit_flags=None, mf=np.ones(m.n, dtype=bool))
         self.size = size
+        self.ind, self.cap_k = ind, cap_k                 # 防守研究 D2（arm/lab/defspec.py）：同一類最多 cap_k 檔；None＝不限
 
     def _buy(self, i, o, px_adj, how):
+        if self.ind is not None and self.cap_k:
+            c = self.ind(i, o.s)
+            if c is not None and sum(1 for s in self.pos if self.ind(i, s) == c) >= self.cap_k:
+                return False
         n = self.size["slots"]
         if n:
             free = n - len(self.pos)
@@ -65,8 +70,10 @@ def streaks(m, mask: np.ndarray, wk: list[int]) -> np.ndarray:
     return out
 
 
-def run(ctx: CB.Ctx, mask: np.ndarray, wk: list[int], g: tuple, start: str, end: str | None = None, keep: bool = False):
-    """keep＝True：最後一天不平倉、連引擎一起回（交易計畫 corespec VER 5 的接手 run_sxlive_seed.py --n8 用）。"""
+def run(ctx: CB.Ctx, mask: np.ndarray, wk: list[int], g: tuple, start: str, end: str | None = None, keep: bool = False,
+        gate: np.ndarray | None = None, ind=None, cap_k: int | None = None):
+    """keep＝True：最後一天不平倉、連引擎一起回（交易計畫 corespec VER 5 的接手 run_sxlive_seed.py --n8 用）。
+    防守研究（arm/lab/defspec.py）：gate[i]＝False 那天收盤不下新的買單（D1）；ind(i, j)→類別、cap_k＝同一類最多幾檔（D2）。都不給＝原本的做法。"""
     m = ctx.m
     sz, order, ext, hold = g
     size = S.SIZE[sz]
@@ -105,10 +112,12 @@ def run(ctx: CB.Ctx, mask: np.ndarray, wk: list[int], g: tuple, start: str, end:
                     due[(s, p.entry_i)] = min(d + S.HOLD_N, S.HOLD_MAX)
                 else:
                     p.exit_pending = "time"
+        if gate is not None and not gate[i]:
+            return []
         return [EN.Order(s, "open", weight=size["weight"] if size["weight"] else float("nan"), score=sc)
                 for s, sc in by_day.get(i, [])]
 
-    sim = Sim(m, cfg, size)
+    sim = Sim(m, cfg, size, ind, cap_k)
     res = sim.run(decide, start, end)
     return (res, sim) if keep else res
 
