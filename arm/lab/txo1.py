@@ -197,7 +197,7 @@ class Day:
         self.avg = np.concatenate([[v[0]], cs / np.arange(1, N_IDX)])
         self.up = max(self.op, self.pc) * (1 + kk * sig)
         self.lo = min(self.op, self.pc) * (1 - kk * sig)
-        self.F = S.settle_price(list(v))
+        self.F = float(S.settle_price([float(x) for x in v]))
 
 
 # ── O1：一天的交易（單位：一口、點數；口數在 sim 裡算）──────────────────────
@@ -612,7 +612,7 @@ def o4_day(m: Mkt, root: Path, d: str, edge: float = S.O4_EDGE, ks: list[int] | 
     if bars is None:
         return [], []
     v = m.idx[d]
-    F = S.settle_price(list(v))
+    F = float(S.settle_price([float(x) for x in v]))
     picks, cands, done = [], [], set()
     for k in ks or O4_K:
         b = band(m, d, k)
@@ -661,10 +661,10 @@ def o4_judge(mt: dict, rows: list[dict], p: float | None) -> dict:
     for r in tr:
         byd[r["d"]] = byd.get(r["d"], 0.0) + r["pnl"]
     top = max(byd.values()) / tot if tr and tot > 0 else None
-    ok = {"1_mean": bool(mt.get("n")) and mt["mean"] > 0,
-          "2_n": len(tr) >= S.O4_MIN_N and len(days) >= S.O4_MIN_DAYS,
-          "3_top_day": top is not None and top <= S.O4_TOP_DAY,
-          "4_placebo": p is not None and p <= S.PLACEBO_P}
+    ok = {"1_mean": bool(mt.get("n") and mt["mean"] > 0),
+          "2_n": bool(len(tr) >= S.O4_MIN_N and len(days) >= S.O4_MIN_DAYS),
+          "3_top_day": bool(top is not None and top <= S.O4_TOP_DAY),
+          "4_placebo": bool(p is not None and p <= S.PLACEBO_P)}
     if not ok["2_n"]:
         return {"ok": ok, "verdict": "只列、不判定（筆數不夠）", "days": len(days), "top_day": top}
     return {"ok": ok, "verdict": "過關" if all(ok.values()) else "沒過", "days": len(days), "top_day": top}
@@ -682,7 +682,7 @@ def run_o4(root: Path, m: Mkt, placebo_n: int = S.PLACEBO_N, log=print) -> dict:
             continue
         picks.extend(p)
         cands.extend(c)
-        per_day.append({"d": d, "F": S.settle_price(list(m.idx[d])), "cands": len(c), "picks": len(p)})
+        per_day.append({"d": d, "F": float(S.settle_price([float(x) for x in m.idx[d]])), "cands": len(c), "picks": len(p)})
         for e in S.O4_EDGE_ALT:
             alt[e].extend(o4_day(m, root, d, edge=e)[0])
         late.extend(o4_day(m, root, d, ks=[x for x in O4_K if x >= kof("13:15")])[0])
@@ -717,7 +717,7 @@ def settle_check(root: Path, m: Mkt, days: list[str]) -> dict:
         bars = load_bars(root, d)
         if not bars:
             continue
-        F = S.settle_price(list(m.idx[d]))
+        F = float(S.settle_price([float(x) for x in m.idx[d]]))
         for key, rows in bars.items():
             e, cp, kx = key.split("|")
             if e != m.sett[d] or cp != "C" or F - float(kx) < 200:
