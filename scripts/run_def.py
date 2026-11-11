@@ -177,6 +177,104 @@ def v3l() -> dict:
             "d3_events": ev3, "recent": rec, "judge": D.verdicts(out["base"], out, primary)}
 
 
+# ── 美股強勢品質股 ─────────────────────────────────────────────────────────────
+
+def us_sector(P: dict) -> dict[int, str | None]:
+    """代號欄 → GICS 產業部門（data/lab/ussx_gics.json，現在的分類）；不在 S&P 1500 的用資料分支 Nasdaq 篩選器的 sector；都沒有＝None。"""
+    from arm.lab import ussxdata as UD
+    gics = (json.loads((ROOT / "data" / "lab" / "ussx_gics.json").read_text(encoding="utf-8")).get("s") or {})
+    scr = UD.load_screen() or {}
+    rows = scr.get("rows") if isinstance(scr, dict) and "rows" in scr else scr
+    sec: dict[str, str] = {}
+    if isinstance(rows, dict):
+        for k, v in rows.items():
+            x = v.get("sector") if isinstance(v, dict) else None
+            if x:
+                sec[UD.ysym(k)] = x
+    elif isinstance(rows, list):
+        for v in rows:
+            if isinstance(v, dict) and v.get("symbol") and v.get("sector"):
+                sec[UD.ysym(v["symbol"])] = v["sector"]
+    out = {}
+    for j, sym in enumerate(P["sym"]):
+        g = gics.get(sym) or gics.get(sym.replace("-", "."))
+        out[j] = (g[1] if g and len(g) > 1 and g[1] else None) or sec.get(UD.ysym(sym))
+    return out
+
+
+def qm() -> dict:
+    from arm.lab import ussxbook as BK
+    from arm.lab import ussxpanel as UP
+    from arm.lab import ussxqm as QM
+    from arm.lab import ussxspec as X
+    t0 = time.time()
+    off = json.loads((ROOT / S.BASE_SRC["qm"]).read_text(encoding="utf-8"))["sleeve"]["main"]
+    P = UP.load()
+    C = QM.context(P)
+    cal = C["cal"]
+    a14 = QM.a_of(cal, X.QM_EVAL)
+    end = off["b"]
+    b_end = max(k for k, d in enumerate(cal) if d <= end) + 1
+    sig = QM.signals(C, QM.qm_mask(C["cols"]["f"]))
+
+    def go(sg, cap=None):
+        r = QM.run(C, sg, "spx", X.COST["stk"], cap=cap)
+        return r, QM.rets(C, r)
+
+    def three(rr) -> dict:
+        st = BK.curve_stats(cal, rr, a14, b_end)
+        h1, h2 = st["halves"]
+        return D.three(*({"cagr": _r(x["cagr"]), "mdd": _r(x["mdd"])} for x in (st, h1, h2)))
+
+    base_r, base_rr = go(sig)
+    got = BK.curve_stats(cal, base_rr, a14, b_end)["cagr"]
+    ok = abs(got - off["cagr"]) <= S.BASE_CHECK
+    log(f"美股 基準 {got * 100:.2f}%（官方 {off['cagr'] * 100:.2f}%）{'對上' if ok else '對不上'}，{time.time() - t0:.0f}s")
+    spy = P["sym"].index("SPY")
+    px = [float(x) for x in C["Cf"][:, spy]]
+    sect = us_sector(P)
+    fn = sect.get
+    sigs = {"base": (sig, None)}
+    for n in (S.D1_MA, *S.D1_ALT):
+        gt = D.ma_gate(px, n)
+        sigs[f"d1_{n}"] = ({i: v for i, v in sig.items() if gt[i]}, None)
+    for k in (S.D2_K, *S.D2_ALT):
+        sigs[f"d2_{k}"] = (sig, (fn, k))
+    gt = D.ma_gate(px, S.D1_MA)
+    sigs["d12"] = ({i: v for i, v in sig.items() if gt[i]}, (fn, S.D2_K))
+    rrs, ntr = {"base": base_rr}, {"base": len(base_r["trades"])}
+    for k, (sg, cap) in sigs.items():
+        if k == "base":
+            continue
+        r, rr = go(sg, cap)
+        rrs[k], ntr[k] = rr, len(r["trades"])
+        log(f"  {k} {time.time() - t0:.0f}s")
+    out = {k: three(rr) for k, rr in rrs.items()}
+    # D3：基準淨值加熔斷（S&P 500 含息當大盤，同 ks.bt_qm）
+    sp = np.nan_to_num(np.asarray(C["PQ"]["spx"]["idle"], dtype=float))
+    nav = list(np.cumprod(1 + np.nan_to_num(base_rr[a14:b_end])))
+    bn = list(np.cumprod(1 + sp[a14:b_end]))
+    ev3 = {}
+    d3 = {f"d3_{x:g}": dict(mult=x) for x in (S.D3_MULT, *S.D3_ALT)}
+    d3["d3_fix"] = dict(fixed=S.D3_FIXED)
+    for k, kw in d3.items():
+        nv, ev = D.ks_overlay(nav, bn, **kw)
+        r2 = np.zeros(len(cal))
+        r2[a14 + 1:b_end] = np.asarray(nv[1:]) / np.asarray(nv[:-1]) - 1
+        out[k] = three(r2)
+        ev3[k] = [{"d": cal[a14 + e["i"]], "k": e["k"]} for e in ev]
+    rec = {}
+    i0 = max(k for k, d in enumerate(cal) if d < S.RECENT_FROM)
+    for k in ("base", f"d1_{S.D1_MA}", f"d2_{S.D2_K}"):
+        rr = rrs[k]
+        rec[k] = {"from": cal[i0], "to": cal[-1], "ret": _r(float(np.prod(1 + np.nan_to_num(rr[i0 + 1:]))) - 1)}
+    nsec = sum(1 for v in sect.values() if v)
+    primary = {"D1": f"d1_{S.D1_MA}", "D2": f"d2_{S.D2_K}", "D3": f"d3_{S.D3_MULT:g}"}
+    log(f"美股 完成 {time.time() - t0:.0f}s")
+    return {"end": end, "base_check": {"got": _r(got, 6), "ref": off["cagr"], "ok": ok}, "stats": out, "n_trades": ntr,
+            "sector_known": [nsec, len(sect)], "d3_events": ev3, "recent": rec, "judge": D.verdicts(out["base"], out, primary)}
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--tw", action="store_true")
@@ -191,7 +289,7 @@ def main() -> int:
         if a.only in ("", "v3l"):
             doc["v3l"] = v3l()
     if a.us:
-        raise SystemExit("美股那一段還沒接上")
+        doc["qm"] = qm()
     OUT.write_text(json.dumps(doc, ensure_ascii=False, separators=(",", ":"), sort_keys=True) + "\n", "utf-8")
     log("寫入", OUT)
     return 0
