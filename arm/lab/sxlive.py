@@ -702,6 +702,11 @@ def plan_state(rec: dict, ctx: dict, names: dict | None = None, trial: list | No
                             "out": out["next"] if q["pend"] else sell, "sell": bool(q["pend"]),
                             "take": take, "bt": bool(seed) and cal[ei] <= S.TAKE,
                             "rl": (float(cl / c0 - 1) if _ok(cl) and _ok(c0) and c0 else None) if take else r})
+    if n8 and out["hold"]:                                 # 個股卡「為什麼選它」：買進那週符合的那一條、每個條件買進時和現在的數字
+        try:
+            hold_cmp(out["hold"], W, _rules, ctx, i1)
+        except Exception as e:                             # noqa: BLE001 —— 算不出來只少這張表
+            print(f"[sxlive] ⚠ 持股的「買進時／現在」算不出來：{type(e).__name__}: {e}")
     out["sell"] = [h["c"] for h in out["hold"] if h["sell"]]
     cash = bk.cash + sum(q["k"] * (px[c]["c"][i1] if _ok(px[c]["c"][i1]) else px[c]["cff"][i1]) * (1 - T["sell_tax"])
                          for c, q in bk.pos.items() if q["pend"])
@@ -742,6 +747,30 @@ def plan_state(rec: dict, ctx: dict, names: dict | None = None, trial: list | No
 
 
 PICK_TOP = S.TRADE_N8["slots"]        # 選股頁「現在開始的話」列幾檔＝N8 的格數（docs/lab_boom_v2_plan.md 第 8、9 節）
+
+
+def hold_cmp(hold: list, W: dict, rules: dict, ctx: dict, i1: int) -> None:
+    """每一檔持股加 "cmp"＝{"d": 那週訊號日, "now": 最新收盤日, "rows": [[條件, 要多少, 買進時, 過了沒, 現在, 過了沒]]}：
+    買進那週符合的第一條規則（同頁面「符合：…」那一條），每個條件那週記的數字對今天收盤的數字（superx.feats_on）。
+    只給個股卡看；買進以後照規則抱滿，不看這些數字（docs/lab_stock_page_plan.md 第 4.1 節）。"""
+    from . import superx as SX
+    F = None
+    for h in hold:
+        sd = h.get("sig")
+        rs = rules.get(int(sd[:4])) if sd else None
+        w = (((W.get(sd) or {}).get("why") or {}).get(S.LIST_BOOK) or {}).get(h["c"]) if sd else None
+        ks = [k for k in (w or {}).get("k") or [] if rs and 0 <= k < len(rs)]
+        if not ks:
+            continue
+        if F is None:
+            F = feats_at(ctx, i1)
+        v0, v1 = w.get("v") or {}, F.get(h["c"]) or {}
+        rows = []
+        for cond in rs[ks[0]]:
+            cond = tuple(cond)
+            nm, req = SX.cond_head(cond)
+            rows.append([nm, req, *SX.cond_cell(cond, v0.get(cond[0])), *SX.cond_cell(cond, v1.get(cond[0]))])
+        h["cmp"] = {"d": sd, "now": ctx["P"].cal[i1], "rows": rows}
 
 
 def pick_state(ctx: dict, last: str, W: dict, cur: list, cur_d: str, trial: bool, rules: list | None,

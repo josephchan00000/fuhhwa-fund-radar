@@ -801,7 +801,7 @@ def week_box(W: dict, col: dict, eq: dict | None = None, mk: str = "tw", att=Non
 
 
 def boom_pos(P: dict | None, X: dict | None = None) -> dict:
-    """個股卡最上面「策略」段、個股表「策略選到的」要的新飆股持股與待買進：{代號: [{k, n, h, t, y}]}。
+    """個股卡「策略」「為什麼選它」段、個股表「策略選到的」要的新飆股持股與待買進：{代號: [{k, n, h, t, y, m?}]}（m＝持股的買進時／現在，sxlive.hold_cmp）。
     X＝boom_box：這一週還在試算時，照規則會買的也列（寫試算、哪天定案）。"""
     out: dict = {}
     if not P:
@@ -811,7 +811,8 @@ def boom_pos(P: dict | None, X: dict | None = None) -> dict:
         t = (f'{_md(h.get("ent"))} 買' + ("（回測）" if h.get("bt") else "")
              + (f' {_tp(h["epx"])}，現在 {_tp(h["px"])}' if h.get("epx") is not None and h.get("px") is not None else "")
              + f'；{_md(h.get("out"))} 開盤賣（抱滿 {hn} 個交易日）')
-        out.setdefault(h["c"], []).append({"k": "boom", "n": h.get("n") or h["c"], "h": 1, "t": t, "y": "；".join(h.get("why") or [])})
+        out.setdefault(h["c"], []).append({"k": "boom", "n": h.get("n") or h["c"], "h": 1, "t": t, "y": "；".join(h.get("why") or []),
+                                           **({"m": h["cmp"]} if h.get("cmp") else {})})   # 個股卡「為什麼選它」：買進時和現在
     for x in P.get("buy") or []:
         if x.get("fill"):
             out.setdefault(x["c"], []).append({"k": "boom", "n": x.get("n") or x["c"], "h": 0,

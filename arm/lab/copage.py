@@ -2,7 +2,7 @@
 
 點進去才下載 dashboard/co/{代號}.json（那一檔的財報、月營收、股價、股利），第一次另抓全市場小表 x9t.json；
 所有比率、走勢、估值位置、拆解、飆股體質檢查都在瀏覽器算。page.render 把這裡的 CSS／JS 接在原本的後面
-（同一個 <script>，函式宣告會提升，page.py 的 renderStock 可以直接呼叫 coSec）。
+（同一個 <script>，函式宣告會提升，page.py 的 renderStock 可以直接呼叫 coParts）。
 """
 
 CSS = r"""
@@ -42,7 +42,7 @@ CSS = r"""
 
 JS = r"""
 /* ===== 公司分析（docs/lab_company_plan.md 第 5 節）：點進去才下載 co/{代號}.json；第一次另抓全市場小表 x9t.json ===== */
-const CO={},COP={},MTS={};let MT=null,MTP=null,MTERR=false,COIX=null,COIXP=null,COJ=null,COSEC=null,FC=null,FCP=null,FCERR=false,COIXM=null;
+const CO={},COP={},MTS={};let MT=null,MTP=null,MTERR=false,COIX=null,COIXP=null,COJ=null,COSEC=null,FC=null,FCP=null,FCERR=false,COIXM=null,COCUR=null;
 function getJ(u){return fetch(u).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});}
 function coLoad(c){if(CO[c])return Promise.resolve(CO[c]);if(!COP[c])COP[c]=getJ(`co/${encodeURIComponent(c)}.json?v=${encodeURIComponent(D.mtv||'')}`).then(j=>(CO[c]=coParse(j)),e=>{COP[c]=null;throw e;});return COP[c];}
 function mtLoad(){if(MT)return Promise.resolve(MT);if(!MTP)MTP=getJ('x9t.json?v='+encodeURIComponent(D.mtv||'')).then(j=>(MT=j),e=>{MTP=null;MTERR=true;throw e;});return MTP;}
@@ -157,15 +157,17 @@ function ckHit(k){const x=(((D.sx||{}).ck)||{})[k];if(!x||!x.A||x.A.p==null)retu
 function ckBase(){const xs=Object.values(((D.sx||{}).ck)||{}).map(x=>x&&x.A&&x.A.base).filter(x=>x!=null);return xs.length?xs[0]:null;}
 
 /* ---- 主體 ---- */
-function coBody(c,W){const C=CO[c],r=mtRow(c);if(!C)return '';const Q=C.Q,M=C.M;const w=Math.max(260,W);const w2=isPane()||w>700?Math.floor((w-12)/2):w;
+/* 公司分析的每一段分開回傳（docs/lab_stock_page_plan.md 第 4.1 節：個股卡台美同一組頁籤、同一個順序，由 renderStock／renderCo 排）：
+   {sum 公司（t＝標題）, sx 飆股體質檢查的內容（不含標題；sxs＝標題旁的小字）, fc 分析師, ind 同產業, gr 成長, pf 獲利, bs 財務體質, val 估值, dv 股利, qt 季報明細} */
+function coBody(c,W,t){const C=CO[c],r=mtRow(c);if(!C)return null;const Q=C.Q,M=C.M;const w=Math.max(260,W);const w2=isPane()||w>700?Math.floor((w-12)/2):w;
   const lq=lastQ(C,'eps'),lm=[...M].reverse().find(o=>o.rev!=null),lp=[...M].reverse().find(o=>o.px!=null);
   const px=r&&r.px!=null?r.px:(lp?lp.px:null);const ttm=lastQ(C,'ttm');const bvq=lastQ(C,'bvps');
   const pe=r&&r.pe!=null?r.pe:(px&&ttm&&ttm.ttm>0?px/ttm.ttm:null),pb=r&&r.pb!=null?r.pb:(px&&bvq&&bvq.bvps>0?px/bvq.bvps:null);
   const sh=lp&&lp.sh?lp.sh:null;const cap=r&&r.cap!=null?r.cap:(px&&sh?px*sh*1000/1e8:null);
-  let h='';
+  const P={};let h='';
   /* 1 摘要 */
   const fin=/金融/.test(C.doc.ind||''),ds=r?coDims(r,fin):[];
-  h+=`<section class=csec id=co-sum><h3>公司分析<span class=sub>財報至 ${lq?qLab(lq.q):'—'}・營收至 ${lm?lm.ym:'—'}${MT?'・市場資料 '+md(MT.d):''}</span></h3>`;
+  h+=`<section class=csec id=co-sum><h3>${t||'公司'}<span class=sub>財報至 ${lq?qLab(lq.q):'—'}・營收至 ${lm?lm.ym:'—'}${MT?'・市場資料 '+md(MT.d):''}</span></h3>`;
   h+=`<div class="kpis kps">`+kp('股價','',fp(px),r&&r.ch!=null?pctT(r.ch,2):'',r?cls(r.ch):'')+kp('市值','',cap==null?'—':f(cap,cap>=1000?0:1)+' 億','')+
     kp('本益比','本益比',pe==null?'—':f(pe,1)+' 倍',ttm?`近四季 EPS ${f(ttm.ttm,2)}`:'')+kp('淨值比','淨值比',pb==null?'—':f(pb,2)+' 倍',bvq?`每股淨值 ${f(bvq.bvps,1)}`:'')+
     kp('殖利率','殖利率',r&&r.yld!=null?f(r.yld,2)+'%':'—','近 12 個月現金股利')+kp('最新月營收','',lm?yi(lm.rev)+' 億':'—',lm&&lm.ry!=null?`年增 ${pctT(lm.ry*100,1)}`:'',lm?cls(lm.ry):'')+`</div>`;
@@ -174,19 +176,20 @@ function coBody(c,W){const C=CO[c],r=mtRow(c);if(!C)return '';const Q=C.Q,M=C.M;
     `<div class=st>強弱＝和全市場比的百分位（估值：越便宜分數越高）${gi('五面向')}</div>`;}
   else h+=`<div class=st style="margin-top:8px">${MT?'這檔沒有在全市場比較表裡（上市未滿一年或沒有交易資料）。':'全市場比較資料載入中…'}</div>`;
   h+=`</section>`;
-  /* 2 飆股體質檢查 */
+  P.sum=h;h='';
+  /* 2 飆股體質檢查（為什麼選它那一段裡；標題由外面加） */
   if(r){const it=SXCK.map(([k,t,fn])=>{const v=fn(r);return {k,t,v};});const ok=it.filter(x=>x.v===true).length,av=it.filter(x=>x.v!=null).length;
     const kb=ckBase();
-    h+=`<section class=csec id=co-sx><h3>飆股體質檢查<span class=sub>符合 ${ok}／${av} 項${gi('飆股體質檢查')}</span></h3>`+
-      (kb!=null?`<div class=st>右欄＝過去符合這一條的股票，3 個月內漲到五成的比例；一般股票是 ${f(kb*100,0)}%，比它高的標粗體。</div>`:'')+
+    P.sxs=`符合 ${ok}／${av} 項${gi('飆股體質檢查')}`;
+    h+=(kb!=null?`<div class=st>右欄＝過去符合這一條的股票，3 個月內漲到五成的比例；一般股票是 ${f(kb*100,0)}%，比它高的標粗體。</div>`:'')+
       `<div class=tw><table class=chkt><thead><tr><th class=l>條件</th><th>這檔</th>${kb!=null?'<th>3 個月內漲五成</th>':''}</tr></thead><tbody>`+
       it.map(x=>`<tr><td class=l>${esc(x.t)}</td><td><span class=${x.v===true?'ok':x.v===false?'no':'na'}>${x.v===true?'✓ 符合':x.v===false?'✗':'—'}</span></td>${kb!=null?`<td>${ckHit(x.k)}</td>`:''}</tr>`).join('')+`</tbody></table></div>`;
     if(r.ttb)h+=`<details class=mr><summary>趨勢樣板 8 項明細（${r.tt}／8）${gi('趨勢樣板')}</summary><ul class=chk>${TTN.map((t,i)=>`<li><span class=${r.ttb[i]==='1'?'ok':'no'}>${r.ttb[i]==='1'?'✓':'✗'}</span><span>${esc(t)}</span><span></span></li>`).join('')}</ul></details>`;
     const cb=((((D.sx||{}).cnt)||{}).A)||{},cr=(cb.rows||[])[ok];
     if(cr&&cr.p!=null&&cr.n>=30)h+=`<div class=note style="margin-top:8px">過去同樣符合 ${ok} 項的股票，3 個月內漲到五成的比例是 <b>${f(cr.p*100,0)}%</b>（一般股票 ${f((cb.base||0)*100,0)}%）。</div>`;
     const hit=(((D.sx||{}).hits)||{})[c];if(hit&&hit.length)h+=`<div class=note style="margin-top:8px">今天符合飆股規則 ${hit.map(i=>{const u=(D.sx.rules||[])[i]||{};return `<span class=sxi title="${esc(u.txt||'')}">${esc(u.lab||'')}${i+1}</span>`;}).join('')}（${hit.length===1?esc(((D.sx.rules||[])[hit[0]]||{}).txt||''):'共 '+hit.length+' 條'}；<a data-go="opp" data-at="o-sx">看規則與過去成績</a>）</div>`;
-    h+=`</section>`;}
-  h+=fcSec(c,C,px)+indSec(c,r);
+    }
+  P.sx=h;h='';P.fc=fcSec(c,C,px);P.ind=indSec(c,r);
   /* 3 成長 */
   const m24=M.filter(o=>o.rev!=null).slice(-24);
   const q12=Q.filter(o=>o.rev!=null||o.eps!=null).slice(-12);
@@ -199,9 +202,10 @@ function coBody(c,W){const C=CO[c],r=mtRow(c);if(!C)return '';const Q=C.Q,M=C.M;
   h+=`</div>`;
   const ae=annualEps(C).slice(-6);if(ae.length)h+=`<div class=st style="margin-top:8px">全年 EPS：${ae.map(([y,e])=>`${y} <b>${f(e,2)}</b>`).join('　')}</div>`;
   h+=`</section>`;
-  /* 4 獲利能力 */
+  P.gr=h;h='';
+  /* 4 獲利 */
   const qp=Q.filter(o=>o.gm!=null||o.nm!=null).slice(-12);const lr=lastQ(C,'roe');
-  h+=`<section class=csec id=co-pf><h3>獲利能力<span class=sub>三率與 ROE${gi('ROE 拆解')}</span></h3>`;
+  h+=`<section class=csec id=co-pf><h3>獲利<span class=sub>三率與 ROE${gi('ROE 拆解')}</span></h3>`;
   if(qp.length){const ms=[['gm','#a16207','毛利率','毛利率'],['om','#2563c9','營益率','營益率'],['nm','#d33a34','淨利率','淨利率（歸屬母公司）']]
       .filter(([k])=>qp.some(o=>o[k]!=null));          /* 金融業沒有毛利、營業利益：沒資料的線和圖例都不畫 */
     h+=`<div class=cgrid><div class=cbox><h4>${ms.map(m=>m[2]).join('・')}（單季）</h4>${svgLines(ms.map(([k,c,n])=>({v:qp.map(o=>o[k]==null?null:o[k]*100),c,n})),qp.map(o=>qLab(o.q)),{W:w2,H:140,fmt:v=>f(v,0)+'%'})}`+
@@ -211,6 +215,7 @@ function coBody(c,W){const C=CO[c],r=mtRow(c);if(!C)return '';const Q=C.Q,M=C.M;
     if(lr&&lr.dpm!=null)h+=`<div class=note style="margin-top:8px">ROE 拆解（近四季）：淨利率 <b>${pc(lr.dpm)}</b> × 資產週轉 <b>${f(lr.dat,lr.dat<0.1?3:2)}</b> 次 × 權益乘數 <b>${f(lr.dem,lr.dem>=10?1:2)}</b> 倍 ＝ ROE <b>${pc(lr.roe)}</b></div>`;}
   else h+=`<div class=st>這檔的完整損益表資料還沒補齊（目前只有 EPS）。</div>`;
   h+=`</section>`;
+  P.pf=h;h='';
   /* 5 財務體質 */
   const qb=Q.filter(o=>o.ta!=null).slice(-12);const lb=lastQ(C,'ta');
   h+=`<section class=csec id=co-bs><h3>財務體質<span class=sub>資產負債與現金流量</span></h3>`;
@@ -225,6 +230,7 @@ function coBody(c,W){const C=CO[c],r=mtRow(c);if(!C)return '';const Q=C.Q,M=C.M;
       `<div class=cbox style="margin-top:10px"><h4>近四季營業現金流與淨利（億）</h4>${svgLines([{v:qc.map(o=>o.ocf4/100),c:'#2563c9',n:'營業現金流'},{v:qc.map(o=>o.ni4==null?null:o.ni4/100),c:'#d33a34',n:'淨利'},{v:qc.map(o=>o.fcf4==null?null:o.fcf4/100),c:'#a16207',n:'自由現金流',dash:1}],qc.map(o=>qLab(o.q)),{W:w,H:130,zero:1,fmt:v=>f(v,0)})}`+
       lg([['#2563c9','營業現金流'],['#d33a34','淨利（歸屬母公司）'],['#a16207','自由現金流',1]])+`</div>`;}
   h+=`</section>`;
+  P.bs=h;h='';
   /* 6 估值 */
   h+=`<section class=csec id=co-val><h3>估值<span class=sub>和自己的歷史比${gi('本益比位置')}</span></h3>`;
   const pes=M.filter(o=>o.pe!=null&&o.pe>0&&o.pe<300),pe5=pes.slice(-60).map(o=>o.pe);
@@ -237,6 +243,7 @@ function coBody(c,W){const C=CO[c],r=mtRow(c);if(!C)return '';const Q=C.Q,M=C.M;
   else h+=`<div class=st>${ttm&&ttm.ttm<=0?'近四季 EPS 為負，本益比不適用。':'本益比歷史不足兩年，暫不顯示位置。'}</div>`;
   const pbs=M.filter(o=>o.pb!=null);if(pb&&pbs.length>=24){const pp=Math.round(100*pbs.filter(o=>o.pb<pb).length/pbs.length);h+=`<div class=st style="margin-top:4px">淨值比 ${f(pb,2)} 倍，位於自己歷史的第 ${pp} 百分位。</div>`;}
   h+=`</section>`;
+  P.val=h;h='';
   /* 7 股利 */
   const dy=divYears(C),ys=Object.keys(dy).sort().slice(-8);const aeM={};annualEps(C).forEach(([y,e])=>aeM[y]=e);
   h+=`<section class=csec id=co-dv><h3>股利<span class=sub>依除權息日歸年度</span></h3>`;
@@ -244,12 +251,13 @@ function coBody(c,W){const C=CO[c],r=mtRow(c);if(!C)return '';const Q=C.Q,M=C.M;
       ys.slice().reverse().map(y=>{const d=dy[y],e=aeM[String(+y-1)],cc=d.nn&&!d.c?'<span class=mu>現金部分未知</span>':f(d.c,2)+(d.nn?' <span class=mu>＋未知</span>':'');return `<tr><td>${y}</td><td>${cc}${d.unk?` <span class=mu>＋配股${d.unk>1?' '+d.unk+' 次':''}</span>`:''}</td><td>${e==null?'—':f(e,2)}</td><td>${e>0&&d.c&&!d.nn?f(d.c/e*100,0)+'%':'—'}</td></tr>`;}).join('')+`</tbody></table></div>`;}
   else h+=`<div class=st>2013 年以來沒有除權息紀錄。</div>`;
   h+=`</section>`;
+  P.dv=h;h='';
   /* 8 季報明細 */
   const qt=Q.filter(o=>o.rev!=null||o.eps!=null).slice(-12).reverse();
   h+=`<section class=csec id=co-qt><h3>季報明細<span class=sub>單季、金額單位億元</span></h3><details class=mr${isPane()?' open':''}><summary>近 ${qt.length} 季</summary><div class=tw><table class=qt><thead><tr><th>季別</th><th>營收</th><th>年增</th><th>毛利率</th><th>營益率</th><th>淨利率</th><th>EPS</th><th>EPS 年增</th><th>業外</th></tr></thead><tbody>`+
     qt.map(o=>`<tr><td>${qLab(o.q)}</td><td>${yi(o.rev)}</td><td>${psg(o.ry)}</td><td>${pc(o.gm)}</td><td>${pc(o.om)}</td><td>${pc(o.nm)}</td><td>${o.eps==null?'—':f(o.eps,2)}</td><td>${psg(o.ey)}</td><td>${yi(o.nonop)}</td></tr>`).join('')+`</tbody></table></div></details>`+
     `<div class=st style="margin-top:6px">資料：公開資訊觀測站綜合損益表、資產負債表彙總（2013 年起）、月營收彙總；單季數字＝當年累計相減，可能和公司公告的單季數差一點。財報以法定公告期限後才算進本益比。本段整理數據現況，不構成投資建議。</div></section>`;
-  return h;}
+  P.qt=h;return P;}
 /* 法人預估（docs/lab_forward_plan.md；使用者 2026-10-16：只顯示當參考；2026-10-17：直接寫出券商估的股價、要能點到來源與是哪些法人）。
    來源怎麼挑在 fcst.view 決定（FactSet 120 天內用 FactSet，否則 Yahoo）：pe＝EPS／營收預估、pt＝券商估的股價 */
 function fcGr(cur,prev){if(cur==null||prev==null)return '<span class=mu>—</span>';if(prev>0.05)return sgn((cur/prev-1)*100,0,'%');return cur>0.05&&prev<=0?'<span class=up>轉盈</span>':'<span class=mu>—</span>';}
@@ -260,7 +268,7 @@ function fcSrc(c,C,src,id,txt){const sym=c+(C&&C.doc.mk==='tp'?'.TWO':'.TW');if(
     `<a href="https://finance.yahoo.com/quote/${encodeURIComponent(sym)}/analysis/" target=_blank rel=noopener>${txt}</a>`;}
 function fcWho(c,C){const nm=C?C.doc.n:coNm(c);
   return `<a href="https://news.google.com/search?q=${encodeURIComponent(nm+' 目標價')}&hl=zh-TW&gl=TW&ceid=TW%3Azh-Hant" target=_blank rel=noopener>是哪些法人（目標價新聞）</a>`;}
-function fcSec(c,C,px){let h=`<section class=csec id=co-fc><h3>法人預估<span class=sub>分析師的預估${gi('法人預估')}</span></h3>`;
+function fcSec(c,C,px){let h=`<section class=csec id=co-fc><h3>分析師<span class=sub>分析師的預估${gi('法人預估')}</span></h3>`;
   if(!FC)return h+`<div class=st>${FCERR?'法人預估資料暫時無法載入。':'載入中…'}</div></section>`;
   const v=(FC.s||{})[c];if(!v||(!v.pe&&!v.pt))return h+`<div class=st>沒有分析師追蹤這檔（FactSet 調查與 Yahoo Finance 都沒有資料），多半是中小型股。</div></section>`;
   const pe=v.pe,pt=v.pt,t=v.t,y=v.y||{},ae={},ar={};annualEps(C).forEach(([yr,x])=>ae[yr]=x);
@@ -294,7 +302,7 @@ function fcSec(c,C,px){let h=`<section class=csec id=co-fc><h3>法人預估<span
   h+=`<div class=st style="margin-top:6px">目標價、EPS 都是券商分析師的預估：FactSet 調查是多位分析師的中位數（鉅亨網「台股預估」快訊，預估有變動才發一則${FC.fs_from?`，${esc(FC.fs_from.slice(0,4))} 年起`:''}）；FactSet 超過 4 個月沒有新快訊就改用 Yahoo Finance（每天更新）。「是哪些法人」連到這檔的目標價新聞，各家券商的數字在新聞裡。分析師常常修正預估，實際數字可能差很多；不構成投資建議。</div></section>`;
   return h;}
 /* 產業比較：產業別＝證交所／櫃買中心分類；產業數字由建頁算（D.ind），同業名次用 x9t 在瀏覽器排 */
-function indSec(c,r){let h=`<section class=csec id=co-ind><h3>產業比較<span class=sub>同產業的公司${gi('產業比較')}</span></h3>`;
+function indSec(c,r){let h=`<section class=csec id=co-ind><h3>同產業<span class=sub>同產業的公司${gi('產業比較')}</span></h3>`;
   const ii=MT?MT.cols.indexOf('ii'):-1;if(!MT||!r||ii<0||r.ii==null)return h+`<div class=st>${MT?'這檔沒有產業分類資料。':'載入中…'}</div></section>`;
   const nm=(MT.inds||[])[r.ii],I=((D.ind||{}).rows||[]).find(x=>x[0]===nm),IC=(D.ind||{}).cols||[],io=I?Object.fromEntries(IC.map((k,i)=>[k,I[i]])):null;
   const peers=Object.keys(MT.rows).filter(k=>MT.rows[k][ii]===r.ii).map(k=>Object.assign({c:k},mtRow(k))),N=peers.length,nR=((D.ind||{}).rows||[]).filter(x=>x[8]!=null).length;
@@ -312,20 +320,24 @@ function indSec(c,r){let h=`<section class=csec id=co-ind><h3>產業比較<span 
     top.map(p=>`<tr${p.c===c?' class=me':''}><td><a data-co="${esc(p.c)}">${esc(coNm(p.c))}</a> <span class=cd>${esc(p.c)}</span><div class=sm2>${p.cap==null?'':f(p.cap,p.cap>=1000?0:1)+' 億'}</div></td><td>${p.ry3==null?'—':sgn(p.ry3,0,'%')}</td><td>${cell(p.gm,1,'%')}</td><td>${cell(p.roe,1,'%')}</td><td>${p.pe==null?'—':f(p.pe,1)}</td><td class=hm>${p.rs==null?'—':p.rs}</td></tr>`).join('')+
     `</tbody></table></div><div class=st style="margin-top:6px">營收成長＝近 3 個月營收比去年同期（到 ${esc((D.ind||{}).ym||'—')}）；毛利率、ROE、本益比用最新財報。產業別用證交所／櫃買中心的分類，範圍比較大（例如「電子零組件業」包含很多不同產品）。</div></section>`;
   return h;}
-function coNav(){return [['co-sum','公司分析'],['co-sx','飆股檢查'],['co-fc','法人預估'],['co-ind','產業'],['co-gr','成長'],['co-pf','獲利'],['co-bs','體質'],['co-val','估值'],['co-dv','股利'],['co-qt','季報']];}
-/* 個股卡裡的一段（page.py renderStock 呼叫）：資料還沒到就先放「載入中」、到了重畫 */
-function coSec(c,W,re){if(CO[c]&&(MT||MTERR)&&(FC||FCERR)&&COIX)return coBody(c,W);
+/* 個股卡、公司卡、美股個股卡同一組頁籤、同一個順序（docs/lab_stock_page_plan.md 第 4.1 節）：策略 → 重點 → 走勢 → 為什麼選它 → 成長 → 獲利 → 估值 →
+   同產業 → 籌碼（台股另有 ETF 持有、訊號）→ 分析師 → 公司；那個市場沒有的段落不放。公司卡（不在籌碼雷達範圍）沒有走勢、籌碼，「公司」那段當重點放最上面。 */
+function coNav(){return [['co-sum','重點'],['c-why',PKU[COCUR]?'為什麼選它':'飆股檢查'],['co-gr','成長'],['co-pf','獲利'],['co-val','估值'],['co-ind','同產業'],['co-fc','分析師']];}
+/* 公司分析的每一段（coBody）；資料還沒到＝{ld: 載入中}，到了重畫 */
+function coParts(c,W,re,t){if(CO[c]&&(MT||MTERR)&&(FC||FCERR)&&COIX){const P=coBody(c,W,t);if(P)return P;}
   Promise.all([coLoad(c),mtLoad().catch(()=>null),fcLoad().catch(()=>null),coIdx().catch(()=>(COIX=COIX||[]))]).then(()=>re&&re(),()=>{CO[c]=CO[c]||null;const el=$('#co-ld');if(el)el.innerHTML='公司資料暫時無法載入　<a id=co-rt>重試</a>';const b=$('#co-rt');if(b)b.onclick=()=>{COP[c]=null;re&&re();};});
-  return `<section class=csec id=co-sum><h3>公司分析</h3><div class=ld id=co-ld>公司資料載入中…</div></section>`;}
+  return {ld:`<section class=csec id=co-wait><h3>公司資料</h3><div class=ld id=co-ld>公司資料載入中…</div></section>`};}
+/* 公司分析放進卡片：成長 → 獲利（＋財務體質）→ 估值（＋股利、季報明細）→ 同產業（載入中＝一段「載入中」） */
+function coMid(X){return X.ld||((X.gr||'')+(X.pf||'')+(X.bs||'')+(X.val||'')+(X.dv||'')+(X.qt||'')+(X.ind||''));}
 /* 不在籌碼雷達範圍的公司：只有公司分析的卡片 */
 function renderCo(c,keep){const dv=$('#dv'),pane=isPane(),st0=keep?dv.scrollTop:0;
   dv.classList.toggle('pane',pane);document.body.classList.toggle('pane',pane);dv.hidden=false;lockBody(!pane);
-  const W=Math.max(300,Math.floor($('#dvin').clientWidth-32));const C=CO[c],r=mtRow(c);const nm=C?C.doc.n:((COIX||[]).find(x=>x[0]===c)||[])[1]||c;
+  const W=Math.max(300,Math.floor($('#dvin').clientWidth-32));COCUR=c;const X=coParts(c,W,()=>renderCo(c,true),'重點');const C=CO[c],r=mtRow(c);const nm=C?C.doc.n:((COIX||[]).find(x=>x[0]===c)||[])[1]||c;
   const mk=C?(C.doc.mk==='tp'?'上櫃':'上市'):'';
   let h=`<div class=dvh><div class=dvt><div class=ttl><b>${esc(nm)}</b><span class=cd>${esc(c)}${mk?' · '+mk:''}${C&&C.doc.ind?' · '+esc(C.doc.ind):''}</span></div>`+
     `<div class=pxw><b>${r?fp(r.px):''}</b>${r&&r.ch!=null?sgn(r.ch,2,'%'):''}</div><a class=x id=x title="關閉（Esc）">×</a></div>`+
     `<nav class=cnav>${(PKU[c]?[['c-st','策略']]:[]).concat(coNav()).map(([id,t])=>`<a data-cto=${id}>${t}</a>`).join('')}</nav></div>`;
-  h+=eqRepLine('tw:'+c,nm)+stCardSec(c)+coSec(c,W,()=>renderCo(c,true));   /* 配置頁的股票不在籌碼雷達範圍（例：長線待買的天鈺）：公司卡最上面也放「配置」段 */
+  h+=eqRepLine('tw:'+c,nm)+stCardSec(c)+(X.sum||'')+whySec(c,X)+coMid(X)+(X.fc||'');   /* 配置頁的股票不在籌碼雷達範圍（例：長線待買的天鈺）：公司卡最上面也放「配置」段 */
   $('#dvin').innerHTML=h;dv.scrollTop=st0;$('#x').onclick=closeStock;
   $$('#dvin [data-cto]').forEach(a=>a.onclick=()=>{const t=document.getElementById(a.dataset.cto);if(t)dv.scrollTo({top:dv.scrollTop+t.getBoundingClientRect().top-dv.getBoundingClientRect().top-$('#dvin .dvh').offsetHeight+2,behavior:'smooth'});});
   if(COSEC&&CO[c]&&(FC||FCERR)&&coJump(COSEC))COSEC=null;
@@ -335,8 +347,8 @@ function coJump(id){const t=document.getElementById(id),dv=$('#dv');if(!t)return
   dv.scrollTo({top:dv.scrollTop+t.getBoundingClientRect().top-dv.getBoundingClientRect().top-$('#dvin .dvh').offsetHeight+2});return true;}
 window.addEventListener('hashchange',()=>{const m=location.hash.match(/^#co=(.+)$/);if(m)renderCo(decodeURIComponent(m[1]));});
 {const m=location.hash.match(/^#co=(.+)$/);if(m)renderCo(decodeURIComponent(m[1]));}
-/* 個股卡渲染後：從「查公司」來的就捲到公司分析 */
-function coAfterStock(c){if(COJ!==c)return;const done=CO[c]&&(MT||MTERR)&&(FC||FCERR);if(!coJump(done?(COSEC||'co-sum'):'co-sum'))return;
+/* 個股卡渲染後：從「查公司」來、有指定段落（例：分析師那一行連過來的 co-fc）就捲過去；沒指定就停在最上面 */
+function coAfterStock(c){if(COJ!==c)return;if(!COSEC){COJ=null;return;}const done=CO[c]&&(MT||MTERR)&&(FC||FCERR);if(!coJump(done?COSEC:'co-wait'))return;
   if(done){COJ=null;COSEC=null;}}
 
 /* ---- 查公司（頂欄）：第一次點才下載代號表 ---- */
