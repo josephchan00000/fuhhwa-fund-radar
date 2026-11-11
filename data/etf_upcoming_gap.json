@@ -1,19 +1,9 @@
 {
- "as_of": "2026-11-10 15:39",
+ "as_of": "2026-11-11 13:08",
  "count": 0,
  "items": [],
- "pipeline_n": 4,
+ "pipeline_n": 3,
  "pipeline": [
-  {
-   "code": null,
-   "name": "野村臺灣科技收益主動式ETF基金",
-   "first_seen": null,
-   "kind": "offering",
-   "src": "cnyes",
-   "stage": "applied",
-   "cat": "主動式ETF",
-   "approve": "115.11.11申報生效"
-  },
   {
    "code": null,
    "name": "群益動態增益非投資等級債券主動式ETF基金",

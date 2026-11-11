@@ -12,10 +12,10 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "daily｜bars｜day｜idx｜backfill｜fomc｜futday"
+        description: "daily｜bars｜rebars｜day｜idx｜backfill｜fomc｜futday"
         default: "daily"
       start:
-        description: "起點（day：YYYY-MM；idx：YYYY-MM-DD；空白＝預設）"
+        description: "起點（day：YYYY-MM；idx：YYYY-MM-DD；rebars：要重抓的日子，逗號分隔；空白＝預設）"
         default: ""
       budget:
         description: "最多跑幾分鐘"

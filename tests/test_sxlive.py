@@ -633,3 +633,16 @@ def test_panel_skips_dividend_events_already_absorbed_by_the_page_basis():
     px = L.panel({"P": P}, ["6669", "1101"], ev)
     assert px["6669"]["f"][0] == 1.0 and px["6669"]["c"][0] == pytest.approx(7000 * 2610 / 7800)   # 只換算一次
     assert px["1101"]["f"][0] == pytest.approx(0.3353)                                         # 沒有口徑資料的照舊乘
+
+
+def test_book_curve_for_pick_page_scoreboard():
+    """選股頁成績單：那本帳與加權報酬指數每天的值（兩邊都有的日子）；不到兩天＝沒有。"""
+    from arm.lab import sxlive as SL
+    rec = {"nav": {"2026-10-22": [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0],
+                   "2026-10-30": [94.7, 100.0, 100.0, 98.2, 97.0, 100.0, 94.2],
+                   "2026-11-02": [91.6, 103.4, 102.0, 97.6, 97.1, 105.4, 94.6],
+                   "2026-11-03": [84.0, 94.4, 98.0, None, 92.7, 98.9, 88.1]}}
+    cv = SL.book_curve(rec)
+    assert cv == {"d": ["2026-10-22", "2026-10-30", "2026-11-02"], "nav": [100.0, 100.0, 105.4], "tr": [100.0, 98.2, 97.6]}
+    assert SL.book_curve(rec, "R60")["nav"] == [100.0, 94.7, 91.6]
+    assert SL.book_curve({"nav": {"2026-10-22": [100.0] * 7}}) is None and SL.book_curve({}) is None

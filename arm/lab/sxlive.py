@@ -702,6 +702,11 @@ def plan_state(rec: dict, ctx: dict, names: dict | None = None, trial: list | No
                             "out": out["next"] if q["pend"] else sell, "sell": bool(q["pend"]),
                             "take": take, "bt": bool(seed) and cal[ei] <= S.TAKE,
                             "rl": (float(cl / c0 - 1) if _ok(cl) and _ok(c0) and c0 else None) if take else r})
+    if n8 and out["hold"]:                                 # 個股卡「為什麼選它」：買進那週符合的那一條、每個條件買進時和現在的數字
+        try:
+            hold_cmp(out["hold"], W, _rules, ctx, i1)
+        except Exception as e:                             # noqa: BLE001 —— 算不出來只少這張表
+            print(f"[sxlive] ⚠ 持股的「買進時／現在」算不出來：{type(e).__name__}: {e}")
     out["sell"] = [h["c"] for h in out["hold"] if h["sell"]]
     cash = bk.cash + sum(q["k"] * (px[c]["c"][i1] if _ok(px[c]["c"][i1]) else px[c]["cff"][i1]) * (1 - T["sell_tax"])
                          for c, q in bk.pos.items() if q["pend"])
@@ -742,6 +747,30 @@ def plan_state(rec: dict, ctx: dict, names: dict | None = None, trial: list | No
 
 
 PICK_TOP = S.TRADE_N8["slots"]        # 選股頁「現在開始的話」列幾檔＝N8 的格數（docs/lab_boom_v2_plan.md 第 8、9 節）
+
+
+def hold_cmp(hold: list, W: dict, rules: dict, ctx: dict, i1: int) -> None:
+    """每一檔持股加 "cmp"＝{"d": 那週訊號日, "now": 最新收盤日, "rows": [[條件, 要多少, 買進時, 過了沒, 現在, 過了沒]]}：
+    買進那週符合的第一條規則（同頁面「符合：…」那一條），每個條件那週記的數字對今天收盤的數字（superx.feats_on）。
+    只給個股卡看；買進以後照規則抱滿，不看這些數字（docs/lab_stock_page_plan.md 第 4.1 節）。"""
+    from . import superx as SX
+    F = None
+    for h in hold:
+        sd = h.get("sig")
+        rs = rules.get(int(sd[:4])) if sd else None
+        w = (((W.get(sd) or {}).get("why") or {}).get(S.LIST_BOOK) or {}).get(h["c"]) if sd else None
+        ks = [k for k in (w or {}).get("k") or [] if rs and 0 <= k < len(rs)]
+        if not ks:
+            continue
+        if F is None:
+            F = feats_at(ctx, i1)
+        v0, v1 = w.get("v") or {}, F.get(h["c"]) or {}
+        rows = []
+        for cond in rs[ks[0]]:
+            cond = tuple(cond)
+            nm, req = SX.cond_head(cond)
+            rows.append([nm, req, *SX.cond_cell(cond, v0.get(cond[0])), *SX.cond_cell(cond, v1.get(cond[0]))])
+        h["cmp"] = {"d": sd, "now": ctx["P"].cal[i1], "rows": rows}
 
 
 def pick_state(ctx: dict, last: str, W: dict, cur: list, cur_d: str, trial: bool, rules: list | None,
@@ -787,6 +816,18 @@ def trial_list(ctx: dict, d: str, R: dict | None = None, why: dict | None = None
 
 
 YTD_COL = {"R60": 0, "N8B": 6}        # nav 的哪一欄（ytd_part 用）
+NAV_COL = {"R60": 0, "A": 1, "R1": 2, "TR": 3, "EW": 4, "N8": 5, "N8B": 6}   # nav 每一列的欄位（perf 的 rows）
+
+
+def book_curve(rec: dict, book: str | None = None) -> dict | None:
+    """選股頁成績單（docs/lab_stock_page_plan.md 第 4.1 節）：那本帳每天的淨值與同一天的加權報酬指數（都是 nav 那幾欄、100 起算）。
+    → {"d": [日期], "nav": [那本帳], "tr": [大盤]}（兩邊都有值的日子）；不到兩天＝None。從哪一天起算由頁面決定（還沒買的日子不算）。"""
+    col, tr = NAV_COL[book or S.PLAN_BOOK], NAV_COL["TR"]
+    rows = [(d, v[col], v[tr]) for d, v in sorted((rec.get("nav") or {}).items())
+            if v and len(v) > max(col, tr) and v[col] and v[tr]]
+    if len(rows) < 2:
+        return None
+    return {"d": [r[0] for r in rows], "nav": [float(r[1]) for r in rows], "tr": [float(r[2]) for r in rows]}
 
 
 def ytd_part(rec: dict, ctx: dict, last: str | None, book: str | None = None) -> dict | None:
@@ -938,6 +979,7 @@ def update(DL, ctx: dict | None = None, now=None, write_file: bool | None = None
         r2 = dict(rec, last=last)
         plan = plan_state(r2, ctx, nm, tr, R, seed, book=S.TAKE_BOOK, hist=hist)   # START 之前（資料停在 START 前一天）也要算下一次看名單的日子
         n8 = plan_state(r2, ctx, nm, tr, R, seed, book=S.PLAN_BOOK, hist=hist)
+        n8["curve"] = book_curve(rec)                      # 選股頁成績單：每天的淨值與同期大盤
         try:                                               # 選股頁的新飆股卡片：最新的名單（週中＝試算）照 N8 會買的、新上名單
             W = {**seed_weeks(seed), **(rec.get("weeks") or {})}
             if tfull:

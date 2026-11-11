@@ -1,4 +1,5 @@
-"""選股頁（arm/lab/pickpage.py；docs/lab_pick_page_plan.md）：台股｜美股＝進場行事曆＋每條策略一張卡；原本的配置搬到研究紀錄。
+"""選股頁（arm/lab/pickpage.py；docs/lab_pick_page_plan.md）：台股｜美股＝成績單＋這週要做的事＋進場行事曆＋每條策略一張卡（同一個模板，
+docs/lab_stock_page_plan.md 第 4.1 節）；原本的配置搬到研究紀錄。
 台股推薦架構（docs/lab_pick_arch_plan.md 第 3 節）：買不買只看那條策略自己的規則，「買」的旁邊不放別的方法的價位。"""
 import json
 import re
@@ -48,7 +49,7 @@ def _A():
             {"k": "hd", "name": "高股息換股", "tier": "ref", "rank": None},
             {"k": "s1", "name": "共識加碼", "tier": "none", "rank": None}]
     picks = [{"k": "v3l", "c": "2303", "n": "聯電", "act": "持有中", "ent": "2026-08-17", "entry": 121.5, "now": 128.0, "now_r": 5.35,
-              "out": "2026-11-13", "bt": True, "rl": -0.041, "why": ["EPS 成長"]},
+              "out": "2026-11-13", "bt": True, "rl": -0.041, "since": "2026-10-15", "why": ["EPS 成長"]},
              {"k": "v7l", "c": "2345", "n": "智邦", "act": "持有中", "ent": "2026-10-13", "entry": 2090.0, "now": 1815.0, "now_r": -13.2,
               "out": "2026-11-10", "why": []}]
     cal = [{"d": "2026-11-13", "at": "收盤", "k": "v3l", "act": "賣出", "items": [{"c": "2303", "n": "聯電"}], "note": "8/17 買進的"},
@@ -72,11 +73,11 @@ def test_tw_view_cards_calendar_and_positions():
     for k in ("boom", "s3", "v3l"):
         assert f'id="pk-{k}"' in V["cards"], k
     assert 'id="pk-v7l"' in V["others"] and "pk-v7l" in V["olist"]
-    s3 = V["cards"][V["cards"].index('id="pk-s3"'):]
-    order = [s3.index(x) for x in ("選什麼", "什麼時候", "怎麼分錢", "過去照做", "現在拿著")]
-    assert order == sorted(order)
+    v3 = V["cards"][V["cards"].index('id="pk-v3l"'):]
+    order = [v3.index(x) for x in ("現在拿著", "pkht", "接下來", "規則、過去照做、風險", "<dt>選什麼", "<dt>什麼時候", "<dt>怎麼分錢", "<dt>過去照做")]
+    assert order == sorted(order)                                                    # 先看手上的與接下來，規則收起來
     assert 'data-c="2303" data-co="2303"' in V["cards"]                              # 每一檔點了開個股卡
-    assert "11/13 收盤賣" in V["cards"] and "8/17 買（回測）" in V["cards"]
+    assert "11/13 收盤賣" in V["cards"] and '8/17 121.5<span class="pkbt">回測</span>' in V["cards"] and "上線以來 −4.1%" in V["cards"]
     assert "分 8 格" in V["cards"] and "5 檔等額" in V["cards"]
     ev = V["ev"]
     assert all(len(e) == 7 for e in ev)
@@ -151,7 +152,7 @@ console.log(JSON.stringify({m:S0.m,ms,left:pkLeft(PICK.tw),on:[...S0.on],
 
 def test_boom_box_trial_statuses_and_card_sections():
     """新飆股（N8，從現金開始）：試算名單照規則會買前 8 格；列只有這條策略自己的欄（沒有書上的位置與參考價位）；
-    卡片＝接下來 → 我的 → 這週名單（8 格＋排隊）→ 為什麼不等買點 → 規則（收起）→ 照規則的紀錄；原本的飆股名單只留一行連到研究紀錄。
+    卡片＝（現在拿著）→ 接下來 → 我的 → 這週名單（8 格＋排隊）→ 為什麼不等買點 → 規則（收起）；原本的飆股名單只留一行連到研究紀錄。
     名單位置圖 2026-10-30 拿掉（使用者：「完全看不懂」；docs/lab_pick_arch_plan.md 第 9 節）。"""
     P = _P8()
     X = PP.boom_box(P)
@@ -166,7 +167,7 @@ def test_boom_box_trial_statuses_and_card_sections():
     page = "const D=" + json.dumps({"pick": {"tw": V}}, ensure_ascii=False, separators=(",", ":")) + ";"
     assert [c["code"] for c in Q.upcoming("2026-10-30", page, {})] == [r[0] for r in X["rows"] if r[6] == "b"]
     c = V["cards"][V["cards"].index('id="pk-boom"'):V["cards"].index('id="pk-s3"')]
-    order = [c.index(x) for x in ("接下來", 'id="pkmine"', 'id="pkbx"', "不等買點", "規則、過去照做、風險", "照規則的紀錄")]
+    order = [c.index(x) for x in ("接下來", 'id="pkmine"', 'id="pkbx"', "不等買點", "規則、過去照做、風險")]
     assert order == sorted(order) and "名單位置圖" not in c and "pkspot" not in c
     assert "買 4 檔" in c and "騰雲" in c and "11/2（一）開盤" in c
     assert 'id="pkold"' not in c and 'data-at="cf-tw-sx"' in c                              # 原本的飆股名單在研究紀錄
@@ -314,3 +315,156 @@ def test_boom_queue_cut_line_held_and_slots_in_browser():
     assert "下一次有空格：11/10（二）開盤賣 乙（抱滿 60 個交易日）。" in a
     for w in BOOK + ("位置",):
         assert w not in b, w
+
+
+# ── 台美同一個骨架（2026-11-11，docs/lab_stock_page_plan.md 第 4.1 節）：成績單、同期大盤、同一個模板的策略卡、美股這週要做的事 ──
+
+def _B():
+    """大盤（測試用）：10/1 起每個平日一個值，前 10 天 100、之後每天少 1。"""
+    from datetime import date, timedelta
+    q, d, v = {}, date(2026, 8, 3), 100.0
+    while d <= date(2026, 11, 10):
+        if d.weekday() < 5:
+            q[d.isoformat()] = v
+            if d >= date(2026, 10, 15):
+                v -= 1.0
+        d += timedelta(days=1)
+    return PP.Bench(q)
+
+
+def test_bench_same_period_and_curve_from_first_buy():
+    B = _B()
+    assert B.ret("2026-08-17", "2026-10-14") == 0.0                                    # 買進前一個交易日收盤 → 最新收盤
+    assert round(B.ret("2026-10-16", "2026-10-20"), 4) == round(97 / 100 - 1, 4)       # 10/15 收盤 100 → 10/20 收盤 97
+    assert round(B.cc("2026-10-15", "2026-10-20"), 4) == round(97 / 100 - 1, 4) and B.cc("2026-10-20", "2026-10-20") is None
+    assert B.ret(None, "2026-10-20") is None and PP.Bench({}).ret("2026-10-16", "2026-10-20") is None
+    # 那本帳前三天還沒買（淨值不動）：從最後一個不動的日子起算，那幾天大盤跌的不算
+    L = PP.curve_stat(["a", "b", "c", "d", "e"], [100, 100, 100, 110, 99], [100, 95, 90, 99, 81])
+    assert L["a"] == "c" and L["d"] == "e" and round(L["s"], 4) == -0.01 and round(L["b"], 4) == -0.1 and round(L["mdd"], 4) == 0.1
+    assert PP.curve_stat(["a", "b"], [100, 100], [1, 2]) is None and PP.curve_stat(["a"], [1], [1]) is None
+
+
+def test_score_row_average_benchmark_gap_and_tags():
+    held = [{"r": -0.20, "bm": -0.05}, {"r": -0.10, "bm": -0.05}, {"r": None, "bm": None}]          # 第三檔剛買、還沒有漲跌
+    sc = PP.score_of(held)
+    assert sc["n"] == 3 and sc["new"] == 1 and round(sc["avg"], 4) == -0.15 and round(sc["bm"], 4) == -0.05 and round(sc["diff"], 2) == -10.0
+    assert "落後大盤" in PP.score_tags(sc) and "領先大盤" in PP.score_tags(dict(sc, diff=PP.LAG_PT))
+    assert PP.score_tags(dict(sc, diff=-PP.LAG_PT + 0.1)) == "" and "空手" in PP.score_tags(PP.score_of([]))
+    assert "暫停中" in PP.score_tags(dict(sc, halt=True)) and "比過去最差還差" in PP.score_tags(dict(sc, worse=True))
+    assert PP.score_of([{"r": -0.1, "bm": None}])["diff"] is None                                   # 少一檔沒有大盤就不比
+    b = {"unit": "次", "exp": {"n": 8, "lo": -3.6}}
+    assert PP.past_cmp_adv(b, held) == ("這一次平均 −15.0%；過去最差一次 −3.6%（8 次）", True)
+    assert PP.past_cmp_adv(dict(b, unit="檔", exp={"n": 33, "lo": -22.8}), held) == ("這次最差一檔 −20.0%；過去最差一檔 −22.8%（33 檔）", False)
+    assert PP.past_cmp_curve({"mdd": 0.167}, 0.424, 2019) == ("這次最深跌 16.7%；過去最深跌 42%（2019 年起）", False)
+    assert PP.past_cmp_curve({"mdd": 0.5}, 0.424, None)[1] is True and PP.past_cmp_curve(None, 0.4, 2019) == ("", False)
+
+
+def test_tw_scoreboard_rows_follow_the_cards(monkeypatch):
+    """成績單每條主要策略一列，數字和策略卡上的同一批；空手的寫下一次什麼時候。"""
+    monkeypatch.setattr(PP, "bench", lambda mk: _B())
+    P = dict(_P(), curve={"d": ["2026-10-22", "2026-10-23", "2026-10-26", "2026-10-27", "2026-10-28"],
+                         "nav": [100, 100, 104, 96, 98], "tr": [100, 99, 98, 97, 96]})
+    V = PP.tw_view({"adv": _A(), "n8": P}, {"R": {}}, today="2026-10-28")
+    t = V["score"]
+    assert 'id="pk-tw-score"' in t and t.count('class="l pkscn"') == 3
+    for k in ("boom", "s3", "v3l"):
+        assert f'data-to="pk-{k}"' in t
+    rows = re.findall(r"<tr[^>]*>(.*?)</tr>", t, re.S)[1:]
+    boom, s3, v3 = [re.sub(r"\s+", "", _text(r)) for r in rows]
+    assert "1檔" in boom and "+10.0%" in boom and "10/23起−2.0%（大盤−3.0%）" in boom              # 10/22 還沒買，從 10/23 收盤算
+    assert "這次最深跌7.7%" in boom or not PP.w10()                                               # 104 → 96
+    assert "空手" in s3 and "—" in s3
+    assert "+5.3%" in v3 or "+5.4%" in v3                                                          # 聯電 +5.35%
+    assert "8/17起" not in v3 and "10/15起−4.1%（大盤−9.0%）" in v3                                                  # 回測買的：開始照做以來另外算（上線以來）
+    card = V["cards"][V["cards"].index('id="pk-v3l"'):]
+    assert '<span class="pkst">拿著 1 檔</span>' in card and "平均 +5." in card and "同期大盤" in card
+    assert '<span class="pkst w">空手</span>' in V["cards"][V["cards"].index('id="pk-s3"'):V["cards"].index('id="pk-v3l"')]
+    for w in BANNED + PLAIN_BAD:
+        assert w not in _text(t), w
+
+
+def _G():
+    """美股強勢品質股（cfgpage.us_state 的格式）：1 檔回測買的、1 檔要賣、1 檔剛買、1 檔待買進、1 檔剛賣掉。"""
+    return {"on": True, "d": "2026-11-10", "nf": "2026-11-13", "sw": 1.0, "c0": 0.0, "idle": 0.0, "free": 0, "uc": {"ANF", "QLYS"},
+            "nms": {}, "W": {},
+            "n": {"d": "2026-11-06", "list": [], "hold": [{"c": "ANF", "epx": 154.5, "px": 149.5, "r": -0.03},
+                                                          {"c": "QLYS", "epx": 224.1, "px": 190.4, "r": -0.15},
+                                                          {"c": "PAYC", "epx": 274.6, "px": 237.3, "r": -0.136}]},
+            "rows": [{"c": "ANF", "ent": "2026-10-19", "r": -0.003, "pct": 0.042, "sell": None, "trig": None, "rk": 4, "rs": 97.0,
+                      "bt": True, "rl": -0.012, "w": 0.144},
+                     {"c": "QLYS", "ent": "2026-11-02", "r": -0.219, "pct": -0.082, "sell": "2026-11-11", "trig": "2026-11-10", "rk": 18,
+                      "rs": 93.0, "bt": False, "rl": None, "w": 0.031},
+                     {"c": "SEZL", "ent": "2026-11-09", "r": None, "pct": None, "sell": None, "trig": None, "new": True, "rk": 1, "rs": 98.0,
+                      "w": 0.12}],
+            "todo": [{"c": "SN", "d": "2026-11-16", "rk": 2, "rs": 98.0, "w": 0.125}],
+            "gone": [{"c": "PAYC", "on": "2026-11-10", "trig": "2026-11-09"}]}
+
+
+def test_us_rows_same_columns_as_tw():
+    held, todo, gone = PP.us_rows(_G(), _B())
+    anf, qlys, sezl = held
+    assert anf["epx"] == 154.5 and round(anf["px"], 2) == round(154.5 * 0.997, 2) and anf["bt"] and anf["rl"] == -0.012
+    assert round(anf["bm"], 4) == round(82 / 99 - 1, 4)                                # 10/16 收盤 99 → 11/10 收盤 82
+    assert "收盤跌破 50 日線才賣（現在比 50 日線高 4.2%）" == anf["sell"] and "11/11（三）開盤賣（11/10 收盤跌破 50 日線）" == qlys["sell"]
+    assert sezl["new"] and sezl["r"] is None and sezl["bm"] is None
+    assert "這週名單第 4 名、強度 97" in anf["why"] and anf["w"] == "占這條策略的錢 14%"
+    assert todo == [{"c": "SN", "n": todo[0]["n"], "att": todo[0]["att"], "when": "11/16（一）開盤買", "note": "約 12%", "why": "這週名單第 2 名"}]
+    assert gone[0]["c"] == "PAYC" and gone[0]["r"] == -0.136 and gone[0]["rd"] == "2026-11-06"
+    g = PP.gone_line(gone)
+    assert "最近賣掉的" in g and "11/10（二）開盤賣（11/9 收盤跌破 50 日線；11/6 收盤時 −13.6%）" in g
+    t = PP.hold_table(held)
+    assert t.count("<tr") == 4 and 'href="#us=ANF" data-us="ANF"' in t and "上線以來 −1.2%" in t and "買進價等這週六的紀錄" in t
+    tw = PP.hold_table(PP.adv_rows(_A(), "v3l", _B(), "2026-10-28")[0])
+    head = lambda x: re.findall(r"<th(?: [^>]*)?>(.*?)</th>", x)                             # noqa: E731
+    assert head(t) == head(tw) == ["股票", "買進", "現價", "漲跌", "同期大盤", "什麼時候賣"]   # 台美同樣的欄
+
+
+def test_cards_share_one_template_across_markets(monkeypatch):
+    """新飆股、財報驚喜、美股強勢品質股三張卡：同一組段落、同一個順序（標題 → 現在拿著 → 接下來 → 規則收起）。"""
+    monkeypatch.setattr(PP, "bench", lambda mk: _B())
+    V = PP.tw_view({"adv": _A(), "n8": _P()}, {"R": {}}, today="2026-10-28")
+    G = _G()
+    evs = [{"d": "2026-11-11", "at": "開盤", "k": "qm", "act": "賣出", "items": [{"c": "QLYS", "n": "Qualys"}], "note": "收盤跌破 50 日線"},
+           {"d": "2026-11-13", "at": "收盤", "k": "qm", "act": "名單", "items": [], "note": "這一週的名單", "proj": True},
+           {"d": "2026-11-16", "at": "開盤", "k": "qm", "act": "買進", "items": [{"c": "SN", "n": "SharkNinja"}], "note": ""},
+           {"d": "2026-11-12", "at": "", "k": "ern", "act": "財報", "items": [{"c": "ANF", "n": "Abercrombie & Fitch"}], "note": "財報公布日"}]
+    held, todo, gone = PP.us_rows(G, _B())
+    us = PP.us_card(G, evs, {}, held, todo, gone, PP.score_of(held))
+    c = V["cards"]
+    boom, v3 = c[c.index('id="pk-boom"'):c.index('id="pk-s3"')], c[c.index('id="pk-v3l"'):]
+    marks = ('class="pkh"', 'class="pkst"', "現在拿著", 'class="sxt pkht"', 'class="pktodo"', "接下來", 'class="cfdet pkdet pkrule"', "<dt>選什麼",
+             "<dt>什麼時候", "<dt>怎麼分錢", "<dt>過去照做", "<dt>風險")
+    for name, card in (("boom", boom), ("v3l", v3), ("qm", us)):
+        order = [card.index(m) for m in marks]
+        assert order == sorted(order), name
+    assert "待買進 1 檔" in us and 'class="sxt pkht pktd"' in us and us.index("接下來") < us.index("待買進 1 檔") < us.index("pkrule")
+    assert "賣 1 檔</b>：<a " in us and "出新名單</b>：這一週的名單" in us and "財報公布日" not in us     # 財報日只在行事曆與這週要做的事
+    assert "最近賣掉的" in us and us.index("pkht") < us.index("最近賣掉的") < us.index("pktodo")
+    for w in BANNED + PLAIN_BAD:
+        assert w not in _text(us), w
+    # 美股「這週要做的事」：和台股同一張表（哪一天｜策略｜做什麼｜條件｜什麼時候賣），股票開美股個股卡，持股公布財報另外一行
+    W = PP.week_rows(evs, "2026-11-10", ["qm"], mk="spx")
+    assert (W["a"], W["b"]) == ("2026-11-11", "2026-11-17") and [(r["d"], r["act"]) for r in W["rows"]] == [("2026-11-11", "賣出"), ("2026-11-16", "買進")]
+    assert W["rows"][1]["cond"] == PP.META["qm"]["cond"] and W["rows"][1]["exit"] == PP.META["qm"]["exit"] and W["rows"][0]["cond"] == ""
+    assert W["fix"] == [["qm", [["2026-11-13", "收盤"]]]] and W["ern"] == [["2026-11-12", [["ANF", "Abercrombie & Fitch"]]]]
+    t = PP.week_box(W, {"qm": 1}, None, mk="us", att=lambda x: PP.CFP._ua(x, G))
+    tw = V["todo"]
+    head = lambda x: re.findall(r"<th(?: [^>]*)?>(.*?)</th>", x)                             # noqa: E731
+    assert 'id="pk-us-todo"' in t and head(t) == head(tw) and 'data-us="QLYS"' in t and 'data-to="pk-qm"' in t
+    assert "持股公布財報" in t and "會出新名單的日子" in t and "美國當地日期" in t and "pkeq" not in t
+    for w in BANNED + PLAIN_BAD + BOOK:
+        assert w not in _text(t), w
+
+
+def test_slots_show_change_since_buy_in_browser():
+    """8 格：拿著的那幾格多一行買進後的漲跌（docs/lab_stock_page_plan.md 第 4.1 節）。"""
+    if not shutil.which("node"):
+        pytest.skip("沒有 node")
+    P = dict(_P8(), hold=[{"c": "9001", "n": "甲", "sell": False, "out": "2026-11-10", "r": 0.0449},
+                          {"c": "9002", "n": "乙", "sell": False, "out": "2026-11-12", "r": -0.174}])
+    X = PP.boom_box(P)
+    assert X["hr"] == {"9001": 0.0449, "9002": -0.174} and X["hold"][0] == ["9001", "甲", "2026-11-10", False]
+    out = _node("globalThis.pctT=(x,d)=>(x>=0?'+':'−')+Math.abs(x).toFixed(d)+'%';console.log(JSON.stringify({a:pkSlots(pkBx())}));",
+                {"tw": {"bx": X}})
+    assert '<span>11/10 賣</span><span class="pkslr up">+4.5%</span>' in out["a"] and '<span class="pkslr dn">−17.4%</span>' in out["a"]
+
