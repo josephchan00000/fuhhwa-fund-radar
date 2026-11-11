@@ -177,3 +177,6 @@
 - `arm/lab/pickpage.py`：成績單（`score_box`，同期大盤 `Bench`）、美股「這週要做的事」（`week_rows`／`week_box` 加 mk）、策略卡同一個模板（`_card`、`hold_table`、`todo_table`、`next_box`）；`sxlive.book_curve`（新飆股那本帳每天淨值與大盤）。不改任何策略規則。
 - 改了 [選股頁](lab/pick-page.md)；規劃與結果 `docs/lab_stock_page_plan.md` 第 7 節。
 
+## [2026-11-11] 收錄 | 選擇權結算日案例：txospec VER 2（O1 兩個對照、O4 結算均價）
+- 使用者上傳「台指週選結算日交易逆向拆解」：A＝O1（VER 1 已寫好、還沒跑）、B＝新的 O4；使用者選兩條都做、O1 加兩個對照。結算價改照期交所算法（13:00～13:25 每 5 秒＋收盤，301 個）。改了 [台指選擇權](lab/txo.md)；規劃 `docs/lab_txo_plan.md` 第 19 節。
+
