@@ -1,29 +1,8 @@
 {
- "as_of": "2026-11-11 13:08",
- "count": 2,
+ "as_of": "2026-11-11 15:35",
+ "count": 0,
  "fund_count": 0,
- "etf_count": 2,
+ "etf_count": 0,
  "usqm_count": 0,
- "items": [
-  {
-   "src": "etf",
-   "name": "聯陽",
-   "ticker": "3014",
-   "count": 1,
-   "etfs": [
-    "00404A"
-   ],
-   "weight": 0.56
-  },
-  {
-   "src": "etf",
-   "name": "天鈺",
-   "ticker": "4961",
-   "count": 1,
-   "etfs": [
-    "00404A"
-   ],
-   "weight": 0.19
-  }
- ]
+ "items": []
 }
