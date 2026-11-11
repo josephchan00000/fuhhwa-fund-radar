@@ -443,7 +443,7 @@ h3{font-size:14.5px;margin:18px 0 6px;color:var(--accd)}
 .cnav a{padding:2px 10px;border-radius:12px;color:var(--ink2);font-size:13px;white-space:nowrap}
 .cnav a.on{background:var(--hlbg);color:var(--accd);font-weight:700}
 .csec{padding:16px 0 4px}
-.csec>h3{font-size:16px;color:var(--ink);margin:0 0 10px}.csec>h3 .sub{font-size:12px;color:var(--mut);font-weight:400;margin-left:8px}
+.csec>h3{font-size:16px;color:var(--ink);margin:0 0 10px}.csec>h3 .sub,.csec h4.sh .sub{font-size:12px;color:var(--mut);font-weight:400;margin-left:8px}
 .sgrow{margin:0 0 2px}
 .sum{margin:6px 0 14px;padding-left:20px}.sum li{margin:6px 0;line-height:1.75}
 .kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
@@ -1941,15 +1941,24 @@ function idxHits(c){
 function stCardSec(c){const P=PKU[c];if(!P)return '';const Q=CPOS[c]||[];
   return `<section class=csec id=c-st><h3>策略<span class=sub>台股</span></h3>`+P.map(p=>{const q=Q.find(x=>x.k===p.k)||{},b=BK[p.k]||{},e=b.exp||{},u=b.unit||'次',sw=(LV[p.k]||{}).src==='p7';
     const wt='';
-    const why=q.y||(p.why||[]).join('；');
-    if(p.k==='boom')return `<div class=sgi><b><a data-go="tw" data-at="pk-boom">新飆股</a></b><div class=pasl style="margin-top:2px">${p.act==='持有中'?'持有中':'待買進'}：${esc(q.t||'')}</div>`+
-      (why?`<div class=st>為什麼：${esc(why)}</div>`:'')+`</div>`;
+    if(p.k==='boom')return `<div class=sgi><b><a data-go="tw" data-at="pk-boom">新飆股</a></b><div class=pasl style="margin-top:2px">${p.act==='持有中'?'持有中':'待買進'}：${esc(q.t||'')}</div></div>`;
     const out=p.out?`${mdw(p.out)}收盤${sw?'換股':'賣出'}`:esc(p.out_how||'');
     const st=p.act==='持有中'?`持有中：${mdw(p.ent)}買進${p.entry!=null?` ${fp(p.entry)}，現在 ${fp(p.now)}（${sgn(p.now_r,1,'%')}）`:''}；${out}`
       :`待買進：${mdw(p.ent)}開盤${p.tent?'（試算名單）':''}${p.px!=null?`，參考價 ${fp(p.px)}`:''}${p.stop!=null?`、停損 ${fp(p.stop)}`:''}；${out}`;
     return `<div class=sgi><b><a data-go="tw" data-at="pk-${esc(p.k)}">${esc(p.sname)}</a></b><div class=pasl style="margin-top:2px">${st}${wt}</div>`+
-      (why?`<div class=st>為什麼：${esc(why)}</div>`:'')+
       (e.n?`<div class=st>過去照做：每${u}平均 ${pctT(e.avg)}、中位 ${pctT(e.med)}，${e.win}% 賺錢；同期大盤 ${pctT(e.mk)}</div>`:'')+`</div>`;}).join('')+`</section>`;}
+/* 為什麼選它（docs/lab_stock_page_plan.md 第 4.1 節；和美股個股卡同一段、同一張表）：每條策略選它的理由；新飆股拿著的另有
+   「買進時／現在」表（買進那週符合的那一條規則，每個條件那週和今天收盤的數字；pickpage.boom_pos 的 m，新飆股那本帳算的）；
+   下面是飆股體質檢查（公司分析算的，X＝coParts）。不在任何策略裡＝只有飆股體質檢查。 */
+function cmpTbl(m){const cell=(t,ok)=>`<td>${ok==null?'':ok?'<i class=ucok>✓</i>':'<i class=ucno>✗</i>'}${esc(t)}</td>`;
+  return `<div class=tw><table class=ucfv><tr><th></th><th>買進時<span>${md(m.d)} 那週</span></th><th>現在<span>${md(m.now)} 收盤</span></th></tr>`+
+    (m.rows||[]).map(r=>`<tr><td class=l><b>${esc(r[0])}</b><span>${esc(r[1])}</span></td>${cell(r[2],r[3])}${cell(r[4],r[5])}</tr>`).join('')+`</table></div>`+
+    `<p class=note>買進那週符合的那一條規則。買進以後抱滿 60 個交易日，這幾個數字變差也照樣拿著。</p>`;}
+function whySec(c,X){const P=PKU[c],Q=CPOS[c]||[],sx=X&&X.sx;
+  if(!P)return sx?`<section class=csec id=c-why><h3>飆股體質檢查<span class=sub>${X.sxs||''}</span></h3>${sx}</section>`:'';
+  return `<section class=csec id=c-why><h3>為什麼選它</h3>`+P.map(p=>{const q=Q.find(x=>x.k===p.k)||{},why=q.y||(p.why||[]).join('；');
+      return `<div class=sgi><b>${esc(p.k==='boom'?'新飆股':p.sname)}</b>${why?`<div class=st>${esc(why)}</div>`:''}${q.m?cmpTbl(q.m):''}</div>`;}).join('')+
+    (sx?`<h4 class=sh>飆股體質檢查<span class=sub>${X.sxs||''}</span></h4>${sx}`:'')+`</section>`;}
 /* 個股報告一行（docs/lab_equity_report_plan.md 第 11 節、docs/lab_eq_request_plan.md 第 3.1 節）：個股卡、公司卡、美股個股卡最上面。
    有報告＝連結（D.eq＝{"tw:代號":[報告日,評等]}）；已申請＝申請日（D.eqreq＝{"tw:代號":[單號,申請日]}）；都沒有＝「要個股報告」，
    打開 GitHub 申請單、代號已填好（美股只有 D.equs 裡的才有）；按過的在這台裝置記 7 天，先寫「已送出，等排程」。 */
@@ -1974,26 +1983,30 @@ function renderStock(c,keep){
   dv.classList.toggle('pane',pane);document.body.classList.toggle('pane',pane);dv.hidden=false;lockBody(!pane);
   const W=Math.max(300,Math.floor($('#dvin').clientWidth-32));
   const i=CTX.indexOf(c),pv=i>0,nx=i>=0&&i<CTX.length-1;
-  const secs=[...(PKU[c]?[['c-st','策略']]:[]),['c-sum','重點'],['co-sum','公司'],['c-chart','走勢'],['c-hold','ETF 持有'],...(tw&&r.t5!==undefined?[['c-chip','籌碼'],['c-ta','技術']]:[]),['c-sig','訊號']];
+  /* 台美同一組頁籤、同一個順序（docs/lab_stock_page_plan.md 第 4.1 節；美股個股卡 uscardpage.ucRender）：策略 → 重點 → 走勢（＋技術面）→ 為什麼選它 →
+     成長 → 獲利 → 估值 → 同產業 → 籌碼 → ETF 持有 → 訊號 → 分析師 → 公司 */
+  COCUR=c;const X=coParts(c,W,()=>reStock(c));                     /* 公司分析（copage.py；點進去才下載 co/{代號}.json） */
+  const secs=[...(PKU[c]?[['c-st','策略']]:[]),['c-sum','重點'],['c-chart','走勢'],['c-why',PKU[c]?'為什麼選它':'飆股檢查'],['co-gr','成長'],['co-pf','獲利'],['co-val','估值'],['co-ind','同產業'],
+    ...(tw&&r.t5!==undefined?[['c-chip','籌碼']]:[]),['c-hold','ETF 持有'],['c-sig','訊號'],['co-fc','分析師'],['co-sum','公司']];
   let h=`<div class=dvh><div class=dvt><a class="nv${pv?'':' off'}" id=pv title="上一檔（←）">‹</a>`+
    `<div class=ttl><b>${esc(r.n)}</b><span class=cd>${i>=0?`${i+1}／${CTX.length} · `:''}${esc(r.c)} · ${MK[r.m]||''}${r.ind?' · '+esc(r.ind):''}</span></div>`+
    `<div class=pxw><b>${fp(r.px)}</b>${sgn(r.ch,2,'%')}</div><a class="nv${nx?'':' off'}" id=nx title="下一檔（→）">›</a><a class=x id=x title="關閉（Esc）">×</a></div>`+
    `<nav class=cnav>${secs.map(([id,t])=>`<a data-cto=${id}>${t}</a>`).join('')}</nav></div>`;
   h+=eqRepLine('tw:'+c,r.n)+stCardSec(c);
-  h+=`<section class=csec id=c-sum><div class=sgrow>${sgChips(r.sg)||'<span class=st>今日無觸發訊號</span>'}</div><ul class=sum>${sumLines(r).map(x=>`<li>${x}</li>`).join('')}</ul><div class=kpis>${kpis(r)}</div></section>`;
-  h+=coSec(c,W,()=>reStock(c));                     /* 公司分析（copage.py；點進去才下載 co/{代號}.json） */
+  h+=`<section class=csec id=c-sum><h3>重點</h3><div class=sgrow>${sgChips(r.sg)||'<span class=st>今日無觸發訊號</span>'}</div><ul class=sum>${sumLines(r).map(x=>`<li>${x}</li>`).join('')}</ul><div class=kpis>${kpis(r)}</div></section>`;
   const lastD=(D.dates||[]).slice(-1)[0],serD=SERD.slice(-1)[0];
   if(!s)h+=`<section class=csec id=c-chart><h3>走勢</h3><div class=ld>${SERST==='err'?'走勢資料暫時無法載入　<a id=serr>重試</a>':'走勢載入中…'}</div></section>`;
   else if(s.c&&s.c.some(x=>x!=null))h+=`<section class=csec id=c-chart><h3>走勢<span class=sub>近 ${s.c.length} 個交易日・游標移到圖上看每日數字</span></h3>${serD&&lastD&&serD<lastD?`<div class=note>走勢資料到 ${md(serD)}（尚未更新到最新）</div>`:''}<div class=cw id=kc>${chart(s,r,W)}</div>`+
    `<div class=lg><span><i style="background:#2563c9"></i>20 日線</span><span><i style="background:#f59e0b"></i>60 日線</span><span><i class=dsh></i>主動 ETF 新建倉成本</span><span><b class=up>▲</b> 主動 ETF 新建倉</span><span><b class=dn>▼</b> 出清</span>${s.qa?'<span>下方長條＝主動 ETF 每日真加減碼（已扣申贖）</span>':''}</div></section>`;
   const act=(r.hd||[]).filter(x=>(E[x[0]]||{}).k==='a').sort((a,b)=>(b[1]||0)-(a[1]||0));
   const pas=(r.hd||[]).filter(x=>(E[x[0]]||{}).k!=='a').sort((a,b)=>(b[1]||0)-(a[1]||0));
-  h+=`<section class=csec id=c-hold><h3>ETF 持有<span class=sub>主動 ${act.length}・被動 ${pas.length}・合計 ${f(r.sh,0)} ${u}</span></h3>`+
+  const hHold=`<section class=csec id=c-hold><h3>ETF 持有<span class=sub>主動 ${act.length}・被動 ${pas.length}・合計 ${f(r.sh,0)} ${u}</span></h3>`+
    (act.length?holdTbl(act.slice(0,10),tw)+(act.length>10?`<details class=mr><summary>其餘主動 ${act.length-10} 檔</summary>${holdTbl(act.slice(10),tw)}</details>`:''):'<div class=st>沒有主動 ETF 持有</div>')+
    (pas.length?`<div class=pasl><b>被動 ${pas.length} 檔：</b>${pas.slice(0,8).map(x=>`${esc(x[0])} <span class=mu>${f(x[1],2)}%</span>`).join('、')}${pas.length>8?' 等':''}</div><details class=mr><summary>被動明細</summary>${holdTbl(pas,tw)}</details>`:'')+
    ((r.ex||[]).length?`<div class=st style="margin-top:6px">近期出清：${r.ex.map(x=>`${esc(x[0])}（${md(x[1])}）`).join('、')}</div>`:'')+`</section>`;
+  let hChip='';
   if(tw&&r.f5!==undefined){
-    h+=`<section class=csec id=c-chip><h3>籌碼</h3><div class="kpis kps">`+
+    hChip+=`<section class=csec id=c-chip><h3>籌碼</h3><div class="kpis kps">`+
      kp('外資 5 日','外資 5 日',pm(r.f5)+' 張',`1 日 ${pm(r.f1)}・20 日 ${pm(r.f20)}${r.fs?`・連${r.fs>0?'買':'賣'} ${Math.abs(r.fs)} 日`:''}`,cls(r.f5))+
      kp('投信 5 日','投信 5 日',pm(r.t5)+' 張',`1 日 ${pm(r.t1)}・20 日 ${pm(r.t20)}${r.ts?`・連${r.ts>0?'買':'賣'} ${Math.abs(r.ts)} 日`:''}`,cls(r.t5))+
      kp('自營商 5 日','',pm(r.d5)+' 張','',cls(r.d5))+
@@ -2006,11 +2019,12 @@ function renderStock(c,keep){
      (r.lb!=null?kp('借券賣出餘額','借券賣出',f(r.lb,0)+' 張',`5 日 ${pm(r.lb5)}`):'')+
      (r.big!=null?kp('千張大戶','千張大戶',f(r.big,2)+'%',r.bigd!=null?`週變化 ${pm(r.bigd,2)}pp`:'每週公布'):'')+
      (r.hold!=null?kp('股東人數','',f(r.hold,0),r.holdd!=null?`週 ${pm(r.holdd)}`:''):'')+`</div>`;
-    if(s&&s.qf)h+=`<div class=note style="margin-top:10px">每日買賣超（張），近 ${s.qf.length} 個交易日</div>${bars(s.qf,W,'外資')}${bars(s.qt,W,'投信')}`;
-    h+=`</section>`;
+    if(s&&s.qf)hChip+=`<div class=note style="margin-top:10px">每日買賣超（張），近 ${s.qf.length} 個交易日</div>${bars(s.qf,W,'外資')}${bars(s.qt,W,'投信')}`;
+    hChip+=`</section>`;
   }
+  let hTa='';
   if(tw&&r.al!==undefined){const ma=r.ma||{};
-    h+=`<section class=csec id=c-ta><h3>技術面</h3><div class="kpis kps k3">`+
+    hTa+=`<section class=csec id=c-ta><h3>技術面</h3><div class="kpis kps k3">`+
      kp('均線排列','趨勢',r.al||'—',['5','20','60'].filter(k=>ma[k]!=null).map(k=>`${k} 日 ${fp(ma[k])}`).join('・'),r.al==='多頭'?'up':r.al==='空頭'?'dn':'')+
      kp('20 日乖離','乖離',pm(r.b20,1)+'%',`60 日 ${pm(r.b60,1)}%`,cls(r.b20))+
      kp('量比','量比',r.vr==null?'—':f(r.vr,2)+' 倍','今日 ÷ 20 日均量')+
@@ -2022,8 +2036,9 @@ function renderStock(c,keep){
      kp('ATR 波動','ATR',r.atrp==null?'—':f(r.atrp,2)+'%')+
      kp('日均成交','日均成交',r.liq==null?'—':f(r.liq,2)+' 億','20 日')+`</div></section>`;}
   const ih=idxHits(c);
-  h+=`<section class=csec id=c-sig><h3>訊號與指數</h3>`+((r.sg||[]).length?(r.sg||[]).map(k=>`<div class=sgi><b>${RISK.has(k)?'⚠ ':''}${esc((SD[k]||[k])[0])}</b><div class=st>${esc((SD[k]||['',''])[1])}</div>${statLine(k)}</div>`).join(''):'<div class=st>今日沒有觸發訊號。</div>')+
+  const hSig=`<section class=csec id=c-sig><h3>訊號與指數</h3>`+((r.sg||[]).length?(r.sg||[]).map(k=>`<div class=sgi><b>${RISK.has(k)?'⚠ ':''}${esc((SD[k]||[k])[0])}</b><div class=st>${esc((SD[k]||['',''])[1])}</div>${statLine(k)}</div>`).join(''):'<div class=st>今日沒有觸發訊號。</div>')+
    (ih?`<div class="kpis kps" style="margin-top:10px">${ih}</div>`:'')+`</section>`;
+  h+=hTa+whySec(c,X)+coMid(X)+hChip+hHold+hSig+(X.fc||'')+(X.sum||'');
   $('#dvin').innerHTML=h;dv.scrollTop=st0;
   $('#x').onclick=closeStock;$('#pv').onclick=()=>stepStock(-1);$('#nx').onclick=()=>stepStock(1);
   $$('#dvin [data-go]').forEach(a=>a.onclick=e=>{e.preventDefault();PUSHED=false;history.replaceState(null,'',location.pathname+location.search);hideStock();go(a.dataset.go,a.dataset.at);});

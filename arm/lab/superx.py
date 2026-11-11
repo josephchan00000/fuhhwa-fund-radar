@@ -709,36 +709,64 @@ def cond_text(cond) -> str:
     return f"{nm} {'≥' if op == '>=' else '≤' if op == '<=' else '>'} {val}"
 
 
+def _cfmt(k: str, x) -> str:
+    """條件用到的數字的寫法（只影響顯示）。"""
+    if k == "cap":
+        return f"{x / 1e8:,.0f} 億"
+    if k == "liq":
+        return f"{x / 1e8:,.1f} 億"
+    if k in PCT_PT:
+        return f"{x * 100:+.0f} 個百分點"
+    if k in ("ry", "ry3", "ey", "d52h", "r120"):
+        return f"{x * 100:+.0f}%"
+    if k in ("gm", "om", "roe"):
+        return f"{x * 100:.0f}%"
+    if k == "vdry":
+        return f"{x:.2f} 倍"
+    return f"{x:.0f}" if k in ("rs", "tt_n", "lu20") else f"{x:g}"
+
+
+def _num_ok(v) -> bool:
+    return v is not None and not isinstance(v, bool) and isinstance(v, (int, float)) and v == v
+
+
 def cond_value_text(cond, v) -> str:
     """那一檔的實際數字＋規則要多少（只影響顯示；例「強度 96（要 90 以上）」「近 20 日漲停 2 次」）。沒有數字＝cond_text。"""
     k, op, thr = cond
     nm = SHORT.get(k, FNAME.get(k, k))
     if op == "=":
         return nm
-    if v is None or isinstance(v, bool) or not isinstance(v, (int, float)) or v != v:
+    if not _num_ok(v):
         return cond_text(cond)
     if k == "lu20" and op == ">=" and thr <= 1:
         return f"近 20 日漲停 {v:.0f} 次"
     if k == "rs":
         nm = "強度"
-
-    def fmt(x):
-        if k == "cap":
-            return f"{x / 1e8:,.0f} 億"
-        if k == "liq":
-            return f"{x / 1e8:,.1f} 億"
-        if k in PCT_PT:
-            return f"{x * 100:+.0f} 個百分點"
-        if k in ("ry", "ry3", "ey", "d52h", "r120"):
-            return f"{x * 100:+.0f}%"
-        if k in ("gm", "om", "roe"):
-            return f"{x * 100:.0f}%"
-        if k == "vdry":
-            return f"{x:.2f} 倍"
-        return f"{x:.0f}" if k in ("rs", "tt_n", "lu20") else f"{x:g}"
     side = "以上" if op in (">=", ">") else "以下"
-    t = fmt(thr)
-    return f"{nm} {fmt(v)}（要 {t}{' ' if t[-1].isdigit() or t[-1] == '%' else ''}{side}）"
+    t = _cfmt(k, thr)
+    return f"{nm} {_cfmt(k, v)}（要 {t}{' ' if t[-1].isdigit() or t[-1] == '%' else ''}{side}）"
+
+
+def cond_head(cond) -> tuple[str, str]:
+    """「買進時／現在」表的一列：(條件名稱, 要多少)；例 ("強度", "要 90 以上")、("月營收創歷史新高", "要符合")。"""
+    k, op, thr = cond
+    nm = "強度" if k == "rs" else SHORT.get(k, FNAME.get(k, k))
+    if op == "=":
+        return nm, "要符合"
+    if k == "lu20":
+        return nm, f"要至少 {thr:.0f} 次" if op == ">=" else f"要 {thr:.0f} 次以下"
+    t = _cfmt(k, thr)
+    return nm, f"要 {t}{' ' if t[-1].isdigit() or t[-1] == '%' else ''}{'以上' if op in ('>=', '>') else '以下'}"
+
+
+def cond_cell(cond, v) -> tuple[str, bool | None]:
+    """那一格：(數字或是／否, 有沒有過)；沒有值＝("—", None)。"""
+    k, op, _ = cond
+    if op == "=":
+        return ("—", None) if v is None else ("是" if v is True else "否", v is True)
+    if not _num_ok(v):
+        return "—", None
+    return (f"{v:.0f} 次" if k == "lu20" else _cfmt(k, v)), bool(cond_pred(cond)({k: v}))
 
 
 # ── 頁面：研究結果檔 → 頁面資料 ────────────────────────────────────────────────

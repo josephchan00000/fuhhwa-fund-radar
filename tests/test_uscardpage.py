@@ -410,9 +410,10 @@ def test_sx_peer_chip_sections_text():
     cs = [50.0 + 0.2 * i for i in range(len(cal))]
     sx = UCP.sx_check(g, {"c": cs, "m": [None] * len(cal)}, cal, 92.0)
     t = _run_fn("ucSx", json.dumps({"sx": sx}))
-    assert "符合 8／8 項" in t and "趨勢樣板 8 項都符合（8／8）" in t and "均線多頭排列" in t
-    assert "52 週低點" in t and "強度 92" in t
-    assert "資料還沒有" in _run_fn("ucSx", "{}")
+    assert "符合 8／8 項" in t and "趨勢樣板 8 項都符合（8／8）" in t and "飆股體質檢查" in t and "技術面" not in t
+    ta = _run_fn("ucTa", json.dumps({"sx": sx}))                     # 技術面和台股個股卡一樣放在走勢後面（2026-11-11）
+    assert ta.split()[0] == "技術面" and "均線多頭排列" in ta and "52 週低點" in ta and "強度 92" in ta
+    assert "資料還沒有" in _run_fn("ucSx", "{}") and _run_fn("ucTa", "{}") == ""
     peer = {"ind": "Oil & Gas Refining & Marketing", "sec": "Energy", "n": 9, "rk": 2, "d": "2026-10-28",
             "nm": {"MPC": "Marathon Petroleum"},
             "rows": [["MPC", 1289.8, 0.5383, 0.092, 0.4792, 15.1, 1.3333], ["VLO", 1227.4, 0.488, 0.0718, 0.2939, 17.0, 1.4218],

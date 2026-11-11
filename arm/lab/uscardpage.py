@@ -1,5 +1,6 @@
 """美股個股卡（配置頁 v2 第 4 步；docs/lab_cfg_v2_plan.md 第 3.3 節）：配置頁美股列的股票（手上的、要買的、名單前 5 名裡
-手上沒有的）點了打開的卡片——配置、為什麼選它、走勢、成長、獲利、估值、分析師、公司。
+手上沒有的）點了打開的卡片——策略、重點、走勢、為什麼選它（＋飆股體質檢查）、成長、獲利、估值、同產業、籌碼、分析師、公司
+（和台股個股卡同一組頁籤、同一個順序；docs/lab_stock_page_plan.md 第 4.1 節）。
 走勢可切 6 個月／1 年／3 年／5 年、有成交量與 52 週高點；成長、獲利、估值是 2026-10-28 補的（docs/lab_review_plan.md 第 4 節 (a)(b)(c)）：
 SEC 季報（usfin.py，每週六）配上每天的股價，本益比、淨值比和自己過去 5 年比。
 
@@ -194,6 +195,89 @@ def cfg_html(c: str, G: dict, h0: dict | None, W0: dict | None, px: float | None
             lines.append(f'現在 {QX.QM_SLOTS} 個位子都滿，有空位才買' + (f'（{CPG._mdw(nf)}收盤看下一份名單）' if nf else "") + "。")
     return (f'<h3>策略<span class="sub">{_e(CPG.QM_NAME)}</span></h3>'
             + "".join(f'<p class="ucl">{t}</p>' for t in lines))
+
+
+# ── 重點（和台股個股卡同一個寫法：幾句話＋六格數字；docs/lab_stock_page_plan.md 第 4.1 節） ─────────────────
+
+def _kp(lbl: str, val: str, sub: str = "", cls: str = "") -> str:
+    return f'<div class="kp"><span>{_e(lbl)}</span><b class="{cls}">{val}</b>' + (f"<em>{sub}</em>" if sub else "") + "</div>"
+
+
+def _ud(x: float | None) -> str:
+    return "" if x is None else ("up" if x >= 0 else "dn")
+
+
+def sum_html(x: dict) -> str:
+    """重點：走勢（比 50 日線、離 52 週高點、近 1 個月）、最近一季（營收年增、營益率、ROE）、估值（本益比和自己近 5 年比、市值）、
+    接下來（下次財報、分析師看好幾位）。只用卡片已經有的資料；分析師的價位只放在「分析師」那一段。"""
+    px = _num(x.get("px"))
+    cs, ms = x.get("c") or [], x.get("m") or []
+    ma = next((_num(v) for v in reversed(ms) if _num(v) is not None), None)
+    pma = px / ma - 1 if px and ma else None
+    hi = x.get("hi") or [None, None]
+    hv = _num(hi[1]) if len(hi) > 1 else None
+    off = min(0.0, px / hv - 1) if px and hv else None
+    c21 = _num(cs[-22]) if len(cs) >= 22 else None
+    m1 = px / c21 - 1 if px and c21 else None
+    F = x.get("fin") or {}
+    g = F.get("g") or []
+    q = g[-1] if g else None
+    V = F.get("v") or {}
+    an = x.get("an") or {}
+    pc = CPG._pc
+    L = []
+    d = x.get("pd")
+    t = (f'{_e(CPG._md(d))} ' if d else "") + f'收盤 <b>{_px(px)}</b>'           # 和台股「重點」一樣：標題不帶日期，日期寫在第一句
+    if pma is not None:
+        t += f'，比 50 日線{"高" if pma >= 0 else "低"} <b class="{_ud(pma)}">{abs(pma) * 100:.1f}%</b>'
+    if off is not None:
+        t += "，在 52 週高點" if off >= -0.0005 else f'，離 52 週高點 {pc(off)}'
+        t += f'（{_e(CPG._md(hi[0]))} 創高）' if hi[0] else ""
+    if m1 is not None:
+        t += f'；近 1 個月 <b class="{_ud(m1)}">{pc(m1)}</b>'
+    L.append(t + "。")
+    if q:
+        t = f'最近一季（{_e(CPG._md(q[0]))} 季底、{_e(CPG._md(q[1]))} 公布）'
+        bits = []
+        if q[2] is not None:
+            bits.append(f'營收 {q[2]:,.1f} 億美元' + (f'、年增 <b class="{_ud(q[3])}">{pc(q[3])}</b>' if q[3] is not None else ""))
+        if q[5] is not None:
+            bits.append(f'營益率 {q[5] * 100:.1f}%')
+        if len(q) > 9 and q[9] is not None:
+            bits.append(f'近四季 ROE {q[9] * 100:.1f}%')
+        if bits:
+            L.append(t + "；".join(bits) + "。")
+    pe, peh = _num(V.get("pe")), V.get("peh") or {}
+    if pe:
+        t = f'本益比 <b>{pe:.1f}</b> 倍'
+        if peh.get("pct") is not None:
+            t += f'，近 5 年有 {peh["pct"]}% 的時候比現在低（中間值 {peh["p50"]:.1f} 倍）'
+    elif V.get("ttm") is not None and V["ttm"] <= 0:
+        t = "近四季賺的錢是負的，本益比不能比"
+    else:
+        t = ""
+    if V.get("cap"):
+        t += ("；" if t else "") + f'市值 {V["cap"]:,.0f} 億美元'
+    if t:
+        L.append(t + "。")
+    nx = []
+    eds = [d for d in an.get("ed") or [] if d]
+    if eds and (not x.get("pd") or eds[-1] > x["pd"]):          # 已經過了的不寫（Yahoo 還沒更新）；兩個日期＝公司還沒公布、Yahoo 估的區間
+        t = f'{CPG._md(eds[0])}～{CPG._md(eds[-1])}' if len(eds) > 1 else CPG._md(eds[0])
+        nx.append(f'下次財報 <b>{_e(t)}</b>' + ("（Yahoo 估的日期）" if an.get("ede") else ""))
+    rc = an.get("rc") or []
+    if len(rc) >= 5 and any(rc):                                # 評等的家數（和估 EPS 的分析師人數不一定一樣）
+        nx.append(f'分析師評等：看好 {rc[0] + rc[1]}、中立 {rc[2]}、看淡 {rc[3] + rc[4]}')
+    if nx:
+        L.append("；".join(nx) + "。")
+    k = [_kp("股價", _px(px), f'當天 {pc(x["ch"] / 100, 2)}' if x.get("ch") is not None else "", _ud(x.get("ch"))),
+         _kp("比 50 日線", "—" if pma is None else pc(pma), f"50 日線 {_px(ma)}" if ma else "", _ud(pma)),
+         _kp("離 52 週高點", "—" if off is None else ("在高點" if off >= -0.0005 else pc(off)), CPG._md(hi[0]) if hi[0] else ""),
+         _kp("營收年增", "—" if not q or q[3] is None else pc(q[3]), f"{CPG._md(q[0])} 季" if q else "", _ud(q[3]) if q else ""),
+         _kp("營益率", "—" if not q or q[5] is None else f"{q[5] * 100:.1f}%", f"近四季 ROE {q[9] * 100:.1f}%" if q and len(q) > 9 and q[9] is not None else ""),
+         _kp("本益比", "—" if not pe else f"{pe:.1f} 倍", f'近 5 年中間 {peh["p50"]:.1f} 倍' if pe and peh.get("p50") else "")]
+    return "<h3>重點</h3>" + \
+        '<ul class="sum">' + "".join(f"<li>{t}</li>" for t in L) + '</ul><div class="kpis">' + "".join(k) + "</div>"
 
 
 # ── 公司 ─────────────────────────────────────────────────────────────────────
@@ -594,6 +678,10 @@ def build(G: dict, card: dict | None, cash: bool = False, fin: dict | None = Non
             x["sx"] = sx_check((fv or {}).get("g"), {**s, "c": cs or [], "m": ms or []}, cal, _num(met[0]) if met else None)
         except Exception as e:                                 # noqa: BLE001
             print(f"[美股個股卡] {c} 飆股檢查算不出來：{type(e).__name__}: {e}")
+        try:
+            x["sum"] = sum_html(x)
+        except Exception as e:                                 # noqa: BLE001 —— 算不出來只少這一段
+            print(f"[美股個股卡] {c} 重點算不出來：{type(e).__name__}: {e}")
         out[c] = x
     return {"o": list(out), "cal": cal if any("c" in v for v in out.values()) else [], "d": card.get("d"), "s": out}
 
@@ -613,14 +701,17 @@ function ucRender(c,keep){const S=ucOn()&&UCD.s[c];if(!S){hideStock();return;}
   const dv=$('#dv'),pane=isPane(),st0=keep?dv.scrollTop:0;
   dv.classList.toggle('pane',pane);document.body.classList.toggle('pane',pane);dv.hidden=false;lockBody(!pane);
   const o=UCD.o||[],i=o.indexOf(c),pv=i>0,nx=i>=0&&i<o.length-1;
-  const secs=[['uc-st','策略'],['uc-why','為什麼選它'],['uc-px','走勢'],['uc-sx','飆股檢查'],['uc-gr','成長'],['uc-pf','獲利'],['uc-val','估值'],['uc-ind','同產業'],['uc-ch','籌碼'],['uc-an','分析師'],['uc-co','公司']];
+  /* 台美同一組頁籤、同一個順序（docs/lab_stock_page_plan.md 第 4.1 節；台股個股卡 page.renderStock）：策略 → 重點 → 走勢 → 為什麼選它（＋飆股體質檢查）→
+     成長 → 獲利 → 估值 → 同產業 → 籌碼 → 分析師 → 公司 */
+  const secs=[['uc-st','策略'],...(S.sum?[['uc-sum','重點']]:[]),['uc-px','走勢'],['uc-why','為什麼選它'],['uc-gr','成長'],['uc-pf','獲利'],['uc-val','估值'],['uc-ind','同產業'],['uc-ch','籌碼'],['uc-an','分析師'],['uc-co','公司']];
   const sub=[`${i+1}／${o.length}`,c].concat(S.what?[S.what]:[]);
   let h=`<div class=dvh><div class=dvt><a class="nv${pv?'':' off'}" id=pv title="上一檔（←）">‹</a>`+
    `<div class=ttl><b>${esc(S.nm)}</b><span class=cd>${sub.map(esc).join(' · ')}</span></div>`+
    `<div class=pxw><b>${ucPx(S.px)}</b>${S.ch!=null?sgn(S.ch,2,'%'):''}</div><a class="nv${nx?'':' off'}" id=nx title="下一檔（→）">›</a><a class=x id=x title="關閉（Esc）">×</a></div>`+
    `<nav class=cnav>${secs.map(([id,t])=>`<a data-cto=${id}>${t}</a>`).join('')}</nav></div>`;
-  h+=eqRepLine('us:'+c,S.nm)+`<section class="csec uc" id=uc-st>${S.st}</section><section class="csec uc" id=uc-why>${S.why}</section>`;
-  h+=`<section class="csec uc" id=uc-px>${ucPxSec(c,S)}</section><section class="csec uc" id=uc-sx>${ucSx(S)}</section><section class="csec uc" id=uc-gr>${ucGr(S)}</section>`;
+  h+=eqRepLine('us:'+c,S.nm)+`<section class="csec uc" id=uc-st>${S.st}</section>`+(S.sum?`<section class="csec uc" id=uc-sum>${S.sum}</section>`:'');
+  const ta=ucTa(S);
+  h+=`<section class="csec uc" id=uc-px>${ucPxSec(c,S)}</section>`+(ta?`<section class="csec uc" id=uc-ta>${ta}</section>`:'')+`<section class="csec uc" id=uc-why>${S.why}<div id=uc-sx>${ucSx(S)}</div></section><section class="csec uc" id=uc-gr>${ucGr(S)}</section>`;
   h+=`<section class="csec uc" id=uc-pf>${ucPf(S)}</section><section class="csec uc" id=uc-val>${ucVal(S)}</section>`;
   h+=`<section class="csec uc" id=uc-ind>${ucInd(c,S)}</section><section class="csec uc" id=uc-ch>${ucCh(S)}</section><section class="csec uc" id=uc-an>${ucAn(c,S)}</section>`;
   h+=`<section class="csec uc" id=uc-co>${S.co}</section>`;
@@ -750,21 +841,24 @@ function ucVal(S){const F=S.fin;if(!F)return ucFinNo('估值');const V=F.v||{},p
   return h;}
 /* 飆股檢查＋技術面（uscardpage.sx_check 算好的）、同產業（usfin.peers）、籌碼（Yahoo：做空、持股、內部人） */
 function ucMark(v,t){return `<span class=${v===true?'ok':v===false?'no':'na'}>${v===true?(t?'✓ 符合':'✓'):v===false?'✗':'—'}</span>`;}
-function ucSx(S){const X=S.sx;if(!X)return `<h3>飆股檢查</h3><p class=st>資料還沒有。</p>`;
+function ucSx(S){const X=S.sx;if(!X)return `<h4 class=sh>飆股體質檢查</h4><p class=st>資料還沒有。</p>`;
   const ck=X.ck||[],tt=X.tt||[],T=X.tech||{},tok=tt.filter(x=>x[1]===true).length,tno=tt.filter(x=>x[1]===false).length,tn=tt.filter(x=>x[1]!=null).length;
   const rows=ck.concat(tt.length?[['tt',`趨勢樣板 8 項都符合（${tok}／8）`,tno?false:(tn===8?true:null)]]:[]);
   const ok=rows.filter(r=>r[2]===true).length,av=rows.filter(r=>r[2]!=null).length;
-  let h=`<h3>飆股檢查<span class=sub>符合 ${ok}／${av} 項</span></h3><div class=tw><table class=chkt><thead><tr><th class=l>條件</th><th>這檔</th></tr></thead><tbody>`+
+  let h=`<h4 class=sh>飆股體質檢查<span class=sub>符合 ${ok}／${av} 項</span></h4><div class=tw><table class=chkt><thead><tr><th class=l>條件</th><th>這檔</th></tr></thead><tbody>`+
     rows.map(r=>`<tr><td class=l>${esc(r[1])}</td><td>${ucMark(r[2],1)}</td></tr>`).join('')+`</tbody></table></div>`;
   if(tt.length)h+=`<details class=mr><summary>趨勢樣板 8 項明細（${tok}／8）</summary><ul class=chk>${tt.map(x=>`<li>${ucMark(x[1])}<span>${esc(x[0])}</span><span></span></li>`).join('')}</ul></details>`;
-  if(T.px!=null){const dd=a=>a==null?'—':`${ucPx(a)}<span class=st>（收盤${T.px>=a?'高':'低'} ${f(Math.abs(T.px/a*100-100),1)}%）</span>`;
-    h+=`<h4 class=uch4>技術面</h4><div class=tw><table class="qt ucqt"><tbody>`+[['20 日線',T.m20],['50 日線',T.m50],['150 日線',T.m150],['200 日線',T.m200]].map(([n,v])=>`<tr><td class=l>${n}</td><td>${dd(v)}</td></tr>`).join('')+
+  return h+`<p class=note>條件照《超級績效》（Minervini）找飆股看的：獲利與營收高成長而且在加速、毛利率變好、股價在長期上升趨勢、強度高。季報用 SEC 的數字；強度只有這週名單上的股票才有。</p>`;}
+/* 技術面（和台股個股卡一樣放在走勢後面；數字是 uscardpage.sx_check 算好的 tech） */
+function ucTa(S){const T=((S.sx||{}).tech)||{};if(T.px==null)return '';let h='';
+  {const dd=a=>a==null?'—':`${ucPx(a)}<span class=st>（收盤${T.px>=a?'高':'低'} ${f(Math.abs(T.px/a*100-100),1)}%）</span>`;
+    h+=`<h3>技術面</h3><div class=tw><table class="qt ucqt"><tbody>`+[['20 日線',T.m20],['50 日線',T.m50],['150 日線',T.m150],['200 日線',T.m200]].map(([n,v])=>`<tr><td class=l>${n}</td><td>${dd(v)}</td></tr>`).join('')+
       (T.hi!=null?`<tr><td class=l>52 週高點</td><td>${ucPx(T.hi)}<span class=st>（收盤低 ${f(Math.max(0,100-T.px/T.hi*100),1)}%）</span></td></tr>`:'')+
       (T.lo!=null?`<tr><td class=l>52 週低點</td><td>${ucPx(T.lo)}<span class=st>（收盤高 ${f(T.px/T.lo*100-100,1)}%）</span></td></tr>`:'')+
       (T.rs!=null?`<tr><td class=l>強度</td><td>${f(T.rs,0)}<span class=st>（這週，勝過幾 % 的美股）</span></td></tr>`:'')+`</tbody></table></div>`;
     const m=[T.m20,T.m50,T.m150,T.m200],bull=m.every(v=>v!=null)&&T.px>T.m20&&T.m20>T.m50&&T.m50>T.m150&&T.m150>T.m200;
     h+=`<p class=st>${bull?'均線多頭排列：收盤高於 20 日線，20、50、150、200 日線由上到下排好。':'均線沒有完整的多頭排列（收盤、20、50、150、200 日線由上到下）。'}</p>`;}
-  return h+`<p class=note>條件照《超級績效》（Minervini）找飆股看的：獲利與營收高成長而且在加速、毛利率變好、股價在長期上升趨勢、強度高。季報用 SEC 的數字；強度只有這週名單上的股票才有。</p>`;}
+  return h;}
 function ucInd(c,S){const P=(S.fin||{}).peer;if(!P)return `<h3>同產業</h3><p class=st>${S.fin?'這家公司不在 S&amp;P 500／400／600 裡，沒有同產業的分類可以比。':'季報還沒有（每週六更新）。'}</p>`;
   const pc=v=>v==null?'—':pctT(v*100,0);
   let h=`<h3>同產業<span class=sub>GICS：${esc(P.ind)}</span></h3><p class=st>S&amp;P 1500 裡這個細產業有 ${P.n} 家，${esc(c)} 市值排第 ${P.rk}；下面是市值最接近的幾家。</p>`;
