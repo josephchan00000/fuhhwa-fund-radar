@@ -1,8 +1,39 @@
 {
- "as_of": "2026-11-11 15:43",
- "count": 0,
+ "as_of": "2026-11-11 19:02",
+ "count": 3,
  "fund_count": 0,
- "etf_count": 0,
+ "etf_count": 3,
  "usqm_count": 0,
- "items": []
+ "items": [
+  {
+   "src": "etf",
+   "name": "十銓",
+   "ticker": "4967",
+   "count": 1,
+   "etfs": [
+    "00984A"
+   ],
+   "weight": 0.86
+  },
+  {
+   "src": "etf",
+   "name": "APPLOVIN CORP-CLASS A",
+   "ticker": "APP",
+   "count": 1,
+   "etfs": [
+    "00990A"
+   ],
+   "weight": 0.77
+  },
+  {
+   "src": "etf",
+   "name": "JFROG LTD",
+   "ticker": "FROG",
+   "count": 1,
+   "etfs": [
+    "00990A"
+   ],
+   "weight": 0.67
+  }
+ ]
 }
