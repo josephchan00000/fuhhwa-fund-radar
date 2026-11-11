@@ -177,3 +177,7 @@
 - `arm/lab/pickpage.py`：成績單（`score_box`，同期大盤 `Bench`）、美股「這週要做的事」（`week_rows`／`week_box` 加 mk）、策略卡同一個模板（`_card`、`hold_table`、`todo_table`、`next_box`）；`sxlive.book_curve`（新飆股那本帳每天淨值與大盤）。不改任何策略規則。
 - 改了 [選股頁](lab/pick-page.md)；規劃與結果 `docs/lab_stock_page_plan.md` 第 7 節。
 
+## [2026-11-11] 收錄 | 個股卡台美同一組頁籤（個股頁優化 B 段）
+- 台股個股卡、公司卡、美股個股卡同一組頁籤與順序（策略、重點、走勢、為什麼選它、成長、獲利、估值、同產業、籌碼、分析師、公司）；法人預估→分析師、產業比較→同產業；美股補「重點」（`uscardpage.sum_html`）；新飆股補買進時／現在對照（`sxlive.hold_cmp`）。不改任何策略規則。
+- 改了 [選股頁](lab/pick-page.md)、[公司分析](lab/company.md)、[研究紀錄](lab/cfg-research.md)（美股個股卡）、[法人預估與產業比較](lab/forecast.md)、[內容鐵則](ops/content-rules.md)；結果 `docs/lab_stock_page_plan.md` 第 8 節。
+

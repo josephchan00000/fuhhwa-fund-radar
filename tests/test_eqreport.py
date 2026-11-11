@@ -150,7 +150,7 @@ def test_cards_research_page_and_build_are_wired():
     fn = J[J.index("function eqRepLine("):J.index("function renderStock(")]
     assert "目標價" not in fn and 'href="rp/${' in fn                                    # 卡片只寫「個股報告」＋日期＋評等
     assert "h+=eqRepLine('tw:'+c,r.n)+stCardSec(c);" in J
-    assert "eqRepLine('tw:'+c,nm)+stCardSec(c)+coSec(" in copage.JS
+    assert "eqRepLine('tw:'+c,nm)+stCardSec(c)+(X.sum||'')+whySec(c,X)" in copage.JS
     assert "eqRepLine('us:'+c,S.nm)+`<section" in uscardpage.JS
     assert "D.eqreq" in fn and "D.equs" in fn and "要個股報告" in fn and "eqReqUrl(" in fn      # 已申請、美股範圍、申請按鈕（第二段）
     assert 'data["eq"] = eqsite.links()' in (ROOT / "arm" / "lab" / "page.py").read_text(encoding="utf-8")

@@ -10,6 +10,9 @@
 - 頂欄「選股」＝x9.html：台股｜美股｜個股（個股＝原本的工具分頁：個股｜籌碼｜指數）。`page.py`：`VIEWS` 的 tw／us＝`vPkTw`／`vPkUs`，`PERS` 的 tw／us／stk／chip／idx＝`pick`；資料 `D.pick`＝`pickpage.build(data, bundle)`（`page._cfg`，bundle＝`sigpage.core_data(record=False)`；算不出來頁面寫原因）。
 - 每個市場同一個骨架、由上而下（2026-11-11，`docs/lab_stock_page_plan.md` 第 4.1 節）：成績單（`#pk-{市場}-score`）→ 這週要做的事（`#pk-{市場}-todo`）→ 進場行事曆（`#pk-{市場}-cal`）→ 每條策略一張卡（`#pk-{策略}`，同一個模板）→ 台股「其他策略」收起（`#pk-tw-o`）→ 頁尾（全部策略・原本的配置・研究紀錄）。
 - 主要／其他：`pickpage.tw_keys`＝新飆股＋advice tier good（依推薦順序）；tier ref＝其他；○／—、高股息不列。策略身分色 `--cfc1..4`，其他灰色。
+- **個股卡台美同一組頁籤**（2026-11-11，`docs/lab_stock_page_plan.md` 第 8 節）：策略 → 重點 → 走勢 → 為什麼選它 → 成長 → 獲利 → 估值 → 同產業 → 籌碼 → 分析師 → 公司；台股多「ETF 持有」「訊號」（籌碼後面）。
+  台股 `page.renderStock` 與公司卡 `copage.renderCo` 共用 `copage.coParts`（回傳各段）＋`page.whySec`（為什麼選它＋飆股體質檢查）；美股 `uscardpage.ucRender`。名字與順序由 `tests/test_cardtabs.py` 守。
+  新飆股的「買進時／現在」：`sxlive.hold_cmp`（那週符合的那條規則，每個條件用 `superx.cond_head`／`cond_cell` 拆成要多少｜買進時｜現在）→ `pickpage.boom_pos` 的 `m` → `page.cmpTbl`。
 - 個股卡、公司卡最上面「策略」段、個股表篩選「策略選到的」：只列選股頁台股上的策略（`PKT.ks`；新飆股靠 `D.pick.tw.pos` 補）。
 - 原本的配置搬到[研究紀錄](cfg-research.md)：「交易計畫」（`?v=plan&m=tw|us`，`vCfgPlan`：原本配置頁台股、美股的全部內容，前瞻 `core_live.json`、`ytd_live.json` 照記）、「全部策略」（`?v=strat`，原本的策略表）。舊連結 `?at=cf-…`（推播、文件裡的配置頁段落）轉到交易計畫那一段（`page._JS` 初始路由）。全部策略表的狀態：使用中＝選股頁上的主要策略（新飆股、★ 個股策略、美股強勢品質股）；交易計畫本身改「觀察中」（`board.plan_rows`，類型「交易計畫」）。
 - 推播：新飆股那一行不再加「機動放現金中，買的先不買」（選股頁不看警訊；`valog.boom_state(P)`，2026-10-29 起 P＝N8）；「美股三成」改叫「美股強勢品質股」（`uqm_line`、事件文字）。

@@ -191,7 +191,7 @@ def test_company_card_and_wl_wiring():
     from pathlib import Path
     from arm.lab import copage
     js = copage.JS
-    for s in ("id=co-fc", "id=co-ind", "'x9f.json?v='", "['co-fc','法人預估']", "['co-ind','產業']", "function fcLine",
+    for s in ("id=co-fc", "id=co-ind", "'x9f.json?v='", "['co-fc','分析師']", "['co-ind','同產業']", "function fcLine",
               "產業熱度", "'法人預估':", "'產業比較':", 'data-cs="co-fc"', "openCo(a.dataset.co,a.dataset.cs)",
               "https://news.cnyes.com/news/id/", "/analysis/", "news.google.com/search"):
         assert s in js, s
