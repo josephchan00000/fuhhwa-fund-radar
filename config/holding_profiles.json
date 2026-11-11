@@ -4065,6 +4065,18 @@
    "ticker": "US718286AY36",
    "country": "菲律賓",
    "verified": true
+  },
+  "聯陽": {
+   "intro": "聯陽半導體，台灣 IC 設計公司，以嵌入式控制器（EC）與 Super I/O 晶片為核心，應用於 PC 與筆電，另有 USB-C PD 等產品；母公司為聯電。",
+   "ticker": "3014",
+   "country": "台灣",
+   "verified": true
+  },
+  "天鈺": {
+   "intro": "天鈺科技，台灣 IC 設計公司，主力為顯示器驅動 IC 與電源管理 IC，另有時序控制 IC 與電子紙驅動 IC，應用於電視、螢幕、筆電與車載顯示。",
+   "ticker": "4961",
+   "country": "台灣",
+   "verified": true
   }
  }
 }
