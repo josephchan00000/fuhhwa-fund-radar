@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/11/12 07:40",
+  "as_of": "2026/11/12 07:43",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -173,13 +173,6 @@
       "items": []
     },
     {
-      "base": "復華台美策略精準高息股債平衡ETF基金",
-      "code": null,
-      "fund_ids": [],
-      "short_names": [],
-      "items": []
-    },
-    {
       "base": "復華台灣新星主動式ETF基金",
       "code": "00418A",
       "fund_ids": [],
@@ -217,6 +210,13 @@
           "summary": "台股主動式ETF新兵－主動復華台灣新星(00418A-TW)今(11)日正式掛牌交易。上市首日開紅盤，盤中股價最高來到10.21元，開盤十多分鐘成交量就突破13萬多張，躍居整體台股市場成交量之冠。  …"
         }
       ]
+    },
+    {
+      "base": "復華台美策略精準高息股債平衡ETF基金",
+      "code": null,
+      "fund_ids": [],
+      "short_names": [],
+      "items": []
     },
     {
       "base": "復華美國新星基金",
@@ -600,7 +600,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=mlXZqnlEV34",
       "date": "2026-11-05",
-      "views": 16481
+      "views": 16479
     },
     {
       "platform": "youtube",
@@ -679,7 +679,7 @@
       "channel": "玩股網楚狂人",
       "url": "https://www.youtube.com/watch?v=5gAT6rtu8vk",
       "date": "2026-11-09",
-      "views": 122868,
+      "views": 122906,
       "peer": true,
       "cat": "高股息"
     },
@@ -689,7 +689,7 @@
       "channel": "City Spotlight 傾城計話",
       "url": "https://www.youtube.com/watch?v=mjOZoQFPauU",
       "date": "2026-11-09",
-      "views": 102558,
+      "views": 102631,
       "peer": true,
       "cat": "高股息"
     },
