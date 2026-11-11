@@ -44,7 +44,7 @@
 
 ### 驗版
 
-本機 `python3 -m http.server` 起頁（`file://` 會擋 x9mh／x9s 的 fetch），Playwright 截電腦 1280、手機 390 × 淺深四種。
+本機 `python3 -m http.server` 起頁（`file://` 會擋 x9mh／x9s-*／x9uc 的 fetch），Playwright 截電腦 1280、手機 390 × 淺深四種。
 測試：`tests/test_heatviz.py`、`tests/test_stockviz.py`（後者用 node 實際跑樹狀圖切格、字色、數字格式、位置分類）。
 
 ## 不能改的規則

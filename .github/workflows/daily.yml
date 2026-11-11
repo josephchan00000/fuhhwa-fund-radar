@@ -266,7 +266,9 @@ jobs:
           git add -f reports/macrocal/*.md reports/macrocal/prompts/*.md 2>/dev/null || true
           git add dashboard/index.html 2>/dev/null || true         # 入庫的儀表板產物 → Vercel Git 部署會自動更新
           git add -f data/lab dashboard/x9.html 2>/dev/null || true   # 籌碼雷達（分片＋隱藏頁，2026-10-14）
-          git add -f dashboard/x9s.json 2>/dev/null || true             # 籌碼雷達個股走勢序列（開個股卡才載入；分開 add：缺檔時不連累上一行的分片）
+          git add -f dashboard/x9s-*.json 2>/dev/null || true          # 籌碼雷達個股走勢序列十六份（開個股卡只抓那一份；分開 add：缺檔時不連累上一行的分片）
+          git add -f dashboard/x9uc.json 2>/dev/null || true            # 美股個股卡資料（開第一張美股個股卡才抓；分開 add）
+          git add -A dashboard/x9s.json 2>/dev/null || true             # 拆成十六份以前的整份序列：建頁會刪掉，這行把刪除帶進同一筆 commit（檔案不在了就什麼都不做）
           git add -f dashboard/x9t.json 2>/dev/null || true             # 公司分析：全市場每日小表（docs/lab_company_plan.md；分開 add）
           git add -f dashboard/x9f.json 2>/dev/null || true             # 法人預估：每檔資料（docs/lab_forward_plan.md；分開 add）
           git add -f dashboard/x9m.html 2>/dev/null || true            # 景氣溫度頁（docs/lab_heat_plan.md；分開 add）
@@ -299,7 +301,9 @@ jobs:
             TZ=Asia/Taipei python3 scripts/gen_fund_dashboard.py || true
             git add dashboard/index.html 2>/dev/null || true
             git add -f data/lab dashboard/x9.html 2>/dev/null || true   # 籌碼雷達（分片＋隱藏頁，2026-10-14）
-            git add -f dashboard/x9s.json 2>/dev/null || true             # 籌碼雷達個股走勢序列（開個股卡才載入；分開 add：缺檔時不連累上一行的分片）
+            git add -f dashboard/x9s-*.json 2>/dev/null || true          # 籌碼雷達個股走勢序列十六份（開個股卡只抓那一份；分開 add：缺檔時不連累上一行的分片）
+            git add -f dashboard/x9uc.json 2>/dev/null || true            # 美股個股卡資料（開第一張美股個股卡才抓；分開 add）
+            git add -A dashboard/x9s.json 2>/dev/null || true             # 拆成十六份以前的整份序列：建頁會刪掉，這行把刪除帶進同一筆 commit（檔案不在了就什麼都不做）
             git add -f dashboard/x9t.json 2>/dev/null || true             # 公司分析：全市場每日小表（docs/lab_company_plan.md；分開 add）
             git add -f dashboard/x9f.json 2>/dev/null || true             # 法人預估：每檔資料（docs/lab_forward_plan.md；分開 add）
             git add -f dashboard/x9m.html 2>/dev/null || true            # 景氣溫度頁（docs/lab_heat_plan.md；分開 add）

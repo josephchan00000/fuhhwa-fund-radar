@@ -104,7 +104,7 @@
 - 籌碼頁的「今日訊號」「風險提醒」拿掉（8 種個股訊號沒有一種比任一天好，列在策略頁的淘汰區）；個股表的策略標籤、「配置裡的」篩選、個股卡最上面那段只列**台股配置裡（使用中）**的策略（`PKU`＝`PK` 只留 `D.cfg.use`），不放 ★／●。
 
 ### 本機驗版與測試
-- `page.build(暫存路徑)` 之後 `page._LAST` 有資料，改 CSS／JS 只要 `page._cfg(data)`＋`page.render(data)` 重畫（秒級）；`python3 -m http.server` 起頁才載得到 x9s.json 等。
+- `page.build(暫存路徑)` 之後 `page._LAST` 有資料，改 CSS／JS 只要 `page._cfg(data)`＋`page.render(data)` 重畫（秒級）；`python3 -m http.server` 起頁才載得到 x9s-*.json、x9uc.json 等。
   截圖、可見字數：台股 935 字、美股 910 字、策略 672 字（手機），第 10 節上限 15,000 字。
 - `tests/test_cfgpage.py`（卡片順序、比重合計 100%、警訊換現金與買回、美股 QM、策略表、分頁與身分、finish）、`tests/test_board.py`（四種狀態、淘汰都有原因、override、設定檔格式）、`tests/test_research_page.py`（目錄連結對得到分頁與段落、建頁接線）。
 

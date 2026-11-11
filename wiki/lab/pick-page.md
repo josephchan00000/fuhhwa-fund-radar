@@ -11,6 +11,7 @@
 - 每個市場同一個骨架、由上而下（2026-11-11，`docs/lab_stock_page_plan.md` 第 4.1 節）：成績單（`#pk-{市場}-score`）→ 這週要做的事（`#pk-{市場}-todo`）→ 進場行事曆（`#pk-{市場}-cal`）→ 每條策略一張卡（`#pk-{策略}`，同一個模板）→ 台股「其他策略」收起（`#pk-tw-o`）→ 頁尾（全部策略・原本的配置・研究紀錄）。
 - 主要／其他：`pickpage.tw_keys`＝新飆股＋advice tier good（依推薦順序）；tier ref＝其他；○／—、高股息不列。策略身分色 `--cfc1..4`，其他灰色。
 - **個股卡台美同一組頁籤**（2026-11-11，`docs/lab_stock_page_plan.md` 第 8 節）：策略 → 重點 → 走勢 → 為什麼選它 → 成長 → 獲利 → 估值 → 同產業 → 籌碼 → 分析師 → 公司；台股多「ETF 持有」「訊號」（籌碼後面）。
+- **個股卡點了才下載**（2026-11-11，同一份第 12 節）：台股走勢序列分十六份 `x9s-{0..f}.json`、只抓那一檔所在的那一份；美股個股卡資料 `x9uc.json`（頁面只留順序 `UCD.o`、日期、版本），開第一張美股卡才抓（`page.uc_split`、`uscardpage.ucLoad`）。
   台股 `page.renderStock` 與公司卡 `copage.renderCo` 共用 `copage.coParts`（回傳各段）＋`page.whySec`（為什麼選它＋飆股體質檢查）；美股 `uscardpage.ucRender`。名字與順序由 `tests/test_cardtabs.py` 守。
   新飆股的「買進時／現在」：`sxlive.hold_cmp`（那週符合的那條規則，每個條件用 `superx.cond_head`／`cond_cell` 拆成要多少｜買進時｜現在）→ `pickpage.boom_pos` 的 `m` → `page.cmpTbl`。
 - 個股卡、公司卡最上面「策略」段、個股表篩選「策略選到的」：只列選股頁台股上的策略（`PKT.ks`；新飆股靠 `D.pick.tw.pos` 補）。

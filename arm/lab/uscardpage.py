@@ -690,14 +690,28 @@ JS = r"""
 /* ---------- 美股個股卡（uscardpage.py；docs/lab_cfg_v2_plan.md 第 3.3 節）：配置頁美股列點了打開，網址 #us=代號。
    配置、為什麼選它、公司三段是 Python 組好的；走勢、分析師兩段在這裡畫。用同一個右側面板（#dv；電腦右側、手機全螢幕）。 ---------- */
 const UCD=(((D.pick||{}).us||{}).uc)||((CFG.us||{}).uc)||null;
-function ucOn(){return !!(UCD&&UCD.s);}
-function ucOpen(c){if(!ucOn()||!UCD.s[c])return false;if(!$('#dv').hidden&&/^#us=/.test(location.hash)){history.replaceState(null,'','#us='+encodeURIComponent(c));ucRender(c);return true;}
+/* 每一檔的卡片資料另存 x9uc.json（page.uc_split；2026-11-11 個股頁優化 D 段）：頁面只留順序 o、日期 cal、版本 v，開第一張美股個股卡才下載。
+   舊頁面或交易計畫那一份還內嵌 s 的，照舊直接用。 */
+let UCST=UCD&&UCD.s?'ok':'idle',UCP=null;
+function ucLoad(){if(UCP)return UCP;UCST='loading';
+  UCP=fetch('x9uc.json?v='+encodeURIComponent(UCD.v||'')).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+    .then(j=>{UCD.s=j.s||{};UCST='ok';return UCD.s;},e=>{UCST='err';UCP=null;throw e;});
+  return UCP;}
+function ucOn(){return !!(UCD&&(UCD.o||[]).length);}
+function ucHas(c){return ucOn()&&(UCD.s?!!UCD.s[c]:(UCD.o||[]).includes(c));}
+function ucOpen(c){if(!ucHas(c))return false;if(!$('#dv').hidden&&/^#us=/.test(location.hash)){history.replaceState(null,'','#us='+encodeURIComponent(c));ucRender(c);return true;}
   PUSHED=true;location.hash='us='+encodeURIComponent(c);return true;}
 function ucCur(){return decodeURIComponent((location.hash.match(/^#us=(.+)$/)||[])[1]||'');}
 function ucStep(d){if(!ucOn())return;const o=UCD.o||[],i=o.indexOf(ucCur()),t=o[i+d];if(i>=0&&t)ucOpen(t);}
 function ucMd(d){return d?`${+d.slice(5,7)}/${+d.slice(8,10)}`:'—';}
 function ucPx(x){return x==null?'—':x.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
-function ucRender(c,keep){const S=ucOn()&&UCD.s[c];if(!S){hideStock();return;}
+function ucWait(c){const dv=$('#dv'),pane=isPane();dv.classList.toggle('pane',pane);document.body.classList.toggle('pane',pane);dv.hidden=false;lockBody(!pane);
+  $('#dvin').innerHTML=`<div class=dvh><div class=dvt><div class=ttl><b>${esc(c)}</b></div><a class=x id=x title="關閉（Esc）">×</a></div></div>`+
+    `<section class=csec><div class=ld>${UCST==='err'?'個股卡資料暫時無法載入　<a id=ucerr>重試</a>':'個股卡載入中…'}</div></section>`;
+  $('#x').onclick=closeStock;const rb=$('#ucerr');if(rb)rb.onclick=()=>{UCST='idle';ucRender(c);};}
+function ucRender(c,keep){if(!ucOn()){hideStock();return;}
+  if(!UCD.s){ucWait(c);if(UCST!=='err')ucLoad().then(()=>{if(ucCur()===c)ucRender(c,keep);},()=>{if(ucCur()===c)ucWait(c);});return;}
+  const S=UCD.s[c];if(!S){hideStock();return;}
   const dv=$('#dv'),pane=isPane(),st0=keep?dv.scrollTop:0;
   dv.classList.toggle('pane',pane);document.body.classList.toggle('pane',pane);dv.hidden=false;lockBody(!pane);
   const o=UCD.o||[],i=o.indexOf(c),pv=i>0,nx=i>=0&&i<o.length-1;
