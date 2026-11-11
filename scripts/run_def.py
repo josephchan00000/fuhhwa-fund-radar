@@ -228,7 +228,7 @@ def qm() -> dict:
 
     base_r, base_rr = go(sig)
     got = BK.curve_stats(cal, base_rr, a14, b_end)["cagr"]
-    ok = abs(got - off["cagr"]) <= S.BASE_CHECK
+    ok = bool(abs(got - off["cagr"]) <= S.BASE_CHECK)
     log(f"美股 基準 {got * 100:.2f}%（官方 {off['cagr'] * 100:.2f}%）{'對上' if ok else '對不上'}，{time.time() - t0:.0f}s")
     spy = P["sym"].index("SPY")
     px = [float(x) for x in C["Cf"][:, spy]]
