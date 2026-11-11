@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/11/11 15:34",
+  "as_of": "2026/11/11 15:36",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -578,7 +578,7 @@
       "channel": "三立財經iNEWS",
       "url": "https://www.youtube.com/watch?v=nkz_1DrxKEY",
       "date": "2026-11-08",
-      "views": 67436
+      "views": 67435
     },
     {
       "platform": "youtube",
@@ -586,7 +586,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=mlXZqnlEV34",
       "date": "2026-11-05",
-      "views": 15998
+      "views": 15980
     },
     {
       "platform": "youtube",
@@ -594,7 +594,7 @@
       "channel": "三立財經iNEWS",
       "url": "https://www.youtube.com/watch?v=CLxx_PT_KRM",
       "date": "2026-11-04",
-      "views": 4916
+      "views": 4912
     },
     {
       "platform": "youtube",
@@ -613,7 +613,7 @@
       "channel": "郭哲榮分析師-摩爾證券投顧",
       "url": "https://www.youtube.com/shorts/uGj7xkW72_0",
       "date": "2026-11-09",
-      "views": 285454,
+      "views": 285441,
       "peer": true,
       "short": true,
       "cat": "基金"
@@ -634,7 +634,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=jBrTD0O1yBo",
       "date": "2026-11-07",
-      "views": 234963,
+      "views": 234969,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -655,7 +655,7 @@
       "channel": "TVBS NEWS",
       "url": "https://www.youtube.com/shorts/UkrSGZ1W7KQ",
       "date": "2026-11-06",
-      "views": 206875,
+      "views": 206930,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -676,7 +676,7 @@
       "channel": "瘋狂股市福利社Free Free Free!",
       "url": "https://www.youtube.com/watch?v=3sObqPvDIbw",
       "date": "2026-11-09",
-      "views": 149719,
+      "views": 149727,
       "peer": true,
       "cat": "市值型"
     },
