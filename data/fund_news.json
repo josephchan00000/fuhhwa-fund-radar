@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/11/12 06:46",
+  "as_of": "2026/11/12 07:40",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -368,7 +368,7 @@
         {
           "title": "主動式ETF復華台灣新星(00418A)掛牌首日早盤爆量14萬張！",
           "url": "https://www.moneyweekly.com.tw/ArticleData/Info/Article/261357",
-          "source": "理財周刊",
+          "source": "蕃新聞",
           "date": "2026-11-11 00:00",
           "datetime": "2026-11-11T00:00:00+08:00"
         }
@@ -592,7 +592,7 @@
       "channel": "三立財經iNEWS",
       "url": "https://www.youtube.com/watch?v=nkz_1DrxKEY",
       "date": "2026-11-08",
-      "views": 67521
+      "views": 67540
     },
     {
       "platform": "youtube",
@@ -600,7 +600,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=mlXZqnlEV34",
       "date": "2026-11-05",
-      "views": 16430
+      "views": 16481
     },
     {
       "platform": "youtube",
@@ -659,7 +659,7 @@
       "channel": "瘋狂股市福利社Free Free Free!",
       "url": "https://www.youtube.com/watch?v=3sObqPvDIbw",
       "date": "2026-11-09",
-      "views": 150011,
+      "views": 150029,
       "peer": true,
       "cat": "市值型"
     },
@@ -669,7 +669,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=wODConxXAIo",
       "date": "2026-11-09",
-      "views": 125307,
+      "views": 125406,
       "peer": true,
       "cat": "綜合"
     },
@@ -679,7 +679,7 @@
       "channel": "玩股網楚狂人",
       "url": "https://www.youtube.com/watch?v=5gAT6rtu8vk",
       "date": "2026-11-09",
-      "views": 122661,
+      "views": 122868,
       "peer": true,
       "cat": "高股息"
     },
@@ -689,7 +689,7 @@
       "channel": "City Spotlight 傾城計話",
       "url": "https://www.youtube.com/watch?v=mjOZoQFPauU",
       "date": "2026-11-09",
-      "views": 102147,
+      "views": 102558,
       "peer": true,
       "cat": "高股息"
     },
@@ -699,7 +699,7 @@
       "channel": "投資嗨什麼",
       "url": "https://www.youtube.com/watch?v=Xawpv0VzQMI",
       "date": "2026-11-10",
-      "views": 50479,
+      "views": 50584,
       "peer": true,
       "cat": "綜合"
     },

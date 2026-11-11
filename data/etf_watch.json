@@ -1,8 +1,8 @@
 {
   "as_of": "2026-11-11",
   "perf_asof": "2026-11-11",
-  "fetched_at": "2026/11/12 06:48",
-  "source": "規模／配息殖利率 ← etfinfo.tw（Tier B）；過去一週／一月報酬 ← Yahoo 還原收盤（總報酬口徑）／FinMind／TWSE 官方自算；當月預估配息 ← 證交所／櫃買除權除息預告表、MOPS、主流媒體新聞（1 檔，另 5 檔金額待公告）。正式對外前以各投信官網核對",
+  "fetched_at": "2026/11/12 07:42",
+  "source": "規模／配息殖利率 ← etfinfo.tw（Tier B）；過去一週／一月報酬 ← Yahoo 還原收盤（總報酬口徑）／FinMind／TWSE 官方自算；當月預估配息 ← 證交所／櫃買除權除息預告表、MOPS、主流媒體新聞（2 檔，另 4 檔金額待公告）。正式對外前以各投信官網核對",
   "items": [
     {
       "code": "0056",
@@ -212,12 +212,12 @@
       "ret_1m": -10.09,
       "last_div": 4.75,
       "last_div_date": "2026-07-16",
-      "est_div": null,
-      "est_div_date": null,
-      "est_pend": "2026-11-17",
-      "est_from": null,
-      "est_url": null,
-      "yield_pct": 4.02,
+      "est_div": 3.88,
+      "est_div_date": "2026-11-17",
+      "est_pend": null,
+      "est_from": "三立新聞網SETN.com",
+      "est_url": "https://news.google.com/rss/articles/CBMiSEFVX3lxTE9JQlBXTWpZSjYxanN6eEVpa1c3UjVpUUlhZTNwN0JBalgxcUdVUjh3dEZsLWpleGh3d2RMSUNNZkpRdDZudmtiM9IBTEFVX3lxTE16MWFWY2V2WXd5TWNpbkJyckUwQUI0LVV3X1g5NTZGd204bDJwZDFfY0dDOXhjVW4zaG0wY0tZd1Q4RmFrbzBmNnRKWnk?oc=5",
+      "yield_pct": 3.28,
       "freq": "半年配",
       "chg_pct": 3.36,
       "chg_amt": 7.7,
@@ -237,7 +237,8 @@
       "ret_1m_base": "2026-10-12=263.15",
       "ret_1w_div": null,
       "ret_1m_div": null,
-      "yield_is_est": false
+      "est_src": "news",
+      "yield_is_est": true
     },
     {
       "code": "00980A",
