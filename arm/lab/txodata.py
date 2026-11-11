@@ -35,6 +35,8 @@ DAY_FROM = 8 * 3600 + 45 * 60           # 08:45:00
 DAY_TO = 13 * 3600 + 45 * 60            # 13:45:00
 EXP_DAYS = 45                           # 逐筆只留到期日在這麼多天（日曆天）以內的契約
 BAND = 0.08                             # 逐筆只留履約價在前一天加權指數 ±8% 以內的契約
+SHIFT_DAYS = 7                          # 到期日遇假日順延：照規則推的到期日已經過了、今天還在成交的＝順延到今天到期，也要留
+                                        # （2026-11-11 發現 9/29、10/12、10/27 三個順延的結算日，當天到期那一批整批沒存到）
 STEP = 1                                # 幾分鐘一根
 COLS = ["d", "exp", "k", "cp", "o", "h", "l", "c", "v", "s", "oi", "bid", "ask", "xd"]   # 日行情存的欄位
 IDX_FIRST = date(2016, 1, 4)            # 證交所每 5 秒指數：2016-01-04 已有完整 3,241 點（2012 年只有約 1,081 點，不收）
@@ -186,6 +188,8 @@ def bars_doc(d: date, ticks: dict, ref: float | None, step: int = STEP) -> dict:
             continue
         if d <= xd <= d + timedelta(days=EXP_DAYS):
             exps[e] = xd.isoformat()
+        elif d - timedelta(days=SHIFT_DAYS) <= xd < d:            # 順延：規則到期日之後第一個交易日就是到期日（今天）
+            exps[e] = d.isoformat()
     c = {}
     for (e, cp, k), tr in ticks.items():
         if e in exps and abs(k - ref) <= ref * BAND and tr:
@@ -287,11 +291,12 @@ def ref_close(root: Path, main_root: Path, d: date) -> float | None:
     return None
 
 
-def update_bars(root: Path, main_root: Path, deadline: float) -> int:
+def update_bars(root: Path, main_root: Path, deadline: float, force: set | None = None) -> int:
+    """期交所清單上還沒存的日子補進來；force 裡的日子就算存過也重抓（只要還在期交所的 30 天清單上）。"""
     n = 0
     for d in tick_days():
         rel = f"bars/{d.year}/{d.isoformat()}.json.gz"
-        if (root / rel).exists() or time.time() > deadline:
+        if ((root / rel).exists() and d not in (force or set())) or time.time() > deadline:
             continue
         doc = fetch_bars(d, ref_close(root, main_root, d))
         if doc:

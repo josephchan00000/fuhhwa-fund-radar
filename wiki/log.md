@@ -178,6 +178,9 @@
 - 改了 [選股頁](lab/pick-page.md)；規劃與結果 `docs/lab_stock_page_plan.md` 第 7 節。
 
 ## [2026-11-11] 收錄 | 個股卡台美同一組頁籤（個股頁優化 B 段）
-- 台股個股卡、公司卡、美股個股卡同一組頁籤與順序（策略、重點、走勢、為什麼選它、成長、獲利、估值、同產業、籌碼、分析師、公司）；法人預估→分析師、產業比較→同產業；美股補「重點」（`uscardpage.sum_html`）；新飆股補買進時／現在對照（`sxlive.hold_cmp`）。不改任何策略規則。
-- 改了 [選股頁](lab/pick-page.md)、[公司分析](lab/company.md)、[研究紀錄](lab/cfg-research.md)（美股個股卡）、[法人預估與產業比較](lab/forecast.md)、[內容鐵則](ops/content-rules.md)；結果 `docs/lab_stock_page_plan.md` 第 8 節。
+- 台股個股卡、公司卡、美股個股卡同一組頁籤與順序；法人預估→分析師、產業比較→同產業；美股補「重點」（`uscardpage.sum_html`）；新飆股補買進時／現在對照（`sxlive.hold_cmp`）。
+- 改了 [選股頁](lab/pick-page.md)、[公司分析](lab/company.md)、[研究紀錄](lab/cfg-research.md)、[法人預估](lab/forecast.md)、[內容鐵則](ops/content-rules.md)；結果見規劃第 8 節。
+
+## [2026-11-11] 收錄 | 選擇權結算日案例（txospec VER 2、O1 沒過、O4 只列）
+- 使用者上傳結算日案例報告：O1 照 VER 1 跑＋兩個對照、新增 O4；結算價改照期交所算法（301 個平均）。O1 沒過（樣本外每筆 −2,247 元、每年都虧），O4 只列（1 筆）。另修逐筆漏存假日順延的到期批（`txodata.SHIFT_DAYS`）。改了 [台指選擇權](lab/txo.md)；規劃第 19 節。
 

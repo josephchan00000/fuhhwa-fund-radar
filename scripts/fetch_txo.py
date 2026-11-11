@@ -28,8 +28,8 @@ from arm.lab import txodata as T  # noqa: E402
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", required=True, help="資料分支 checkout 的位置（例 txodata）")
-    ap.add_argument("--mode", default="daily", choices=["daily", "bars", "day", "idx", "backfill", "fomc", "futday"])
-    ap.add_argument("--start", default="", help="day：YYYY-MM；idx：YYYY-MM-DD")
+    ap.add_argument("--mode", default="daily", choices=["daily", "bars", "rebars", "day", "idx", "backfill", "fomc", "futday"])
+    ap.add_argument("--start", default="", help="day：YYYY-MM；idx：YYYY-MM-DD；rebars：要重抓的日子，逗號分隔")
     ap.add_argument("--budget-min", type=float, default=100)
     a = ap.parse_args()
     root = Path(a.root).resolve()
@@ -42,6 +42,9 @@ def main() -> int:
     out = {}
     if a.mode in ("daily", "bars"):
         out["bars"] = T.update_bars(root, ROOT, deadline)
+    if a.mode == "rebars":
+        force = {date.fromisoformat(x.strip()) for x in a.start.split(",") if x.strip()}
+        out["bars"] = T.update_bars(root, ROOT, deadline, force=force)
     if a.mode == "daily":
         prev = (today.replace(day=1) - timedelta(days=1))
         out["day"] = T.update_day(root, f"{prev:%Y-%m}", today, deadline)

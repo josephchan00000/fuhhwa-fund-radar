@@ -46,6 +46,16 @@ def test_bars_roundtrip_and_selection():
     assert b[1][1:] == (179.0, 179.0, 179.0, 179.0, 6) and b[1][0] == 11 * 3600 + 54 * 60
 
 
+def test_bars_keep_holiday_shifted_expiry():
+    # 202610F2 照規則 10/9（週五，國慶連假）到期，順延到 10/12（週一）：那天它就是當天到期的那一批
+    tk = {("202610F2", "C", 43000): [(9 * 3600 + 60, 10.0, 2)], ("202610W2", "C", 43000): [(9 * 3600 + 60, 20.0, 2)],
+          ("202609F4", "C", 43000): [(9 * 3600 + 60, 30.0, 2)]}
+    doc = T.bars_doc(date(2026, 10, 12), tk, 43000.0)
+    assert doc["exp"]["202610F2"] == "2026-10-12" and doc["exp"]["202610W2"] == "2026-10-14"
+    assert "202609F4" not in doc["exp"]                                          # 超過 SHIFT_DAYS 的舊批不收
+    assert set(doc["c"]) == {"202610F2|C|43000", "202610W2|C|43000"}
+
+
 def test_bars_without_ref_uses_most_traded_strike():
     tk = T.parse_ticks(io.StringIO(TICK_CSV), date(2026, 11, 4))
     doc = T.bars_doc(date(2026, 11, 4), tk, None)
