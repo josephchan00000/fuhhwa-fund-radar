@@ -1,8 +1,8 @@
 {
- "as_of": "2026-11-11 23:25",
- "count": 3,
+ "as_of": "2026-11-12 01:28",
+ "count": 4,
  "fund_count": 0,
- "etf_count": 3,
+ "etf_count": 4,
  "usqm_count": 0,
  "items": [
   {
@@ -34,6 +34,16 @@
     "00990A"
    ],
    "weight": 0.67
+  },
+  {
+   "src": "etf",
+   "name": "中華化",
+   "ticker": "1727",
+   "count": 1,
+   "etfs": [
+    "00406A"
+   ],
+   "weight": 0.04
   }
  ]
 }
