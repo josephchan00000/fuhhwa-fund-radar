@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/11/12 11:49",
+  "as_of": "2026/11/12 12:45",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -357,15 +357,7 @@
       "short_names": [
         "復華"
       ],
-      "items": [
-        {
-          "title": "主動式ETF復華台灣新星(00418A)掛牌首日早盤爆量14萬張！",
-          "url": "https://www.moneyweekly.com.tw/ArticleData/Info/Article/261357",
-          "source": "蕃新聞",
-          "date": "2026-11-11 00:00",
-          "datetime": "2026-11-11T00:00:00+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華高成長基金",
@@ -593,7 +585,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=mlXZqnlEV34",
       "date": "2026-11-05",
-      "views": 16541
+      "views": 16559
     },
     {
       "platform": "youtube",
@@ -601,7 +593,7 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/shorts/RLe1-wrqSk8",
       "date": "2026-11-11",
-      "views": 9367,
+      "views": 9373,
       "short": true
     },
     {
@@ -610,7 +602,7 @@
       "channel": "郭哲榮分析師-摩爾證券投顧",
       "url": "https://www.youtube.com/shorts/uGj7xkW72_0",
       "date": "2026-11-09",
-      "views": 286851,
+      "views": 286899,
       "peer": true,
       "short": true,
       "cat": "基金"
@@ -661,7 +653,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=wODConxXAIo",
       "date": "2026-11-09",
-      "views": 126499,
+      "views": 126580,
       "peer": true,
       "cat": "綜合"
     },
@@ -671,7 +663,7 @@
       "channel": "玩股網楚狂人",
       "url": "https://www.youtube.com/watch?v=5gAT6rtu8vk",
       "date": "2026-11-09",
-      "views": 124722,
+      "views": 124859,
       "peer": true,
       "cat": "高股息"
     },
@@ -681,7 +673,7 @@
       "channel": "City Spotlight 傾城計話",
       "url": "https://www.youtube.com/watch?v=mjOZoQFPauU",
       "date": "2026-11-09",
-      "views": 104341,
+      "views": 104440,
       "peer": true,
       "cat": "高股息"
     },
@@ -691,7 +683,7 @@
       "channel": "投資嗨什麼",
       "url": "https://www.youtube.com/watch?v=Xawpv0VzQMI",
       "date": "2026-11-10",
-      "views": 51569,
+      "views": 51625,
       "peer": true,
       "cat": "綜合"
     },
@@ -701,15 +693,15 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=7vmsqrpseis",
       "date": "2026-11-11",
-      "views": 43499,
+      "views": 43970,
       "peer": true,
       "cat": "市值型"
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00418A、中國新經濟平衡、（詳下方新聞標籤）",
+    "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00418A、中國新經濟平衡（詳下方新聞標籤）",
     "品牌焦點：00418A股價10.41元，掛牌熱度破表可以買？有配息？成分股達人拆解：放大選股池「讓錢幫你上班」（今周刊）",
     "社群聲量最高：摩根士丹利美國增長基金轉換到摩根美國科技基金（0 推）",
-    "YouTube 熱片：【國安基金進場 台股假反彈?】2026/11/9 哲哲只有60秒 #shorts（郭哲榮分析師-摩爾證券投顧・286,851 次觀看）"
+    "YouTube 熱片：【國安基金進場 台股假反彈?】2026/11/9 哲哲只有60秒 #shorts（郭哲榮分析師-摩爾證券投顧・286,899 次觀看）"
   ]
 }
