@@ -54,7 +54,7 @@
 ### 個股報價日與貢獻（2026-10-21）
 
 - **貢獻在 CI 端算好存進落檔的 `detail`**（`etfholdings.annotate`，個股報價 ← `arm/dayquotes.latest`＋`yahooq.fetch_foreign_on`）——容器內 proxy 擋 twse/tpex，建表時取不到報價；儀表板端 `etfholdings.view()` 只讀 `detail` 純渲染。
-- **使用者決定**：漲跌一律用**最新交易日 T**（搭配各 ETF 最新揭露的持股；快照日≠T 時網頁兩個日期都標＋「不同日」章）；**海外只用已收盤的價格**，當地還沒收盤標「待收盤」，下一班自動補上。
+- **使用者決定**：漲跌一律用**最新交易日 T**（搭配各 ETF 最新揭露的持股；快照日≠T 時網頁兩個日期都標＋「不同日」章）；**海外只用已收盤的價格**，當地還沒收盤標「待收盤」，下一班自動補上。GitHub cron 常晚好幾小時，17:40 班拖到美股開盤前才跑就整批待收盤；2026-11-12 起 05:08 美股收盤排程（Routine ④）順便 dispatch 一次 `etf_holdings.yml`，美股一收盤就補上。
 - `arm/dayquotes.latest()`：決定 T（官方休市表、交易日 14:00 後才試今天），**上市、上櫃都要取到 T**（openapi 日期剛好是 T 就用；不是就抓 MI_INDEX／櫃買 dailyQuotes 指定日期版，
   正負號在「漲跌(+/-)」欄的 HTML 裡、X＝不比價；櫃買回應日≠T 不收），自我檢查「收盤 − 漲跌 ＝ 前一交易日官方收盤（籌碼雷達分片）」≥80% 才採用，拿不到換前一交易日——**絕不各取各的**。
 - `yahooq.close_on()`：日線依 `gmtoffset` 換當地日期、`currentTradingPeriod` 正在交易的那天不收、那根收盤是空值改用 `regularMarketPrice`（最後成交時戳要落在當地那一天；

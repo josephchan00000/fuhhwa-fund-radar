@@ -467,6 +467,31 @@ def _new_etf_chip() -> str:
     return " ".join(parts)
 
 
+LIST_DUE_DAYS = 10     # 募集結束超過幾天還沒填掛牌日就掛紅章（2026-11-12：00418A 11/11 掛牌，登錄檔沒有掛牌日 → 沒自動進追蹤表）
+
+
+def _list_due_chip(today=None) -> str:
+    """「即將登場」登錄檔裡有代號、募集已結束超過 LIST_DUE_DAYS 天、卻還沒填 list_date 的 → 紅章列代號。
+    掛牌自動加入追蹤（etfwatch.watch_tuples）靠 list_date，沒填就會卡在即將登場、靜靜漏掉。讀不到檔或沒有＝不顯示。"""
+    t = today or clock.today_tw()
+    late = []
+    for it in getattr(etfwatch, "UPCOMING", None) or []:
+        if not it.get("code") or it.get("list_date") or not it.get("raise_end"):
+            continue
+        try:
+            end = date.fromisoformat(str(it["raise_end"])[:10])
+        except ValueError:
+            continue
+        if t - end > timedelta(days=LIST_DUE_DAYS):
+            late.append(it)
+    if not late:
+        return ""
+    names = "、".join(_esc(f"{i['code']} {i.get('name') or ''}".strip()) for i in late[:6])
+    more = f" 等 {len(late)} 檔" if len(late) > 6 else ""
+    return (f'<span class="chip fresh stale"><b>新 ETF 待補掛牌日</b>　🔴 募集結束超過 {LIST_DUE_DAYS} 天 '
+            f'{len(late)} 檔（{names}{more}）</span>')
+
+
 def _yt_watch_chip(today=None) -> str:
     """社群 YouTube 全空警示章（2026-08-07 使用者需求：「每次更新都順便查一下 YouTube」）。
     讀 data/fund_news.json：**今日的**檔、social 段存在、卻無任何 youtube 項＝抓取異常
@@ -516,7 +541,7 @@ def _freshness_view(gen_stamp: str, sources: list[tuple[str, str | None, int | N
     return (f'<div class="section freshbar" id="freshness"><div class="st">{_ic("clock", plain=True)}網頁更新時間　'
             f'{_fresh_chip("網頁更新", gen_stamp, None, today, gen=True)} '
             f'{_factcheck_chip(today)} {_intro_gap_chip()} {_afterhours_chip(today)} '
-            f'{_yt_watch_chip(today)} {_new_etf_chip()} {extra}'
+            f'{_yt_watch_chip(today)} {_new_etf_chip()} {_list_due_chip(today)} {extra}'
             f'<span class="stsub">{sub}</span></div></div>')
 
 

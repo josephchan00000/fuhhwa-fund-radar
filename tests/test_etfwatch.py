@@ -1610,3 +1610,18 @@ def test_除息日官方表有除權息參考價時採用官方值(monkeypatch):
     assert i["prev_close"] == 29.26 and i["chg_ex_div"] == 0.38 and i["prev_date"] == "2026-10-20"
     assert "除息參考價 28.88" in fund_dashboard._chg_cell(i)
 
+
+
+def test_list_due_chip_flags_coded_etf_without_list_date(monkeypatch):
+    """有代號、募集結束超過 10 天還沒填掛牌日 → 紅章（2026-11-12：00418A 掛牌了卻沒進追蹤表）；10 天內、有掛牌日、沒代號都不掛。"""
+    from datetime import date
+    from arm import etfwatch, fund_dashboard as FD
+    items = [{"code": "00418A", "name": "復華台灣新星", "raise_end": "2026-10-27"},
+             {"code": "00419A", "name": "施羅德AI", "raise_end": "2026-11-06"},
+             {"code": "00413A", "name": "玉山", "raise_end": "2026-10-23", "list_date": "2026-11-11"},
+             {"code": None, "name": "未派碼", "raise_end": "2026-10-01"}]
+    monkeypatch.setattr(etfwatch, "UPCOMING", items)
+    h = FD._list_due_chip(date(2026, 11, 12))
+    assert "00418A" in h and "00419A" not in h and "00413A" not in h and "未派碼" not in h and "1 檔" in h
+    monkeypatch.setattr(etfwatch, "UPCOMING", items[1:])
+    assert FD._list_due_chip(date(2026, 11, 12)) == ""
