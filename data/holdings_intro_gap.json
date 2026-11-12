@@ -1,10 +1,20 @@
 {
- "as_of": "2026-11-12 01:28",
- "count": 4,
+ "as_of": "2026-11-12 12:47",
+ "count": 6,
  "fund_count": 0,
- "etf_count": 4,
+ "etf_count": 6,
  "usqm_count": 0,
  "items": [
+  {
+   "src": "etf",
+   "name": "星展集團控股有限公司",
+   "ticker": "DBS",
+   "count": 1,
+   "etfs": [
+    "00998A"
+   ],
+   "weight": 1.5
+  },
   {
    "src": "etf",
    "name": "十銓",
@@ -34,6 +44,16 @@
     "00990A"
    ],
    "weight": 0.67
+  },
+  {
+   "src": "etf",
+   "name": "長廣",
+   "ticker": "7795",
+   "count": 1,
+   "etfs": [
+    "00418A"
+   ],
+   "weight": 0.41
   },
   {
    "src": "etf",

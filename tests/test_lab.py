@@ -692,27 +692,73 @@ def test_series_out_exports_active_flow_not_etf_total():
 
 
 def test_build_splits_series_into_side_file(tmp_path, monkeypatch):
-    """個股走勢序列另存 x9s.json（開個股卡才載入）：頁面不含序列、版本號＝序列檔雜湊、檔案自帶日期軸；同資料重建零變更。"""
+    """個股走勢序列另存十六份 x9s-{0..f}.json（開個股卡只抓那一份；2026-11-11 個股頁優化 D 段）：頁面不含序列、版本號＝十六份合起來的雜湊、
+    每一份自帶日期軸、沒有股票的那一份也寫；拆分以前的整份 x9s.json 建頁時刪掉；同資料重建零變更。"""
     import json as _json
     from arm.lab import analyze
     data = {"asof": {"pos": "2026-10-13"}, "etfs": {}, "dates": ["2026-10-08", "2026-10-13"],
             "rows": [{"c": "2330", "n": "台積電", "m": "tw", "sg": [], "hd": []}],
-            "ser": {"2330": {"c": [2400.0, 2490.5], "qa": [0, 3]}}, "sigdef": {}, "risk": [],
+            "ser": {"2330": {"c": [2400.0, 2490.5], "qa": [0, 3]}, "000660 KS": {"c": [1.0, 2.0]}}, "sigdef": {}, "risk": [],
             "stats": {}, "iss": {}, "iev": {}, "iow": {}}
     monkeypatch.setattr(analyze, "run", lambda **kw: data)
     html_p, ser_p = tmp_path / "x9.html", tmp_path / "x9s.json"
+    ser_p.write_text("{}", "utf-8")                                    # 拆分以前留下的整份
     assert page.build(out=html_p, out_ser=ser_p) is True
+    assert not ser_p.exists()
     blob = html_p.read_text("utf-8").split('id="labdata">', 1)[1].split("</script>", 1)[0]
     main = _json.loads(blob.replace("<\\/", "</"))
     assert "ser" not in main and main["dates"] == data["dates"]
-    sj = ser_p.read_text("utf-8")
-    assert main["serv"] == page._ver(sj)
-    assert _json.loads(sj) == {"dates": data["dates"], "ser": {"2330": {"c": [2400, 2490.5], "qa": [0, 3]}}}
+    files = {k: (tmp_path / f"x9s-{k}.json").read_text("utf-8") for k in "0123456789abcdef"}
+    assert main["serv"] == page._ver("".join(files[k] for k in sorted(files)))
+    got = {}
+    for k, t in files.items():
+        d = _json.loads(t)
+        assert d["dates"] == data["dates"]
+        for c in d["ser"]:
+            assert page.ser_key(c) == k
+        got.update(d["ser"])
+    assert got == {"2330": {"c": [2400, 2490.5], "qa": [0, 3]}, "000660 KS": {"c": [1, 2]}}
     assert page.build(out=html_p, out_ser=ser_p) is False
 
 
+def test_ser_key_same_in_page_js():
+    """走勢序列分在哪一份：Python ser_key 和頁面 JS 的 serK 必須一樣（不一樣＝個股卡抓錯份、走勢永遠載入中）。"""
+    import json as _json
+    import re
+    import shutil
+    import subprocess
+
+    import pytest
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("沒有 node")
+    src = (page.ROOT / "arm" / "lab" / "page.py").read_text("utf-8")
+    fn = re.search(r"function serK\(c\)\{.*?\}\n", src).group(0).replace("\\\\", "\\")
+    codes = ["2330", "0050", "00981A", "000660 KS", "NVDA US", "6488", "8299", "3008", "AAPL", "1101"]
+    r = subprocess.run([node, "-e", fn + "process.stdout.write(JSON.stringify(%s.map(serK)));" % _json.dumps(codes)],
+                       capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stderr
+    assert _json.loads(r.stdout) == [page.ser_key(c) for c in codes]
+    assert page.SER_N == 16 and "h%16" in fn
+
+
+def test_us_card_data_split_into_side_file():
+    """美股個股卡資料另存 x9uc.json：頁面只留順序、日期、版本號；資料不動（finish() 還要用）。"""
+    import json as _json
+    uc = {"o": ["AAA", "BBB"], "cal": ["2026-11-10"], "d": "2026-11-10", "s": {"AAA": {"nm": "A"}, "BBB": {"nm": "B"}}}
+    data = {"pick": {"us": {"uc": uc, "cards": []}, "tw": {}}, "dates": []}
+    slim, text = page.uc_split(data)
+    assert slim == {"o": ["AAA", "BBB"], "cal": ["2026-11-10"], "d": "2026-11-10", "v": page._ver(text)}
+    assert _json.loads(text) == {"s": uc["s"]} and "s" in data["pick"]["us"]["uc"]
+    html = page.render(data, ser_v="x")
+    blob = _json.loads(html.split('id="labdata">', 1)[1].split("</script>", 1)[0].replace("<\\/", "</"))
+    assert blob["pick"]["us"]["uc"] == slim and blob["pick"]["us"]["cards"] == []
+    assert page.uc_split({"pick": {"us": {"uc": None}}}) == (None, None)
+
+
 def test_workflows_commit_series_file_on_its_own_line():
-    """三支會重建儀表板的 workflow 都要把 x9s.json 帶進 commit，且分開 add（缺檔時 git 會整行放棄，不可連累分片）。"""
+    """三支會重建儀表板的 workflow 都要把走勢序列十六份、美股個股卡資料帶進 commit，且各自分開 add（缺檔時 git 會整行放棄，不可連累分片）；
+    拆分以前的整份 x9s.json 用 git add -A 把刪除帶進同一筆 commit（2026-11-11）。"""
     from pathlib import Path
     wf = Path(__file__).resolve().parents[1] / ".github" / "workflows"
     for name in ("daily.yml", "afterhours_refresh.yml", "etf_holdings.yml"):
@@ -720,8 +766,10 @@ def test_workflows_commit_series_file_on_its_own_line():
         page_lines = [i for i, ln in enumerate(lines) if "dashboard/x9.html" in ln]
         assert page_lines, name
         for i in page_lines:
-            assert "x9s.json" not in lines[i], name
-            assert lines[i + 1].strip().startswith("git add -f dashboard/x9s.json"), (name, i)
+            assert "x9s" not in lines[i], name
+            assert lines[i + 1].strip().startswith("git add -f dashboard/x9s-*.json"), (name, i)
+            assert lines[i + 2].strip().startswith("git add -f dashboard/x9uc.json"), (name, i)
+            assert lines[i + 3].strip().startswith("git add -A dashboard/x9s.json"), (name, i)
 
 
 def test_workflows_that_build_pages_install_numpy():

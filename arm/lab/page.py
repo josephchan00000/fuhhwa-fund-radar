@@ -2,7 +2,8 @@
 
 全頁由內嵌 JSON 在瀏覽器端渲染（表格排序／篩選、個股卡、SVG K 線）。輸出決定性：
 不寫入任何牆鐘時間，資料沒變時位元組相同 → git 無 diff、不產生空 commit。
-個股走勢序列（約占九成體積）另存 dashboard/x9s.json，開個股卡才載入（電腦閒置時預先抓）。
+個股走勢序列（約占九成體積）另存 dashboard/x9s-{0..f}.json 十六份（照代號分），開個股卡只下載那一檔所在的那一份；
+美股個股卡的資料另存 dashboard/x9uc.json，開第一張美股個股卡才下載（2026-11-11 個股頁優化 D 段，docs/lab_stock_page_plan.md 第 12 節）。
 
 版面（2026-10-14 改版，規劃與定案見 docs/lab_ui_plan.md）：
 今日｜個股｜投信｜訊號｜策略｜指數 六個分頁，一打開是「今日」重點；每頁頂端先給白話結論，
@@ -25,7 +26,9 @@ from . import analyze
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "dashboard" / "x9.html"
-OUT_SER = ROOT / "dashboard" / "x9s.json"      # 個股走勢序列；三支 workflow 的 git add 要跟 x9.html 一起帶
+OUT_SER = ROOT / "dashboard" / "x9s.json"      # 個股走勢序列的基準檔名：實際寫成同目錄的 x9s-0.json～x9s-f.json（ser_path）；三支 workflow 的 git add 要跟 x9.html 一起帶
+SER_N = 16                                     # 走勢序列分成幾份（改了 JS 的 serK 也要一起改；tests/test_lab.py 鎖）
+UC_FILE = "x9uc.json"                          # 美股個股卡資料（和 x9.html 同目錄）
 _LAST: dict = {}                               # build() 建好的資料，給 finish() 用今天的警訊讀數重建配置頁
 
 
@@ -85,7 +88,8 @@ def build(out: Path = OUT, out_ser: Path = OUT_SER) -> bool:
         data["vlog"] = valog.update(data)
     except Exception as e:                   # noqa: BLE001 —— 紀錄失敗不影響建頁
         data["vlog"] = {"err": f"{type(e).__name__}: {e}"}
-    sj = ser_json(data)
+    sf = ser_files(data)
+    sv = ser_ver(sf)
     changed = False
     try:                                     # 公司分析（docs/lab_company_plan.md）：全市場小表與每檔資料檔另存，點進去才下載
         from . import company
@@ -105,14 +109,30 @@ def build(out: Path = OUT, out_ser: Path = OUT_SER) -> bool:
     except Exception as e:                   # noqa: BLE001 —— 公司分析失敗不影響建頁
         print(f"[籌碼雷達] ⚠ 公司分析檔沒有更新：{type(e).__name__}: {e}")
     _LAST.clear()
-    _LAST.update(data=data, out=out, ser_v=_ver(sj))
-    for path, text in ((out_ser, sj), (out, render(data, ser_v=_ver(sj)))):
-        if path.exists() and path.read_text(encoding="utf-8") == text:
-            continue
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(text, encoding="utf-8")
+    _LAST.update(data=data, out=out, ser_v=sv)
+    outs = [(ser_path(out_ser, k), t) for k, t in sf.items()]
+    outs += _uc_out(data, out)
+    outs.append((out, render(data, ser_v=sv)))
+    for path, text in outs:
+        changed |= _write(path, text)
+    if out_ser.exists():                     # 拆成分片以前的整份序列（2026-11-11 以前）：刪掉；workflow 用 git add -A 把刪除帶進同一筆 commit
+        out_ser.unlink()
         changed = True
     return changed
+
+
+def _write(path: Path, text: str) -> bool:
+    if path.exists() and path.read_text(encoding="utf-8") == text:
+        return False
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+    return True
+
+
+def _uc_out(data: dict, out: Path) -> list:
+    """美股個股卡資料另存的那一檔（沒有美股個股卡＝不寫）。"""
+    _, text = uc_split(data)
+    return [(out.parent / UC_FILE, text)] if text else []
 
 
 def _cfg(data: dict) -> bool:
@@ -153,11 +173,10 @@ def finish(out: Path | None = None) -> bool:
     if not _cfg(data):
         return False
     path = out or _LAST["out"]
-    text = render(data, ser_v=_LAST.get("ser_v"))
-    if path.exists() and path.read_text(encoding="utf-8") == text:
-        return False
-    path.write_text(text, encoding="utf-8")
-    return True
+    changed = False
+    for p2, t2 in _uc_out(data, path):       # 選股頁重算了，美股個股卡資料跟著重寫（內容沒變就不動）
+        changed |= _write(p2, t2)
+    return _write(path, render(data, ser_v=_LAST.get("ser_v"))) or changed
 
 
 def _slim(x):
@@ -179,10 +198,41 @@ def _ver(text: str) -> str:
     return hashlib.sha1(text.encode("utf-8")).hexdigest()[:10]
 
 
-def ser_json(data: dict) -> str:
-    """個股走勢序列（x9s.json）。自帶日期軸：檔案若比頁面舊（推送觸發的排程用了沒 add 它的舊 workflow），
-    圖照樣畫到它自己的日期並標註，不會錯位。"""
-    return _dump({"dates": data.get("dates") or [], "ser": data.get("ser") or {}})
+def ser_key(code: str) -> str:
+    """代號 → 走勢序列在哪一份（"0"～"f"）。和頁面 JS 的 serK 同一個算法（字元碼 ×31 累加取 32 位元，再除以 SER_N 取餘數）。"""
+    h = 0
+    for ch in str(code):
+        h = (h * 31 + ord(ch)) & 0xFFFFFFFF
+    return format(h % SER_N, "x")
+
+
+def ser_files(data: dict) -> dict:
+    """個股走勢序列分片 {"0": 檔案內容, …, "f": …}。每一份都自帶日期軸（檔案若比頁面舊——推送觸發的排程用了沒 add 它的舊 workflow——
+    圖照樣畫到它自己的日期並標註，不會錯位）；沒有股票的那一份也寫（頁面抓得到、不會 404）。"""
+    dates = data.get("dates") or []
+    bk = {format(i, "x"): {} for i in range(SER_N)}
+    for c, v in (data.get("ser") or {}).items():
+        bk[ser_key(c)][c] = v
+    return {k: _dump({"dates": dates, "ser": bk[k]}) for k in sorted(bk)}
+
+
+def ser_ver(files: dict) -> str:
+    """分片的版本號（頁面抓分片時帶 ?v=，資料換了瀏覽器才不會用舊的）。"""
+    return _ver("".join(files[k] for k in sorted(files)))
+
+
+def ser_path(out_ser: Path, k: str) -> Path:
+    """基準檔名 dashboard/x9s.json → 分片 dashboard/x9s-{k}.json。"""
+    return out_ser.with_name(f"{out_ser.stem}-{k}.json")
+
+
+def uc_split(data: dict) -> tuple:
+    """選股頁的美股個股卡資料 → (留在頁面的部分：順序、日期、版本號；另存檔的內容 {"s": 每一檔})。沒有＝(None, None)。"""
+    uc = ((data.get("pick") or {}).get("us") or {}).get("uc")
+    if not isinstance(uc, dict) or not uc.get("s"):
+        return None, None
+    text = _dump({"s": uc["s"]})
+    return {**{k: v for k, v in uc.items() if k != "s"}, "v": _ver(text)}, text
 
 
 def _md(d) -> str:
@@ -231,7 +281,10 @@ def theme_css() -> str:
 
 def render(data: dict, ser_v: str | None = None) -> str:
     main = {k: v for k, v in data.items() if k not in ("ser", "mtab", "ytd", "ytd_day", "sx_pos")}   # ytd、sx_pos＝配置頁已組成 HTML
-    main["serv"] = ser_v or _ver(ser_json(data))
+    main["serv"] = ser_v or ser_ver(ser_files(data))
+    ucm, _ = uc_split(data)
+    if ucm is not None:                      # 美股個股卡資料另存 x9uc.json（不改 data：finish() 還要用）
+        main["pick"] = {**main["pick"], "us": {**main["pick"]["us"], "uc": ucm}}
     main["asl"] = asof_line(data)                 # 資料日（個股工具那一列；第 4 段起不放頂欄）
     blob = _dump(main).replace("</", "<\\/")
     from . import appnav, cfgpage, copage, corepage, macpage, pickpage, stockviz, uscardpage   # 公司分析（docs/lab_company_plan.md 第 5 節）：CSS 接在後面；JS 放在頁面初始化之前
@@ -1870,12 +1923,14 @@ function valSecs(){const done=new Set();let h='';
   for(const k of ['s1','s3','hd','s5'])if(!done.has(k))h+=VALF[k]();
   return h;}
 
-/* ---------- 個股走勢序列（x9s.json：開個股卡才載入，電腦閒置時預先抓） ---------- */
-let SER=null,SERD=[],SERST='idle',SERP=null;
-function loadSer(){if(SERP)return SERP;SERST='loading';
-  SERP=fetch('x9s.json?v='+encodeURIComponent(D.serv||'')).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
-    .then(j=>{SER=j.ser||{};SERD=j.dates||[];SERST='ok';return SER;},e=>{SERST='err';SERP=null;throw e;});
-  return SERP;}
+/* ---------- 個股走勢序列（x9s-0.json～x9s-f.json 十六份：開個股卡只下載那一檔所在的那一份；page.ser_key 同一個算法） ---------- */
+let SER={},SERD=[],SERS={},SERP={};
+function serK(c){let h=0;c=String(c);for(let i=0;i<c.length;i++)h=(h*31+c.charCodeAt(i))>>>0;return (h%16).toString(16);}
+function serSt(c){return SERS[serK(c)]||'idle';}
+function loadSer(c){const k=serK(c);if(SERP[k])return SERP[k];SERS[k]='loading';
+  SERP[k]=fetch('x9s-'+k+'.json?v='+encodeURIComponent(D.serv||'')).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+    .then(j=>{Object.assign(SER,j.ser||{});if((j.dates||[]).length)SERD=j.dates;SERS[k]='ok';return SER;},e=>{SERS[k]='err';SERP[k]=null;throw e;});
+  return SERP[k];}
 function reStock(c){if(!$('#dv').hidden&&decodeURIComponent((location.hash.match(/^#s=(.+)$/)||[])[1]||'')===c)renderStock(c,true);}
 
 /* ---------- 個股卡（電腦：右側面板、不遮表格；手機：全螢幕） ---------- */
@@ -1977,8 +2032,8 @@ document.addEventListener('click',ev=>{const a=ev.target.closest&&ev.target.clos
   try{const s=JSON.parse(localStorage.getItem('eq.sent')||'{}');s[a.dataset.eqk]=Date.now();localStorage.setItem('eq.sent',JSON.stringify(s));}catch(e){}
   setTimeout(()=>{const p=a.closest('.eqrl');if(p)p.innerHTML='<b>個股報告</b><span>已送出，等排程</span>';else if(a.isConnected)a.outerHTML='<span class=pkeq>已送出</span>';},0);});
 function renderStock(c,keep){
-  const r=BY[c];if(!r){hideStock();return;}const s=SER?(SER[c]||{}):null;const tw=r.m!=='os';const u=tw?'張':'股';
-  if(!SER&&SERST!=='err')loadSer().then(()=>reStock(c),()=>reStock(c));
+  const r=BY[c];if(!r){hideStock();return;}const s=serSt(c)==='ok'?(SER[c]||{}):null;const tw=r.m!=='os';const u=tw?'張':'股';
+  if(serSt(c)!=='ok'&&serSt(c)!=='err')loadSer(c).then(()=>reStock(c),()=>reStock(c));
   const dv=$('#dv'),pane=isPane(),st0=keep?dv.scrollTop:0;
   dv.classList.toggle('pane',pane);document.body.classList.toggle('pane',pane);dv.hidden=false;lockBody(!pane);
   const W=Math.max(300,Math.floor($('#dvin').clientWidth-32));
@@ -1995,7 +2050,7 @@ function renderStock(c,keep){
   h+=eqRepLine('tw:'+c,r.n)+stCardSec(c);
   h+=`<section class=csec id=c-sum><h3>重點</h3><div class=sgrow>${sgChips(r.sg)||'<span class=st>今日無觸發訊號</span>'}</div><ul class=sum>${sumLines(r).map(x=>`<li>${x}</li>`).join('')}</ul><div class=kpis>${kpis(r)}</div></section>`;
   const lastD=(D.dates||[]).slice(-1)[0],serD=SERD.slice(-1)[0];
-  if(!s)h+=`<section class=csec id=c-chart><h3>走勢</h3><div class=ld>${SERST==='err'?'走勢資料暫時無法載入　<a id=serr>重試</a>':'走勢載入中…'}</div></section>`;
+  if(!s)h+=`<section class=csec id=c-chart><h3>走勢</h3><div class=ld>${serSt(c)==='err'?'走勢資料暫時無法載入　<a id=serr>重試</a>':'走勢載入中…'}</div></section>`;
   else if(s.c&&s.c.some(x=>x!=null))h+=`<section class=csec id=c-chart><h3>走勢<span class=sub>近 ${s.c.length} 個交易日・游標移到圖上看每日數字</span></h3>${serD&&lastD&&serD<lastD?`<div class=note>走勢資料到 ${md(serD)}（尚未更新到最新）</div>`:''}<div class=cw id=kc>${chart(s,r,W)}</div>`+
    `<div class=lg><span><i style="background:#2563c9"></i>20 日線</span><span><i style="background:#f59e0b"></i>60 日線</span><span><i class=dsh></i>主動 ETF 新建倉成本</span><span><b class=up>▲</b> 主動 ETF 新建倉</span><span><b class=dn>▼</b> 出清</span>${s.qa?'<span>下方長條＝主動 ETF 每日真加減碼（已扣申贖）</span>':''}</div></section>`;
   const act=(r.hd||[]).filter(x=>(E[x[0]]||{}).k==='a').sort((a,b)=>(b[1]||0)-(a[1]||0));
@@ -2042,7 +2097,7 @@ function renderStock(c,keep){
   $('#dvin').innerHTML=h;dv.scrollTop=st0;
   $('#x').onclick=closeStock;$('#pv').onclick=()=>stepStock(-1);$('#nx').onclick=()=>stepStock(1);
   $$('#dvin [data-go]').forEach(a=>a.onclick=e=>{e.preventDefault();PUSHED=false;history.replaceState(null,'',location.pathname+location.search);hideStock();go(a.dataset.go,a.dataset.at);});
-  const rb=$('#serr');if(rb)rb.onclick=()=>{SERST='idle';renderStock(c,true);};
+  const rb=$('#serr');if(rb)rb.onclick=()=>{SERS[serK(c)]='idle';renderStock(c,true);};
   $$('#dvin [data-cto]').forEach(a=>a.onclick=()=>{const t=document.getElementById(a.dataset.cto);if(t)dv.scrollTo({top:dv.scrollTop+t.getBoundingClientRect().top-dv.getBoundingClientRect().top-$('#dvin .dvh').offsetHeight+2,behavior:'smooth'});});
   cspy();bindTip(c);coAfterStock(c);
 }
@@ -2163,9 +2218,7 @@ function go(t,anchor){if(!VIEWS[t])t='tw';S.tab=t;const g=TABG[t];setPer(PERS[t]
   window.scrollTo(0,0);if(anchor)requestAnimationFrame(()=>jump(anchor));}
 /*@@COPAGE@@*/
 $$('#tabs a[data-t]').forEach(a=>a.onclick=()=>{const g=a.dataset.t;go(g==='mac'||g==='stg'||g==='tool'?LAST[g]:g);});
-/* 頂欄「選股」：在選股裡＝回到這次看過的選股分頁；在研究紀錄＝回到上次看的選股分頁（連結由 appnav.NAV_HEAD 換成上次的位置） */
-$$('.apptab a[data-k="pick"]').forEach(a=>a.onclick=e=>{e.preventDefault();if(PER==='pick'){go(LAST.pick);return;}
-  const v=new URLSearchParams((a.getAttribute('href')||'').split('?')[1]||'').get('v');go(VIEWS[v]&&PERS[v]==='pick'?v:'tw');});
+/* 頂欄「選股」2026-11-12 拿掉（搬到盤前・選擇權頁的「個股」分頁；appnav 開頭說明） */
 $$('.applk .glk').forEach(a=>a.onclick=e=>{e.preventDefault();openGl();});     /* 頂欄小字「名詞」 */
 {const q=new URLSearchParams(location.search),hm=location.hash.match(/^#v=([a-z]+)(.*)$/),gl=location.hash==='#gl';let v=q.get('v'),m=q.get('m'),x='',at=q.get('at')||undefined;
   if(hm){v=hm[1];const p=new URLSearchParams(hm[2].replace(/^&/,''));m=p.get('m')||m;x=p.get('x')||'';}
@@ -2174,7 +2227,7 @@ $$('.applk .glk').forEach(a=>a.onclick=e=>{e.preventDefault();openGl();});     /
   if(!VIEWS[v])v=/^#((s|co)=|q$)/.test(location.hash)?'stk':/^#us=/.test(location.hash)?'us':'tw';   /* #q＝查公司（別頁頂欄的「查公司」連過來）；#us＝美股個股卡 */
   if(x&&TABG[v]==='mac'){const M=MCM[S.mmk]||{};if((M.cards||[]).some(c=>c.k===x)){v='mac';at='m-'+x;}else{v='macst';at='ms-'+x;}}
   go(v,at);if(gl)openGl();}
-if(isPane())setTimeout(()=>{loadSer().catch(()=>{});},1500);
+/* 2026-11-11 起不再預先抓整份走勢序列（原本電腦開頁 1.5 秒後就下載 1.7 MB）：分成十六份，開哪一檔才抓那一份 */
 {const m=location.hash.match(/^#s=(.+)$/);if(m)renderStock(decodeURIComponent(m[1]));}
 {const m=location.hash.match(/^#us=(.+)$/);if(m)ucRender(decodeURIComponent(m[1]));}
 """

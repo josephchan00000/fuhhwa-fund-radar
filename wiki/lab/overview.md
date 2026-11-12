@@ -17,7 +17,8 @@
 - **模組（`arm/lab/`）**：store（日分片 gzip、決定性輸出）／market（官方全市場端點）／collect（冪等落檔）／ledger（ETF 部位帳本）／
   ta（技術指標）／analyze（逐檔彙整＋訊號）／backtest（成績單）／page（獨立頁）。
 - **建頁**掛在 `scripts/gen_fund_dashboard.py` 尾端（fail-open），凡重建主頁的地方（含 push 重試迴圈）都一起重建。
-  三支 workflow 的 `git add` 都有 `data/lab dashboard/x9.html`；`dashboard/x9s.json` 另起一行（缺檔時 git 整行放棄，不可連累分片；tests 守）。
+  三支 workflow 的 `git add` 都有 `data/lab dashboard/x9.html`；下面三行各自分開（缺檔時 git 整行放棄，不可連累分片；tests 守）：走勢序列十六份 `dashboard/x9s-*.json`、
+  美股個股卡資料 `dashboard/x9uc.json`、`git add -A dashboard/x9s.json`（拆分以前的整份，建頁時刪掉，這行把刪除帶進 commit）。
 - **三支都要裝 numpy**（策略判定、景氣頁、訊號總覽要它；`tests/test_lab.py::test_workflows_that_build_pages_install_numpy` 守）。
 
 ## 不能改的規則

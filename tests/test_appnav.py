@@ -3,21 +3,33 @@ from arm.lab import appnav, heatpage, heatpage_us, page
 
 
 def test_bar_marks_the_current_page():
-    """頂欄（docs/lab_ia_v5_plan.md 第 2、22 節，照核准過的示意圖）：只剩「市場｜選股」兩格（2026-10-28 前叫配置），右邊小字「研究紀錄・名詞・查公司」。"""
-    assert [k for k, _, _ in appnav.TABS] == ["mkt", "pick"]
+    """頂欄（docs/lab_ia_v5_plan.md 第 2、22 節）：2026-11-12 起只剩「市場」一格——「選股」搬到盤前・選擇權頁的「個股」分頁
+    （docs/lab_txo_plan.md 第 20 節）；右邊小字「研究紀錄・名詞・查公司」照舊。"""
+    assert [k for k, _, _ in appnav.TABS] == ["mkt"]
     mkt = appnav.bar("mkt")
-    assert mkt.startswith('<nav class="apptab" aria-label="頁面">') and mkt.count('data-k=') == 2
-    assert '<a class="on" aria-current="page" data-k="mkt" href="x9m.html">市場</a><a data-k="pick" href="x9.html">選股</a>' in mkt
+    assert mkt.startswith('<nav class="apptab" aria-label="頁面">') and mkt.count('data-k=') == 1
+    assert '<a class="on" aria-current="page" data-k="mkt" href="x9m.html">市場</a></nav>' in mkt
     us = appnav.bar("mkt", cur="x9mu.html")                                      # 美股頁：「市場」亮、連回美股頁
     assert '<a class="on" aria-current="page" data-k="mkt" href="x9mu.html">市場</a>' in us
-    cfg = appnav.bar("pick")
-    assert '<a data-k="mkt" href="x9m.html">市場</a><a class="on" aria-current="page" data-k="pick" href="x9.html">選股</a>' in cfg
-    r = appnav.bar("r")                                                          # 研究紀錄頁：兩格都不亮
+    cfg = appnav.bar("pick")                                                     # 選股頁直接開：「市場」不亮、沒有「選股」格
+    assert '<a data-k="mkt" href="x9m.html">市場</a></nav>' in cfg and ">選股<" not in cfg
+    r = appnav.bar("r")                                                          # 研究紀錄頁：不亮
     assert "aria-current=\"page\" data-k" not in r and 'class="on"' not in r
     for page in ("mkt", "pick", "r", ""):
         b = appnav.bar(page)
-        for old in ("x9x.html", "x9.html#v=mac", "x9b.html", "x9o.html", "景氣", "泡沫", "訊號總覽", ">策略<", ">個股<", ">配置<"):
+        for old in ("x9x.html", "x9.html#v=mac", "x9b.html", "x9o.html", "景氣", "泡沫", "訊號總覽", ">策略<", ">個股<", ">配置<", ">選股<"):
             assert old not in b, (page, old)                                     # 舊的分頁名稱與舊頁面都不在頂欄
+
+
+def test_embed_mode_hides_own_nav_and_opens_other_pages_in_top_window():
+    """選股頁放在盤前・選擇權頁的框裡（2026-11-12）：框裡收起主分頁、返回主頁、深淺色鈕與「.」，連到別頁的連結開在整個視窗。"""
+    out = appnav.finish('<html><head><style>.x{}</style></head><body><div class="top">' + appnav.bar("pick") + appnav.BACK
+                        + '</div></body></html>')
+    assert appnav.EMBED_JS + "</script>" in out and appnav.EMBED_CSS in out          # 跟 NAV_HEAD 同一個 <script>
+    assert "window.self===window.top" in appnav.EMBED_JS and 'a.target="_top"' in appnav.EMBED_JS
+    for sel in (".inop .apptab", ".inop .top>.back", ".inop .top .thm", ".inop .opq"):
+        assert sel in appnav.EMBED_CSS
+    assert ".inop .applk" not in appnav.EMBED_CSS                                # 研究紀錄・名詞・查公司留著
 
 
 def test_right_links_research_glossary_company():

@@ -12,6 +12,9 @@
 2026-10-23 第 4 段（docs/lab_ia_v5_plan.md 第 2、22 節，照核准過的示意圖）：頂欄只剩「市場｜配置」兩格，右邊小字「研究紀錄・名詞・查公司」，
 再來是深淺色鈕與返回主頁；原本擠在頂欄的「資料到…」移到各區塊（市場頁的面向標題、選股頁個股工具那一列）。
 2026-10-28（docs/lab_pick_page_plan.md）：「配置」拿掉、改成「選股」（x9.html：台股｜美股｜個股），原本的配置搬到研究紀錄。
+2026-11-12（docs/lab_txo_plan.md 第 20 節；使用者：「幫我把個股頁挪到選擇權頁的分頁裡面」）：頂欄拿掉「選股」，選股頁改放在
+盤前・選擇權頁（x9op.html，最底下的「.」進來）的「個股」分頁裡（框裡整頁載入 x9.html）。x9.html 直接開照樣能用（舊連結、查公司、個股卡）；
+在框裡時收起自己的頂欄主分頁、返回主頁與「.」，連到別頁的連結開在整個視窗（EMBED_JS）。
 - 市場＝台股 x9m.html、美股四個指數 x9mu.html（第二排切換）；選股＝x9.html。研究紀錄頁（x9r.html）兩格都不亮。
 - 兩格各記住上次看到哪裡（這台瀏覽器的 localStorage "labLast"）：從選股點「市場」回到上次看的市場、從市場點「選股」回到上次看的選股分頁；
   沒有紀錄（或瀏覽器擋 localStorage）就是台股、選股台股。只記看得到的位置（市場與指數、選股的台股｜美股｜個股工具），不記個股卡與研究紀錄。
@@ -21,7 +24,7 @@
 """
 from __future__ import annotations
 
-TABS = (("mkt", "市場", "x9m.html"), ("pick", "選股", "x9.html"))
+TABS = (("mkt", "市場", "x9m.html"),)          # 「選股」2026-11-12 起搬到盤前・選擇權頁的「個股」分頁（見本檔開頭）
 LAST_KEY = "labLast"
 
 CSS = (".top{align-items:center}"
@@ -188,6 +191,17 @@ def dual_dark(css: str) -> str:
         i = k
 
 
+# 放在盤前・選擇權頁「個股」分頁的框裡時（2026-11-12）：收起頂欄主分頁、返回主頁、深淺色鈕與最底下的「.」（外框已經有），
+# 頂欄右邊的「研究紀錄・名詞・查公司」留著；連到別頁的連結開在整個視窗（不然研究紀錄、市場頁會被塞進框裡）。
+# 跟 NAV_HEAD 放在同一個 <script> 裡（各頁的測試數 <script> 個數）。
+EMBED_JS = ('(function(){if(window.self===window.top)return;var d=document.documentElement;d.classList.add("inop");'
+              'document.addEventListener("click",function(e){var a=e.target&&e.target.closest?e.target.closest("a[href]"):null;'
+              'if(!a||a.target)return;var u;try{u=new URL(a.getAttribute("href"),location.href)}catch(x){return}'
+              'if(u.origin!==location.origin||u.pathname!==location.pathname)a.target="_top"},true)})();')
+NAV_HEAD = NAV_HEAD.replace("</script>", EMBED_JS + "</script>")   # 框裡的處理併進記住上次位置那一段（同一個 <script>）
+EMBED_CSS = ".inop .apptab,.inop .top>.back,.inop .top .thm,.inop .opq{display:none}.inop .top{padding-top:6px}"
+
+
 def finish(page: str, note: str = "") -> str:
     """頁面輸出前最後一步：<head> 的樣式改寫成可切換深淺色、加切換程式與「記住上次位置」的程式，頂欄「返回主頁」前面加按鈕；
     note（例 計算核對不一致的紅字，valog.page_note）放在頂欄下面。"""
@@ -199,7 +213,7 @@ def finish(page: str, note: str = "") -> str:
     head = page[:h]
     a, b = head.find("<style>"), head.find("</style>")
     if a >= 0 and b > a:
-        head = head[:a + 7] + dual_dark(head[a + 7:b]) + THEME_CSS + head[b:]
+        head = head[:a + 7] + dual_dark(head[a + 7:b]) + THEME_CSS + EMBED_CSS + head[b:]
     rest = page[h:].replace(BACK, THEME_BTN + BACK, 1)
     if 'id="opd"' not in rest and "</body>" in rest:     # 選擇權分頁自己不放入口
         head = head.replace("</style>", OP_CSS + "</style>", 1)

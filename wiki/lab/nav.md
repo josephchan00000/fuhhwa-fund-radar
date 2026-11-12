@@ -8,7 +8,7 @@
 ## 現在怎麼運作
 
 2026-10-28 起「配置」改「選股」，下面「配置頁」＝[選股頁](pick-page.md)（名詞面板、查公司、資料日那一列照舊在 x9.html）。
-- 頂欄（`TABS`、`bar(page, cur, search)`、`links()`）兩格：市場＝台股 x9m.html（美股頁 `cur="x9mu.html"`）、選股＝x9.html（鍵 `pick`、`data-k="pick"`、`bar("pick")`）；右邊小字「研究紀錄・名詞・查公司」，再來是深淺色鈕與返回主頁。研究紀錄頁（`bar("r")`）兩格都不亮、小字「研究紀錄」標 `aria-current`。主分頁不放研究紀錄、泡沫、訊號總覽、策略。日期：市場頁在面向標題；配置頁的資料日（`page.asof_line` → `D.asl`）在個股工具那一列（`cfgpage.toolSeg`）。
+- 頂欄（`TABS`、`bar(page, cur, search)`、`links()`）**2026-11-12 起只剩一格「市場」**＝台股 x9m.html（美股頁 `cur="x9mu.html"`）；選股頁 x9.html 搬到盤前・選擇權頁 `x9op.html` 的「個股」分頁（框裡整頁載入，[台指選擇權](txo.md)），x9.html 直接開照樣能用（`bar("pick")` 不亮任何格）；右邊小字「研究紀錄・名詞・查公司」，再來是深淺色鈕與返回主頁。研究紀錄頁（`bar("r")`）兩格都不亮、小字「研究紀錄」標 `aria-current`。主分頁不放研究紀錄、泡沫、訊號總覽、策略。日期：市場頁在面向標題；配置頁的資料日（`page.asof_line` → `D.asl`）在個股工具那一列（`cfgpage.toolSeg`）。
 - 名詞：市場頁＝`x9r.html#mth`（名詞與判定方式）；選股頁（x9.html）＝頁內名詞面板（`.glk` → `openGl()`）；研究紀錄頁＝這頁的「名詞」段（兩份名詞都列）。
 - 查公司：選股頁（x9.html）＝點小字打開搜尋框（`copage.SEARCH_HTML` 放在小字那一組裡、`id="cos" hidden`；`.cos` 貼齊頂欄右邊，手機寬度＝頂欄寬、輸入框 16px 免得 iPhone 點進去整頁放大；Esc 或點別處關掉）；其他頁連 `x9.html#q`（到個股工具並打開搜尋框）。
 - 兩格各記住上次看到哪裡（`appnav.NAV_HEAD`，localStorage `labLast`）：市場格記 `x9m.html`／`x9mu.html#ix=指數`（美股頁 SWITCH_JS 換指數時記），選股格記 `x9.html`、`?v=us|stk|chip|idx`（`page.urlSet`，研究紀錄身分不記）。畫面出來後沒亮的那一格改連到上次位置、亮的那一格紀錄不是這一頁就記成這一頁；只收這幾種寫法（正規式），讀寫失敗就用預設（台股、配置台股）。x9.html 的那一格點了是頁內切換（研究紀錄身分時讀它的 href 切到上次的分頁）。
@@ -17,6 +17,7 @@
 - 整站建頁的測試夾具 `tests/conftest.py` 的 `labsite`（session scope：照每天建頁的順序建配置、市場、轉址、研究紀錄頁，整個測試只建一次約 3 分鐘；`test_plain.py`、`test_old_urls.py` 共用）。CI 不跑 pytest——改頂欄、網址、轉址之後自己跑這兩支。
 - 主頁頁尾的「·」連 x9m.html（市場・台股）；tests/test_lab.py 守入口只在頁尾。
 
+- **選股頁放在框裡**（2026-11-12，`appnav.EMBED_JS`／`EMBED_CSS`）：x9.html 偵測到自己在框裡（`window.self!==window.top`）就在 `<html>` 加 `inop`，收起主分頁、返回主頁、深淺色鈕與「.」，留「研究紀錄・名詞・查公司」；連到別的頁面（路徑不同）的連結改成開在整個視窗。外框在「個股」分頁時藏起自己那一排小字（`body.stkon`）。
 - **最底下右邊一個「.」**（2026-11-05）：`appnav.finish` 在每個籌碼雷達頁的最後面、右邊放一個淡色的「.」（`appnav.OP_ENTRY`，跟著頁面捲動、不固定在畫面上），連到藏起來的盤前・選擇權頁 `x9op.html`（[台指選擇權](txo.md)）；那一頁自己不放。原本是固定在右下角的圓圈「選」字，使用者 2026-11-05：「按鈕超顯眼你拿掉吧，放在最底下空白處右邊的一個.就好了」。
 
 ## 踩過的坑
