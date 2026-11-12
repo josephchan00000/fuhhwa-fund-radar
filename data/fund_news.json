@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/11/12 15:35",
+  "as_of": "2026/11/13 06:47",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -11,18 +11,18 @@
       "datetime": "2026-11-12T15:18:38+08:00"
     },
     {
-      "title": "00418A掛牌熱度破表可以買？有配息？成分股達人拆解：放大選股池「讓錢幫你上班」",
-      "url": "https://www.businesstoday.com.tw/article/category/183013/post/202611110048/",
-      "source": "今周刊",
-      "date": "2026-11-12 12:00",
-      "datetime": "2026-11-12T12:00:00+08:00"
-    },
-    {
       "title": "00418A 不配息主動式ETF值得投資嗎？「九倍女戰神」戎宜蘋操盤，成分股與亮點一次看！｜豐雲學堂2026 年 11 月",
       "url": "https://www.sinotrade.com.tw/richclub/aiinvest/00418A-%E4%B8%8D%E9%85%8D%E6%81%AF%E4%B8%BB%E5%8B%95%E5%BC%8FETF%E5%80%BC%E5%BE%97%E6%8A%95%E8%B3%87%E5%97%8E--%E4%B9%9D%E5%80%8D%E5%A5%B3%E6%88%B0%E7%A5%9E-%E6%88%8E%E5%AE%9C%E8%98%8B%E6%93%8D%E7%9B%A4-%E6%88%90%E5%88%86%E8%82%A1%E8%88%87%E4%BA%AE%E9%BB%9E%E4%B8%80%E6%AC%A1%E7%9C%8B--6af520f453ac4f25b8d78697",
       "source": "永豐金證券",
       "date": "2026-11-12 10:22",
       "datetime": "2026-11-12T10:22:24.642000+08:00"
+    },
+    {
+      "title": "00418A 上市首日成交 26.39 億元！主動復華台灣新星 ETF 股價、配息與費用一次看",
+      "url": "https://applealmondrealty.com/posts/54956",
+      "source": "果仁家",
+      "date": "2026-11-12 09:41",
+      "datetime": "2026-11-12T09:41:22+08:00"
     },
     {
       "title": "00418A逆勢掛牌 成交量26.4億擠進主動式ETF前3",
@@ -51,13 +51,6 @@
       "source": "Yahoo新聞",
       "date": "2026-11-11 10:21",
       "datetime": "2026-11-11T10:21:41+08:00"
-    },
-    {
-      "title": "主動式ETF再添生力軍！00418A募近百億掛牌 首日成交量居冠",
-      "url": "https://news.cnyes.com/news/id/6658156",
-      "source": "鉅亨網",
-      "date": "2026-11-11 10:06",
-      "datetime": "2026-11-11T10:06:46+08:00"
     },
     {
       "title": "主動式ETF復華台灣新星(00418A)掛牌首日早盤爆量14萬張！",
@@ -120,15 +113,7 @@
       "short_names": [
         "00991A"
       ],
-      "items": [
-        {
-          "title": "00410A績效16.36％居主動式ETF之首！和00981A、00991A持股差在哪？關鍵竟在這兩族群- 理財",
-          "url": "https://www.ctee.com.tw/news/20261110701369-430403",
-          "source": "工商時報",
-          "date": "2026-11-10 14:50",
-          "datetime": "2026-11-10T14:50:00+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "主動復華金融股息",
@@ -138,6 +123,13 @@
         "00998A"
       ],
       "items": [
+        {
+          "title": "00998A是什麼？年化配息近10％，0050、00981A慘跌它卻逆勢漲！同樣是金融ETF，和0055、00917比該選誰？",
+          "url": "https://www.businesstoday.com.tw/article/category/183013/post/202611120027/",
+          "source": "今周刊",
+          "date": "2026-11-12 17:49",
+          "datetime": "2026-11-12T17:49:00+08:00"
+        },
         {
           "title": "反彈背後資金仍在出走 00998A全球金融甩開資金壓力",
           "url": "https://www.watchmedia01.com/archives/568462",
@@ -158,13 +150,6 @@
           "source": "觀傳媒",
           "date": "2026-11-11 08:38",
           "datetime": "2026-11-11T08:38:42+08:00"
-        },
-        {
-          "title": "息領到了、資產卻縮水？00406A跌31% 不如金融股00998A反漲2.31%！",
-          "url": "https://sunmedia.tw/news/finance/%E6%81%AF%E9%A0%98%E5%88%B0%E4%BA%86%E3%80%81%E8%B3%87%E7%94%A2%E5%8D%BB%E7%B8%AE%E6%B0%B4%EF%BC%9F00406A%E8%B7%8C31-%E4%B8%8D%E5%A6%82%E9%87%91%E8%9E%8D%E8%82%A100998A%E5%8F%8D%E6%BC%B2231%EF%BC%81-1794275188861",
-          "source": "商傳媒",
-          "date": "2026-11-10 09:49",
-          "datetime": "2026-11-10T09:49:48+08:00"
         }
       ]
     },
@@ -195,11 +180,18 @@
       ],
       "items": [
         {
-          "title": "商周-00418A是什麼？成分股、配息、優缺點，和0050、00981A差在哪？ - 商業周刊",
-          "url": "https://www.businessweekly.com.tw/business/blog/3023560",
-          "source": "商業周刊",
-          "date": "2026-11-12 15:18",
-          "datetime": "2026-11-12T15:18:38+08:00"
+          "title": "掛牌蜜月沒結束！00418A今日續漲 費半狂飆5.66%再添AI火種",
+          "url": "https://enn.tw/806706/",
+          "source": "ENN台灣電報",
+          "date": "2026-11-13 06:06",
+          "datetime": "2026-11-13T06:06:31+08:00"
+        },
+        {
+          "title": "00418A 不配息主動式ETF值得投資嗎？「九倍女戰神」戎宜蘋操盤，成分股與亮點一次看！｜豐雲學堂2026 年 11 月",
+          "url": "https://www.sinotrade.com.tw/richclub/aiinvest/00418A-%E4%B8%8D%E9%85%8D%E6%81%AF%E4%B8%BB%E5%8B%95%E5%BC%8FETF%E5%80%BC%E5%BE%97%E6%8A%95%E8%B3%87%E5%97%8E--%E4%B9%9D%E5%80%8D%E5%A5%B3%E6%88%B0%E7%A5%9E-%E6%88%8E%E5%AE%9C%E8%98%8B%E6%93%8D%E7%9B%A4-%E6%88%90%E5%88%86%E8%82%A1%E8%88%87%E4%BA%AE%E9%BB%9E%E4%B8%80%E6%AC%A1%E7%9C%8B--6af520f453ac4f25b8d78697",
+          "source": "永豐金證券",
+          "date": "2026-11-12 10:22",
+          "datetime": "2026-11-12T10:22:24.642000+08:00"
         },
         {
           "title": "00418A掛牌熱度破表可以買？有配息？成分股達人拆解：放大選股池「讓錢幫你上班」",
@@ -207,20 +199,6 @@
           "source": "今周刊",
           "date": "2026-11-12 12:00",
           "datetime": "2026-11-12T12:00:00+08:00"
-        },
-        {
-          "title": "00418A掛牌第2天破發！9倍女戰神過往績效勝0050 這次會發威？",
-          "url": "https://newtalk.tw/news/view/2026-11-12/1070745",
-          "source": "Newtalk新聞",
-          "date": "2026-11-12 13:35",
-          "datetime": "2026-11-12T13:35:41+08:00"
-        },
-        {
-          "title": "外資還在賣、投信卻連22買！台股資金轉向哪？00418A卡位法人青睞成長股",
-          "url": "https://n.yam.com/Article/20261112970432",
-          "source": "蕃新聞",
-          "date": "2026-11-12 13:16",
-          "datetime": "2026-11-12T13:16:11+08:00"
         }
       ]
     },
@@ -339,15 +317,7 @@
       "short_names": [
         "中國新經濟平衡新臺幣"
       ],
-      "items": [
-        {
-          "title": "復華中國新經濟平衡基金B配息(人民幣)115年10月收益分配- 股市爆料同學會",
-          "url": "https://www.cmoney.tw/forum/article/187805921",
-          "source": "CMoney",
-          "date": "2026-11-05 15:57",
-          "datetime": "2026-11-05T15:57:40+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華亞太平衡基金",
@@ -377,7 +347,15 @@
       "short_names": [
         "復華"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "00418A 上市首日成交 26.39 億元！主動復華台灣新星 ETF 股價、配息與費用一次看",
+          "url": "https://applealmondrealty.com/posts/54956",
+          "source": "果仁家",
+          "date": "2026-11-12 09:41",
+          "datetime": "2026-11-12T09:41:22+08:00"
+        }
+      ]
     },
     {
       "base": "復華高成長基金",
@@ -537,6 +515,13 @@
   "social": [
     {
       "platform": "fundhot",
+      "board": "其他",
+      "title": "基金大跌當天截單前申購，就買得到當天淨值？",
+      "url": "https://fundhot.com/forum/%E5%85%B6%E4%BB%96/%E5%9F%BA%E9%87%91%E5%A4%A7%E8%B7%8C%E7%95%B6%E5%A4%A9%E6%88%AA%E5%96%AE%E5%89%8D%E7%94%B3%E8%B3%BC%EF%BC%8C%E5%B0%B1%E8%B2%B7%E5%BE%97%E5%88%B0%E7%95%B6%E5%A4%A9%E6%B7%A8%E5%80%BC%EF%BC%9F/14062",
+      "date": "2026-11-12"
+    },
+    {
+      "platform": "fundhot",
       "board": "股票基金",
       "title": "摩根士丹利美國增長基金轉換到摩根美國科技基金",
       "url": "https://fundhot.com/forum/%E8%82%A1%E7%A5%A8%E5%9F%BA%E9%87%91/%E6%91%A9%E6%A0%B9%E5%A3%AB%E4%B8%B9%E5%88%A9%E7%BE%8E%E5%9C%8B%E5%A2%9E%E9%95%B7%E5%9F%BA%E9%87%91%E8%BD%89%E6%8F%9B%E5%88%B0%E6%91%A9%E6%A0%B9%E7%BE%8E%E5%9C%8B%E7%A7%91%E6%8A%80%E5%9F%BA%E9%87%91/14060",
@@ -585,19 +570,12 @@
       "first_seen": "2026-11-08"
     },
     {
-      "platform": "fundhot",
-      "board": "天使",
-      "title": "20261106關於AI資料中心建設與國運之爭，新德州州長發言與個人看法",
-      "url": "https://fundhot.com/forum/%E5%A4%A9%E4%BD%BF/20261106%E9%97%9C%E6%96%BCAI%E8%B3%87%E6%96%99%E4%B8%AD%E5%BF%83%E5%BB%BA%E8%A8%AD%E8%88%87%E5%9C%8B%E9%81%8B%E4%B9%8B%E7%88%AD%EF%BC%8C%E6%96%B0%E5%BE%B7%E5%B7%9E%E5%B7%9E%E9%95%B7%E7%99%BC%E8%A8%80%E8%88%87%E5%80%8B%E4%BA%BA%E7%9C%8B%E6%B3%95/14052",
-      "first_seen": "2026-11-08"
-    },
-    {
       "platform": "youtube",
       "title": "台股殺盤還沒完？美股系統風險升高　00878 vs 00929誰更能扛？散戶狂搶高股息ETF　專家揭「止跌3大訊號」｜三立財經iNEWS",
       "channel": "三立財經iNEWS",
       "url": "https://www.youtube.com/watch?v=nkz_1DrxKEY",
       "date": "2026-11-08",
-      "views": 67577
+      "views": 67667
     },
     {
       "platform": "youtube",
@@ -605,7 +583,7 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/shorts/RLe1-wrqSk8",
       "date": "2026-11-11",
-      "views": 9545,
+      "views": 10092,
       "short": true
     },
     {
@@ -614,7 +592,7 @@
       "channel": "老王財經",
       "url": "https://www.youtube.com/watch?v=Q1mx3BnCL14",
       "date": "2026-11-10",
-      "views": 1309
+      "views": 2969
     },
     {
       "platform": "youtube",
@@ -622,7 +600,7 @@
       "channel": "郭哲榮分析師-摩爾證券投顧",
       "url": "https://www.youtube.com/shorts/uGj7xkW72_0",
       "date": "2026-11-09",
-      "views": 286985,
+      "views": 287539,
       "peer": true,
       "short": true,
       "cat": "基金"
@@ -633,19 +611,9 @@
       "channel": "郭哲榮分析師-摩爾證券投顧",
       "url": "https://www.youtube.com/watch?v=e1UHtH6bExo",
       "date": "2026-11-09",
-      "views": 259917,
+      "views": 260230,
       "peer": true,
       "cat": "基金"
-    },
-    {
-      "platform": "youtube",
-      "title": "台股周一跟糖漿加碼台積電？專家示警外資狂賣1.5兆「小心先拉後殺」反被套【理財密碼】",
-      "channel": "57東森財經新聞",
-      "url": "https://www.youtube.com/watch?v=ptRAwLkXGGk",
-      "date": "2026-11-08",
-      "views": 224809,
-      "peer": true,
-      "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
@@ -653,7 +621,17 @@
       "channel": "關鍵時刻",
       "url": "https://www.youtube.com/watch?v=MDE_q4M7KZA",
       "date": "2026-11-11",
-      "views": 212151,
+      "views": 243950,
+      "peer": true,
+      "cat": "市場趨勢"
+    },
+    {
+      "platform": "youtube",
+      "title": "台股周一跟糖漿加碼台積電？專家示警外資狂賣1.5兆「小心先拉後殺」反被套【理財密碼】",
+      "channel": "57東森財經新聞",
+      "url": "https://www.youtube.com/watch?v=ptRAwLkXGGk",
+      "date": "2026-11-08",
+      "views": 225015,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -663,19 +641,9 @@
       "channel": "瘋狂股市福利社Free Free Free!",
       "url": "https://www.youtube.com/watch?v=3sObqPvDIbw",
       "date": "2026-11-09",
-      "views": 150076,
+      "views": 150305,
       "peer": true,
       "cat": "市值型"
-    },
-    {
-      "platform": "youtube",
-      "title": "有5張00919「就贏過半投資人」！　怎樣月月領1萬~10萬元？｜懶錢包LazyWallet",
-      "channel": "懶錢包 Lazy Wallet",
-      "url": "https://www.youtube.com/watch?v=wODConxXAIo",
-      "date": "2026-11-09",
-      "views": 127975,
-      "peer": true,
-      "cat": "綜合"
     },
     {
       "platform": "youtube",
@@ -683,28 +651,39 @@
       "channel": "玩股網楚狂人",
       "url": "https://www.youtube.com/watch?v=5gAT6rtu8vk",
       "date": "2026-11-09",
-      "views": 126408,
+      "views": 139559,
       "peer": true,
       "cat": "高股息"
     },
     {
       "platform": "youtube",
-      "title": "【Eng Sub】AI股追高、高息ETF陷阱！股票跌50%就值得買？投資新手最容易犯的錯｜US Stock Explained",
-      "channel": "City Spotlight 傾城計話",
-      "url": "https://www.youtube.com/watch?v=mjOZoQFPauU",
+      "title": "有5張00919「就贏過半投資人」！　怎樣月月領1萬~10萬元？｜懶錢包LazyWallet",
+      "channel": "懶錢包 Lazy Wallet",
+      "url": "https://www.youtube.com/watch?v=wODConxXAIo",
       "date": "2026-11-09",
-      "views": 106032,
+      "views": 138624,
+      "peer": true,
+      "cat": "綜合"
+    },
+    {
+      "platform": "youtube",
+      "title": "台股連三天大漲.該獲利了結?週五恐變天?台積電配息創高.存股好時機?外資竟然看好南亞科!║何基鼎、莊佳螢、陳唯泰║2026.11.11",
+      "channel": "瘋狂股市福利社Free Free Free!",
+      "url": "https://www.youtube.com/watch?v=_L9nU41OoaI",
+      "date": "2026-11-11",
+      "views": 113418,
       "peer": true,
       "cat": "高股息"
     },
     {
       "platform": "youtube",
-      "title": "賣飛100張009816少賺十幾萬！台股盤整該追嗎？財經雪倫：用二招防賣飛！EP78 ft.財經雪倫",
-      "channel": "投資嗨什麼",
-      "url": "https://www.youtube.com/watch?v=Xawpv0VzQMI",
+      "title": "00830分割，為什麼需要投下「贊成」票？",
+      "channel": "大樹下學投資",
+      "url": "https://www.youtube.com/shorts/QhVboUp-Vi8",
       "date": "2026-11-10",
-      "views": 52298,
+      "views": 112399,
       "peer": true,
+      "short": true,
       "cat": "綜合"
     },
     {
@@ -713,15 +692,15 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=7vmsqrpseis",
       "date": "2026-11-11",
-      "views": 49802,
+      "views": 80041,
       "peer": true,
       "cat": "市值型"
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00418A、中國新經濟平衡（詳下方新聞標籤）",
+    "近 7 天有專屬報導的基金／ETF：00929、00998A、00418A、（詳下方新聞標籤）",
     "品牌焦點：商周-00418A是什麼？成分股、配息、優缺點，和0050、00981A差在哪？ - 商業周刊（商業周刊）",
-    "社群聲量最高：摩根士丹利美國增長基金轉換到摩根美國科技基金（0 推）",
-    "YouTube 熱片：【國安基金進場 台股假反彈?】2026/11/9 哲哲只有60秒 #shorts（郭哲榮分析師-摩爾證券投顧・286,985 次觀看）"
+    "社群聲量最高：基金大跌當天截單前申購，就買得到當天淨值？（0 推）",
+    "YouTube 熱片：【國安基金進場 台股假反彈?】2026/11/9 哲哲只有60秒 #shorts（郭哲榮分析師-摩爾證券投顧・287,539 次觀看）"
   ]
 }
