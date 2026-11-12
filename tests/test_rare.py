@@ -199,7 +199,11 @@ def test_now_schedules(spx, tw):
     s = R.evaluate(R.Mkt("spx", spx), S.BY_KEY["santa"])
     assert s["now"]["bd"][:7] == "2026-12" and s["now"]["qd"][:7] == "2027-01"
     lp = R.evaluate(R.Mkt("tw", tw), S.BY_KEY["lnypre"])
-    assert lp["now"]["close"][:4] == "2027" and lp["now"]["approx"] is True
+    from datetime import date
+
+    from arm import twholidays
+    # 證交所 2027 年休市表公布、自動抓進來之後（2026-11 起）就不是「大約」了；沒抓到時才標 approx
+    assert lp["now"]["close"][:4] == "2027" and lp["now"]["approx"] is (not twholidays.covers(date(2027, 2, 1)))
     assert lp["now"]["close"] < LNY_2027 < lp["now"]["reopen"]
 
 
