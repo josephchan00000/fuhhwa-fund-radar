@@ -1,69 +1,8 @@
 {
- "as_of": "2026-11-12 12:47",
- "count": 6,
+ "as_of": "2026-11-12 15:34",
+ "count": 0,
  "fund_count": 0,
- "etf_count": 6,
+ "etf_count": 0,
  "usqm_count": 0,
- "items": [
-  {
-   "src": "etf",
-   "name": "星展集團控股有限公司",
-   "ticker": "DBS",
-   "count": 1,
-   "etfs": [
-    "00998A"
-   ],
-   "weight": 1.5
-  },
-  {
-   "src": "etf",
-   "name": "十銓",
-   "ticker": "4967",
-   "count": 1,
-   "etfs": [
-    "00984A"
-   ],
-   "weight": 0.86
-  },
-  {
-   "src": "etf",
-   "name": "APPLOVIN CORP-CLASS A",
-   "ticker": "APP",
-   "count": 1,
-   "etfs": [
-    "00990A"
-   ],
-   "weight": 0.77
-  },
-  {
-   "src": "etf",
-   "name": "JFROG LTD",
-   "ticker": "FROG",
-   "count": 1,
-   "etfs": [
-    "00990A"
-   ],
-   "weight": 0.67
-  },
-  {
-   "src": "etf",
-   "name": "長廣",
-   "ticker": "7795",
-   "count": 1,
-   "etfs": [
-    "00418A"
-   ],
-   "weight": 0.41
-  },
-  {
-   "src": "etf",
-   "name": "中華化",
-   "ticker": "1727",
-   "count": 1,
-   "etfs": [
-    "00406A"
-   ],
-   "weight": 0.04
-  }
- ]
+ "items": []
 }
