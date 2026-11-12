@@ -77,15 +77,15 @@ def test_rsi_kd_macd_ranges():
     assert P.rsi([1, 2]) is None and P.kd([(1, 0, 1)] * 5) is None and P.macd(up[:30]) is None
 
 
-def test_push_line_nearest_bands():
+def test_push_line_range_not_levels():
     pm = {"next": "2026-11-06", "est": 43000, "est_src": "夜盤收盤", "em": 900,
-          "bands": [{"lo": 44000, "hi": 44000, "side": "up"}, {"lo": 43200, "hi": 43300, "side": "up"},
-                    {"lo": 42700, "hi": 42800, "side": "dn"}, {"lo": 42000, "hi": 42000, "side": "dn"}]}
+          "bands": [{"lo": 43200, "hi": 43300, "side": "up"}, {"lo": 42700, "hi": 42800, "side": "dn"}]}
     s = P.push_line(pm)
-    assert s.startswith("盤前 11/6（五）：預估 09:01 約 43,000（夜盤收盤）")
-    assert "壓力 43,200～43,300" in s and "支撐 42,700～42,800" in s and "正常波動 ±900" in s
-    pm["v"] = {"typ": 207}
-    assert P.push_line(pm).startswith("盤前 11/6（五）：預估 09:01 約 43,000（平常差 ±207）")
+    assert s == "盤前 11/6（五）：預估 09:01 約 43,000（夜盤收盤）｜正常波動 ±900。"
+    pm["v"] = {"typ": 207, "p80": 420}
+    s = P.push_line(pm)
+    assert s.startswith("盤前 11/6（五）：預估 09:01 約 43,000（平常差 ±207）") and "開盤八成在 42,580～43,420" in s
+    assert "壓力" not in s and "支撐" not in s                  # 2026-11-12 起不推壓力支撐
 
 
 Q2 = {"x": [0.25, 0.5, 1.0], "up": [0.6, 0.3, 0.1], "dn": [0.7, 0.4, 0.2]}
@@ -173,35 +173,38 @@ def test_page_block_renders_and_fits(tmp_path):
           "check": [{"d": "2026-11-05", "est": 43321, "open": 42666}]}
     h = premkpage.block(pm)
     assert "盤前戰情" in h and "11/5（四）開盤前" in h and 'data-to="43321"' in h and "夜盤還沒抓到" in h
-    assert "09:01 實際 42,666（−655）" in h and h.count('class="pz-b"') == 2 and 'class="pz-s"' not in h
+    assert "最近的成績" in h and "<td>42,666</td><td>−655</td>" in h          # 最近幾天照實列（2026-11-12 起是表格）
+    assert 'class="pz-c ' not in h and "今天的買賣點" not in h                 # 四張買賣點卡已拿掉
     out = tmp_path / "x9op.html"
     txopage.build(out=out, data=None, pm=pm)
     assert "盤前戰情" in out.read_text(encoding="utf-8")
     assert "還沒準備好" in premkpage.block(None)
 
 
-def test_page_cards_ladder_and_data_match():
-    import json
-
+def test_page_reach_chart_and_recent_table():
+    """2026-11-12（docs/lab_txo_plan.md 第 20 節）：買賣點卡拿掉，改放「今天可能走多遠」（±0.5～2 倍正常波動＋過去碰到的比例，第 13 節 Q2）
+    與「最近的成績」（估的開盤 vs 09:01 實際、當天高低）。"""
     from arm.lab import premkpage
-    sc = [{"k": "long", "name": "回測支撐做多", "why": "w", "entry": 43084, "stop": 42906, "target": 43500, "risk": 178, "reward": 416,
-           "rr": 2.33, "mtx": {"loss": 9163, "gain": 20548}, "opt": None, "hit": 0.9},
-          {"k": "breakdown", "name": "跌破支撐追空", "why": "w2", "entry": 42906, "stop": 43042, "target": 42500, "risk": 136, "reward": 406,
-           "rr": 3.0, "mtx": {"loss": 7055, "gain": 20053}, "opt": None}]
-    pm = {"d": "2026-11-04", "next": "2026-11-05", "close": 42949, "hi": 43741, "lo": 41856, "est": 43321, "est_src": "夜盤收盤",
-          "em": 942, "night": {"c": 43404.0, "ref": 43203.0, "done": True}, "made": "2026-11-05 05:12",
-          "bands": [{"lo": 43500, "hi": 43507, "mid": 43504, "n": 2, "side": "up", "src": [["整數關卡", 43500]], "touch": 0.42},
-                    {"lo": 43000, "hi": 43084, "mid": 43042, "n": 3, "side": "dn", "src": [["布林下緣", 43084]], "touch": 0.6}],
-          "sc": sc, "facts": [], "warn": [], "check": [],
+    pm = {"d": "2026-11-04", "next": "2026-11-05", "close": 42949, "hi": 43741, "lo": 41856, "est": 43000, "est_src": "夜盤收盤",
+          "em": 1000, "night": {"c": 43404.0, "ref": 43203.0, "done": True}, "made": "2026-11-05 05:12",
+          "bands": [{"lo": 43500, "hi": 43507, "mid": 43504, "n": 2, "side": "up", "src": [["整數關卡", 43500]], "touch": 0.42}],
+          "sc": [{"k": "long", "name": "回測支撐做多", "entry": 43084, "stop": 42906, "target": 43500, "risk": 178, "reward": 416, "rr": 2.33}],
+          "facts": [], "warn": [],
+          "check": [{"d": "2026-11-04", "est": 43100, "open": 43200, "hi": 43800, "lo": 42600},
+                    {"d": "2026-11-05", "est": 43321, "open": 42552, "hi": 42874, "lo": 41514}],
           "v": {"typ": 216, "p80": 434, "leans": [{"k": "retail", "t": "散戶小台", "d": "2026-11-04", "s": 1, "lean": -1, "txt": "t",
-                                                    "mean": -13.4, "up": 0.43}], "chips_ok": ["retail"], "q2": {}, "n1": 1, "n2": 1}}
+                                                    "mean": -13.4, "up": 0.43}], "chips_ok": ["retail"],
+                "q2": {"x": [0.25, 0.5, 1.0, 1.5, 2.0], "up": [0.6, 0.3, 0.1, 0.03, 0.01], "dn": [0.7, 0.4, 0.2, 0.05, 0.02]}, "n1": 1, "n2": 1}}
     h = premkpage.block(pm)
-    assert h.count('class="pz-c ') == 2 and h.count('class="pz-s"') == 2
-    assert "做多" in h and "追空" in h and "43,084" in h and "1 : <b>2.3</b>" in h and "今天碰到進場價的機會 <b>90%</b>" in h
-    assert "平常差 <b>±216</b>" in h and "±434" in h and "散戶小台　偏空" in h and "平均 −0.13%、上漲 43%" in h
-    assert "碰 42%" in h and "碰 60%" in h
-    d = json.loads(h.split('<script type="application/json" id="pzd">', 1)[1].split("</script>", 1)[0])
-    assert [c["entry"] for c in d["sc"]] == [43084, 42906] and len(d["bands"]) == 2
+    assert 'class="pz-c ' not in h and "進 43,084" not in h and 'id="pzd"' not in h            # 沒有買賣點卡、價位帶、卡片資料
+    assert "今天可能走多遠" in h and "43,500" in h and "42,500" in h and "45,000" in h and "41,000" in h   # ±0.5、±2 倍
+    assert "+0.5 倍・30%" in h and "−1 倍・20%" in h and "+2 倍・1%" in h
+    assert "平常差 <b>±216</b>" in h and "散戶小台　偏空" in h and "只能當傾向" in h
+    rec = h.split('id="pzrec"', 1)[1]
+    assert rec.index("11/5") < rec.index("11/4")                                         # 新的在上
+    assert '<td class="pz-bad">−769</td>' in rec and "<td>+100</td>" in rec               # 超出八成範圍標紅
+    assert "<td>42,874～41,514</td><td>1,360</td>" in rec
+    assert "最近 2 天，估的開盤平均差 <b>434</b> 點，1 天超出" in rec
 
 
 def test_write_keeps_file_when_only_timestamp_changes(tmp_path, monkeypatch):
