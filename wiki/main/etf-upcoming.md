@@ -19,6 +19,7 @@
 ### 掛牌自動加入追蹤（半自動，2026-08-05）
 
 - `etfwatch.watch_tuples()`＝WATCHLIST＋「`UPCOMING` 有 `list_date` 且已到、尚未轉正」的檔自動升級；kind/cat 用條目選填欄，不填＝active／主動式。
+- **掛牌日漏填紅章**（2026-11-12）：有代號、`raise_end` 已過 10 天（`fund_dashboard.LIST_DUE_DAYS`）卻沒有 `list_date` 的條目，資料更新時間區掛「新 ETF 待補掛牌日 🔴」（`fund_dashboard._list_due_chip`）——沒填掛牌日就不會自動進追蹤表；00418A 11/11 掛牌當天就是這樣漏掉的。
   消費端（rows／load stub／fetch_etf_holdings targets）都吃 `watch_tuples()`：掛牌當天 CI 就抓績效＋持股，stub 先上代碼／名稱／頻率。首例＝00410A（8/3 掛牌、8/5 轉正）。
 - 債券檔**務必**填 cat 含「債」——`bond_codes()` 靠它放寬髒序列門檻。
 - **上櫃檔（櫃買掛牌，如統一 00411A/00987D）kind 照型態填 active／passive、cat 加「・上櫃」**，勿再填 other（2026-08-28 使用者指示分組跟型態走）；etfinfo 未收錄等技術差異自動處理。

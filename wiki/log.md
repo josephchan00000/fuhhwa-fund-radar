@@ -116,3 +116,6 @@
 
 ## [2026-11-11] 收錄 | 選股頁載入瘦身（個股頁優化 D 段）
 - 台股走勢序列分成十六份 `x9s-{0..f}.json`、開哪一檔才抓那一份（不再預抓 518 KB）；美股個股卡資料另存 `x9uc.json`、開第一張才抓；選股頁壓縮後 653→562 KB。三支 workflow 各自 add、`git add -A` 帶走舊 `x9s.json`。改了 [籌碼雷達總覽](lab/overview.md)、[介面改版](lab/chip-ui.md)、[選股頁](lab/pick-page.md)；規劃第 12 節。
+
+## [2026-11-12] 收錄 | 新 ETF 掛牌日漏填紅章＋05:08 補跑 ETF 持股
+- 00418A 已掛牌卻沒進追蹤表（登錄檔沒填掛牌日）→ 補 `list_date`，並加紅章：有代號、募集結束超過 10 天沒掛牌日就提醒。ETF 持股明細一堆「待收盤」（cron 晚跑、美股還沒收）→ 05:08 排程多 dispatch 一次 etf_holdings。改了 [即將登場](main/etf-upcoming.md)、[ETF 持股](main/etf-holdings.md)、[排程](ops/routines.md)。
