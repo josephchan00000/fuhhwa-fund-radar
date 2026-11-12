@@ -46,6 +46,7 @@ CSS = (
     ".pz-uc{color:var(--zu)}.pz-dc{color:var(--zd)}"
     ".pz-rng{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.pz-rng span{padding:4px 10px;border-radius:999px;font-size:13px;"
     "background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.35)}.pz-rng b{color:#fde68a;font-variant-numeric:tabular-nums}"
+    ".pz-re{margin-top:8px;font-size:13px;color:#fde68a}"
     ".pz-kv{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:0}"
     ".pz-kv div{padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid var(--zl)}"
     ".pz-kv dt{font-size:11.5px;color:var(--zm)}.pz-kv dd{margin:0;font-size:16px;font-weight:700;font-variant-numeric:tabular-nums}"
@@ -143,15 +144,27 @@ def _interp(xs: list, ys: list, x: float):
     return ys[-1]
 
 
+def now(pm: dict) -> dict:
+    """頁面用的預估：08:46 用台指期開盤重估過（arm/lab/pm850.py）就用重估的，不然用清晨夜盤的。"""
+    from .pm850 import cur
+    v = pm.get("v") or {}
+    e = cur(pm)
+    if e:
+        return {"est": e["est"], "typ": e.get("typ"), "p80": e.get("p80"), "early": pm["est"], "t": e.get("t") or "08:46",
+                "src": f'{e.get("t") or "08:46"} 用台指期開盤 {_n(e["open"])} 重估'}
+    return {"est": pm["est"], "typ": v.get("typ"), "p80": v.get("p80"), "early": None, "t": None, "src": pm.get("est_src") or ""}
+
+
 def reach(pm: dict) -> str:
     """今天可能走多遠：預估開盤 ± k 倍正常波動的價位，右邊是過去 10 年從 09:01 開盤起算、當天碰到那條線的比例（第 13 節 Q2）。"""
     e = html.escape
-    est, em, v = pm["est"], pm.get("em") or 0, pm.get("v") or {}
+    cn = now(pm)
+    est, em, v = cn["est"], pm.get("em") or 0, pm.get("v") or {}
     if not em:
         return ""
     q2 = v.get("q2") or {}
     xs = q2.get("x") or []
-    band80 = v.get("p80") or 0
+    band80 = cn["p80"] or 0
     lv = [(k, est + k * em, _interp(xs, q2.get("up") or [], k), "u") for k in RK] + \
          [(k, est - k * em, _interp(xs, q2.get("dn") or [], k), "d") for k in RK]
     ps = [p for _, p, _, _ in lv] + [pm["close"]]
@@ -196,13 +209,18 @@ def recent(pm: dict) -> str:
     if not chk:
         return ""
     rows = []
+    has8 = any(c.get("e850") is not None for c in chk)
     for c in reversed(chk):
         miss = c["open"] - c["est"]
         hl = f'{_n(c["hi"])}～{_n(c["lo"])}' if c.get("hi") is not None else "—"
         amp = _n(c["hi"] - c["lo"]) if c.get("hi") is not None else "—"
+        e8 = ""
+        if has8:
+            e8 = (f'<td>{_n(c["e850"])}</td><td>{_n(c["open"] - c["e850"], True)}</td>' if c.get("e850") is not None
+                  else '<td>—</td><td>—</td>')
         rows.append(f'<tr><td>{md(c["d"])}</td><td>{_n(c["est"])}</td><td>{_n(c["open"])}</td>'
                     f'<td{" class=\"pz-bad\"" if abs(miss) > ((pm.get("v") or {}).get("p80") or 1e9) else ""}>{_n(miss, True)}</td>'
-                    f'<td>{hl}</td><td>{amp}</td></tr>')
+                    f'{e8}<td>{hl}</td><td>{amp}</td></tr>')
     misses = [abs(c["open"] - c["est"]) for c in chk]
     p80 = (pm.get("v") or {}).get("p80")
     over = sum(1 for m in misses if p80 and m > p80)
@@ -210,11 +228,14 @@ def recent(pm: dict) -> str:
     lead = f'最近 {len(chk)} 天，估的開盤平均差 <b>{_n(sum(misses) / len(misses))}</b> 點'
     if p80:
         lead += f'，{over} 天超出「八成在 ±{_n(p80)} 內」'
+    m8 = [abs(c["open"] - c["e850"]) for c in chk if c.get("e850") is not None]
+    if m8:
+        lead += f'；08:46 用台指期開盤重估的 {len(m8)} 天平均差 <b>{_n(sum(m8) / len(m8))}</b> 點'
     if amps:
         lead += f'；當天最高到最低平均 <b>{_n(sum(amps) / len(amps))}</b> 點'
     return ('<section class="pz pz2" id="pzrec"><h2 class="pz-h">最近的成績<small>估的開盤跟實際差多少（照實列）</small></h2>'
-            f'<p class="pz-chk">{lead}。</p><div class="optw"><table class="opt pzt pzr"><thead><tr><th>日期</th><th>估的開盤</th><th>09:01 實際</th>'
-            '<th>差</th><th>當天最高～最低</th><th>振幅</th></tr></thead><tbody>' + "".join(rows) + "</tbody></table></div></section>")
+            f'<p class="pz-chk">{lead}。</p><div class="optw"><table class="opt pzt pzr"><thead><tr><th>日期</th><th>清晨估</th><th>09:01 實際</th>'
+            '<th>差</th>' + ('<th>08:46 重估</th><th>差</th>' if has8 else '') + '<th>當天最高～最低</th><th>振幅</th></tr></thead><tbody>' + "".join(rows) + "</tbody></table></div></section>")
 
 
 # ── 區塊 ─────────────────────────────────────────────────────────────────────
@@ -276,7 +297,11 @@ def _method(pm: dict) -> str:
     if v:
         li.append(f'<li><b>預估開盤</b>＝前一天加權指數收盤＋（夜盤台指期收盤 − 台指期 13:30 的價格），對的是 <b>09:01</b> 的指數'
                   f'（09:00:05 那一點還有很多股票是前一天的價格，不能當開盤）。過去 {v.get("n1") or 0:,} 天，誤差中位數是正常波動的 0.23 倍、'
-                  f'八成在 0.46 倍內，是「直接用昨天收盤」的一半。清晨 05:00 到 08:45 的消息也會動。</li>')
+                  f'八成在 0.46 倍內，是「直接用昨天收盤」的一半。</li>')
+        li.append('<li><b>08:46 重估</b>：台指期 08:45 就開盤，比現貨早 15 分鐘。開盤後改用「前一天加權指數收盤＋（台指期開盤 − 同一口前一天收盤）」重估，'
+                  '過去 9 年（2,306 天）誤差中位數從 34 點降到 27 點、八成在 0.36 倍正常波動內（清晨的估是 0.46 倍），'
+                  '清晨估錯很大的那幾天，重估把誤差砍半的佔 43%（docs/lab_premarket_plan.md 第 16 節）。'
+                  '每個交易日 08:46 左右自動更新這一頁；排程沒跑到就維持清晨的估。</li>')
         if q2.get("x"):
             cells = "".join(f"<td>{x:g} 倍</td>" for x in q2["x"])
             up = "".join(f"<td>{_pct(p)}</td>" for p in q2["up"])
@@ -303,7 +328,8 @@ def block(pm: dict | None) -> str:
         return ('<section class="pz"><div class="pz-hd"><span class="pz-live"><i></i>盤前戰情</span></div>'
                 '<p class="pz-chk">還沒準備好：每個交易日收盤後先算一版，清晨 05:10 用夜盤更新。</p></section>')
     v = pm.get("v") or {}
-    em, est, close = pm.get("em"), pm["est"], pm["close"]
+    cn = now(pm)
+    em, est, close = pm.get("em"), cn["est"], pm["close"]
     nt = pm.get("night") or {}
     out = ['<section class="pz" id="pz">',
            f'<div class="pz-hd"><h1 class="pz-live"><i></i>盤前戰情</h1><span class="pz-date">{md(pm["next"])}（{wd(pm["next"])}）開盤前</span>'
@@ -313,12 +339,15 @@ def block(pm: dict | None) -> str:
         out.append(f'<div class="pz-warn">{e(w)}</div>')
     ch = est - close
     rng = ""
-    if v.get("typ"):
-        rng = (f'<div class="pz-rng"><span>平常差 <b>±{_n(v["typ"])}</b></span><span>十次有八次在 <b>±{_n(v["p80"])}</b> 內</span></div>')
+    if cn["typ"]:
+        rng = (f'<div class="pz-rng"><span>平常差 <b>±{_n(cn["typ"])}</b></span><span>十次有八次在 <b>±{_n(cn["p80"])}</b> 內</span></div>')
+    if cn["early"] is not None:
+        rng += (f'<div class="pz-re">{e(cn["t"])} 已用台指期開盤重估（清晨估 {_n(cn["early"])}，'
+                f'{_n(est - cn["early"], True)}）；過去 9 年這樣估，誤差比清晨小約兩成。</div>')
     out.append('<div class="pz-top"><div class="pz-est"><small>預估 09:01 加權指數</small>'
                f'<b class="pz-num" data-to="{est}">{_n(est)}</b>'
                f'<div class="pz-chg">比昨收 <em class="{"pz-uc" if ch >= 0 else "pz-dc"}">{_n(ch, True)}（{_sp(ch / close * 100)}%）</em>'
-               f'・{e(pm.get("est_src") or "")}</div>' + rng + "</div>")
+               f'・{e(cn["src"])}</div>' + rng + "</div>")
     nch = (nt.get("c") - nt.get("ref")) if nt.get("c") is not None and nt.get("ref") else None
     out.append('<dl class="pz-kv">'
                f'<div><dt>{md(pm["d"])} 收盤</dt><dd>{_n(close)}<small>高 {_n(pm["hi"])}・低 {_n(pm["lo"])}</small></dd></div>'
