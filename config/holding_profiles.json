@@ -4077,6 +4077,42 @@
    "ticker": "4961",
    "country": "台灣",
    "verified": true
+  },
+  "十銓": {
+   "intro": "十銓科技，台灣記憶體模組與儲存品牌廠，自有品牌 Team Group；產品以 DRAM 模組為主、NAND 快閃記憶體次之，涵蓋電競、創作者與工控儲存應用。",
+   "ticker": "4967",
+   "country": "台灣",
+   "verified": true
+  },
+  "APPLOVIN CORP-CLASS A": {
+   "intro": "美國 AppLovin，AI 廣告軟體平台；以 AXON 廣告引擎撮合廣告主與應用程式開發者，旗下含 AppDiscovery 與 MAX，2025 年出售遊戲 App 業務後轉為純廣告軟體公司。",
+   "ticker": "APP",
+   "country": "美國",
+   "verified": true
+  },
+  "JFROG LTD": {
+   "intro": "美國 JFrog，軟體供應鏈平台；核心產品 Artifactory 管理軟體套件與二進位檔，並提供惡意套件阻擋與安全掃描，可雲端或自架部署。",
+   "ticker": "FROG",
+   "country": "美國",
+   "verified": true
+  },
+  "中華化": {
+   "intro": "中華化學工業，台灣化學品製造商；產品含濃硫酸等基礎化學品、染顏料中間體等特用化學品，以及半導體級硫酸、顯影液等電子化學品。",
+   "ticker": "1727",
+   "country": "台灣",
+   "verified": true
+  },
+  "長廣": {
+   "intro": "長廣精機，台灣設備廠，2022 年自長興材料分割設立；核心產品為 ABF 載板與先進封裝用真空壓膜機，2026 年 1 月轉上市。",
+   "ticker": "7795",
+   "country": "台灣",
+   "verified": true
+  },
+  "星展集團控股有限公司 DBS": {
+   "intro": "星展集團（DBS Group Holdings），新加坡大型銀行集團，1968 年成立，總部在新加坡，於新加坡交易所上市。",
+   "ticker": "DBS",
+   "country": "新加坡",
+   "verified": true
   }
  }
 }

@@ -1,14 +1,28 @@
 {
-  "as_of": "2026/11/12 12:45",
+  "as_of": "2026/11/12 15:35",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
     {
-      "title": "00418A股價10.41元，掛牌熱度破表可以買？有配息？成分股達人拆解：放大選股池「讓錢幫你上班」",
+      "title": "商周-00418A是什麼？成分股、配息、優缺點，和0050、00981A差在哪？ - 商業周刊",
+      "url": "https://www.businessweekly.com.tw/business/blog/3023560",
+      "source": "商業周刊",
+      "date": "2026-11-12 15:18",
+      "datetime": "2026-11-12T15:18:38+08:00"
+    },
+    {
+      "title": "00418A掛牌熱度破表可以買？有配息？成分股達人拆解：放大選股池「讓錢幫你上班」",
       "url": "https://www.businesstoday.com.tw/article/category/183013/post/202611110048/",
       "source": "今周刊",
-      "date": "2026-11-11 18:08",
-      "datetime": "2026-11-11T18:08:00+08:00"
+      "date": "2026-11-12 12:00",
+      "datetime": "2026-11-12T12:00:00+08:00"
+    },
+    {
+      "title": "00418A 不配息主動式ETF值得投資嗎？「九倍女戰神」戎宜蘋操盤，成分股與亮點一次看！｜豐雲學堂2026 年 11 月",
+      "url": "https://www.sinotrade.com.tw/richclub/aiinvest/00418A-%E4%B8%8D%E9%85%8D%E6%81%AF%E4%B8%BB%E5%8B%95%E5%BC%8FETF%E5%80%BC%E5%BE%97%E6%8A%95%E8%B3%87%E5%97%8E--%E4%B9%9D%E5%80%8D%E5%A5%B3%E6%88%B0%E7%A5%9E-%E6%88%8E%E5%AE%9C%E8%98%8B%E6%93%8D%E7%9B%A4-%E6%88%90%E5%88%86%E8%82%A1%E8%88%87%E4%BA%AE%E9%BB%9E%E4%B8%80%E6%AC%A1%E7%9C%8B--6af520f453ac4f25b8d78697",
+      "source": "永豐金證券",
+      "date": "2026-11-12 10:22",
+      "datetime": "2026-11-12T10:22:24.642000+08:00"
     },
     {
       "title": "00418A逆勢掛牌 成交量26.4億擠進主動式ETF前3",
@@ -39,6 +53,13 @@
       "datetime": "2026-11-11T10:21:41+08:00"
     },
     {
+      "title": "主動式ETF再添生力軍！00418A募近百億掛牌 首日成交量居冠",
+      "url": "https://news.cnyes.com/news/id/6658156",
+      "source": "鉅亨網",
+      "date": "2026-11-11 10:06",
+      "datetime": "2026-11-11T10:06:46+08:00"
+    },
+    {
       "title": "主動式ETF復華台灣新星(00418A)掛牌首日早盤爆量14萬張！",
       "url": "https://www.moneyweekly.com.tw/ArticleData/Info/Article/261357",
       "source": "理財周刊",
@@ -63,11 +84,11 @@
       ],
       "items": [
         {
-          "title": "00929殖利率衝17.39％！財經雪倫喊Amazing　真正厲害的不是高配息",
-          "url": "https://finance.ettoday.net/news/3270054",
-          "source": "ETtoday財經雲",
-          "date": "2026-11-12 08:30",
-          "datetime": "2026-11-12T08:30:00+08:00"
+          "title": "打臉看衰仔！00929配息連5月「複製貼上」0.38元 財經雪倫曝關鍵底氣",
+          "url": "https://www.yesmedia.com.tw/%E6%89%93%E8%87%89%E7%9C%8B%E8%A1%B0%E4%BB%94%EF%BC%8100929%E9%85%8D%E6%81%AF%E9%80%A35%E6%9C%88%E3%80%8C%E8%A4%87%E8%A3%BD%E8%B2%BC%E4%B8%8A%E3%80%8D0-38%E5%85%83-%E8%B2%A1%E7%B6%93%E9%9B%AA%E5%80%AB/",
+          "source": "https://www.yesmedia.com.tw/",
+          "date": "2026-11-12 08:00",
+          "datetime": "2026-11-12T08:00:17+08:00"
         },
         {
           "title": "00929配息0.38元連5月不變！存股達人曝「總報酬率逾60%」：抱100張爽領27萬",
@@ -174,33 +195,32 @@
       ],
       "items": [
         {
-          "title": "00418A 不配息主動式ETF值得投資嗎？「九倍女戰神」戎宜蘋操盤，成分股與亮點一次看！｜豐雲學堂2026 年 11 月",
-          "url": "https://www.sinotrade.com.tw/richclub/aiinvest/00418A-%E4%B8%8D%E9%85%8D%E6%81%AF%E4%B8%BB%E5%8B%95%E5%BC%8FETF%E5%80%BC%E5%BE%97%E6%8A%95%E8%B3%87%E5%97%8E--%E4%B9%9D%E5%80%8D%E5%A5%B3%E6%88%B0%E7%A5%9E-%E6%88%8E%E5%AE%9C%E8%98%8B%E6%93%8D%E7%9B%A4-%E6%88%90%E5%88%86%E8%82%A1%E8%88%87%E4%BA%AE%E9%BB%9E%E4%B8%80%E6%AC%A1%E7%9C%8B--6af520f453ac4f25b8d78697",
-          "source": "永豐金證券",
-          "date": "2026-11-12 10:22",
-          "datetime": "2026-11-12T10:22:24.642000+08:00"
+          "title": "商周-00418A是什麼？成分股、配息、優缺點，和0050、00981A差在哪？ - 商業周刊",
+          "url": "https://www.businessweekly.com.tw/business/blog/3023560",
+          "source": "商業周刊",
+          "date": "2026-11-12 15:18",
+          "datetime": "2026-11-12T15:18:38+08:00"
         },
         {
-          "title": "00418A 主動復華台灣新星 - 走勢與討論 - 股市爆料同學會",
-          "url": "https://www.cmoney.tw/forum/stock/00418A",
-          "source": "CMoney",
-          "date": "2026-11-12 01:24",
-          "datetime": "2026-11-12T01:24:57+08:00"
+          "title": "00418A掛牌熱度破表可以買？有配息？成分股達人拆解：放大選股池「讓錢幫你上班」",
+          "url": "https://www.businesstoday.com.tw/article/category/183013/post/202611110048/",
+          "source": "今周刊",
+          "date": "2026-11-12 12:00",
+          "datetime": "2026-11-12T12:00:00+08:00"
         },
         {
-          "title": "00418A掛牌，成分股有哪些、會配息嗎？經理人「九倍女戰神」什麼來頭？",
-          "url": "https://www.bnext.com.tw/article/92735/00418a-fhtrust-taiwan-rising-star-active-etf-manager",
-          "source": "數位時代",
-          "date": "2026-11-11 11:20",
-          "datetime": "2026-11-11T11:20:00+08:00"
+          "title": "00418A掛牌第2天破發！9倍女戰神過往績效勝0050 這次會發威？",
+          "url": "https://newtalk.tw/news/view/2026-11-12/1070745",
+          "source": "Newtalk新聞",
+          "date": "2026-11-12 13:35",
+          "datetime": "2026-11-12T13:35:41+08:00"
         },
         {
-          "title": "主動式ETF再添生力軍！00418A募近百億掛牌 首日成交量居冠",
-          "url": "https://news.cnyes.com/news/id/6658156",
-          "source": "鉅亨網",
-          "date": "2026-11-11 10:06",
-          "datetime": "2026-11-11T10:06:46+08:00",
-          "summary": "台股主動式ETF新兵－主動復華台灣新星(00418A-TW)今(11)日正式掛牌交易。上市首日開紅盤，盤中股價最高來到10.21元，開盤十多分鐘成交量就突破13萬多張，躍居整體台股市場成交量之冠。  …"
+          "title": "外資還在賣、投信卻連22買！台股資金轉向哪？00418A卡位法人青睞成長股",
+          "url": "https://n.yam.com/Article/20261112970432",
+          "source": "蕃新聞",
+          "date": "2026-11-12 13:16",
+          "datetime": "2026-11-12T13:16:11+08:00"
         }
       ]
     },
@@ -577,15 +597,7 @@
       "channel": "三立財經iNEWS",
       "url": "https://www.youtube.com/watch?v=nkz_1DrxKEY",
       "date": "2026-11-08",
-      "views": 67554
-    },
-    {
-      "platform": "youtube",
-      "title": "高股息ETF迎升&quot;息&quot;潮 00878對上00929選誰？#金臨天下 #黃斐瑜 @TVBSFinanceLive  20261104",
-      "channel": "TVBS財經",
-      "url": "https://www.youtube.com/watch?v=mlXZqnlEV34",
-      "date": "2026-11-05",
-      "views": 16559
+      "views": 67577
     },
     {
       "platform": "youtube",
@@ -593,8 +605,16 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/shorts/RLe1-wrqSk8",
       "date": "2026-11-11",
-      "views": 9373,
+      "views": 9545,
       "short": true
+    },
+    {
+      "platform": "youtube",
+      "title": "00406A規模衝上1,517億！距離最大月配ETF只差8億，00929地位要被挑戰了？",
+      "channel": "老王財經",
+      "url": "https://www.youtube.com/watch?v=Q1mx3BnCL14",
+      "date": "2026-11-10",
+      "views": 1309
     },
     {
       "platform": "youtube",
@@ -602,7 +622,7 @@
       "channel": "郭哲榮分析師-摩爾證券投顧",
       "url": "https://www.youtube.com/shorts/uGj7xkW72_0",
       "date": "2026-11-09",
-      "views": 286899,
+      "views": 286985,
       "peer": true,
       "short": true,
       "cat": "基金"
@@ -613,19 +633,9 @@
       "channel": "郭哲榮分析師-摩爾證券投顧",
       "url": "https://www.youtube.com/watch?v=e1UHtH6bExo",
       "date": "2026-11-09",
-      "views": 259915,
+      "views": 259917,
       "peer": true,
       "cat": "基金"
-    },
-    {
-      "platform": "youtube",
-      "title": "川普撞牆 AI崩壞　美股跌完？台股槓桿大清洗？｜#黃斐瑜｜#游庭皓｜#金臨天下 20261107 美股金週報  @TVBSFinanceLive  #美股 #AI股 #川普",
-      "channel": "TVBS財經",
-      "url": "https://www.youtube.com/watch?v=jBrTD0O1yBo",
-      "date": "2026-11-07",
-      "views": 236380,
-      "peer": true,
-      "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
@@ -633,7 +643,17 @@
       "channel": "57東森財經新聞",
       "url": "https://www.youtube.com/watch?v=ptRAwLkXGGk",
       "date": "2026-11-08",
-      "views": 224730,
+      "views": 224809,
+      "peer": true,
+      "cat": "市場趨勢"
+    },
+    {
+      "platform": "youtube",
+      "title": "全美團結「追殺黃仁勳」台股大利多？ 中國晶片斷炊「Anthropic獨強」台積也入股！【關鍵時刻】20261111-4 張炤和 呂國禎 黃世聰 黃世聰 姚惠珍 林廷輝",
+      "channel": "關鍵時刻",
+      "url": "https://www.youtube.com/watch?v=MDE_q4M7KZA",
+      "date": "2026-11-11",
+      "views": 212151,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -643,7 +663,7 @@
       "channel": "瘋狂股市福利社Free Free Free!",
       "url": "https://www.youtube.com/watch?v=3sObqPvDIbw",
       "date": "2026-11-09",
-      "views": 150054,
+      "views": 150076,
       "peer": true,
       "cat": "市值型"
     },
@@ -653,7 +673,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=wODConxXAIo",
       "date": "2026-11-09",
-      "views": 126580,
+      "views": 127975,
       "peer": true,
       "cat": "綜合"
     },
@@ -663,7 +683,7 @@
       "channel": "玩股網楚狂人",
       "url": "https://www.youtube.com/watch?v=5gAT6rtu8vk",
       "date": "2026-11-09",
-      "views": 124859,
+      "views": 126408,
       "peer": true,
       "cat": "高股息"
     },
@@ -673,7 +693,7 @@
       "channel": "City Spotlight 傾城計話",
       "url": "https://www.youtube.com/watch?v=mjOZoQFPauU",
       "date": "2026-11-09",
-      "views": 104440,
+      "views": 106032,
       "peer": true,
       "cat": "高股息"
     },
@@ -683,7 +703,7 @@
       "channel": "投資嗨什麼",
       "url": "https://www.youtube.com/watch?v=Xawpv0VzQMI",
       "date": "2026-11-10",
-      "views": 51625,
+      "views": 52298,
       "peer": true,
       "cat": "綜合"
     },
@@ -693,15 +713,15 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=7vmsqrpseis",
       "date": "2026-11-11",
-      "views": 43970,
+      "views": 49802,
       "peer": true,
       "cat": "市值型"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00418A、中國新經濟平衡（詳下方新聞標籤）",
-    "品牌焦點：00418A股價10.41元，掛牌熱度破表可以買？有配息？成分股達人拆解：放大選股池「讓錢幫你上班」（今周刊）",
+    "品牌焦點：商周-00418A是什麼？成分股、配息、優缺點，和0050、00981A差在哪？ - 商業周刊（商業周刊）",
     "社群聲量最高：摩根士丹利美國增長基金轉換到摩根美國科技基金（0 推）",
-    "YouTube 熱片：【國安基金進場 台股假反彈?】2026/11/9 哲哲只有60秒 #shorts（郭哲榮分析師-摩爾證券投顧・286,899 次觀看）"
+    "YouTube 熱片：【國安基金進場 台股假反彈?】2026/11/9 哲哲只有60秒 #shorts（郭哲榮分析師-摩爾證券投顧・286,985 次觀看）"
   ]
 }
