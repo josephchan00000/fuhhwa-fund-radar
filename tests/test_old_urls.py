@@ -35,8 +35,8 @@ CASES = (
     ("x9.html#v=mac", "x9.html", "?v=mac&m=tw", "document.querySelector('#tabs a[data-t=mac]').classList.contains('on')"
      " && document.title === '研究紀錄'", "舊頂欄「策略」＝研究紀錄・總經策略"),
     ("x9.html", "x9.html", "", "document.querySelector('#tabs a[data-t=tw]').classList.contains('on')"
-     " && document.querySelector('.apptab a.on').dataset.k === 'pick' && !!document.getElementById('pkcal-tw')",
-     "舊頂欄「個股」＝選股・台股（個股在選股的工具分頁）"),
+     " && document.querySelectorAll('.apptab a.on').length === 0 && !!document.getElementById('pkcal-tw')",
+     "舊頂欄「個股」＝選股・台股（2026-11-12 起選股不在頂欄，直接開照樣到台股）"),
     ("x9.html?v=us", "x9.html", "?v=us", "!!document.getElementById('pkcal-us') && document.title !== '研究紀錄'", "選股・美股"),
     ("x9.html?v=strat", "x9.html", "?v=strat", "document.querySelector('#tabs a[data-t=strat]').classList.contains('on')"
      " && document.title === '研究紀錄'", "原本配置頁的策略表＝研究紀錄・全部策略"),
@@ -108,17 +108,18 @@ def test_candidate_link_opens_card(labsite):
 
 
 def test_top_bar_links_and_memory(labsite):
-    """頂欄：兩格各記住上次看到哪裡；右邊小字的名詞、查公司在選股頁是頁內打開，其他頁連到研究紀錄、選股頁。"""
+    """頂欄：2026-11-12 起只剩「市場」一格（記住上次看的市場）；右邊小字的名詞、查公司在選股頁是頁內打開，其他頁連到研究紀錄、選股頁。"""
     b, base, _ = labsite
     ctx = b.new_context(viewport={"width": 1280, "height": 900})  # 同一個瀏覽器設定檔（localStorage 共用）
     try:
         pg, errs = _open(b, f"{base}/x9mu.html#ix=ndx", ctx=ctx)
-        assert pg.evaluate("() => document.querySelector('.apptab a[data-k=pick]').getAttribute('href')") == "x9.html"
+        assert pg.evaluate("() => [...document.querySelectorAll('.apptab a')].map(a => a.dataset.k)") == ["mkt"]
         lk = pg.evaluate("() => [...document.querySelectorAll('.applk a')].map(a => [a.textContent, a.getAttribute('href')])")
         assert lk == [["研究紀錄", "x9r.html"], ["名詞", "x9r.html#mth"], ["查公司", "x9.html#q"]]
         pg.close()
         pg, errs2 = _open(b, f"{base}/x9.html?v=us", ctx=ctx)
         assert pg.evaluate("() => document.querySelector('.apptab a[data-k=mkt]').getAttribute('href')") == "x9mu.html#ix=ndx"
+        assert pg.evaluate("() => document.querySelectorAll('.apptab a.on').length") == 0
         pg.evaluate("() => document.querySelector('.applk .glk').click()")
         assert pg.evaluate("() => !document.getElementById('gl').hidden")                  # 名詞：頁內面板
         pg.evaluate("() => { document.getElementById('glx').click(); document.querySelector('.coqb').click(); }")
@@ -127,14 +128,14 @@ def test_top_bar_links_and_memory(labsite):
         assert pg.evaluate("() => document.getElementById('cos').hidden")
         pg.close()
         pg, errs3 = _open(b, f"{base}/x9m.html", ctx=ctx)
-        assert pg.evaluate("() => document.querySelector('.apptab a[data-k=pick]').getAttribute('href')") == "x9.html?v=us"
+        assert pg.evaluate("() => document.querySelector('.apptab a[data-k=pick]')") is None
         pg.close()
         pg, errs4 = _open(b, f"{base}/x9.html", ctx=ctx)                 # 市場紀錄已換成台股
         assert pg.evaluate("() => document.querySelector('.apptab a[data-k=mkt]').getAttribute('href')") == "x9m.html"
         pg.close()
-        pg, errs5 = _open(b, f"{base}/x9r.html", ctx=ctx)                 # 研究紀錄頁：兩格都不亮、各連到上次的位置
+        pg, errs5 = _open(b, f"{base}/x9r.html", ctx=ctx)                 # 研究紀錄頁：不亮、連到上次的市場
         assert pg.evaluate("() => document.querySelectorAll('.apptab a.on').length") == 0
-        assert pg.evaluate("() => [...document.querySelectorAll('.apptab a')].map(a => a.getAttribute('href'))") == ["x9m.html", "x9.html"]
+        assert pg.evaluate("() => [...document.querySelectorAll('.apptab a')].map(a => a.getAttribute('href'))") == ["x9m.html"]
         assert pg.evaluate("() => document.querySelector('.applk a[aria-current]').textContent") == "研究紀錄"
         pg.close()
         assert not (errs + errs2 + errs3 + errs4 + errs5)
@@ -232,3 +233,25 @@ def test_us_card_clicks_and_direct_link(labsite):
         finally:
             pg.close()
 
+
+def test_options_page_stock_tab_embeds_pick_page(labsite):
+    """盤前・選擇權頁的「個股」分頁（2026-11-12）：點到才載入 x9.html；框裡的選股頁收起主分頁、返回主頁與「.」，連到別頁的連結開在整個視窗。"""
+    b, base, _ = labsite
+    pg, errs = _open(b, f"{base}/x9op.html", wait=800)
+    try:
+        assert pg.evaluate("() => document.getElementById('stkf').getAttribute('src')") is None      # 還沒點：不載入
+        pg.evaluate("() => document.querySelector('.optab a[data-t=stk]').click()")
+        pg.wait_for_timeout(3000)
+        st = pg.evaluate("""() => { const f = document.getElementById('stkf'), d = f.contentDocument;
+            return {src: f.getAttribute('src'), hash: location.hash, pm: document.getElementById('pm').hidden,
+                    inop: d.documentElement.classList.contains('inop'),
+                    tab: getComputedStyle(d.querySelector('.apptab')).display, opq: d.querySelector('.opq') ? getComputedStyle(d.querySelector('.opq')).display : 'none',
+                    tw: !!d.getElementById('pkcal-tw'), h: f.getBoundingClientRect().height}; }""")
+        assert st["src"] == "x9.html" and st["hash"] == "#stk" and st["pm"] is True
+        assert st["inop"] is True and st["tab"] == "none" and st["opq"] == "none" and st["tw"] is True and st["h"] > 300
+        pg.evaluate("() => document.getElementById('stkf').contentDocument.querySelector('.applk a[href=\"x9r.html\"]').click()")
+        pg.wait_for_timeout(1500)
+        assert _where(pg)[0] == "x9r.html"                                                     # 研究紀錄開在整個視窗
+        assert not errs, errs
+    finally:
+        pg.close()

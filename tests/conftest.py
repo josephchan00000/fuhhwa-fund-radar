@@ -30,7 +30,7 @@ def labsite(tmp_path_factory):
     sync_api = pytest.importorskip("playwright.sync_api")
     if not CHROME:
         pytest.skip("沒有 Chromium")
-    from arm.lab import bubpage, heatpage, heatpage_us, page, research_page, sigpage, xspage
+    from arm.lab import bubpage, heatpage, heatpage_us, page, research_page, sigpage, txopage, xspage
     O = tmp_path_factory.mktemp("labsite")
     if not page.build(O / "x9.html", O / "x9s.json") and not (O / "x9.html").exists():
         pytest.skip("配置頁建不起來（資料不在）")
@@ -41,6 +41,7 @@ def labsite(tmp_path_factory):
     page.finish()                                             # 配置頁用今天的警訊讀數
     xspage.build(O / "x9x.html", O / "x9xh.json")
     research_page.build(O / "x9r.html")
+    txopage.build(O / "x9op.html")                          # 盤前・選擇權頁（2026-11-12 起選股頁在它的「個股」分頁）
     srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(_Quiet, directory=str(O)))
     th = threading.Thread(target=srv.serve_forever, daemon=True)
     th.start()

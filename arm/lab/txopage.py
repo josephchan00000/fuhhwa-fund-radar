@@ -1,9 +1,15 @@
-"""盤前・選擇權分頁 x9op.html：最上面是盤前戰情（arm/lab/premkpage.py；docs/lab_premarket_plan.md），下面收起來的是風險／報酬計算機
-（docs/lab_txo_plan.md 第 17 節）。不在頂欄，籌碼雷達各頁最底下右邊的「.」進來（appnav.OP_ENTRY）。
+"""盤前・選擇權分頁 x9op.html。不在頂欄，籌碼雷達各頁最底下右邊的「.」進來（appnav.OP_ENTRY）。
+
+2026-11-12 起分四個分頁（使用者：「幫我把個股頁挪到選擇權頁的分頁裡面」；docs/lab_txo_plan.md 第 20 節）：
+  盤前（#pm）＝盤前戰情（arm/lab/premkpage.py；docs/lab_premarket_plan.md）
+  策略（#st）＝測過的四條選擇權策略（arm/lab/txostrat.py）
+  計算機（#calc）＝風險／報酬計算機（docs/lab_txo_plan.md 第 17 節）
+  個股（#stk）＝選股頁 x9.html 整頁放在框裡（點到才載入；框裡的選股頁收起自己的頂欄，見 appnav.EMBED_JS）
+網址的 # 決定開哪一格（沒有或認不得＝盤前），舊連結 x9op.html#calc 照樣開到計算機。
 
 作戰表資料 data/lab/txo_calc.json（arm/lab/txocalc.py，每晚 CI 寫）整份嵌進頁面；計算全部在瀏覽器裡（Black-Scholes、r＝0，
 和 txocalc.bs 同一個公式）：使用者只要輸入成交價，口數、最多賠、占帳戶、損益兩平、情境表就重算。帳戶金額與手續費只存在使用者自己的瀏覽器。
-只做買方；不是策略建議，策略成績在第 3 段回測之後才有。
+只做買方；不是買賣建議。
 """
 from __future__ import annotations
 
@@ -43,12 +49,18 @@ CSS = (".opm{max-width:1000px;margin:0 auto;padding:12px 16px 80px}"
        ".opexp{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.opexp button{font:inherit;font-size:13px;padding:4px 10px;"
        "border:1px solid var(--line2);border-radius:999px;background:var(--bg);color:var(--ink2);cursor:pointer}"
        ".opexp button.on{border-color:var(--acc);color:var(--acc);font-weight:600}"
-       ".opcalc{margin:14px 0;border-radius:16px;padding:0 14px;border:1px solid var(--line2);background:var(--panel)}"
-       ".opcalc>summary{list-style:none;cursor:pointer;display:flex;flex-direction:column;gap:2px;padding:14px 26px 14px 0;position:relative}"
-       ".opcalc>summary::-webkit-details-marker{display:none}"
-       ".opcalc>summary::after{content:'＋';position:absolute;right:2px;top:50%;transform:translateY(-50%);font-size:18px;color:var(--acc)}"
-       ".opcalc[open]>summary::after{content:'－'}.opcalc>summary b{font-size:17px}.opcalc>summary small{font-size:12.5px;color:var(--mut)}"
-       ".opcalc[open]{padding-bottom:12px}.opcalc[open]>summary{border-bottom:1px solid var(--line);margin-bottom:8px}")
+       # 分頁（2026-11-12）
+       ".optab{display:flex;gap:2px;max-width:1000px;margin:6px auto 0;padding:0 16px;overflow-x:auto;scrollbar-width:none}"
+       ".optab::-webkit-scrollbar{display:none}"
+       ".optab a{flex:1 0 auto;text-align:center;padding:8px 16px;border-radius:10px 10px 0 0;font-size:15px;font-weight:600;"
+       "color:var(--ink2);text-decoration:none;border-bottom:3px solid transparent;white-space:nowrap}"
+       ".optab a:hover{color:var(--ink)}.optab a.on{color:var(--ink);border-bottom-color:var(--acc);background:var(--card2)}"
+       ".optab a:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}"
+       ".optabline{max-width:1000px;margin:0 auto;border-bottom:1px solid var(--line)}"
+       ".oppane[hidden]{display:none}"
+       ".opstk iframe{display:block;width:100%;border:0;min-height:60vh;background:var(--bg)}"
+       "body.stkon{overflow:hidden}body.stkon .opm{display:none}body.stkon .top .applk{visibility:hidden}"   # 框裡的選股頁自己有那一排
+       "@media (max-width:640px){.optab{padding:0 8px}.optab a{padding:8px 10px;font-size:14.5px}}")
 
 JS = r"""
 (function () {
@@ -151,14 +163,46 @@ _HTML = """<!doctype html>
 <style>{{CSS}}</style></head>
 <body>
 <div class="top">{{APPTAB}}<a class="back" href="./"><span class="bk1">返回</span>主頁</a></div>
-<main class="opm">{{PM}}<details class="opcalc" id="calc"><summary><b>選擇權計算機</b><small>輸入成交價：最多賠多少、可買幾口、指數走到哪賺賠多少</small></summary>
-<p class="oplead">只算「買方」：最多賠的就是付出去的權利金加成本。數字每天晚上自動更新，盤中只要改成交價。這裡只是計算，不是買賣建議。</p>
+<nav class="optab" role="tablist" aria-label="盤前・選擇權分頁">{{TABS}}</nav><div class="optabline"></div>
+<main class="opm">
+<section class="oppane" id="pm" role="tabpanel">{{PM}}</section>
+<section class="oppane" id="st" role="tabpanel" hidden>{{ST}}</section>
+<section class="oppane" id="calc" role="tabpanel" hidden><h2>選擇權計算機</h2>
+<p class="oplead">輸入成交價：最多賠多少、可買幾口、指數走到哪賺賠多少。只算「買方」：最多賠的就是付出去的權利金加成本。數字每天晚上自動更新，盤中只要改成交價。這裡只是計算，不是買賣建議。</p>
 {{FACTS}}
-<div id="opapp"></div></details></main>
+<div id="opapp"></div></section>
+</main>
+<section class="oppane opstk" id="stk" role="tabpanel" hidden><iframe id="stkf" title="選股" data-src="x9.html"></iframe></section>
 <script type="application/json" id="opd">{{DATA}}</script>
 <script>{{JS}}</script>
+<script>{{TABJS}}</script>
 </body></html>
 """
+
+
+TABS = (("pm", "盤前"), ("st", "策略"), ("calc", "計算機"), ("stk", "個股"))
+
+# 分頁切換：網址的 # 決定開哪一格；個股＝第一次點到才載入 x9.html，框的高度＝視窗剩下的高度（框裡自己捲，選股頁的固定列、捲到個股卡都照原樣）
+TAB_JS = r"""(function(){
+var T=['pm','st','calc','stk'],tabs=document.querySelectorAll('.optab a'),f=document.getElementById('stkf');
+function fit(){if(!f||document.getElementById('stk').hidden)return;var top=f.getBoundingClientRect().top;f.style.height=Math.max(320,window.innerHeight-Math.max(0,top))+'px'}
+function show(k,push){if(T.indexOf(k)<0)k='pm';
+ T.forEach(function(t){var p=document.getElementById(t);if(p)p.hidden=t!==k});
+ for(var i=0;i<tabs.length;i++){var on=tabs[i].dataset.t===k;tabs[i].classList.toggle('on',on);tabs[i].setAttribute('aria-selected',on?'true':'false')}
+ document.body.classList.toggle('stkon',k==='stk');
+ if(k==='stk'&&f&&!f.getAttribute('src')){f.setAttribute('src',f.dataset.src)}
+ if(push&&location.hash!=='#'+k){try{history.replaceState(null,'','#'+k)}catch(e){location.hash=k}}
+ if(k==='stk'){window.scrollTo(0,0);fit()}}
+for(var i=0;i<tabs.length;i++)tabs[i].addEventListener('click',function(e){e.preventDefault();show(this.dataset.t,true)});
+window.addEventListener('hashchange',function(){show(location.hash.slice(1),false)});
+window.addEventListener('resize',fit);
+show(location.hash.slice(1),false);
+})();"""
+
+
+def _tabs() -> str:
+    return "".join(f'<a href="#{k}" data-t="{k}" role="tab" aria-controls="{k}"' + (' class="on" aria-selected="true"' if k == "pm" else ' aria-selected="false"')
+                   + f">{label}</a>" for k, label in TABS)
 
 
 def _facts(d: dict | None) -> str:
@@ -180,14 +224,16 @@ def _facts(d: dict | None) -> str:
 def render(data: dict | None = None, pm: dict | None = None) -> str:
     from . import appnav
     from . import premkpage
+    from . import txostrat
     from .heatpage import _CSS as HCSS
     if data is None and DATA.exists():
         data = json.loads(DATA.read_text(encoding="utf-8"))
     if pm is None and PM.exists():
         pm = json.loads(PM.read_text(encoding="utf-8"))
     blob = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
-    page = (_HTML.replace("{{CSS}}", HCSS + appnav.CSS + CSS + premkpage.CSS).replace("{{APPTAB}}", appnav.bar(""))
-            .replace("{{PM}}", premkpage.block(pm)).replace("{{FACTS}}", _facts(data)).replace("{{DATA}}", blob).replace("{{JS}}", JS))
+    page = (_HTML.replace("{{CSS}}", HCSS + appnav.CSS + CSS + premkpage.CSS + txostrat.CSS).replace("{{APPTAB}}", appnav.bar(""))
+            .replace("{{TABS}}", _tabs()).replace("{{PM}}", premkpage.block(pm)).replace("{{ST}}", txostrat.block())
+            .replace("{{FACTS}}", _facts(data)).replace("{{DATA}}", blob).replace("{{JS}}", JS).replace("{{TABJS}}", TAB_JS))
     return appnav.finish(page)
 
 

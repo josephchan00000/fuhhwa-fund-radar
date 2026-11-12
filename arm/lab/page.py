@@ -2218,9 +2218,7 @@ function go(t,anchor){if(!VIEWS[t])t='tw';S.tab=t;const g=TABG[t];setPer(PERS[t]
   window.scrollTo(0,0);if(anchor)requestAnimationFrame(()=>jump(anchor));}
 /*@@COPAGE@@*/
 $$('#tabs a[data-t]').forEach(a=>a.onclick=()=>{const g=a.dataset.t;go(g==='mac'||g==='stg'||g==='tool'?LAST[g]:g);});
-/* 頂欄「選股」：在選股裡＝回到這次看過的選股分頁；在研究紀錄＝回到上次看的選股分頁（連結由 appnav.NAV_HEAD 換成上次的位置） */
-$$('.apptab a[data-k="pick"]').forEach(a=>a.onclick=e=>{e.preventDefault();if(PER==='pick'){go(LAST.pick);return;}
-  const v=new URLSearchParams((a.getAttribute('href')||'').split('?')[1]||'').get('v');go(VIEWS[v]&&PERS[v]==='pick'?v:'tw');});
+/* 頂欄「選股」2026-11-12 拿掉（搬到盤前・選擇權頁的「個股」分頁；appnav 開頭說明） */
 $$('.applk .glk').forEach(a=>a.onclick=e=>{e.preventDefault();openGl();});     /* 頂欄小字「名詞」 */
 {const q=new URLSearchParams(location.search),hm=location.hash.match(/^#v=([a-z]+)(.*)$/),gl=location.hash==='#gl';let v=q.get('v'),m=q.get('m'),x='',at=q.get('at')||undefined;
   if(hm){v=hm[1];const p=new URLSearchParams(hm[2].replace(/^&/,''));m=p.get('m')||m;x=p.get('x')||'';}

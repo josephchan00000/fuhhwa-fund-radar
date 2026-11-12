@@ -370,8 +370,9 @@ def _tx1330(F, d: str) -> float | None:
     return next((p for s, p, _, _ in reversed(ticks.get(near) or []) if s <= 13 * 3600 + 30 * 60), None)
 
 
-def checks(days: list[str], cl: dict, night: dict, n: int = 5) -> list[dict]:
-    """最近幾天「用夜盤估的開盤」和實際開盤（09:01:00 的 5 秒指數，premktspec.OPEN_T）差多少；只算夜盤、逐筆、隔天 5 秒指數都有的日子。"""
+def checks(days: list[str], cl: dict, night: dict, n: int = 10) -> list[dict]:
+    """最近幾天「用夜盤估的開盤」和實際開盤（09:01:00 的 5 秒指數，premktspec.OPEN_T）差多少，加上那天的最高、最低（09:00:05 起）；
+    只算夜盤、逐筆、隔天 5 秒指數都有的日子。2026-11-12 起 10 天（使用者：選擇權的判斷都很爛 → 頁面照實列最近的成績）。"""
     from . import futdata as F
     from .premktspec import OPEN_T
     out = []
@@ -383,7 +384,8 @@ def checks(days: list[str], cl: dict, night: dict, n: int = 5) -> list[dict]:
         v = F.load_idx(b)
         if t is None or not v or len(v) <= OPEN_T:
             continue
-        out.append({"d": b, "est": round(float(cl[a]) + nt["c"] - t), "open": round(v[OPEN_T])})
+        day = v[1:]
+        out.append({"d": b, "est": round(float(cl[a]) + nt["c"] - t), "open": round(v[OPEN_T]), "hi": round(max(day)), "lo": round(min(day))})
     return out[-n:]
 
 
@@ -617,17 +619,12 @@ def validated(pm: dict, research: dict | None, heat: dict) -> dict | None:
 
 
 def push_line(pm: dict) -> str:
-    up = sorted((b for b in pm["bands"] if b["side"] == "up"), key=lambda b: b["lo"])
-    dn = sorted((b for b in pm["bands"] if b["side"] == "dn"), key=lambda b: -b["hi"])
-
-    def rng(b):
-        return f"{b['lo']:,}" if b["lo"] == b["hi"] else f"{b['lo']:,}～{b['hi']:,}"
+    """06:35 推播的一行。2026-11-12 起不再帶壓力／支撐（使用者：選擇權的判斷都很爛；第 13 節驗證：那些價位擋住的比例跟任意價位一樣），
+    改帶開盤八成範圍與今天的正常波動。"""
     v = pm.get("v") or {}
     s = f"盤前 {md(pm['next'])}（{wd(pm['next'])}）：預估 09:01 約 {pm['est']:,}" + (f"（平常差 ±{v['typ']:,}）" if v.get("typ") else f"（{pm['est_src']}）")
-    if up:
-        s += f"｜壓力 {rng(up[0])}"
-    if dn:
-        s += f"｜支撐 {rng(dn[0])}"
+    if v.get("p80"):
+        s += f"｜開盤八成在 {pm['est'] - v['p80']:,}～{pm['est'] + v['p80']:,}"
     if pm.get("em"):
         s += f"｜正常波動 ±{pm['em']:,}"
     return s + "。"

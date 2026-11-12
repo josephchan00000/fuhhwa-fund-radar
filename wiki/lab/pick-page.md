@@ -1,13 +1,13 @@
 # 選股頁
 
-> 頂欄「選股」：台股、美股同一個骨架（成績單、這週要做的事、進場行事曆、同一個模板的策略卡）；買不買只看那條策略自己的規則；2026-10-28 起取代配置頁。
+> 選股頁（2026-11-12 起不在頂欄、放在盤前・選擇權頁的「個股」分頁）：台股、美股同一個骨架（成績單、這週要做的事、進場行事曆、同一個模板的策略卡）；買不買只看那條策略自己的規則；2026-10-28 起取代配置頁。
 > 原始資料：CLAUDE.md「選股頁」段；`docs/lab_pick_page_plan.md`、`docs/lab_pick_arch_plan.md`（推薦架構）；`arm/lab/pickpage.py`、`pickcal.py`
 > 最後更新：2026-11-11
 > 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 
-- 頂欄「選股」＝x9.html：台股｜美股｜個股（個股＝原本的工具分頁：個股｜籌碼｜指數）。`page.py`：`VIEWS` 的 tw／us＝`vPkTw`／`vPkUs`，`PERS` 的 tw／us／stk／chip／idx＝`pick`；資料 `D.pick`＝`pickpage.build(data, bundle)`（`page._cfg`，bundle＝`sigpage.core_data(record=False)`；算不出來頁面寫原因）。
+- 選股頁＝x9.html（2026-11-12 起從頂欄拿掉，放在 `x9op.html#stk` 的框裡，見[導覽](nav.md)）：台股｜美股｜個股（個股＝原本的工具分頁：個股｜籌碼｜指數）。`page.py`：`VIEWS` 的 tw／us＝`vPkTw`／`vPkUs`，`PERS` 的 tw／us／stk／chip／idx＝`pick`；資料 `D.pick`＝`pickpage.build(data, bundle)`（`page._cfg`，bundle＝`sigpage.core_data(record=False)`；算不出來頁面寫原因）。
 - 每個市場同一個骨架、由上而下（2026-11-11，`docs/lab_stock_page_plan.md` 第 4.1 節）：成績單（`#pk-{市場}-score`）→ 這週要做的事（`#pk-{市場}-todo`）→ 進場行事曆（`#pk-{市場}-cal`）→ 每條策略一張卡（`#pk-{策略}`，同一個模板）→ 台股「其他策略」收起（`#pk-tw-o`）→ 頁尾（全部策略・原本的配置・研究紀錄）。
 - 主要／其他：`pickpage.tw_keys`＝新飆股＋advice tier good（依推薦順序）；tier ref＝其他；○／—、高股息不列。策略身分色 `--cfc1..4`，其他灰色。
 - **個股卡台美同一組頁籤**（2026-11-11，`docs/lab_stock_page_plan.md` 第 8 節）：策略 → 重點 → 走勢 → 為什麼選它 → 成長 → 獲利 → 估值 → 同產業 → 籌碼 → 分析師 → 公司；台股多「ETF 持有」「訊號」（籌碼後面）。
