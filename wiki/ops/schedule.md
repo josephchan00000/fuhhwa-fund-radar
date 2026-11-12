@@ -12,6 +12,7 @@
 - 03:23 cron：`eq_docs.yml` 刪掉前一天以前的個股報告文件包臨時分支（`claude/eqdocs-tmp/`；只清不抓，見 [個股報告](../lab/equity-report.md)）。
 - 05:08 Routine：費半 ^SOX／台積電 ADR 昨夜收盤入檔（美東收盤後，供 06:35 晨報引用）。06:15 etf_holdings cron：被動式隔夜 PCF。
 - 06:35 Routine：新聞（push 觸發 daily.yml 全量；07:15 cron 兜底）。cron 兜底沒指定分支，會抓下全部 claude 分支、挑最新有今天台股報告的那條（2026-11-01 有 86 個、約 25 秒；見債務帳 `docs/code_debt.md`）。
+- 08:46 前後 用台指期 08:45 開盤重估 09:01、更新選擇權頁（同一個 `fut_preopen.yml`，取樣之前那兩步；08:57 之後不開始；docs/lab_premarket_plan.md 第 16 節）。
 - 08:58～09:00:15 台指期盤前取樣（`fut_preopen.yml` 凌晨 03:47～07:17 五班 cron，最早的那班等到 08:58；docs/lab_fut_plan.md 第 10 節）。
 - 15:33 Routine → 15:40·當日三大法人、外資期貨、ETF 當日漲跌、全球溫度計上線（15:40 cron 兜底）；**＋前十大簡介缺口順手補**（主責見 [全部更新](daily-update.md) 9⑤，2026-08-12 使用者指定掛本班）。
 - 18:58 Routine → ~19:10·基金 NAV＋主動式 ETF 當日 PCF 上線（19:10 cron 兜底；etf_holdings 17:40 cron 遲到自癒）。

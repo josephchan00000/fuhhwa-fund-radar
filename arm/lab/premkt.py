@@ -517,7 +517,15 @@ def build(asof: str | None = None) -> dict | None:
     }
     validated(out, _read(RESEARCH), heat)
     out["push"] = push_line(out)
+    attach_e850(out["check"], _read(ROOT / "data" / "lab" / "fut" / "e850.json", {}) or {})
     return out
+
+
+def attach_e850(chk: list[dict], log: dict) -> None:
+    """最近成績每一天掛上 08:46 用台指期開盤重估的值（arm/lab/pm850.py 記的；沒有就不掛）。"""
+    for c in chk:
+        if (log.get(c["d"]) or {}).get("est") is not None:
+            c["e850"] = log[c["d"]]["est"]
 
 
 # ── 第 3 段驗證過的數字（premktspec VER 2；data/lab/premkt_research.json） ─────────────────────────
