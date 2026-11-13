@@ -2,7 +2,7 @@
 
 > 每天台北時間哪一班做什麼：Routine 負責準時、GitHub cron 只當兜底（實測系統性遲到 1~3 小時）、盤後刷新與當日完整性看門狗、07:15 備援。
 > 原始資料：CLAUDE.md「每日固定時間自動更新」段的盤後刷新、cron 遲到、時點地圖、備援四條；程式：`.github/workflows/afterhours_refresh.yml`、`scripts/check_afterhours_fresh.py`。
-> 最後更新：2026-10-31
+> 最後更新：2026-11-13
 > 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
@@ -12,7 +12,7 @@
 - 03:23 cron：`eq_docs.yml` 刪掉前一天以前的個股報告文件包臨時分支（`claude/eqdocs-tmp/`；只清不抓，見 [個股報告](../lab/equity-report.md)）。
 - 05:08 Routine：費半 ^SOX／台積電 ADR 昨夜收盤入檔（美東收盤後，供 06:35 晨報引用）。06:15 etf_holdings cron：被動式隔夜 PCF。
 - 06:35 Routine：新聞（push 觸發 daily.yml 全量；07:15 cron 兜底）。cron 兜底沒指定分支，會抓下全部 claude 分支、挑最新有今天台股報告的那條（2026-11-01 有 86 個、約 25 秒；見債務帳 `docs/code_debt.md`）。
-- 08:46 前後 用台指期 08:45 開盤重估 09:01、更新選擇權頁（同一個 `fut_preopen.yml`，取樣之前那兩步；08:57 之後不開始；docs/lab_premarket_plan.md 第 16 節）。
+- 08:46 前後 用台指期 08:45 開盤重估 09:01、更新選擇權頁（同一個 `fut_preopen.yml`，取樣之前那兩步；08:57 之後不開始；docs/lab_premarket_plan.md 第 16 節）。2026-11-13 起平日 07:52 由 Routine ⑧ dispatch 這支 workflow，凌晨那幾班 cron 只兜底（11/13 最早開跑的那班 08:43 才來，差點趕不上 08:45）。
 - 08:58～09:00:15 台指期盤前取樣（`fut_preopen.yml` 凌晨 03:47～07:17 五班 cron，最早的那班等到 08:58；docs/lab_fut_plan.md 第 10 節）。
 - 15:33 Routine → 15:40·當日三大法人、外資期貨、ETF 當日漲跌、全球溫度計上線（15:40 cron 兜底）；**＋前十大簡介缺口順手補**（主責見 [全部更新](daily-update.md) 9⑤，2026-08-12 使用者指定掛本班）。
 - 18:58 Routine → ~19:10·基金 NAV＋主動式 ETF 當日 PCF 上線（19:10 cron 兜底；etf_holdings 17:40 cron 遲到自癒）。
