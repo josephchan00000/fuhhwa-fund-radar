@@ -10,7 +10,7 @@
   "inception": "2006/04/17",
   "risk_level": "RR4",
   "mgmt_fee": "1.50%",
-  "size_twd": 1581190153.0,
+  "size_twd": 1408525707.0,
   "nav": 29.57,
   "nav_date": "2026/11/11",
   "nav_change": 1.27,
@@ -155,7 +155,7 @@
     }
   ],
   "group": "global_balanced",
-  "fetched_at": "2026-11-13 06:47",
+  "fetched_at": "2026-11-13 11:26",
   "returns_daily": {
     "1m": -15.89875,
     "3m": -15.94656,
