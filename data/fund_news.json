@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/11/13 14:30",
+  "as_of": "2026/11/13 15:35",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -51,6 +51,13 @@
       "source": "Yahoo新聞",
       "date": "2026-11-11 10:21",
       "datetime": "2026-11-11T10:21:41+08:00"
+    },
+    {
+      "title": "主動式ETF再添生力軍！00418A募近百億掛牌 首日成交量居冠",
+      "url": "https://news.cnyes.com/news/id/6658156",
+      "source": "鉅亨網",
+      "date": "2026-11-11 10:06",
+      "datetime": "2026-11-11T10:06:46+08:00"
     },
     {
       "title": "主動式ETF復華台灣新星(00418A)掛牌首日早盤爆量14萬張！",
@@ -590,7 +597,7 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/shorts/RLe1-wrqSk8",
       "date": "2026-11-11",
-      "views": 10119,
+      "views": 10152,
       "short": true
     },
     {
@@ -607,7 +614,7 @@
       "channel": "郭哲榮分析師-摩爾證券投顧",
       "url": "https://www.youtube.com/shorts/uGj7xkW72_0",
       "date": "2026-11-09",
-      "views": 287776,
+      "views": 287785,
       "peer": true,
       "short": true,
       "cat": "基金"
@@ -618,7 +625,7 @@
       "channel": "郭哲榮分析師-摩爾證券投顧",
       "url": "https://www.youtube.com/watch?v=e1UHtH6bExo",
       "date": "2026-11-09",
-      "views": 260315,
+      "views": 260317,
       "peer": true,
       "cat": "基金"
     },
@@ -628,7 +635,7 @@
       "channel": "關鍵時刻",
       "url": "https://www.youtube.com/watch?v=MDE_q4M7KZA",
       "date": "2026-11-11",
-      "views": 253194,
+      "views": 253861,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -638,7 +645,7 @@
       "channel": "風傳媒 The Storm Media",
       "url": "https://www.youtube.com/watch?v=mmZyT3Hsm_w",
       "date": "2026-11-09",
-      "views": 196506,
+      "views": 196564,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -648,7 +655,7 @@
       "channel": "瘋狂股市福利社Free Free Free!",
       "url": "https://www.youtube.com/watch?v=3sObqPvDIbw",
       "date": "2026-11-09",
-      "views": 150331,
+      "views": 150350,
       "peer": true,
       "cat": "市值型"
     },
@@ -658,7 +665,7 @@
       "channel": "玩股網楚狂人",
       "url": "https://www.youtube.com/watch?v=5gAT6rtu8vk",
       "date": "2026-11-09",
-      "views": 141527,
+      "views": 141918,
       "peer": true,
       "cat": "高股息"
     },
@@ -668,7 +675,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=wODConxXAIo",
       "date": "2026-11-09",
-      "views": 140947,
+      "views": 141566,
       "peer": true,
       "cat": "綜合"
     },
@@ -678,7 +685,7 @@
       "channel": "大樹下學投資",
       "url": "https://www.youtube.com/shorts/QhVboUp-Vi8",
       "date": "2026-11-10",
-      "views": 136265,
+      "views": 125973,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -689,7 +696,7 @@
       "channel": "瘋狂股市福利社Free Free Free!",
       "url": "https://www.youtube.com/watch?v=_L9nU41OoaI",
       "date": "2026-11-11",
-      "views": 113692,
+      "views": 113760,
       "peer": true,
       "cat": "高股息"
     },
@@ -699,7 +706,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=7vmsqrpseis",
       "date": "2026-11-11",
-      "views": 91217,
+      "views": 92690,
       "peer": true,
       "cat": "市值型"
     }
@@ -708,6 +715,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00998A、00418A、（詳下方新聞標籤）",
     "品牌焦點：商周-00418A是什麼？成分股、配息、優缺點，和0050、00981A差在哪？ - 商業周刊（商業周刊）",
     "社群聲量最高：科技股本益比只剩17倍，比大盤還便宜，難怪強友瘋狂抄底（0 推）",
-    "YouTube 熱片：【國安基金進場 台股假反彈?】2026/11/9 哲哲只有60秒 #shorts（郭哲榮分析師-摩爾證券投顧・287,776 次觀看）"
+    "YouTube 熱片：【國安基金進場 台股假反彈?】2026/11/9 哲哲只有60秒 #shorts（郭哲榮分析師-摩爾證券投顧・287,785 次觀看）"
   ]
 }
