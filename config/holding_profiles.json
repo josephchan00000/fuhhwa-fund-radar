@@ -4125,6 +4125,12 @@
    "ticker": "2466",
    "country": "台灣",
    "verified": true
+  },
+  "Tempus AI公司": {
+   "intro": "美國 Tempus AI，精準醫療與基因檢測公司；以腫瘤基因定序檢測結合臨床資料與 AI 平台，並將去識別化資料授權給藥廠做新藥開發。",
+   "ticker": "TEM",
+   "country": "美國",
+   "verified": true
   }
  }
 }
