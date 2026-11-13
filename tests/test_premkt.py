@@ -196,7 +196,7 @@ def test_page_reach_chart_and_recent_table():
                                                     "mean": -13.4, "up": 0.43}], "chips_ok": ["retail"],
                 "q2": {"x": [0.25, 0.5, 1.0, 1.5, 2.0], "up": [0.6, 0.3, 0.1, 0.03, 0.01], "dn": [0.7, 0.4, 0.2, 0.05, 0.02]}, "n1": 1, "n2": 1}}
     h = premkpage.block(pm)
-    assert 'class="pz-c ' not in h and "進 43,084" not in h and 'id="pzd"' not in h            # 沒有買賣點卡、價位帶、卡片資料
+    assert 'class="pz-c ' not in h and "進 43,084" not in h and 'id="pzd"' not in h            # 舊的買賣點卡與價位帶圖不在了（11/13 起點位在最上面「今日點位」）
     assert "今天可能走多遠" in h and "43,500" in h and "42,500" in h and "45,000" in h and "41,000" in h   # ±0.5、±2 倍
     assert "+0.5 倍・30%" in h and "−1 倍・20%" in h and "+2 倍・1%" in h
     assert "平常差 <b>±216</b>" in h and "散戶小台　偏空" in h and "只能當傾向" in h
@@ -231,3 +231,34 @@ def test_parse_futday_keeps_single_month_rows_and_sessions():
     rows = T.parse_futday(txt)
     assert rows == [["2026-11-04", "202611", "D", 43450, 43774, 42050, 43204, 113674, 43203, 122629],
                     ["2026-11-05", "202611", "N", 43430, 44274, 43141, 43404, 66939, None, None]]
+
+
+def test_levels_card_top_of_page():
+    """2026-11-13 使用者：「我要一看就知道今天的壓力支撐建議點位」→ 最上面「今日點位」：壓力 1～3、開盤、支撐 1～3（各附來源與今天碰到的比例，
+    以現在的預估開盤算；預估就在某一帶裡的那一帶不列），下面四個參考點位，照實標「沒有驗證過」。"""
+    from arm.lab import premkpage
+    q2 = {"x": [0.25, 0.5, 1.0, 1.5, 2.0], "up": [0.6, 0.3, 0.1, 0.03, 0.01], "dn": [0.7, 0.4, 0.2, 0.05, 0.02]}
+    bands = [{"lo": 44000, "hi": 44100, "mid": 44050, "side": "up", "src": [["11/18 到期最大痛點", 44100], ["樞紐壓力 1", 44097], ["整數關卡", 44000]]},
+             {"lo": 44500, "hi": 44525, "mid": 44513, "side": "up", "src": [["昨天最高", 44525], ["整數關卡", 44500]]},
+             {"lo": 43500, "hi": 43520, "mid": 43510, "side": "dn", "src": [["樞紐中心", 43520], ["整數關卡", 43500]]},
+             {"lo": 42944, "hi": 43000, "mid": 42972, "side": "dn",
+              "src": [["11/13 到期賣權未平倉最多（1,804 口）", 43000], ["昨天最低", 42944]]},
+             {"lo": 43800, "hi": 43900, "mid": 43850, "side": "up", "src": [["成交量 70% 區上緣（換算）", 43800]]}]   # 預估在帶子裡：不列
+    sc = [{"k": "long", "name": "回測支撐做多", "entry": 43520, "stop": 43389, "target": 44000,
+           "opt": {"cp": "C", "k": 43500, "xd": "2026-11-18", "pe": 890.9}},
+          {"k": "breakdown", "name": "跌破支撐追空", "entry": 43389, "stop": 43510, "target": 43109}]
+    pm = {"d": "2026-11-12", "next": "2026-11-13", "close": 43091.87, "hi": 44525, "lo": 42944, "est": 43850, "est_src": "夜盤收盤",
+          "em": 1000, "made": "2026-11-13 05:23", "bands": bands, "sc": sc, "facts": [], "warn": [], "check": [],
+          "v": {"typ": 229, "p80": 463, "q2": q2, "n1": 1, "n2": 1, "lv_ok": []}}
+    h = premkpage.block(pm)
+    assert h.index('id="pzl"') < h.index('id="pz"')                                     # 放在最上面
+    lv = h.split('id="pzl"', 1)[1].split("</section>", 1)[0]
+    assert "今日點位　11/13（五）" in lv and "05:23 更新" in lv
+    assert lv.index("壓力 2") < lv.index("壓力 1") < lv.index("開盤") < lv.index("支撐 1") < lv.index("支撐 2")
+    assert "43,800～43,900" not in lv and "成交量密集區上緣" not in lv                    # 預估開盤就在這一帶
+    assert "選擇權最大痛點・樞紐壓力・整數關卡" in lv and "賣權未平倉最多・昨天最低" in lv   # 來源用短名字
+    assert "44,000～44,100" in lv and "<b>68%</b>" in lv                               # 帶子中間 44,050 離預估 0.2 倍：1→0.6 內插＝68%
+    assert "十次有八次開在 43,387～44,313" in lv and "<b>+758</b>" in lv
+    assert "回測支撐做多" in lv and "進場<b>43,520</b>" in lv and "跌破<b>43,389</b>" in lv
+    assert "11/18 到期 43,500 買權，到進場價時約 891 點" in lv
+    assert "照實說" in lv and "參考點位沒有" in lv and "不是買賣建議" in lv

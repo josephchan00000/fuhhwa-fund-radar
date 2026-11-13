@@ -6,6 +6,7 @@
 
   estimate(pm, quotes, research, now_hms) → {d, t, sym, open, ref, ref_src, est, typ, p80, early} 或 None
   apply(pm, e, log)                       → 把重估掛到 pm["e850"]、記到 log（{日期: 重估}），只留最近 KEEP 筆
+  restore(pm, log, research)              → premkt 重算時從 log 把今天的重估掛回去（不然白天其他排程一重算就洗掉）
 scripts/pm_0850.py 叫它（.github/workflows/fut_preopen.yml 在 08:58 取樣之前那一步）；這裡不連網。
 """
 from __future__ import annotations
@@ -91,6 +92,20 @@ def apply(pm: dict, e: dict, log: dict) -> bool:
     log[e["d"]] = {k: e[k] for k in ("t", "sym", "open", "ref", "ref_src", "est", "early")}
     for k in sorted(log)[:-KEEP]:
         del log[k]
+    return True
+
+
+def restore(pm: dict, log: dict, research: dict | None) -> bool:
+    """premkt.build 重算時把今天（pm["next"]）記過的重估掛回去：2026-11-13 08:46 重估寫進 premkt.json 之後，
+    09 點多 daily.yml 等排程重算盤前作戰圖，整份重寫、e850 不見，頁面又變回清晨的估計。紀錄檔 e850.json 不會被重算洗掉，從它還原。"""
+    r = (log or {}).get(pm.get("next") or "")
+    e2 = ok_research(research)
+    if not r or not e2 or r.get("est") is None:
+        return False
+    em = pm.get("em")
+    pm["e850"] = {"d": pm["next"], **{k: r[k] for k in ("t", "sym", "open", "ref", "ref_src", "est") if k in r},
+                  "early": r.get("early", pm.get("est")),
+                  "typ": round(e2["med_em"] * em) if em else None, "p80": round(e2["p80_em"] * em) if em else None}
     return True
 
 
