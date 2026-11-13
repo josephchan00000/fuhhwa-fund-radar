@@ -15,7 +15,7 @@ SET = {"asof": "2026-11-10",
 
 
 def test_strategy_tab_lists_all_four_with_honest_verdicts():
-    h = txostrat.block(RES, SET)
+    h = txostrat.block(RES, SET, {})
     assert h.count('class="ts-c"') == 4 and 'class="ts-c ts-case"' in h                # 四條＋11/11 案例
     assert "過關 <b>1</b>" in h and "沒過 <b>2</b>" in h and "筆數不夠、還在記 <b>1</b>" in h
     for name in ("O3 節慶前買買權", "O1 結算日順勢", "O4 結算均價", "O2 大事件前買跨式"):
@@ -28,7 +28,7 @@ def test_strategy_tab_lists_all_four_with_honest_verdicts():
 
 
 def test_strategy_tab_without_files_says_no_results():
-    h = txostrat.block({}, {})
+    h = txostrat.block({}, {}, {})
     assert h.count("還沒有成績") >= 4 and "ts-kv" not in h
 
 
@@ -45,3 +45,22 @@ def test_options_page_has_four_tabs_and_lazy_stock_frame(tmp_path):
     assert "測過的選擇權策略" in h and 'id="opapp"' in h and "還沒準備好" in h
     assert 'class="opcalc"' not in h                                                 # 計算機不再收在折疊裡
     assert 'class="opq"' not in h                                                    # 選擇權頁自己不放「.」入口
+
+
+LIVE = {"asof": "2026-11-13", "sum": {
+    "metrics": {"n": 2, "mean": 1500.0, "win": 0.5, "final": 1003000.0, "maxdd": 0.001, "total": 3000.0},
+    "judge": {"verdict": "只列、不判定（筆數不夠）"},
+    "days": [{"d": "2026-11-04", "picks": 0}, {"d": "2026-11-06", "picks": 1}, {"d": "2026-11-11", "picks": 0},
+             {"d": "2026-11-13", "picks": 1}] + [{"d": "2026-10-01", "picks": 0}] * 0,
+    "trades": [{"d": "2026-11-06", "kx": 39600.0, "cp": "C", "p0": 175.0, "pnl": 2204.6},
+               {"d": "2026-11-13", "kx": 44000.0, "cp": "P", "p0": 12.0, "pnl": 795.4}]}}
+
+
+def test_o4_card_uses_paper_ledger_when_present():
+    """第 21 節：O4 紙上紀錄（每週五記一次、只增不改）有就用它，比研究那一次（11/10）新。"""
+    h = txostrat.block(RES, SET, LIVE)
+    o4 = h.split("O4 結算均價", 1)[1].split("O2 大事件前買跨式", 1)[0]
+    assert "4 個結算日、符合的只有 2 筆" in o4 and "11/13 買 44,000 賣權 12 點" in o4
+    assert "紙上紀錄（每週五晚上照規則記一次、記了就不改）：最近 11/4 0 筆、11/6 1 筆、11/11 0 筆、11/13 1 筆" in o4
+    assert "紙上紀錄記到 11/13" in o4 and "資料到 11/10" not in o4
+    assert "筆數不夠、還在記 <b>1</b>" in h

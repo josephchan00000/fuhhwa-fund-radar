@@ -5,6 +5,7 @@ A（Gamma 動能）＝O1 結算日順勢、B（結算均價偏離）＝O4，成�
 這一頁把四條都照實列出來：過關的、沒過的、筆數還不夠的；沒過的也照列，並寫為什麼沒過。
 
 資料：data/lab/txo_research.json（O2、O3；scripts/run_txobt.py）、data/lab/txo_settle.json（O1、O4；scripts/run_txo1.py）。
+O4 另有紙上紀錄 data/lab/txo_o4_live.json（scripts/run_o4live.py，每週五晚上 txo_data.yml 記一次、只增不改；第 21 節），有就用它。
 只讀檔、純呈現；讀不到的那一條顯示「還沒有成績」。CSS class 一律 ts 開頭。
 """
 from __future__ import annotations
@@ -16,6 +17,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 RES = ROOT / "data" / "lab" / "txo_research.json"
 SET = ROOT / "data" / "lab" / "txo_settle.json"
+LIVE = ROOT / "data" / "lab" / "txo_o4_live.json"     # O4 紙上紀錄（arm/lab/o4live.py；每週五更新）
 
 CSS = (".ts-sum{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 14px}"
        ".ts-sum span{padding:4px 11px;border-radius:99px;font-size:13px;font-weight:600;background:var(--card2);color:var(--ink2)}"
@@ -90,9 +92,10 @@ def _verdict(j: dict | None, n: int | None) -> tuple[str, str]:
     return ("wait", "還沒有成績")
 
 
-def cards(res: dict | None = None, st: dict | None = None) -> list[str]:
+def cards(res: dict | None = None, st: dict | None = None, lv: dict | None = None) -> list[str]:
     res = _read(RES) if res is None else res
     st = _read(SET) if st is None else st
+    lv = _read(LIVE) if lv is None else lv
     out = []
     o3 = res.get("O3") or {}
     m3, c3 = o3.get("main"), o3.get("compare") or {}
@@ -118,9 +121,13 @@ def cards(res: dict | None = None, st: dict | None = None) -> list[str]:
          f"反過來賣同一個選擇權（只列、我們不做賣方）平均 {_yuan((c1.get('seller') or {}).get('mean'))}／筆——結算日的錢在賣方。"] if m1 else [],
         "可以試的下一步（要另寫新版本規格）：停損改成每 1～5 分鐘才檢查、只買 10 點以上的；或改研究「買方價差」（買一口、賣一口更價外的）。"))
     o4 = st.get("o4") or {}
+    live = lv.get("sum") or {}
+    if live:                                          # 紙上紀錄（只增不改）比研究那一次新，有就用它
+        o4 = {**o4, **{k: live[k] for k in ("metrics", "judge", "days", "trades") if k in live}}
     m4 = o4.get("metrics")
-    t4 = (o4.get("trades") or [{}])[0] if o4.get("trades") else {}
+    t4 = (o4.get("trades") or [{}])[-1] if o4.get("trades") else {}
     nd = len(o4.get("days") or [])
+    rec = "、".join(f'{_md(x["d"])} {x["picks"]} 筆' for x in (o4.get("days") or [])[-4:]) if live else ""
     out.append(_card(
         "O4 結算均價", _verdict(o4.get("judge"), (m4 or {}).get("n")), "＝你 11/11 報告的 B（結算均價偏離）",
         "結算價＝到期日 13:00～13:30 指數的平均。13:05 起每 5 分鐘算一次「結算時最少值多少」，成交價比最少值低 2 點以上才買、抱到結算。",
@@ -128,8 +135,10 @@ def cards(res: dict | None = None, st: dict | None = None) -> list[str]:
         [f"只能用盤中真實成交價驗，我們只有 9/17 起的分 K：{nd} 個結算日、符合的只有 {(m4 or {}).get('n', 0)} 筆"
          + (f"（{_md(t4['d'])} 買 {int(t4['kx']):,} {'買權' if t4.get('cp') == 'C' else '賣權'} {t4.get('p0', 0):g} 點，"
             f"結算 {_yuan(t4.get('pnl'))}／口）" if t4.get("d") and isinstance(t4.get("kx"), (int, float)) else "") + "。",
-         "13:00 以後的成交價已經很接近結算價，便宜貨很少；規格要 40 筆、15 個結算日以上才判定。"] if m4 is not None else [],
-        f"資料到 {_md(st.get('asof'))}；結算日每週 2 個，筆數到了才判定。", label_n="符合的筆數"))
+         "13:00 以後的成交價已經很接近結算價，便宜貨很少；規格要 40 筆、15 個結算日以上才判定。"]
+        + ([f"紙上紀錄（每週五晚上照規則記一次、記了就不改）：最近 {rec}。"] if rec else []) if m4 is not None else [],
+        (f"紙上紀錄記到 {_md(lv.get('asof'))}；結算日每週 2 個，筆數到了才判定。" if live
+         else f"資料到 {_md(st.get('asof'))}；結算日每週 2 個，筆數到了才判定。"), label_n="符合的筆數"))
     o2 = res.get("O2") or {}
     m2 = o2.get("main")
     out.append(_card(
@@ -147,12 +156,13 @@ def cards(res: dict | None = None, st: dict | None = None) -> list[str]:
     return out
 
 
-def block(res: dict | None = None, st: dict | None = None) -> str:
+def block(res: dict | None = None, st: dict | None = None, lv: dict | None = None) -> str:
     res = _read(RES) if res is None else res
     st = _read(SET) if st is None else st
-    cs = cards(res, st)
+    lv = _read(LIVE) if lv is None else lv
+    cs = cards(res, st, lv)
     vs = [(res.get("O3") or {}).get("judge"), (st.get("o1") or {}).get("judge"),
-          (st.get("o4") or {}).get("judge"), (res.get("O2") or {}).get("judge")]
+          ((lv.get("sum") or {}).get("judge") or (st.get("o4") or {}).get("judge")), (res.get("O2") or {}).get("judge")]
     words = [_verdict(j, None)[1] for j in vs]
     n_ok, n_no = words.count("過關"), words.count("沒過")
     n_wait = len(words) - n_ok - n_no
