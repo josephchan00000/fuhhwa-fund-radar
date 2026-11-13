@@ -181,9 +181,10 @@ def test_page_block_renders_and_fits(tmp_path):
     assert "還沒準備好" in premkpage.block(None)
 
 
-def test_page_reach_chart_and_recent_table():
-    """2026-11-12（docs/lab_txo_plan.md 第 20 節）：買賣點卡拿掉，改放「今天可能走多遠」（±0.5～2 倍正常波動＋過去碰到的比例，第 13 節 Q2）
-    與「最近的成績」（估的開盤 vs 09:01 實際、當天高低）。"""
+def test_page_levels_chart_and_recent_table():
+    """2026-11-12（docs/lab_txo_plan.md 第 20 節）放「今天可能走多遠」與「最近的成績」；2026-11-13（第 22 節）使用者：
+    「今天可能走多遠應該要跟上面合併」「本來那種點了之後的示意圖很好」→ 走多遠併進「今日點位」的價位圖（開盤上下 1 倍＝虛線），
+    參考點位卡點了圖上畫出進場、停損、目標（11/5 版互動圖）。"""
     from arm.lab import premkpage
     pm = {"d": "2026-11-04", "next": "2026-11-05", "close": 42949, "hi": 43741, "lo": 41856, "est": 43000, "est_src": "夜盤收盤",
           "em": 1000, "night": {"c": 43404.0, "ref": 43203.0, "done": True}, "made": "2026-11-05 05:12",
@@ -196,9 +197,14 @@ def test_page_reach_chart_and_recent_table():
                                                     "mean": -13.4, "up": 0.43}], "chips_ok": ["retail"],
                 "q2": {"x": [0.25, 0.5, 1.0, 1.5, 2.0], "up": [0.6, 0.3, 0.1, 0.03, 0.01], "dn": [0.7, 0.4, 0.2, 0.05, 0.02]}, "n1": 1, "n2": 1}}
     h = premkpage.block(pm)
-    assert 'class="pz-c ' not in h and "進 43,084" not in h and 'id="pzd"' not in h            # 舊的買賣點卡與價位帶圖不在了（11/13 起點位在最上面「今日點位」）
-    assert "今天可能走多遠" in h and "43,500" in h and "42,500" in h and "45,000" in h and "41,000" in h   # ±0.5、±2 倍
-    assert "+0.5 倍・30%" in h and "−1 倍・20%" in h and "+2 倍・1%" in h
+    lv = h.split('id="pzl"', 1)[1].split("</section>", 1)[0]
+    assert h.count("今天可能走多遠") == 1 and "今天可能走多遠" in lv                       # 不再是另一區，併在今日點位裡
+    assert 'class="pz-svg"' in lv and "+1 倍・10%" in lv and "−1 倍・20%" in lv and "44,000" in lv and "42,000" in lv
+    assert "開盤上下 1 倍正常波動（±1,000）" in lv and "往上 10%、往下 20%" in lv and "2 倍（45,000／41,000）只有 1%／2%" in lv
+    assert "碰 30%" in lv                                                                  # 帶子中間 43,504 離預估 0.504 倍：0.3→0.1 內插
+    assert '<button type="button" class="pz-c cu" data-s="0"' in lv and 'class="pz-s" data-s="0"' in lv   # 點卡片 → 圖上畫
+    assert "進 43,084" in lv and "目標 43,500" in lv and "停損 42,906" in lv
+    assert 'id="pzdet"' in lv and 'id="pzd"' in lv and '"sc":[{"name":"回測支撐做多"' in lv and '"bands":[{"lo":43500' in lv
     assert "平常差 <b>±216</b>" in h and "散戶小台　偏空" in h and "只能當傾向" in h
     rec = h.split('id="pzrec"', 1)[1]
     assert rec.index("11/5") < rec.index("11/4")                                         # 新的在上
@@ -235,7 +241,7 @@ def test_parse_futday_keeps_single_month_rows_and_sessions():
 
 def test_levels_card_top_of_page():
     """2026-11-13 使用者：「我要一看就知道今天的壓力支撐建議點位」→ 最上面「今日點位」：壓力 1～3、開盤、支撐 1～3（各附來源與今天碰到的比例，
-    以現在的預估開盤算；預估就在某一帶裡的那一帶不列），下面四個參考點位，照實標「沒有驗證過」。"""
+    以現在的預估開盤算；預估就在某一帶裡的那一帶不列），下面四個參考點位（點了價位圖畫出來），照實標「沒有驗證過」。"""
     from arm.lab import premkpage
     q2 = {"x": [0.25, 0.5, 1.0, 1.5, 2.0], "up": [0.6, 0.3, 0.1, 0.03, 0.01], "dn": [0.7, 0.4, 0.2, 0.05, 0.02]}
     bands = [{"lo": 44000, "hi": 44100, "mid": 44050, "side": "up", "src": [["11/18 到期最大痛點", 44100], ["樞紐壓力 1", 44097], ["整數關卡", 44000]]},
@@ -255,10 +261,13 @@ def test_levels_card_top_of_page():
     lv = h.split('id="pzl"', 1)[1].split("</section>", 1)[0]
     assert "今日點位　11/13（五）" in lv and "05:23 更新" in lv
     assert lv.index("壓力 2") < lv.index("壓力 1") < lv.index("開盤") < lv.index("支撐 1") < lv.index("支撐 2")
-    assert "43,800～43,900" not in lv and "成交量密集區上緣" not in lv                    # 預估開盤就在這一帶
+    rows = lv.split('class="pzl-rows"', 1)[1].split('class="pzl-ch"', 1)[0]
+    assert "43,800～43,900" not in rows and "成交量密集區上緣" not in rows                # 預估開盤就在這一帶（列表不列，圖上照畫）
     assert "選擇權最大痛點・樞紐壓力・整數關卡" in lv and "賣權未平倉最多・昨天最低" in lv   # 來源用短名字
     assert "44,000～44,100" in lv and "<b>68%</b>" in lv                               # 帶子中間 44,050 離預估 0.2 倍：1→0.6 內插＝68%
     assert "十次有八次開在 43,387～44,313" in lv and "<b>+758</b>" in lv
-    assert "回測支撐做多" in lv and "進場<b>43,520</b>" in lv and "跌破<b>43,389</b>" in lv
-    assert "11/18 到期 43,500 買權，到進場價時約 891 點" in lv
+    assert "<b>做多</b>回測支撐" in lv and "43,520<small>進場</small>" in lv and "43,389<small>跌破</small>" in lv
+    assert "停損 43,389（−131）" in lv and "目標 44,000（+480）" in lv
+    assert "今天碰到進場價 <b>60%</b>" in lv                                            # 以現在的預估重算：43,520 離 43,850 0.33 倍往下
+    assert '"opt":{"cp":"C","k":43500,"xd":"2026-11-18","pe":890.9}' in lv                 # 選擇權一口的賺賠點了才寫（頁面 JS）
     assert "照實說" in lv and "參考點位沒有" in lv and "不是買賣建議" in lv

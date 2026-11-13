@@ -81,7 +81,7 @@ def test_page_uses_reestimate_and_shows_column():
     h = premkpage.block(pm)
     assert 'data-to="43031"' in h and "平常差 <b>±187</b>" in h and "十次有八次在 <b>±355</b> 內" in h
     assert "08:46 已用台指期開盤重估（清晨估 42,614，+417）" in h and "08:46 用台指期開盤 42,942 重估" in h
-    assert "預估 43,031" in h                                                             # 「今天可能走多遠」以重估為中心
+    assert "預估 43,031" in h                                                             # 今日點位的價位圖以重估為中心
     rec = h.split('id="pzrec"', 1)[1]
     assert "<th>08:46 重估</th>" in rec and "<td>43,031</td><td>+265</td>" in rec and "<td>—</td><td>—</td>" in rec
     assert "08:46 用台指期開盤重估的 1 天平均差 <b>265</b> 點" in rec
