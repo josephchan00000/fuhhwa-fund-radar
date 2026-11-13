@@ -212,11 +212,16 @@ def test_claude_md_is_slim_and_imports_index():
 
 
 def test_routine_prompts_targets_still_in_claude_md():
-    """七個排程 prompt 指名引用的指令與步驟（排程搬家照抄原文，改不了 prompt）。"""
+    """排程 prompt 指名引用的指令與步驟（排程搬家照抄原文，改不了 prompt）。①～⑦ 原文在 CLAUDE.md；
+    ⑧ 盤前重估觸發（2026-11-13）CLAUDE.md 放不下（字數上限），原文只在 wiki/ops/routines.md、CLAUDE.md 那一行指過去。"""
     prompts = [s for s in TEXT.split("\n") if s.startswith("> （排程自動觸發）")]
     assert len(prompts) == 7
     for n in "①②③④⑤⑥⑦":
         assert f"Routine prompt 原文{n}" in TEXT
+    rt = (ROOT / "wiki" / "ops" / "routines.md").read_text(encoding="utf-8")
+    p8 = rt.split("### Routine prompt 原文⑧", 1)[1]
+    assert "prompt＝wiki/ops/routines.md 原文⑧" in TEXT and "workflow_id=fut_preopen.yml" in p8
+    assert (ROOT / ".github" / "workflows" / "fut_preopen.yml").exists()
     for f in (".claude/skills/equity-report/SKILL.md", "scripts/eq_queue.py", "scripts/eq_facts.py", "scripts/check_eq.py"):
         assert f in "\n".join(prompts) and (ROOT / f).exists(), f"⑦ 引用的 {f} 不見了"
     need = {
