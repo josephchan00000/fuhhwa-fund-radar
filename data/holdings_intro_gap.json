@@ -1,29 +1,8 @@
 {
- "as_of": "2026-11-13 14:32",
- "count": 2,
+ "as_of": "2026-11-13 15:34",
+ "count": 0,
  "fund_count": 0,
- "etf_count": 2,
+ "etf_count": 0,
  "usqm_count": 0,
- "items": [
-  {
-   "src": "etf",
-   "name": "HEWLETT PACKARD ENTERPRISE",
-   "ticker": "HPE",
-   "count": 1,
-   "etfs": [
-    "00990A"
-   ],
-   "weight": 0.51
-  },
-  {
-   "src": "etf",
-   "name": "冠西電",
-   "ticker": "2466",
-   "count": 1,
-   "etfs": [
-    "00984A"
-   ],
-   "weight": 0.34
-  }
- ]
+ "items": []
 }

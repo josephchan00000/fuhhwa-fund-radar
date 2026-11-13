@@ -4113,6 +4113,18 @@
    "ticker": "DBS",
    "country": "新加坡",
    "verified": true
+  },
+  "HEWLETT PACKARD ENTERPRISE": {
+   "intro": "美國慧與科技（Hewlett Packard Enterprise），企業 IT 基礎設施商；產品涵蓋伺服器、儲存設備、網通（Aruba，2025 年 7 月併入 Juniper Networks）與 GreenLake 混合雲服務。",
+   "ticker": "HPE",
+   "country": "美國",
+   "verified": true
+  },
+  "冠西電": {
+   "intro": "冠西電子企業，台灣電子零組件廠；產品含光耦合器、光電繼電器、磁簧繼電器與固態繼電器，宜蘭新廠導入 800G 高速光收發模組產線，切入 AI 光通訊。",
+   "ticker": "2466",
+   "country": "台灣",
+   "verified": true
   }
  }
 }
