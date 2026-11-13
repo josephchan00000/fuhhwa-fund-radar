@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/11/13 11:26",
+  "as_of": "2026/11/13 14:30",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -180,18 +180,18 @@
       ],
       "items": [
         {
-          "title": "傳產轉身AI是主角 00418A三口袋布局一檔買進",
-          "url": "https://tw.news.yahoo.com/%E5%82%B3%E7%94%A2%E8%BD%89%E8%BA%ABai%E6%98%AF%E4%B8%BB%E8%A7%92-00418a%E4%B8%89%E5%8F%A3%E8%A2%8B%E5%B8%83%E5%B1%80-%E6%AA%94%E8%B2%B7%E9%80%B2-022851060.html",
-          "source": "Yahoo新聞",
-          "date": "2026-11-13 10:28",
-          "datetime": "2026-11-13T10:28:51+08:00"
-        },
-        {
           "title": "239萬變1萬！00418A讓小資族也能一次買進AI權值＋成長新星",
           "url": "https://www.watchmedia01.com/archives/569123",
           "source": "觀傳媒",
           "date": "2026-11-13 10:30",
           "datetime": "2026-11-13T10:30:00+08:00"
+        },
+        {
+          "title": "傳產轉身AI是主角 00418A三口袋布局一檔買進",
+          "url": "https://tw.news.yahoo.com/%E5%82%B3%E7%94%A2%E8%BD%89%E8%BA%ABai%E6%98%AF%E4%B8%BB%E8%A7%92-00418a%E4%B8%89%E5%8F%A3%E8%A2%8B%E5%B8%83%E5%B1%80-%E6%AA%94%E8%B2%B7%E9%80%B2-022851060.html",
+          "source": "蕃新聞",
+          "date": "2026-11-13 10:28",
+          "datetime": "2026-11-13T10:28:51+08:00"
         },
         {
           "title": "選股池擴大到前300大 00418A挖出轉身AI的傳產新星",
@@ -582,7 +582,7 @@
       "channel": "三立財經iNEWS",
       "url": "https://www.youtube.com/watch?v=nkz_1DrxKEY",
       "date": "2026-11-08",
-      "views": 67698
+      "views": 67642
     },
     {
       "platform": "youtube",
@@ -590,7 +590,7 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/shorts/RLe1-wrqSk8",
       "date": "2026-11-11",
-      "views": 10099,
+      "views": 10119,
       "short": true
     },
     {
@@ -599,7 +599,7 @@
       "channel": "老王財經",
       "url": "https://www.youtube.com/watch?v=Pq5qai3KU1I",
       "date": "2026-11-11",
-      "views": 2102
+      "views": 2198
     },
     {
       "platform": "youtube",
@@ -607,7 +607,7 @@
       "channel": "郭哲榮分析師-摩爾證券投顧",
       "url": "https://www.youtube.com/shorts/uGj7xkW72_0",
       "date": "2026-11-09",
-      "views": 287605,
+      "views": 287776,
       "peer": true,
       "short": true,
       "cat": "基金"
@@ -618,7 +618,7 @@
       "channel": "郭哲榮分析師-摩爾證券投顧",
       "url": "https://www.youtube.com/watch?v=e1UHtH6bExo",
       "date": "2026-11-09",
-      "views": 260266,
+      "views": 260315,
       "peer": true,
       "cat": "基金"
     },
@@ -628,17 +628,17 @@
       "channel": "關鍵時刻",
       "url": "https://www.youtube.com/watch?v=MDE_q4M7KZA",
       "date": "2026-11-11",
-      "views": 250076,
+      "views": 253194,
       "peer": true,
       "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
-      "title": "台股周一跟糖漿加碼台積電？專家示警外資狂賣1.5兆「小心先拉後殺」反被套【理財密碼】",
-      "channel": "57東森財經新聞",
-      "url": "https://www.youtube.com/watch?v=ptRAwLkXGGk",
-      "date": "2026-11-08",
-      "views": 225038,
+      "title": "【股票】台股反彈該加碼還是趁機逃？鄭廳宜：出現「4大訊號」才是真止跌！ft. 鄭廳宜｜下班經濟學802｜謝哲青、張瓊方",
+      "channel": "風傳媒 The Storm Media",
+      "url": "https://www.youtube.com/watch?v=mmZyT3Hsm_w",
+      "date": "2026-11-09",
+      "views": 196506,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -648,7 +648,7 @@
       "channel": "瘋狂股市福利社Free Free Free!",
       "url": "https://www.youtube.com/watch?v=3sObqPvDIbw",
       "date": "2026-11-09",
-      "views": 150321,
+      "views": 150331,
       "peer": true,
       "cat": "市值型"
     },
@@ -658,7 +658,7 @@
       "channel": "玩股網楚狂人",
       "url": "https://www.youtube.com/watch?v=5gAT6rtu8vk",
       "date": "2026-11-09",
-      "views": 140741,
+      "views": 141527,
       "peer": true,
       "cat": "高股息"
     },
@@ -668,7 +668,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=wODConxXAIo",
       "date": "2026-11-09",
-      "views": 139845,
+      "views": 140947,
       "peer": true,
       "cat": "綜合"
     },
@@ -678,7 +678,7 @@
       "channel": "大樹下學投資",
       "url": "https://www.youtube.com/shorts/QhVboUp-Vi8",
       "date": "2026-11-10",
-      "views": 121883,
+      "views": 136265,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -689,7 +689,7 @@
       "channel": "瘋狂股市福利社Free Free Free!",
       "url": "https://www.youtube.com/watch?v=_L9nU41OoaI",
       "date": "2026-11-11",
-      "views": 113599,
+      "views": 113692,
       "peer": true,
       "cat": "高股息"
     },
@@ -699,7 +699,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=7vmsqrpseis",
       "date": "2026-11-11",
-      "views": 87211,
+      "views": 91217,
       "peer": true,
       "cat": "市值型"
     }
@@ -708,6 +708,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00998A、00418A、（詳下方新聞標籤）",
     "品牌焦點：商周-00418A是什麼？成分股、配息、優缺點，和0050、00981A差在哪？ - 商業周刊（商業周刊）",
     "社群聲量最高：科技股本益比只剩17倍，比大盤還便宜，難怪強友瘋狂抄底（0 推）",
-    "YouTube 熱片：【國安基金進場 台股假反彈?】2026/11/9 哲哲只有60秒 #shorts（郭哲榮分析師-摩爾證券投顧・287,605 次觀看）"
+    "YouTube 熱片：【國安基金進場 台股假反彈?】2026/11/9 哲哲只有60秒 #shorts（郭哲榮分析師-摩爾證券投顧・287,776 次觀看）"
   ]
 }
