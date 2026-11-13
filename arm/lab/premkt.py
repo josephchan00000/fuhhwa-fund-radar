@@ -517,7 +517,10 @@ def build(asof: str | None = None) -> dict | None:
     }
     validated(out, _read(RESEARCH), heat)
     out["push"] = push_line(out)
-    attach_e850(out["check"], _read(ROOT / "data" / "lab" / "fut" / "e850.json", {}) or {})
+    from . import pm850
+    log850 = _read(pm850.LOG, {}) or {}
+    attach_e850(out["check"], log850)
+    pm850.restore(out, log850, _read(pm850.RES))       # 白天其他排程重算這一份時，08:46 的重估不能被洗掉（2026-11-13 踩到）
     return out
 
 

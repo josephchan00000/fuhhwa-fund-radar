@@ -103,3 +103,15 @@ def test_research_judge_logic(monkeypatch):
     for r in rs:
         r["e2"] = r["e1"]
     assert pmest.run(".", log=lambda *a: None)["judge"]["verdict"] == "沒過"
+
+
+def test_restore_keeps_reestimate_when_premkt_is_rebuilt():
+    """2026-11-13 踩到：08:46 重估之後，09 點多 daily.yml 重算盤前作戰圖、整份重寫，e850 不見、頁面變回清晨的估。
+    premkt.build 重算時從紀錄檔 e850.json 掛回去。"""
+    e = E.estimate(PM, Q, RES, "084610", "2026-11-11")
+    log = {}
+    E.apply(dict(PM), e, log)
+    pm = dict(PM)                                                                       # 重算出來的新一份：沒有 e850
+    assert E.restore(pm, log, RES) and E.cur(pm)["est"] == 43031 and pm["e850"]["p80"] == 355 and pm["e850"]["early"] == 42614
+    assert not E.restore(dict(PM, next="2026-11-12"), log, RES)                          # 別天的不掛
+    assert not E.restore(dict(PM), log, dict(RES, judge={"verdict": "沒過"}))           # 研究沒過不掛

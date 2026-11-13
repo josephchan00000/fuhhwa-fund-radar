@@ -4,6 +4,8 @@
 使用者 2026-11-12：「你選擇權的判斷都很爛欸」→ 照實檢查最近 4 天 16 張卡：碰到進場價的 12 張裡 7 張先停損（多半 0～6 分鐘）；
 那些支撐壓力價位擋住的比例跟任意價位一樣（第 13 節 Q3），停損 90～200 點、這個月一天常走 1,200 點以上。
 所以拿掉買賣點卡（docs/lab_txo_plan.md 第 20 節），版面改成：
+  ⓪ 今日點位（使用者 2026-11-13：「我要一看就知道今天的壓力支撐建議點位」）：壓力 1～3、開盤、支撐 1～3（來源＋今天碰到的比例，
+     比例以現在的預估開盤算、有驗證過）＋四個參考點位（沒有驗證過，照實標出來）
   ① 深色戰情卡：預估 09:01 指數（平常差多少、八成在多少內）＋籌碼風向（只是傾向）
   ② 今天可能走多遠：從開盤起算 ±0.5～2 倍正常波動的價位，與過去 10 年當天碰到的比例（第 13 節 Q2，這個有驗證）
   ③ 最近 10 天：估的開盤 vs 09:01 實際、當天最高最低（照實列，估得差也照列）
@@ -47,6 +49,28 @@ CSS = (
     ".pz-rng{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.pz-rng span{padding:4px 10px;border-radius:999px;font-size:13px;"
     "background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.35)}.pz-rng b{color:#fde68a;font-variant-numeric:tabular-nums}"
     ".pz-re{margin-top:8px;font-size:13px;color:#fde68a}"
+    # 今日點位（2026-11-13 使用者：「我要一看就知道今天的壓力支撐建議點位」）
+    ".pzl-hd{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:8px}"
+    ".pzl-hd h2{margin:0;font-size:19px;color:var(--zt)}.pzl-hd span{color:var(--zm);font-size:13px;white-space:nowrap}"
+    ".pzl-r{display:grid;grid-template-columns:54px minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 10px;border-radius:12px;margin:5px 0}"
+    ".pzl-k{font-size:13px;font-weight:700;border-radius:8px;text-align:center;padding:3px 0}"
+    ".pzl-p{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;min-width:0}"
+    ".pzl-p small{display:block;font-size:12px;color:var(--zm);font-weight:400;margin-top:2px}"
+    ".pzl-h{font-size:12px;color:var(--zm);text-align:right;line-height:1.25;white-space:nowrap}.pzl-h b{display:block;font-size:17px;color:var(--zt)}"
+    ".pzl-u{background:rgba(251,113,133,.08)}.pzl-u .pzl-k{background:rgba(251,113,133,.18);color:var(--zd)}.pzl-u .pzl-p{color:#fda4af}"
+    ".pzl-d{background:rgba(34,211,238,.07)}.pzl-d .pzl-k{background:rgba(34,211,238,.16);color:var(--zu)}.pzl-d .pzl-p{color:#67e8f9}"
+    ".pzl-o{background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.45)}.pzl-o .pzl-k{background:rgba(251,191,36,.25);color:var(--zg)}"
+    ".pzl-o .pzl-p{color:#fde68a;font-size:23px}"
+    ".pzl-h3{font-size:16px;margin:16px 0 4px;color:var(--zt)}.pzl-h3 small{font-weight:400;color:var(--zm);font-size:12px;margin-left:6px}"
+    ".pzl-ts{display:grid;grid-template-columns:1fr;gap:6px}"
+    ".pzl-t{border:1px solid var(--zl);border-radius:12px;padding:9px 11px;background:rgba(255,255,255,.03)}"
+    ".pzl-n{font-weight:700;font-size:14px}.pzl-n i{font-style:normal;font-size:12px;border-radius:6px;padding:1px 6px;margin-right:6px}"
+    ".pzl-L .pzl-n i{background:rgba(34,211,238,.18);color:var(--zu)}.pzl-S .pzl-n i{background:rgba(251,113,133,.18);color:var(--zd)}"
+    ".pzl-v{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:6px;font-size:12px;color:var(--zm)}"
+    ".pzl-v b{display:block;font-size:16px;color:var(--zt);font-variant-numeric:tabular-nums}"
+    ".pzl-x{font-size:12px;color:var(--zm);margin-top:5px}"
+    ".pzl-w{margin-top:12px;font-size:12px;color:#fcd34d;background:rgba(251,191,36,.08);border-radius:10px;padding:8px 10px;line-height:1.5}"
+    "@media (min-width:760px){.pzl-ts{grid-template-columns:repeat(2,minmax(0,1fr))}}"
     ".pz-kv{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:0}"
     ".pz-kv div{padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid var(--zl)}"
     ".pz-kv dt{font-size:11.5px;color:var(--zm)}.pz-kv dd{margin:0;font-size:16px;font-weight:700;font-variant-numeric:tabular-nums}"
@@ -153,6 +177,93 @@ def now(pm: dict) -> dict:
         return {"est": e["est"], "typ": e.get("typ"), "p80": e.get("p80"), "early": pm["est"], "t": e.get("t") or "08:46",
                 "src": f'{e.get("t") or "08:46"} 用台指期開盤 {_n(e["open"])} 重估'}
     return {"est": pm["est"], "typ": v.get("typ"), "p80": v.get("p80"), "early": None, "t": None, "src": pm.get("est_src") or ""}
+
+
+_SHORT = (("（換算）", ""), ("成交量 70% 區上緣", "成交量密集區上緣"), ("成交量 70% 區下緣", "成交量密集區下緣"),
+          ("台指期成交量最多", "成交量最多"), ("昨天收盤", "昨收"), ("樞紐壓力 1", "樞紐壓力"), ("樞紐壓力 2", "樞紐壓力"),
+          ("樞紐支撐 1", "樞紐支撐"), ("樞紐支撐 2", "樞紐支撐"))
+
+
+def _src_label(name: str) -> str:
+    """價位來源的短名字（頁面一眼看得懂）：「11/18 到期最大痛點」→「選擇權最大痛點」、「賣權未平倉最多（1,804 口）」→「賣權未平倉最多」。"""
+    import re
+    for a, b in _SHORT:
+        name = name.replace(a, b)
+    name = re.sub(r"^\d+/\d+ 到期", "", name)
+    name = re.sub(r"（[\d,]+ 口）$", "", name)
+    return "選擇權最大痛點" if name == "最大痛點" else name
+
+
+def levels(pm: dict) -> str:
+    """今日點位（使用者 2026-11-13）：壓力 1～3、預估開盤、支撐 1～3 由上往下，每一格寫價位、來源、今天碰到的比例；
+    下面是四個參考點位（做多、做空、追多、追空）。碰到的比例用 Q2 表、以現在的預估開盤（08:46 重估過就用重估的）算；
+    參考點位沒有驗證過，照實標出來。"""
+    from .premkt import md, touch, wd
+    e = html.escape
+    v = pm.get("v") or {}
+    q2 = v.get("q2") or {}
+    cn = now(pm)
+    est, em = cn["est"], pm.get("em") or 0
+    up, dn = [], []
+    for b in pm.get("bands") or []:
+        mid = b.get("mid")
+        if mid is None:
+            continue
+        if b["lo"] <= est <= b["hi"]:                 # 預估開盤就在這一帶裡：不算壓力也不算支撐
+            continue
+        side = "up" if b["lo"] > est else "dn"
+        t = touch(abs(mid - est) / em, side, q2) if em and q2.get("x") else None
+        (up if side == "up" else dn).append((b, t))
+    up = sorted(up, key=lambda x: x[0]["lo"])[:3]
+    dn = sorted(dn, key=lambda x: -x[0]["hi"])[:3]
+
+    def px(b):
+        return _n(b["lo"]) if round(b["lo"]) == round(b["hi"]) else f'{_n(b["lo"])}～{_n(b["hi"])}'
+
+    def src(b):
+        seen = []
+        for name, _ in b.get("src") or []:
+            lb = _src_label(name)
+            if lb not in seen:
+                seen.append(lb)
+        return "・".join(seen)
+
+    def row(cls, k, b, t):
+        return (f'<div class="pzl-r {cls}"><span class="pzl-k">{k}</span><span class="pzl-p">{px(b)}<small>{e(src(b))}</small></span>'
+                f'<span class="pzl-h">今天碰到<b>{_pct(t) if t is not None else "—"}</b></span></div>')
+    upd = (cn["t"] or "08:46") if cn["early"] is not None else (pm.get("made") or "")[11:16]
+    out = ['<section class="pz" id="pzl">',
+           f'<div class="pzl-hd"><h2>今日點位　{md(pm["next"])}（{wd(pm["next"])}）</h2><span>{e(upd)} 更新</span></div>']
+    for i, (b, t) in reversed(list(enumerate(up, 1))):
+        out.append(row("pzl-u", f"壓力 {i}", b, t))
+    lo80, hi80 = (est - cn["p80"], est + cn["p80"]) if cn["p80"] else (None, None)
+    out.append(f'<div class="pzl-r pzl-o"><span class="pzl-k">開盤</span><span class="pzl-p">{_n(est)}'
+               + (f'<small>十次有八次開在 {_n(lo80)}～{_n(hi80)}</small>' if lo80 is not None else "")
+               + f'</span><span class="pzl-h">比昨收<b>{_n(est - pm["close"], True)}</b></span></div>')
+    for i, (b, t) in enumerate(dn, 1):
+        out.append(row("pzl-d", f"支撐 {i}", b, t))
+    sc = pm.get("sc") or []
+    if sc:
+        out.append('<h3 class="pzl-h3">參考點位<small>到了這個價才做，沒到就不做</small></h3><div class="pzl-ts">')
+        word = {"long": ("多", "pzl-L", "進場"), "short": ("空", "pzl-S", "進場"), "break": ("多", "pzl-L", "站上"),
+                "breakdown": ("空", "pzl-S", "跌破")}
+        for c in sc:
+            tag, cls, lab = word.get(c.get("k"), ("", "", "進場"))
+            o = c.get("opt") or {}
+            opt = ""
+            if o.get("k") and o.get("cp"):
+                opt = (f'<div class="pzl-x">選擇權：{md(o["xd"]) + " 到期 " if o.get("xd") else ""}{_n(o["k"])} '
+                       f'{"買權" if o["cp"] == "C" else "賣權"}，到進場價時約 {_n(o.get("pe"))} 點</div>')
+            out.append(f'<div class="pzl-t {cls}"><div class="pzl-n"><i>{tag}</i>{e(c.get("name") or "")}</div>'
+                       f'<div class="pzl-v"><span>{lab}<b>{_n(c["entry"])}</b></span><span>停損<b>{_n(c["stop"])}</b></span>'
+                       f'<span>目標<b>{_n(c["target"])}</b></span></div>{opt}</div>')
+        out.append("</div>")
+    ok = v.get("lv_ok") or []
+    held = ("這些壓力支撐過去 10 年「擋住」的比例跟一般價位差不多" if not ok
+            else "過去擋得住的只有：" + "、".join(ok))
+    out.append(f'<div class="pzl-w">⚠ 照實說：{held}；11/6～11/11 碰到進場價的 12 張裡 7 張幾分鐘內就停損。'
+               '「今天碰到」的比例是驗證過的，參考點位沒有，只能當參考，不是買賣建議。</div></section>')
+    return "".join(out)
 
 
 def reach(pm: dict) -> str:
@@ -331,7 +442,7 @@ def block(pm: dict | None) -> str:
     cn = now(pm)
     em, est, close = pm.get("em"), cn["est"], pm["close"]
     nt = pm.get("night") or {}
-    out = ['<section class="pz" id="pz">',
+    out = [levels(pm), '<section class="pz" id="pz">',
            f'<div class="pz-hd"><h1 class="pz-live"><i></i>盤前戰情</h1><span class="pz-date">{md(pm["next"])}（{wd(pm["next"])}）開盤前</span>'
            f'<span class="pz-upd">{e((pm.get("made") or "")[5:].replace("-", "/"))} 更新</span></div>',
            f'<div class="pz-warn" id="pmstale" hidden data-next="{e(pm["next"])}">這份是 {md(pm["next"])} 開盤前的，已經過期；下一份收盤後會更新。</div>']
@@ -358,11 +469,10 @@ def block(pm: dict | None) -> str:
     out.append("</section>")
     out.append('<section class="pz pz2"><h2 class="pz-h">今天可能走多遠<small>從 09:01 開盤起算，過去 10 年當天碰到這條線的比例</small></h2><div class="pz-grid">')
     out.append(f'<div class="pz-chart">{reach(pm)}</div><div class="pz-note">'
-               '<p><b>這裡以前有四張買賣點卡</b>（做多、做空、追多、追空）。照實檢查過：那些支撐、壓力價位，過去 10 年擋住的比例跟任意價位差不多；'
-               '停損又只有 90～200 點，這個月一天常走 1,200 點以上（11/12 檢查：11/6～11/11 碰到進場價的 12 張裡，7 張幾分鐘內就停損）。所以先拿掉，'
-               '新的作法（依波動放寬停損、用幾倍正常波動畫價位）要先通過檢查才放回來。</p>'
-               '<p>現在只放有驗證過的：開盤大概在哪（黃色帶＝八成落在裡面）、今天大概走多遠（虛線＝開盤上下幾倍正常波動，右邊是過去碰到的比例）。'
-               '「正常波動」是從選擇權價格反推的一天大約幅度。</p></div></div>'
+               '<p>這張圖是驗證過的：開盤大概在哪（黃色帶＝八成落在裡面）、今天大概走多遠（虛線＝開盤上下幾倍正常波動，右邊是過去碰到的比例）。'
+               '「正常波動」是從選擇權價格反推的一天大約幅度。</p>'
+               '<p>最上面「今日點位」的參考點位沒有驗證過：那些壓力支撐過去 10 年擋住的比例跟任意價位差不多，停損又只有 90～200 點；'
+               '依波動放寬停損的畫法也測過 8 年、沒有過（docs/lab_premarket_plan.md 第 15 節）。只當參考。</p></div></div>'
                '<p class="pz-fine">這裡只是整理與試算，不是買賣建議。</p></section>')
     out.append(recent(pm))
     out.append(_facts(pm))
