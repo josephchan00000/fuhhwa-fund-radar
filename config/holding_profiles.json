@@ -4131,6 +4131,18 @@
    "ticker": "TEM",
    "country": "美國",
    "verified": true
+  },
+  "TG Therapeutics Inc.": {
+   "intro": "美國 TG Therapeutics，生技藥廠；主力產品為多發性硬化症藥物 Briumvi（ublituximab），屬 CD20 抗體療法，2022 年取得美國 FDA 核准。",
+   "ticker": "TGTX",
+   "country": "美國",
+   "verified": true
+  },
+  "Crocs Inc.": {
+   "intro": "美國卡駱馳（Crocs），休閒鞋品牌商；旗下有 Crocs 與 HEYDUDE 兩大品牌，以洞洞鞋、涼拖鞋與 Jibbitz 鞋飾聞名，透過批發與直營通路銷往 80 多國。",
+   "ticker": "CROX",
+   "country": "美國",
+   "verified": true
   }
  }
 }

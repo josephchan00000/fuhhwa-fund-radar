@@ -1,19 +1,8 @@
 {
- "as_of": "2026-11-15 00:07",
- "count": 2,
+ "as_of": "2026-11-15 06:48",
+ "count": 0,
  "fund_count": 0,
  "etf_count": 0,
- "usqm_count": 2,
- "items": [
-  {
-   "src": "usqm",
-   "name": "TG Therapeutics Inc.",
-   "ticker": "TGTX"
-  },
-  {
-   "src": "usqm",
-   "name": "Crocs Inc.",
-   "ticker": "CROX"
-  }
- ]
+ "usqm_count": 0,
+ "items": []
 }
