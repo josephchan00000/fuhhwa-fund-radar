@@ -34,106 +34,110 @@
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/47.pdf",
   "dist_date": "2026/10/31",
   "dist_rate": "—",
-  "as_of": "2026/09/30",
+  "as_of": "2026/10/31",
   "top_holdings": [
     {
       "sector": "資訊技術",
-      "name": "SANDISK CORP",
-      "weight": 4.56
+      "name": "MICROSOFT CORP",
+      "weight": 4.69
     },
     {
       "sector": "工業",
       "name": "BLOOM ENERGY CORP- A",
-      "weight": 4.53
+      "weight": 4.42
     },
     {
       "sector": "資訊技術",
-      "name": "MICROSOFT CORP",
+      "name": "AXT INC",
+      "weight": 3.99
+    },
+    {
+      "sector": "資訊技術",
+      "name": "SANDISK CORP",
       "weight": 3.73
     },
     {
       "sector": "資訊技術",
-      "name": "MARVELL TECHNOLOGY INC",
-      "weight": 3.51
+      "name": "LUMENTUM HOLDINGS INC",
+      "weight": 3.7
     },
     {
       "sector": "資訊技術",
       "name": "MICRON TECHNOLOGY INC",
-      "weight": 3.5
-    },
-    {
-      "sector": "資訊技術",
-      "name": "LUMENTUM HOLDINGS INC",
-      "weight": 3.46
-    },
-    {
-      "sector": "資訊技術",
-      "name": "ASTERA LABS INC",
-      "weight": 3.21
-    },
-    {
-      "sector": "資訊技術",
-      "name": "COHERENT CORP",
-      "weight": 3.18
+      "weight": 3.59
     },
     {
       "sector": "資訊技術",
       "name": "CLOUDFLARE INC - CLASS A",
-      "weight": 3.13
+      "weight": 3.39
     },
     {
       "sector": "資訊技術",
-      "name": "PALO ALTO NETWORKS INC",
-      "weight": 2.9
+      "name": "MARVELL TECHNOLOGY INC",
+      "weight": 3.22
+    },
+    {
+      "sector": "資訊技術",
+      "name": "ASE TECHNOLOGY HOLDING -ADR",
+      "weight": 3.15
+    },
+    {
+      "sector": "資訊技術",
+      "name": "PALANTIR TECHNOLOGIES INC-A",
+      "weight": 3.02
     }
   ],
   "asset_alloc": [],
   "country_alloc": [
     {
       "name": "美國",
-      "weight": 72.61
+      "weight": 72.96
     },
     {
       "name": "臺灣",
-      "weight": 12.35
+      "weight": 13.18
     },
     {
       "name": "日本",
-      "weight": 10.49
+      "weight": 9.76
     },
     {
       "name": "韓國",
-      "weight": 2.36
+      "weight": 1.78
     },
     {
       "name": "流動資產",
-      "weight": 2.19
+      "weight": 2.32
     }
   ],
   "sector_alloc": [
     {
       "name": "資訊技術",
-      "weight": 89.75
+      "weight": 86.72
     },
     {
       "name": "工業",
-      "weight": 5.81
+      "weight": 5.04
     },
     {
       "name": "通訊服務",
-      "weight": 0.21
+      "weight": 2.58
+    },
+    {
+      "name": "公共事業",
+      "weight": 0.45
     },
     {
       "name": "其他",
-      "weight": 2.03
+      "weight": 2.89
     },
     {
       "name": "流動資產",
-      "weight": 2.19
+      "weight": 2.32
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-11-14 11:15",
+  "fetched_at": "2026-11-15 06:53",
   "returns_daily": {
     "1m": -25.21401,
     "3m": -26.45408,

@@ -1,8 +1,36 @@
 {
- "as_of": "2026-11-15 06:48",
- "count": 0,
- "fund_count": 0,
+ "as_of": "2026-11-15 06:55",
+ "count": 3,
+ "fund_count": 3,
  "etf_count": 0,
  "usqm_count": 0,
- "items": []
+ "items": [
+  {
+   "src": "fund",
+   "name": "ASE TECHNOLOGY HOLDING -ADR",
+   "sector": "資訊技術",
+   "count": 1,
+   "funds": [
+    "美國新星新臺幣"
+   ]
+  },
+  {
+   "src": "fund",
+   "name": "NEWMONT CORP",
+   "sector": "原材料",
+   "count": 1,
+   "funds": [
+    "全球原物料"
+   ]
+  },
+  {
+   "src": "fund",
+   "name": "Global X銅礦ETF",
+   "sector": "ETF",
+   "count": 1,
+   "funds": [
+    "全球原物料"
+   ]
+  }
+ ]
 }

@@ -32,57 +32,57 @@
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/11.pdf",
   "dist_date": "2026/10/31",
   "dist_rate": "—",
-  "as_of": "2026/09/30",
+  "as_of": "2026/10/31",
   "top_holdings": [
-    {
-      "sector": "電子零組件",
-      "name": "欣興",
-      "weight": 6.56
-    },
     {
       "sector": "電機機械",
       "name": "大量",
-      "weight": 6.05
+      "weight": 7.62
+    },
+    {
+      "sector": "電子零組件",
+      "name": "欣興",
+      "weight": 6.16
     },
     {
       "sector": "電腦及週邊設備",
       "name": "奇鋐",
-      "weight": 5.54
+      "weight": 5.99
     },
     {
       "sector": "電子零組件",
       "name": "台光電",
-      "weight": 5.51
-    },
-    {
-      "sector": "電子零組件",
-      "name": "健策",
-      "weight": 5.06
+      "weight": 5.82
     },
     {
       "sector": "電子零組件",
       "name": "南電",
-      "weight": 4.99
-    },
-    {
-      "sector": "半導體",
-      "name": "聯發科",
-      "weight": 4.73
+      "weight": 5.43
     },
     {
       "sector": "半導體",
       "name": "台積電",
-      "weight": 4.46
+      "weight": 5.41
     },
     {
-      "sector": "半導體",
-      "name": "信驊",
-      "weight": 3.59
+      "sector": "電子零組件",
+      "name": "健策",
+      "weight": 4.37
+    },
+    {
+      "sector": "塑膠工業",
+      "name": "南亞",
+      "weight": 4.3
     },
     {
       "sector": "半導體",
       "name": "景碩",
-      "weight": 3.55
+      "weight": 3.8
+    },
+    {
+      "sector": "電子零組件",
+      "name": "禾伸堂",
+      "weight": 3.42
     }
   ],
   "asset_alloc": [],
@@ -90,47 +90,47 @@
   "sector_alloc": [
     {
       "name": "電子零組件",
-      "weight": 34.52
+      "weight": 35.79
     },
     {
       "name": "半導體",
-      "weight": 22.8
+      "weight": 17.39
     },
     {
       "name": "電機機械",
-      "weight": 8.24
-    },
-    {
-      "name": "其他電子",
-      "weight": 7.4
-    },
-    {
-      "name": "電腦及週邊設備",
-      "weight": 7.34
+      "weight": 7.62
     },
     {
       "name": "債券",
-      "weight": 5.85
+      "weight": 6.19
     },
     {
-      "name": "通信網路",
-      "weight": 4.68
+      "name": "電腦及週邊設備",
+      "weight": 5.99
+    },
+    {
+      "name": "其他電子",
+      "weight": 5.24
     },
     {
       "name": "塑膠工業",
-      "weight": 3.17
+      "weight": 4.3
+    },
+    {
+      "name": "通信網路",
+      "weight": 2.89
     },
     {
       "name": "其他",
-      "weight": 0.77
+      "weight": 1.42
     },
     {
       "name": "流動資產",
-      "weight": 5.24
+      "weight": 13.15
     }
   ],
   "group": "tw_balanced",
-  "fetched_at": "2026-11-14 11:16",
+  "fetched_at": "2026-11-15 06:55",
   "returns_daily": {
     "1m": -18.61153,
     "3m": -16.45681,

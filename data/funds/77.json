@@ -34,98 +34,102 @@
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/77.pdf",
   "dist_date": "2026/10/31",
   "dist_rate": "—",
-  "as_of": "2026/09/30",
+  "as_of": "2026/10/31",
   "top_holdings": [
     {
       "sector": "資訊技術",
       "name": "SANDISK CORP",
-      "weight": 5.35
-    },
-    {
-      "sector": "資訊技術",
-      "name": "信驊",
-      "weight": 3.77
-    },
-    {
-      "sector": "資訊技術",
-      "name": "MICRON TECHNOLOGY INC",
-      "weight": 3.76
+      "weight": 4.32
     },
     {
       "sector": "資訊技術",
       "name": "景碩",
-      "weight": 3.48
+      "weight": 4.01
+    },
+    {
+      "sector": "資訊技術",
+      "name": "MICRON TECHNOLOGY INC",
+      "weight": 3.81
+    },
+    {
+      "sector": "資訊技術",
+      "name": "MICROSOFT CORP",
+      "weight": 3.77
     },
     {
       "sector": "資訊技術",
       "name": "禾伸堂",
-      "weight": 3.48
+      "weight": 3.72
     },
     {
       "sector": "資訊技術",
-      "name": "ASTERA LABS INC",
-      "weight": 3.37
-    },
-    {
-      "sector": "資訊技術",
-      "name": "AIMECHATEC LTD",
-      "weight": 3.32
+      "name": "欣興",
+      "weight": 3.68
     },
     {
       "sector": "工業",
       "name": "BLOOM ENERGY CORP- A",
-      "weight": 3.28
+      "weight": 3.62
     },
     {
       "sector": "資訊技術",
-      "name": "LUMENTUM HOLDINGS INC",
-      "weight": 3.1
+      "name": "奇鋐",
+      "weight": 3.54
+    },
+    {
+      "sector": "資訊技術",
+      "name": "PALANTIR TECHNOLOGIES INC-A",
+      "weight": 3.35
     },
     {
       "sector": "資訊技術",
       "name": "CLOUDFLARE INC - CLASS A",
-      "weight": 3.06
+      "weight": 3.28
     }
   ],
   "asset_alloc": [],
   "country_alloc": [
     {
       "name": "美國",
-      "weight": 60.94
+      "weight": 62.96
     },
     {
       "name": "臺灣",
-      "weight": 24.24
+      "weight": 23.56
     },
     {
       "name": "日本",
-      "weight": 12.9
+      "weight": 10.4
     },
     {
       "name": "流動資產",
-      "weight": 1.92
+      "weight": 3.08
     }
   ],
   "sector_alloc": [
     {
       "name": "資訊技術",
-      "weight": 92.83
+      "weight": 88.07
     },
     {
       "name": "工業",
-      "weight": 3.28
+      "weight": 3.62
+    },
+    {
+      "name": "通訊服務",
+      "weight": 2.45
     },
     {
       "name": "其他",
-      "weight": 1.97
+      "weight": 2.78
     },
     {
       "name": "流動資產",
-      "weight": 1.92
+      "weight": 3.08
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-11-14 11:15",
+  "fetched_at": "2026-11-15 06:54",
   "returns_daily": {
     "1m": -25.96234,
     "3m": -26.49341,

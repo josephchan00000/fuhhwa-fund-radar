@@ -32,130 +32,114 @@
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/16.pdf",
   "dist_date": "2026/10/31",
   "dist_rate": "—",
-  "as_of": "2026/09/30",
+  "as_of": "2026/10/31",
   "top_holdings": [
-    {
-      "sector": "債券",
-      "name": "T 4 5/8 10/15/26 美國國庫債券",
-      "weight": 6.04
-    },
     {
       "sector": "ETF",
       "name": "iShares安碩半導體交易所交易",
-      "weight": 5.99
-    },
-    {
-      "sector": "資訊技術",
-      "name": "MICRON TECHNOLOGY INC",
-      "weight": 5.71
-    },
-    {
-      "sector": "資訊技術",
-      "name": "PALANTIR TECHNOLOGIES INC-A",
-      "weight": 5.53
-    },
-    {
-      "sector": "資訊技術",
-      "name": "SK HYNIX INC",
-      "weight": 4.9
-    },
-    {
-      "sector": "資訊技術",
-      "name": "SAMSUNG ELECTRO-MECHANICS CO",
-      "weight": 4.4
-    },
-    {
-      "sector": "資訊技術",
-      "name": "聯發科",
-      "weight": 4.05
-    },
-    {
-      "sector": "資訊技術",
-      "name": "禾伸堂",
-      "weight": 3.3
+      "weight": 5.68
     },
     {
       "sector": "債券",
       "name": "T 4 1/8 11/15/32 美國國庫債券",
-      "weight": 3.24
+      "weight": 5.57
+    },
+    {
+      "sector": "資訊技術",
+      "name": "MICRON TECHNOLOGY INC",
+      "weight": 5.43
+    },
+    {
+      "sector": "資訊技術",
+      "name": "PALANTIR TECHNOLOGIES INC-A",
+      "weight": 5.19
+    },
+    {
+      "sector": "資訊技術",
+      "name": "日月光投控",
+      "weight": 4.13
     },
     {
       "sector": "債券",
       "name": "ACGB 3 3/4 05/21/34 澳洲公債",
-      "weight": 3.18
+      "weight": 3.74
+    },
+    {
+      "sector": "資訊技術",
+      "name": "禾伸堂",
+      "weight": 2.96
+    },
+    {
+      "sector": "資訊技術",
+      "name": "MICROSOFT CORP",
+      "weight": 2.67
+    },
+    {
+      "sector": "資訊技術",
+      "name": "南電",
+      "weight": 2.53
+    },
+    {
+      "sector": "資訊技術",
+      "name": "景碩",
+      "weight": 2.45
     }
   ],
   "asset_alloc": [],
   "country_alloc": [
     {
       "name": "美國",
-      "weight": 43.94
+      "weight": 41.75
     },
     {
       "name": "臺灣",
-      "weight": 33.83
-    },
-    {
-      "name": "韓國",
-      "weight": 9.3
-    },
-    {
-      "name": "日本",
-      "weight": 4.28
+      "weight": 36.23
     },
     {
       "name": "澳大利亞",
-      "weight": 3.18
-    },
-    {
-      "name": "中國",
-      "weight": 3.04
-    },
-    {
-      "name": "義大利",
-      "weight": 0.58
+      "weight": 3.74
     },
     {
       "name": "新加坡",
-      "weight": 0.51
+      "weight": 0.6
     },
     {
       "name": "流動資產",
-      "weight": 1.35
+      "weight": 17.69
     }
   ],
   "sector_alloc": [
     {
       "name": "資訊技術",
-      "weight": 70.79
+      "weight": 55.15
     },
     {
       "name": "債券",
-      "weight": 15.88
+      "weight": 11.74
+    },
+    {
+      "name": "工業",
+      "weight": 4.45
     },
     {
       "name": "金融",
-      "weight": 2.2
-    },
-    {
-      "name": "能源",
-      "weight": 1.78
+      "weight": 1.92
     },
     {
       "name": "原材料",
-      "weight": 1.16
+      "weight": 1.51
     },
     {
       "name": "其他",
-      "weight": 6.83
+      "weight": 7.55
     },
     {
       "name": "流動資產",
-      "weight": 1.35
+      "weight": 17.69
     }
   ],
   "group": "global_balanced",
-  "fetched_at": "2026-11-14 11:16",
+  "fetched_at": "2026-11-15 06:54",
   "returns_daily": {
     "1m": -16.85879,
     "3m": -19.90561,
