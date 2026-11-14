@@ -4143,6 +4143,24 @@
    "ticker": "CROX",
    "country": "美國",
    "verified": true
+  },
+  "ASE TECHNOLOGY HOLDING -ADR": {
+   "country": "台灣",
+   "intro": "台灣日月光投控（ASE Technology）美國存託憑證（ADR，每單位代表 2 股普通股），半導體封裝測試大廠；業務涵蓋晶片封裝、測試與電子製造服務，總部位於高雄。",
+   "ticker": "ASX",
+   "verified": true
+  },
+  "NEWMONT CORP": {
+   "country": "美國",
+   "intro": "美國紐蒙特（Newmont），全球最大的黃金礦業公司；在美洲、非洲、澳洲與巴布亞紐幾內亞營運多座金礦，並與巴瑞克合資內華達金礦，另副產銅、銀、鋅。",
+   "ticker": "NEM",
+   "verified": true
+  },
+  "Global X銅礦ETF": {
+   "country": "美國",
+   "intro": "Global X 銅礦 ETF（COPX），追蹤 Solactive 全球銅礦業指數，持有加拿大、歐洲、日本等地數十家銅礦開採公司股票。",
+   "ticker": "COPX",
+   "verified": true
   }
  }
 }

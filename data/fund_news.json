@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/11/15 06:54",
+  "as_of": "2026/11/15 07:07",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -629,7 +629,7 @@
       "channel": "大樹下學投資",
       "url": "https://www.youtube.com/shorts/QhVboUp-Vi8",
       "date": "2026-11-10",
-      "views": 352802,
+      "views": 349987,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -640,7 +640,7 @@
       "channel": "關鍵時刻",
       "url": "https://www.youtube.com/watch?v=MDE_q4M7KZA",
       "date": "2026-11-11",
-      "views": 269292,
+      "views": 269348,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -660,7 +660,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=7vmsqrpseis",
       "date": "2026-11-11",
-      "views": 148750,
+      "views": 148924,
       "peer": true,
       "cat": "市值型"
     },
@@ -691,7 +691,7 @@
       "channel": "張貽程分析師-摩爾證券投顧-外資超錢線",
       "url": "https://www.youtube.com/watch?v=QnwJdajDrOw",
       "date": "2026-11-12",
-      "views": 87134,
+      "views": 87189,
       "peer": true,
       "cat": "基金"
     },
@@ -701,7 +701,7 @@
       "channel": "台灣人 李傑",
       "url": "https://www.youtube.com/shorts/hPLRW76Ivmo",
       "date": "2026-11-13",
-      "views": 86404,
+      "views": 86443,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -732,6 +732,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00418A、（詳下方新聞標籤）",
     "品牌焦點：11/13 00991A 南亞科減2300張（CMoney）",
     "社群聲量最高：支持黃爸的聯署（0 推）",
-    "YouTube 熱片：00830分割，為什麼需要投下「贊成」票？（大樹下學投資・352,802 次觀看）"
+    "YouTube 熱片：00830分割，為什麼需要投下「贊成」票？（大樹下學投資・349,987 次觀看）"
   ]
 }
