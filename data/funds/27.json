@@ -32,122 +32,126 @@
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/27.pdf",
   "dist_date": "2026/10/31",
   "dist_rate": "—",
-  "as_of": "2026/09/30",
+  "as_of": "2026/10/31",
   "top_holdings": [
     {
       "sector": "原材料",
       "name": "FREEPORT-MCMORAN INC",
-      "weight": 6.67
+      "weight": 7.87
     },
     {
-      "sector": "工業",
-      "name": "BLOOM ENERGY CORP- A",
-      "weight": 5.12
+      "sector": "資訊技術",
+      "name": "INFINEON TECHNOLOGIES AG",
+      "weight": 4.66
     },
     {
       "sector": "原材料",
       "name": "ANTOFAGASTA PLC",
-      "weight": 3.97
-    },
-    {
-      "sector": "資訊技術",
-      "name": "CORNING INC",
-      "weight": 3.94
+      "weight": 4.4
     },
     {
       "sector": "原材料",
       "name": "LUNDIN MINING CORP",
-      "weight": 3.77
-    },
-    {
-      "sector": "資訊技術",
-      "name": "TAIYO YUDEN CO LTD",
-      "weight": 3.61
-    },
-    {
-      "sector": "資訊技術",
-      "name": "MURATA MANUFACTURING CO LTD",
-      "weight": 3.08
+      "weight": 4.33
     },
     {
       "sector": "工業",
       "name": "FURUKAWA ELECTRIC CO LTD",
-      "weight": 2.9
+      "weight": 3.94
+    },
+    {
+      "sector": "工業",
+      "name": "BLOOM ENERGY CORP- A",
+      "weight": 3.91
     },
     {
       "sector": "原材料",
-      "name": "HECLA MINING CO",
-      "weight": 2.88
+      "name": "NEWMONT CORP",
+      "weight": 3.78
     },
     {
       "sector": "資訊技術",
-      "name": "南電",
-      "weight": 2.85
+      "name": "CORNING INC",
+      "weight": 3.66
+    },
+    {
+      "sector": "ETF",
+      "name": "Global X銅礦ETF",
+      "weight": 3.62
+    },
+    {
+      "sector": "資訊技術",
+      "name": "PALO ALTO NETWORKS INC",
+      "weight": 3.28
     }
   ],
   "asset_alloc": [],
   "country_alloc": [
     {
       "name": "美國",
-      "weight": 49.21
+      "weight": 54.92
     },
     {
       "name": "加拿大",
-      "weight": 13.17
-    },
-    {
-      "name": "日本",
-      "weight": 12.67
+      "weight": 12.41
     },
     {
       "name": "臺灣",
-      "weight": 10.94
+      "weight": 10.33
     },
     {
-      "name": "韓國",
-      "weight": 4.59
-    },
-    {
-      "name": "英國",
-      "weight": 3.97
+      "name": "日本",
+      "weight": 9.89
     },
     {
       "name": "德國",
-      "weight": 1.4
+      "weight": 4.66
+    },
+    {
+      "name": "英國",
+      "weight": 4.4
+    },
+    {
+      "name": "法國",
+      "weight": 1.89
     },
     {
       "name": "流動資產",
-      "weight": 4.04
+      "weight": 1.49
     }
   ],
   "sector_alloc": [
     {
       "name": "資訊技術",
-      "weight": 47.02
+      "weight": 47.77
     },
     {
       "name": "原材料",
-      "weight": 34.21
+      "weight": 35.94
     },
     {
       "name": "工業",
-      "weight": 8.8
+      "weight": 7.85
     },
     {
-      "name": "能源",
-      "weight": 4.75
+      "name": "通訊服務",
+      "weight": 2.71
+    },
+    {
+      "name": "醫療保健",
+      "weight": 0.62
     },
     {
       "name": "其他",
-      "weight": 1.18
+      "weight": 3.62
     },
     {
       "name": "流動資產",
-      "weight": 4.04
+      "weight": 1.49
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-11-14 11:16",
+  "fetched_at": "2026-11-15 06:54",
   "returns_daily": {
     "1m": -18.76348,
     "3m": -24.05914,
