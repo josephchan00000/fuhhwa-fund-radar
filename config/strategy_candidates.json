@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-11-08",
+  "as_of": "2026-11-15",
   "note": "新策略候選（docs/lab_ia_v5_plan.md 第 6、24 節；框架規格 arm/lab/candspec.py）。一條一筆，程式在 arm/lab/cands/{編號}.py；寫定之後一字不改，要改就用新的編號（prev 指到舊的）。使用者的決定記在 config/strategy_board.json 的 cand。",
   "items": [
     {
@@ -249,6 +249,113 @@
       },
       "note": "價格是還原權息後的收盤（長歷史面板 2013 起，第一期約 2014 年初）；只用收盤算高點（原論文用日內最高價）；原論文是美國全市場，這裡只有台股大型股。",
       "sha": "2f3945a52f9ddcf8294b983dc364cc6880d2b6153d719f2bd1b35f93a8af18ef"
+    },
+    {
+      "id": "c006",
+      "found": "2026-11-15",
+      "name": "低應計（大型股）",
+      "mk": "tw",
+      "engine": "tw_stock",
+      "kind": "per",
+      "how": "每季財報公布期限後，大型股依近四季稅後淨利減營業現金流量、除以平均總資產排序，買最低的兩成，抱到下一次公布期限",
+      "src": [
+        {
+          "t": "Sloan, Do Stock Prices Fully Reflect Information in Accruals and Cash Flows about Future Earnings?（The Accounting Review 1996，71(3)）",
+          "u": "https://www.jstor.org/stable/248290"
+        },
+        {
+          "t": "Quantpedia：Accrual Anomaly",
+          "u": "https://quantpedia.com/strategies/accrual-anomaly"
+        },
+        {
+          "t": "Green, Hand & Soliman, Going, Going, Gone? The Apparent Demise of the Accruals Anomaly（Management Science 2011）",
+          "u": "https://ideas.repec.org/a/inm/ormnsc/v57y2011i5p797-816.html"
+        }
+      ],
+      "why": "帳面獲利裡現金少、應計項目多的公司，之後獲利較難維持、股價報酬較低；應計少（獲利多半是真的收到現金）的較高。原論文美國 1962–1991 年買應計最低、賣最高的十分之一，第一年規模調整後報酬差約 10%；作者認為是投資人只看獲利數字、沒分辨現金與應計的持續性不同。後續研究指出美國 2000 年後這個效應明顯變小，國際市場仍有。頁面上的個股策略沒有看獲利品質這一類（c001 看毛利、c004 看總資產成長）。原論文用年報的營運資金變動算應計；這裡用現金流量表：近 q 季淨利減營業現金流量。",
+      "p": {
+        "q": 4
+      },
+      "grid": {
+        "q": [
+          2,
+          4,
+          8
+        ],
+        "pick": [
+          [
+            0.1,
+            5
+          ],
+          [
+            0.2,
+            5
+          ],
+          [
+            0.3,
+            5
+          ]
+        ]
+      },
+      "b": "L",
+      "pick": {
+        "top": 0.2,
+        "nmin": 5,
+        "asc": true
+      },
+      "note": "財報是公開資訊觀測站彙總表回補的數字（可能含之後的更正）；金融業（沒有營業毛利）不排；原論文是美國全市場，這裡只有台股大型股，大型股的效應通常比小型股弱。",
+      "sha": "5de83db231cbdfd4ebfccff7eeb66b4a802b4c34a4bf747e2e197137b75a5b38"
+    },
+    {
+      "id": "c007",
+      "found": "2026-11-15",
+      "name": "同月份季節性（大型股）",
+      "mk": "tw",
+      "engine": "tw_stock",
+      "kind": "per",
+      "how": "每個月底，大型股依過去五年同一個月份（下個月）的平均月報酬排序，買最高的兩成，抱到下一個月底",
+      "src": [
+        {
+          "t": "Heston & Sadka, Seasonality in the Cross-Section of Stock Returns（Journal of Financial Economics 2008，87(2)）",
+          "u": "https://doi.org/10.1016/j.jfineco.2007.02.003"
+        },
+        {
+          "t": "Heston & Sadka, Seasonality in the Cross Section of Stock Returns: The International Evidence（JFQA 2010）",
+          "u": "https://ideas.repec.org/a/cup/jfinqa/v45y2010i05p1133-1160_00.html"
+        }
+      ],
+      "why": "某檔股票在某個月份表現好，之後幾年的同一個月份也傾向表現好；美國 1963–2002 年資料最遠到 20 年前的同一個月都看得到，和規模、產業、財報公布、除息都無關，加拿大、日本與 12 個歐洲國家也成立。頁面上的個股策略沒有看月份的這一類（c005 看離一年高點多近、頁面的相對強勢看近期漲幅）。原論文用過去多年同一個月的報酬；這裡用過去 n 年同一個月的平均，資料 2013 起，n＝5 時第一期約 2018 年初。",
+      "p": {
+        "n": 5
+      },
+      "grid": {
+        "n": [
+          3,
+          5,
+          7
+        ],
+        "pick": [
+          [
+            0.1,
+            5
+          ],
+          [
+            0.2,
+            5
+          ],
+          [
+            0.3,
+            5
+          ]
+        ]
+      },
+      "b": "L",
+      "pick": {
+        "top": 0.2,
+        "nmin": 5
+      },
+      "note": "價格是還原權息後的收盤（長歷史面板 2013 起）；n 年裡任何一年缺同一個月的月報酬就不排；原論文是美國全市場，這裡只有台股大型股。",
+      "sha": "99b2c12f94d38ff5c98e43337aab5efa21c78f90ab4a5b054e46c8c9e1a77fa0"
     }
   ]
 }
