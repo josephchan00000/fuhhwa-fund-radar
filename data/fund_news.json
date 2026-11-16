@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/11/16 06:56",
+  "as_of": "2026/11/16 07:05",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -608,7 +608,7 @@
       "channel": "關鍵時刻",
       "url": "https://www.youtube.com/watch?v=MDE_q4M7KZA",
       "date": "2026-11-11",
-      "views": 275357,
+      "views": 275369,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -618,7 +618,7 @@
       "channel": "大樹下學投資",
       "url": "https://www.youtube.com/shorts/rZSMHTBtSEA",
       "date": "2026-11-12",
-      "views": 225292,
+      "views": 225287,
       "peer": true,
       "short": true,
       "cat": "高股息"
@@ -639,7 +639,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=7vmsqrpseis",
       "date": "2026-11-11",
-      "views": 189473,
+      "views": 189529,
       "peer": true,
       "cat": "市值型"
     },
@@ -649,7 +649,7 @@
       "channel": "瘋狂股市福利社Free Free Free!",
       "url": "https://www.youtube.com/watch?v=_L9nU41OoaI",
       "date": "2026-11-11",
-      "views": 129683,
+      "views": 129675,
       "peer": true,
       "cat": "高股息"
     },
@@ -659,7 +659,7 @@
       "channel": "凱基投信",
       "url": "https://www.youtube.com/watch?v=4cs9viBMlh4",
       "date": "2026-11-12",
-      "views": 122932,
+      "views": 122956,
       "peer": true,
       "cat": "綜合"
     },
@@ -669,7 +669,7 @@
       "channel": "玩股網楚狂人",
       "url": "https://www.youtube.com/watch?v=R8Dy8eSiezk",
       "date": "2026-11-14",
-      "views": 116711,
+      "views": 116787,
       "peer": true,
       "cat": "市值型"
     },
@@ -679,7 +679,7 @@
       "channel": "張貽程分析師-摩爾證券投顧-外資超錢線",
       "url": "https://www.youtube.com/watch?v=QnwJdajDrOw",
       "date": "2026-11-12",
-      "views": 109383,
+      "views": 109384,
       "peer": true,
       "cat": "基金"
     },
@@ -689,7 +689,7 @@
       "channel": "台灣人 李傑",
       "url": "https://www.youtube.com/shorts/hPLRW76Ivmo",
       "date": "2026-11-13",
-      "views": 92168,
+      "views": 92173,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -710,6 +710,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00418A、（詳下方新聞標籤）",
     "品牌焦點：11/13 00991A 南亞科減2300張（CMoney）",
     "社群聲量最高：AI的暫緩或重整，對相關資源投資也會有影響嗎？（0 推）",
-    "YouTube 熱片：全美團結「追殺黃仁勳」台股大利多？ 中國晶片斷炊「Anthropic獨強」台積也入股！【關鍵時刻】20261111-4 張炤和 呂國禎 黃世聰 黃世聰 姚惠珍 林廷輝（關鍵時刻・275,357 次觀看）"
+    "YouTube 熱片：全美團結「追殺黃仁勳」台股大利多？ 中國晶片斷炊「Anthropic獨強」台積也入股！【關鍵時刻】20261111-4 張炤和 呂國禎 黃世聰 黃世聰 姚惠珍 林廷輝（關鍵時刻・275,369 次觀看）"
   ]
 }

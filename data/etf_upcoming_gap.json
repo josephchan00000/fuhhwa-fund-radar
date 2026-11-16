@@ -1,18 +1,7 @@
 {
- "as_of": "2026-11-16 06:57",
- "count": 1,
- "items": [
-  {
-   "code": null,
-   "name": "統一台股千里馬主動式ETF基金",
-   "first_seen": null,
-   "kind": "offering",
-   "src": "cnyes",
-   "stage": "approved",
-   "cat": "主動式ETF",
-   "approve": "115.11.16申報生效"
-  }
- ],
+ "as_of": "2026-11-16 07:06",
+ "count": 0,
+ "items": [],
  "pipeline_n": 2,
  "pipeline": [
   {
