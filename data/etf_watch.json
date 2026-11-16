@@ -1,8 +1,8 @@
 {
   "as_of": "2026-11-16",
   "perf_asof": "2026-11-16",
-  "fetched_at": "2026/11/16 23:23",
-  "source": "規模／配息殖利率 ← etfinfo.tw（Tier B）；過去一週／一月報酬 ← Yahoo 還原收盤（總報酬口徑）／FinMind／TWSE 官方自算；當月預估配息 ← 證交所／櫃買除權除息預告表、MOPS、主流媒體新聞（1 檔金額待公告）。正式對外前以各投信官網核對",
+  "fetched_at": "2026/11/17 01:24",
+  "source": "規模／配息殖利率 ← etfinfo.tw（Tier B）；過去一週／一月報酬 ← Yahoo 還原收盤（總報酬口徑）／FinMind／TWSE 官方自算；當月預估配息 ← 證交所／櫃買除權除息預告表、MOPS、主流媒體新聞（4 檔，另 1 檔金額待公告）。正式對外前以各投信官網核對",
   "items": [
     {
       "code": "0056",
@@ -53,8 +53,8 @@
       "close_px": 32.43,
       "ret_1w": -1.04,
       "ret_1m": -8.73,
-      "last_div": 1.01,
-      "last_div_date": "2026-08-18",
+      "last_div": 1.25,
+      "last_div_date": "2026-11-17",
       "est_div": 1.25,
       "est_div_date": "2026-11-17",
       "est_pend": null,
@@ -80,6 +80,7 @@
       "ret_1m_base": "2026-10-16=35.53",
       "ret_1w_div": null,
       "ret_1m_div": null,
+      "est_src": "exch",
       "yield_is_est": true
     },
     {
@@ -209,8 +210,8 @@
       "close_px": 220.85,
       "ret_1w": -1.23,
       "ret_1m": -11.78,
-      "last_div": 4.75,
-      "last_div_date": "2026-07-16",
+      "last_div": 3.88,
+      "last_div_date": "2026-11-17",
       "est_div": 3.88,
       "est_div_date": "2026-11-17",
       "est_pend": null,
@@ -236,6 +237,7 @@
       "ret_1m_base": "2026-10-16=250.35",
       "ret_1w_div": null,
       "ret_1m_div": null,
+      "est_src": "exch",
       "yield_is_est": true
     },
     {
@@ -248,8 +250,8 @@
       "close_px": 19.47,
       "ret_1w": -2.89,
       "ret_1m": -20.79,
-      "last_div": 0.638,
-      "last_div_date": "2026-08-18",
+      "last_div": 0.688,
+      "last_div_date": "2026-11-17",
       "est_div": 0.688,
       "est_div_date": "2026-11-17",
       "est_pend": null,
@@ -275,6 +277,7 @@
       "ret_1m_base": "2026-10-16=24.58",
       "ret_1w_div": null,
       "ret_1m_div": null,
+      "est_src": "exch",
       "yield_is_est": true
     },
     {
@@ -287,8 +290,8 @@
       "close_px": 17.89,
       "ret_1w": -0.28,
       "ret_1m": -19.74,
-      "last_div": 0.64,
-      "last_div_date": "2026-08-18",
+      "last_div": 0.78,
+      "last_div_date": "2026-11-17",
       "est_div": 0.78,
       "est_div_date": "2026-11-17",
       "est_pend": null,
@@ -314,6 +317,7 @@
       "ret_1m_base": "2026-10-16=22.29",
       "ret_1w_div": null,
       "ret_1m_div": null,
+      "est_src": "exch",
       "yield_is_est": true
     },
     {
