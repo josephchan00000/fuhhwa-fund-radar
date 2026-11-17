@@ -4161,6 +4161,12 @@
    "intro": "Global X 銅礦 ETF（COPX），追蹤 Solactive 全球銅礦業指數，持有加拿大、歐洲、日本等地數十家銅礦開採公司股票。",
    "ticker": "COPX",
    "verified": true
+  },
+  "DIR DA 20+YR TRE BE 3X ETF-U": {
+   "country": "美國",
+   "intro": "Direxion 每日 20 年期以上美國公債三倍反向 ETF（TMV），以交換契約等工具追求 ICE 美國 20 年期以上公債指數單日報酬的負三倍；每日重新平衡，持有多日的報酬會偏離負三倍。",
+   "ticker": "TMV",
+   "verified": true
   }
  }
 }
