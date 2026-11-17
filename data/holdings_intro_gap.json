@@ -1,8 +1,19 @@
 {
- "as_of": "2026-11-17 06:49",
- "count": 0,
+ "as_of": "2026-11-18 05:11",
+ "count": 1,
  "fund_count": 0,
- "etf_count": 0,
+ "etf_count": 1,
  "usqm_count": 0,
- "items": []
+ "items": [
+  {
+   "src": "etf",
+   "name": "DIR DA 20+YR TRE BE 3X ETF-U",
+   "ticker": "TMV",
+   "count": 1,
+   "etfs": [
+    "00987D"
+   ],
+   "weight": 4.18
+  }
+ ]
 }
