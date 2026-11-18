@@ -4167,6 +4167,24 @@
    "intro": "Direxion 每日 20 年期以上美國公債三倍反向 ETF（TMV），以交換契約等工具追求 ICE 美國 20 年期以上公債指數單日報酬的負三倍；每日重新平衡，持有多日的報酬會偏離負三倍。",
    "ticker": "TMV",
    "verified": true
+  },
+  "UNITY SOFTWARE INC": {
+   "country": "美國",
+   "intro": "美國 Unity Software，即時 3D 遊戲引擎與開發平台商；產品用於手機、主機與 AR／VR 遊戲及互動內容製作，另有廣告變現業務，客戶也包含汽車、建築與影視產業。",
+   "ticker": "U",
+   "verified": true
+  },
+  "迅銷有限公司": {
+   "country": "日本",
+   "intro": "日本迅銷（Fast Retailing），服飾零售集團、UNIQLO（優衣庫）母公司；旗下另有 GU、Theory 等品牌，採自有品牌模式自行企劃、生產與銷售，東京證交所上市。",
+   "ticker": "9983",
+   "verified": true
+  },
+  "LINEPAY": {
+   "country": "台灣",
+   "intro": "連加網路（LINE Pay 台灣），第三方支付業者；提供 LINE Pay 行動支付與代收代付服務，全台支付據點逾 55 萬處，2024 年經證交所核准上市。",
+   "ticker": "7722",
+   "verified": true
   }
  }
 }
