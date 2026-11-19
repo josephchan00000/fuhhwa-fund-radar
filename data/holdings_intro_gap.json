@@ -1,29 +1,8 @@
 {
- "as_of": "2026-11-20 05:11",
- "count": 2,
+ "as_of": "2026-11-20 06:50",
+ "count": 0,
  "fund_count": 0,
- "etf_count": 2,
+ "etf_count": 0,
  "usqm_count": 0,
- "items": [
-  {
-   "src": "etf",
-   "name": "增你強",
-   "ticker": "3028",
-   "count": 1,
-   "etfs": [
-    "00982A"
-   ],
-   "weight": 0.2
-  },
-  {
-   "src": "etf",
-   "name": "松川精密",
-   "ticker": "7788",
-   "count": 1,
-   "etfs": [
-    "00982A"
-   ],
-   "weight": 0.06
-  }
- ]
+ "items": []
 }
