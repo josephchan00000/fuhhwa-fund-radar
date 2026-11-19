@@ -4185,6 +4185,18 @@
    "intro": "連加網路（LINE Pay 台灣），第三方支付業者；提供 LINE Pay 行動支付與代收代付服務，全台支付據點逾 55 萬處，2024 年經證交所核准上市。",
    "ticker": "7722",
    "verified": true
+  },
+  "增你強": {
+   "intro": "增你強（ZENITRON），台灣電子零組件通路商，1982 年成立；代理記憶卡、線性 IC、功率 MOSFET 等零組件，同業有世平、文曄等。",
+   "ticker": "3028",
+   "country": "台灣",
+   "verified": true
+  },
+  "松川精密": {
+   "intro": "松川精密（SONG CHUAN），台灣繼電器製造商，1974 年成立；產品含 Plug-in／PCB 繼電器與高壓直流、交流接觸器，用於儲能、AI 伺服器、電動車與工控，2025 年 10 月上市。",
+   "ticker": "7788",
+   "country": "台灣",
+   "verified": true
   }
  }
 }
