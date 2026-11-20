@@ -176,3 +176,6 @@
 
 ## [2026-11-20] 收錄 | 位階那塊第二輪：拿掉總經、之後漲跌點開看每一次、不再反灰
 - mposspec VER 4、mposfwdspec VER 2（使用者看過之後的要求，照實寫）。改了 [市場頁](lab/market-page.md)。
+
+## [2026-11-21] 收錄 | 台股廣度往前補到 2004、全站一起用；台股位階 2010 起
+- brearlyspec VER 1 先寫定；比對沒過（除權息那天沒有漲跌價差）→ VER 2 用官方除權息表、照實寫，再比對過才接。改了 [台股景氣](lab/heat-tw.md)、[市場頁](lab/market-page.md)；規劃 `docs/lab_earnings_plan.md` 第 14 節。
