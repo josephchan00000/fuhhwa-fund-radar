@@ -51,3 +51,26 @@ def test_check_passes_when_both_sides_agree():
     assert chk["ok"] and chk["T5"]["mean"] == 0 and chk["T6"]["maxabs"] == 0
     off = {d: [v[0] + 30, v[1]] + v[2:] for d, v in rows.items()}
     assert HD.splice_check(off, rows)["ok"] is False and S.CHECK_MAX == 3.0
+
+
+def test_breadth_update_splices_when_early_data_exists(monkeypatch):
+    """現在的廣度最早一天是 2013 年（比 SPLICE 早）也要接（2026-11-21 第一輪 CI 沒接上的原因）。"""
+    from arm.lab import heatfetch as F
+    from arm.lab import store
+    saved = {}
+    monkeypatch.setattr(HD, "load", lambda name: {"2013-01-31": [1] * 7, "2026-11-20": [1] * 7} if name == "breadth" else {})
+    monkeypatch.setattr(store, "dates", lambda kind: ["tw-2004"] if kind == "early" else ["2026-11-20"])
+
+    class P:
+        cal = ["2013-01-31"]
+    monkeypatch.setattr(HD, "ShardPanel", lambda: type("SP", (), {"cal": ["2026-11-20"]})())
+    import arm.lab.bt3d as bt3d
+    monkeypatch.setattr(bt3d, "Panel", lambda: P())
+    monkeypatch.setattr(HD, "extend", lambda P_, SP: None)
+    monkeypatch.setattr(HD, "breadth", lambda P_: {"cal": ["2014-01-02"], **{k: [5] for k in ("adv", "dec", "above", "n60", "hi", "lo", "n250")}})
+    monkeypatch.setattr(HD, "early_counts", lambda: {"2005-01-03": [1] * 7, "2013-12-31": [2] * 7})
+    monkeypatch.setattr(HD, "splice_check", lambda e, n: {"ok": True})
+    monkeypatch.setattr(HD, "save", lambda name, src, d: saved.setdefault(name, d))
+    monkeypatch.setattr(F, "_replace", lambda name, src, new: saved.setdefault(name, new) and len(new))
+    assert F.breadth_update() > 0
+    assert min(saved["breadth"]) == "2005-01-03" and "2014-01-02" in saved["breadth"]
