@@ -98,14 +98,18 @@ def test_update_fs_and_load_single_quarter(monkeypatch, tmp_path):
 
 
 def test_fs_todo_refetch_window(monkeypatch, tmp_path):
-    """法定期限後 14～45 天補抓一次晚報公司；抓過就不再抓。"""
+    """法定期限後第 2～7 天、第 14～45 天各補抓一次晚報公司（FS_RE；2026-11-20 加第一段）；每段抓過就不再抓。"""
     from arm.lab import store, v3data
     monkeypatch.setattr(store, "LAB", tmp_path)
     monkeypatch.setattr(v3data, "_quarters_due", lambda: [(2026, 2)])
     full = {p: {"1": {}} for p in v3data.FS_PARTS}
     store.write("fsq", "2026Q2", {**full, "at": {p: "2026-08-15" for p in v3data.FS_PARTS}})
-    assert v3data._fs_todo("2026-08-20") == []                 # 期限（8/14）後 6 天：不補抓
-    assert len(v3data._fs_todo("2026-09-01")) == 6             # 第 18 天：補抓一次
+    assert v3data._fs_todo("2026-08-15") == []                 # 期限（8/14）隔天剛抓過：不補抓
+    assert len(v3data._fs_todo("2026-08-20")) == 6             # 第 6 天：第一段補抓
+    store.write("fsq", "2026Q2", {**full, "at": {p: "2026-08-20" for p in v3data.FS_PARTS}})
+    assert v3data._fs_todo("2026-08-21") == []                 # 第一段補抓過了
+    assert v3data._fs_todo("2026-08-25") == []                 # 兩段之間
+    assert len(v3data._fs_todo("2026-09-01")) == 6             # 第 18 天：第二段補抓
     store.write("fsq", "2026Q2", {**full, "at": {p: "2026-09-01" for p in v3data.FS_PARTS}})
     assert v3data._fs_todo("2026-09-10") == []                 # 補抓過了
     assert v3data._fs_todo("2026-10-10") == []                 # 過了 45 天
