@@ -4197,6 +4197,18 @@
    "ticker": "7788",
    "country": "台灣",
    "verified": true
+  },
+  "Anthropic PBC": {
+   "intro": "美國 Anthropic（公益公司 PBC），AI 模型開發商；主力為 Claude 系列大型語言模型，透過 API 與企業方案供應，2026/11/19 於那斯達克掛牌。",
+   "ticker": "ANT",
+   "country": "美國",
+   "verified": true
+  },
+  "NINTENDO CO LTD": {
+   "intro": "日本任天堂，遊戲主機與遊戲軟體開發商；主力為 Switch／Switch 2 主機與瑪利歐、寶可夢等自有 IP 遊戲，並延伸電影與主題樂園授權。",
+   "ticker": "7974",
+   "country": "日本",
+   "verified": true
   }
  }
 }
