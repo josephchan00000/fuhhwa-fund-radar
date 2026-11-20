@@ -164,3 +164,6 @@
 
 ## [2026-11-20] 收錄 | 美股市場頁最上面也加「股市位階」（四個指數）
 - 使用者「好 繼續」做第 4 段美股。mposspec VER 3 先寫定再算；廣度沒有算分項目的指數那一組不放進平均。改了 [市場頁](lab/market-page.md)；規劃 `docs/lab_earnings_plan.md` 第 11.1 節。
+
+## [2026-11-20] 收錄 | 美股財報季（選擇權頁「財報」分頁加台股｜美股切換）
+- 使用者「好 繼續」做第 4 段美股的財報季。先跑 CI 資料探針、再寫 ernusspec VER 1（算之前 commit），資料由 afterhours_refresh 每個美股收盤抓一次。新頁 [美股財報季](lab/earnings-us.md)；規劃 `docs/lab_earnings_plan.md` 第 11.2 節。

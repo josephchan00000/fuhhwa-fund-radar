@@ -126,6 +126,9 @@ jobs:
       - name: 美股三成：持股有沒有跌破 50 日線＋美股個股卡的一年日線與分析師資料（Yahoo；docs/lab_us_sleeve_plan.md 第 13.3 節、docs/lab_cfg_v2_plan.md 第 4 節，失敗不擋）
         run: TZ=Asia/Taipei timeout 300 python3 scripts/fetch_ussx_watch.py || echo "  ⚠ 美股三成檢查失敗，沿用既有落檔"
 
+      - name: 美股財報季的資料（Yahoo 每季實際與預估、公布時間、營收淨利、日線＋那斯達克財報行事曆；每個美股收盤一次；docs/lab_earnings_plan.md 第 11.2 節，失敗不擋）
+        run: TZ=Asia/Taipei timeout 360 python3 scripts/fetch_earn_us.py || echo "  ⚠ 美股財報季資料抓取失敗，沿用既有落檔"
+
       - name: 行事曆官方自動補值（上面抓好的官方序列＋有列在等才抓的勞工統計局／歐洲央行／主計總處；docs/macrocal_fill_plan.md 第二、三段，失敗不擋）
         run: TZ=Asia/Taipei timeout 300 python3 scripts/run_calfill.py || true   # 有列在等才連網抓（arm/calsrc.py）
 
