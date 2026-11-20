@@ -98,6 +98,12 @@ def main() -> None:
         print(f"[財報季] {'已更新' if earntw.write() else '無變更'} {earntw.OUT}")
     except Exception as e:                                # noqa: BLE001
         print(f"[財報季] 算不出來（選擇權頁照舊）：{type(e).__name__}: {e}")
+    # 美股財報季（data/lab/earn_us.json；資料 data/lab/earn_us_raw.json 由 afterhours_refresh 的 fetch_earn_us.py 抓；第 11.2 節）。分開算、分開失敗。
+    try:
+        from arm.lab import earnus
+        print(f"[美股財報季] {'已更新' if earnus.write() else '無變更'} {earnus.OUT}")
+    except Exception as e:                                # noqa: BLE001
+        print(f"[美股財報季] 算不出來（選擇權頁照舊）：{type(e).__name__}: {e}")
     # 選擇權計算機（x9op.html；docs/lab_txo_plan.md 第 17 節；不在頂欄，各頁右下角「選」字進）。分開建、分開失敗。
     try:
         from arm.lab import txopage

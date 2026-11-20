@@ -90,7 +90,7 @@ def test_summary_and_page():
     assert 'data-c="1111"' in h and "獲利比去年同季 +100%" in h and "近 1 個月股價" in h and 'id="ern-fs"' in h
     assert "第三季資料還沒進來（期限後補抓）" in h and 'data-f="out"' in h
     assert 'id="ern-root"' in h and 'id="ern"' not in h                                # 分頁本身是 id="ern"，裡面不能再用同一個 id
-    assert P.block({}) == '<p class="oplead">財報季的資料還沒準備好（每天建頁時更新）。</p>' and "#ern-grp" in P.JS
+    assert P.block({}) == '<p class="oplead">財報季的資料還沒準備好（每天建頁時更新）。</p>' and ".ern-grp" in P.JS
 
 
 def test_options_page_has_tab():
