@@ -37,9 +37,9 @@ def test_options_page_has_four_tabs_and_lazy_stock_frame(tmp_path):
     txopage.build(out=out, data=None, pm=None)
     h = out.read_text(encoding="utf-8")
     nav = h.split('<nav class="optab"', 1)[1].split("</nav>", 1)[0]
-    assert [x.split('"')[0] for x in nav.split('data-t="')[1:]] == ["pm", "st", "calc", "stk"]
-    assert ">盤前<" in nav and ">策略<" in nav and ">計算機<" in nav and ">個股<" in nav
-    for k in ("pm", "st", "calc", "stk"):
+    assert [x.split('"')[0] for x in nav.split('data-t="')[1:]] == ["pm", "st", "calc", "stk", "ern"]   # 2026-11-20 多「財報」
+    assert ">盤前<" in nav and ">策略<" in nav and ">計算機<" in nav and ">個股<" in nav and ">財報<" in nav
+    for k in ("pm", "st", "calc", "stk", "ern"):
         assert f'id="{k}" role="tabpanel"' in h
     assert '<iframe id="stkf" title="選股" data-src="x9.html">' in h and ' src="x9.html"' not in h  # 點到才載入
     assert "測過的選擇權策略" in h and 'id="opapp"' in h and "還沒準備好" in h

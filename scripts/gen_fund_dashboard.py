@@ -92,6 +92,12 @@ def main() -> None:
         print(f"[研究紀錄] {'已更新' if changed else '無變更'} {research_page.OUT}")
     except Exception as e:                                # noqa: BLE001
         print(f"[研究紀錄] 建頁失敗（不影響其他頁）：{type(e).__name__}: {e}")
+    # 台股財報季（data/lab/earn_tw.json；選擇權頁「財報」分頁讀它；docs/lab_earnings_plan.md 第 10 節）。分開算、分開失敗。
+    try:
+        from arm.lab import earntw
+        print(f"[財報季] {'已更新' if earntw.write() else '無變更'} {earntw.OUT}")
+    except Exception as e:                                # noqa: BLE001
+        print(f"[財報季] 算不出來（選擇權頁照舊）：{type(e).__name__}: {e}")
     # 選擇權計算機（x9op.html；docs/lab_txo_plan.md 第 17 節；不在頂欄，各頁右下角「選」字進）。分開建、分開失敗。
     try:
         from arm.lab import txopage

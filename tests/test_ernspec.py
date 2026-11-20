@@ -3,5 +3,5 @@ from arm.lab import ernspec as S
 
 
 def test_spec_locked():
-    assert S.VER == 1 and S.SPEC_DATE == "2026-11-20"
-    assert S.fingerprint() == "b47e324e0e1a"
+    assert S.VER == 2 and S.SPEC_DATE == "2026-11-20"
+    assert S.fingerprint() == "53fb66a22111"   # VER 1：b47e324e0e1a
