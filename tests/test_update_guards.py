@@ -396,3 +396,22 @@ def test_card_field_layer_line_breaks():
     assert out.count('<div class="nln">') == 2 and '<div class="nwatch">後續觀察' in out
     assert fd._lines("甲公司公告。乙公司跟進。") == "甲公司公告。乙公司跟進。"   # 無標記不動
     assert ".nwatch{" in fd._CSS and ".nln{" in fd._CSS
+
+
+def test_market_flags_futures_unsettled_day():
+    """2026-11-20：期貨最新一天是最後成交價、不是結算價 → 旗標照最新價算（昨夜大變動不漏），
+    但顯示與提示包寫明「未結算」，正文當日漲跌要寫媒體的結算價。"""
+    from datetime import date
+    import unittest.mock as _m
+    from arm import usnews
+    chips = {"series": {"brent": {"2026-11-18": 91.95, "2026-11-19": 90.05},
+                        "gold": {"2026-11-18": 3741.9, "2026-11-19": 3760.0}},
+             "open": {"brent": "2026-11-19"}}
+    f = usnews.market_flags(date(2026, 11, 20), chips=chips)
+    assert f["brent"]["open"] and f["brent"]["flag"]
+    assert "未結算" in f["brent"]["disp"] and "2026-11-18 結算 91.95" in f["brent"]["disp"]
+    assert "-2.07%" in f["brent"]["disp"]
+    assert not f["gold"].get("open") and "未結算" not in f["gold"]["disp"]
+    with _m.patch.object(usnews, "_load_chips", lambda: chips):
+        txt = usnews.market_anchor("macro", date(2026, 11, 20))
+    assert "⚠ 未結算" in txt and "結算價" in txt and "不可寫成當日漲跌幅" in txt
