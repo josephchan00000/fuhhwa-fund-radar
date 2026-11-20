@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/11/20 16:27",
+  "as_of": "2026/11/20 17:34",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [],
@@ -65,6 +65,13 @@
           "source": "UDN",
           "date": "2026-11-19 10:56",
           "datetime": "2026-11-19T10:56:56+08:00"
+        },
+        {
+          "title": "配息逐季成長 00998A從0.404元升至0.424元 領息更有底氣",
+          "url": "https://www.watchmedia01.com/archives/571011",
+          "source": "Yahoo新聞",
+          "date": "2026-11-18 09:56",
+          "datetime": "2026-11-18T09:56:50+08:00"
         }
       ]
     },
@@ -506,7 +513,7 @@
       "channel": "財富閒叔跡",
       "url": "https://www.youtube.com/watch?v=PMggAdDtQAM",
       "date": "2026-11-14",
-      "views": 476
+      "views": 481
     },
     {
       "platform": "youtube",
@@ -514,7 +521,7 @@
       "channel": "財富閒叔跡",
       "url": "https://www.youtube.com/watch?v=k29ilXv2DYc",
       "date": "2026-11-14",
-      "views": 328
+      "views": 329
     },
     {
       "platform": "youtube",
@@ -522,7 +529,7 @@
       "channel": "風傳媒 The Storm Media",
       "url": "https://www.youtube.com/watch?v=oS4Fm-2fSk0",
       "date": "2026-11-16",
-      "views": 486775,
+      "views": 487126,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -532,7 +539,7 @@
       "channel": "大華國際投顧",
       "url": "https://www.youtube.com/shorts/jop4gmyq5v0",
       "date": "2026-11-16",
-      "views": 443870,
+      "views": 472499,
       "peer": true,
       "short": true,
       "cat": "基金"
@@ -543,7 +550,7 @@
       "channel": "富邦證券",
       "url": "https://www.youtube.com/watch?v=6hvj7CioqMQ",
       "date": "2026-11-18",
-      "views": 341436,
+      "views": 346722,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -553,19 +560,9 @@
       "channel": "瘋狂股市福利社Free Free Free!",
       "url": "https://www.youtube.com/watch?v=FTfgjHoPqb4",
       "date": "2026-11-16",
-      "views": 263584,
+      "views": 263595,
       "peer": true,
       "cat": "市值型"
-    },
-    {
-      "platform": "youtube",
-      "title": "【🔷小心】台積電.聯發科.台達電.鴻海.台玻.南亞.0050ETF    明天大漲要跑!? 2026.11.16(有CC字幕)",
-      "channel": "楊育華分析師-摩爾證券投顧",
-      "url": "https://www.youtube.com/watch?v=Dw4cijt5lHI",
-      "date": "2026-11-16",
-      "views": 175256,
-      "peer": true,
-      "cat": "綜合"
     },
     {
       "platform": "youtube",
@@ -573,7 +570,7 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=s3xMtKSFbio",
       "date": "2026-11-19",
-      "views": 175135,
+      "views": 179732,
       "peer": true,
       "cat": "基金"
     },
@@ -583,7 +580,17 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=stiAUKedOyo",
       "date": "2026-11-16",
-      "views": 145383,
+      "views": 145904,
+      "peer": true,
+      "cat": "綜合"
+    },
+    {
+      "platform": "youtube",
+      "title": "傳奇投資人彼得林區：大跌時該如何投資？過這三關才不會被洗出場",
+      "channel": "經濟艙",
+      "url": "https://www.youtube.com/watch?v=GsNXJKp9YkQ",
+      "date": "2026-11-16",
+      "views": 115602,
       "peer": true,
       "cat": "綜合"
     },
@@ -593,7 +600,7 @@
       "channel": "瘋狂股市福利社Free Free Free!",
       "url": "https://www.youtube.com/watch?v=KjCDhGjWBbA",
       "date": "2026-11-18",
-      "views": 115177,
+      "views": 115320,
       "peer": true,
       "cat": "市值型"
     },
@@ -603,7 +610,7 @@
       "channel": "一綺聊股",
       "url": "https://www.youtube.com/watch?v=Lop-b8_NAD8",
       "date": "2026-11-15",
-      "views": 74493,
+      "views": 74512,
       "peer": true,
       "cat": "主動式"
     },
@@ -613,7 +620,7 @@
       "channel": "今周刊",
       "url": "https://www.youtube.com/watch?v=ul2-IF31Vlc",
       "date": "2026-11-18",
-      "views": 63740,
+      "views": 66215,
       "peer": true,
       "cat": "債券"
     }
@@ -621,6 +628,6 @@
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00998A、00409A、00418A（詳下方新聞標籤）",
     "社群聲量最高：貸款1000萬想賺穩穩價差的投資標的（0 推）",
-    "YouTube 熱片：【股票】台股逃命波結束？驚見「第二隻腳」恐怖訊號？杜金龍揭關鍵壓力：倒數這時間大變盤！ft. 杜金龍805｜下班經濟學｜謝哲青、張瓊方（風傳媒 The Storm Media・486,775 次觀看）"
+    "YouTube 熱片：【股票】台股逃命波結束？驚見「第二隻腳」恐怖訊號？杜金龍揭關鍵壓力：倒數這時間大變盤！ft. 杜金龍805｜下班經濟學｜謝哲青、張瓊方（風傳媒 The Storm Media・487,126 次觀看）"
   ]
 }
