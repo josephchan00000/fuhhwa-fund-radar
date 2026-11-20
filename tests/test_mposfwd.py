@@ -48,7 +48,10 @@ def test_fwd_table_plain_words():
     assert t.count("任一天") >= 1 and "現在" in t and "次數 3" in t and "過去在極端低位的時候，之後 3 個月平均" in t
     for w in ("看不出", "樣本", "判定", "前後兩半", "門檻", "研究", "對照", "→", "←"):
         assert w not in t
-    assert 'class="mpz-ok"' in h and 'class="mpz-dim"' in h and 'title="和任一天差不多：' in h
+    assert 'class="mpz-ok"' in h and "mpz-dim" not in h and 'title="和任一天差不多：' in h            # VER 2：不再反灰
+    assert h.count('class="mpz-epr" hidden') == 5 and '<tr class="mpz-zr mpz-cur"' in h                # 每一區點開看每一次
+    eps = R["ep"]["極端低位"]
+    assert len(eps) == 3 and eps[0]["f"] > eps[-1]["f"] and set(eps[0]) >= {"f", "t", "n", "x", "p", "21", "63", "126"}
 
 
 def _B(n=1400):

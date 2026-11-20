@@ -298,7 +298,7 @@ def research_body(doc: dict | None = None) -> str:
 
 CSS = (
     ".mpz{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:0 0 14px}"
-    ".mpz-top{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px}"
+    ".mpz-top{display:block}"
     ".mpz-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px}.mpz-h h2{margin:0;font-size:17px}.mpz-h small{color:var(--mut)}"
     ".mpz-big{font-size:34px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}.mpz-big small{font-size:14px;color:var(--mut);font-weight:400}"
     ".mpz-lv{font-weight:700;font-size:16px}.mpz-lv.lo{color:var(--t0)}.mpz-lv.hi{color:var(--t4)}.mpz-lv.mid{color:var(--ink2)}"
@@ -308,7 +308,8 @@ CSS = (
     ".mpz-sl i{position:absolute;top:-4px;width:16px;height:16px;margin-left:-8px;border-radius:50%;border:2px solid var(--mut)}"
     ".mpz-sll{display:flex;justify-content:space-between;font-size:11px;color:var(--mut)}"
     ".mpz-sub{font-size:12.5px;color:var(--ink2);margin:6px 0 0}.mpz-fix{font-size:12px;color:var(--warn);margin:4px 0 0}"
-    ".mpz-gs{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;margin-top:10px}"
+    ".mpz-gs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 10px;margin-top:10px;align-items:start}"
+    "@media (max-width:1000px){.mpz-gs{grid-template-columns:1fr 1fr}}"
     ".mpz-g{display:grid;grid-template-columns:5.5em 1fr 4.5em;align-items:center;gap:8px;background:var(--card2);border-radius:8px;padding:6px 10px;font-size:13px}"
     ".mpz-g .hb{background:var(--line)}.mpz-g em{font-style:normal;font-size:12px;color:var(--mut);text-align:right}"
     ".mpz-m{display:flex;align-items:baseline;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:13.5px}"
@@ -331,8 +332,18 @@ CSS = (
     ".mpz-ft th,.mpz-ft td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}"
     ".mpz-ft th:first-child{text-align:left;font-weight:600}.mpz-ft thead th{color:var(--mut);font-weight:500}"
     ".mpz-ft th small,.mpz-ft td small{display:block;font-size:11px;color:var(--mut);font-weight:400}"
-    ".mpz-ft td b{font-size:14px}.mpz-ft td.mpz-dim{opacity:.45}.mpz-ft td.mpz-ok b{color:var(--acc)}"
-    ".mpz-ft tr.mpz-any{background:var(--card2)}.mpz-ft tr.mpz-cur th{color:var(--acc)}"
+    ".mpz-ft td b{font-size:14px}.mpz-ft td.mpz-ok{background:var(--accbg);box-shadow:inset 3px 0 0 var(--acc)}.mpz-ft td.mpz-ok b{color:var(--acc)}"
+    ".mpz-ft tr.mpz-zr{cursor:pointer}.mpz-ft tr.mpz-zr:hover th .mpz-zn{color:var(--acc)}"
+    ".mpz-zn:after{content:' ▸';color:var(--mut);font-weight:400}.mpz-zr[aria-expanded=true] .mpz-zn:after{content:' ▾'}"
+    ".mpz-ft tr.mpz-epr>td{padding:4px 0 10px;text-align:left;white-space:normal;background:var(--card2)}"
+    ".mpz-ew{overflow-x:auto;max-height:340px;overflow-y:auto}"
+    ".mpz-et{border-collapse:collapse;width:100%;font-size:12.5px;font-variant-numeric:tabular-nums}"
+    ".mpz-et th,.mpz-et td{padding:4px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}"
+    ".mpz-et th:first-child,.mpz-et td:first-child{text-align:left}.mpz-et thead th{color:var(--mut);font-weight:500;position:sticky;top:0;background:var(--card2)}"
+    ".mpz-et td small{display:inline;margin-left:6px;color:var(--mut);font-size:11px}"
+    ".mpz-et td.mpz-up{color:var(--t4)}.mpz-et td.mpz-dn{color:var(--t0)}.mpz-none{font-size:12.5px;color:var(--mut);margin:4px 8px}"
+    ".mpz-ft tr.mpz-any{background:var(--card2)}.mpz-ft tr.mpz-cur>th,.mpz-ft tr.mpz-cur>td:not(.mpz-ok){background:var(--panel2,var(--card2))}"
+    ".mpz-ft tr.mpz-cur th .mpz-zn{color:var(--acc)}"
     ".mpz-now{font-style:normal;font-size:11px;background:var(--accbg);color:var(--acc);border-radius:6px;padding:0 5px;margin-left:6px}"
     ".mpz-lk{font-size:12.5px;margin:8px 0 0}"
     ".mpz-gd>summary{list-style:none;cursor:pointer}.mpz-gd>summary::-webkit-details-marker{display:none}"
@@ -483,8 +494,35 @@ def fwd_msg(R: dict) -> str:
     return "；".join(f"過去在{z}的時候，之後 {'、'.join(v)}" for z, v in by.items()) + "；其他各區和任一天差不多。"
 
 
+def _ymd(d: str) -> str:
+    return d.replace("-", "/")
+
+
+def _ep_rows(eps: list, hs: list) -> str:
+    """一區的每一段（規格 VER 2 第 6 點）：期間、天數、進入那天的位階與指數、從進入那天算之後的漲跌。"""
+    if not eps:
+        return '<p class="mpz-none">沒有這一區的日子</p>'
+    name = {21: "1 個月", 63: "3 個月", 126: "6 個月"}
+    trs = []
+    for r in eps:
+        per = _ymd(r["f"]) if r["f"] == r["t"] else f'{_ymd(r["f"])}～{_ymd(r["t"])}'
+        cs = "".join(f'<td class="{_pcls(r.get(str(h)))}">{"還沒到" if r.get(str(h)) is None else _pct(r.get(str(h)))}</td>' for h in hs)
+        trs.append(f'<tr><td>{per}<small>{r["n"]} 天</small></td><td>{r["x"]:g}<small>{_n0(r.get("p"))}</small></td>{cs}</tr>')
+    return ('<table class="mpz-et"><thead><tr><th>每一次（進入那天～最後一天）</th><th>進入時的位階・指數</th>'
+            + "".join(f"<th>之後 {name[h]}</th>" for h in hs) + f'</tr></thead><tbody>{"".join(trs)}</tbody></table>')
+
+
+def _pcls(x) -> str:
+    return "" if x is None else "mpz-up" if x > 0 else "mpz-dn" if x < 0 else ""
+
+
+def _n0(x) -> str:
+    return "—" if x is None else f"{x:,.0f}"
+
+
 def fwd_html(R: dict, now_zone: str, since: str) -> str:
-    """位階和之後的漲跌（規格 mposfwdspec 第 6 點）：每一區之後 1、3、6 個月；任一天寫一次；看不出差別的格子淡色、滑過寫原因。"""
+    """位階和之後的漲跌（規格 mposfwdspec VER 2 第 6 點）：每一區之後 1、3、6 個月；任一天寫一次；
+    有差別的格子標出來（其他照常、滑過寫原因）；每一區點開列出每一次。"""
     from . import mposfwdspec as F
     hs = [h for h in F.HORIZONS if h in R.get("any", {})]
     if not hs:
@@ -497,22 +535,23 @@ def fwd_html(R: dict, now_zone: str, since: str) -> str:
         t = f' title="{html.escape(tip)}"' if tip else ""
         return (f'<td class="{cls}"{t}><b>{_pct(s["avg"])}</b><small>上漲 {s["up"]:.0f}%・最差 {_pct(s["min"])}</small></td>')
     rows = ['<tr class="mpz-any"><th>任一天</th>' + "".join(cell(R["any"][h]) for h in hs) + "</tr>"]
-    good = []
+    eps = R.get("ep") or {}
     for z in F.ZONES:
         zs = R["z"].get(z) or {}
-        ep = max((zs.get(h) or {}).get("ep", 0) for h in hs)
+        n_ep = len(eps.get(z) or [])
         cells = []
         for h in hs:
             s = zs.get(h) or {}
             if s.get("ok"):
-                cells.append(cell(s, "mpz-ok"))
-                good.append((z, h, s, R["any"][h]))
+                cells.append(cell(s, "mpz-ok", "這一格過去和任一天不一樣"))
             else:
-                cells.append(cell(s, "mpz-dim", "和任一天差不多：" + (s.get("why") or "")))
+                cells.append(cell(s, "", "和任一天差不多：" + (s.get("why") or "")))
         now = '<em class="mpz-now">現在</em>' if z == now_zone else ""
-        rows.append(f'<tr class="{"mpz-cur" if now else ""}"><th>{z}{now}<small>次數 {ep}</small></th>{"".join(cells)}</tr>')
+        rows.append(f'<tr class="mpz-zr{" mpz-cur" if now else ""}" tabindex="0" role="button" aria-expanded="false">'
+                    f'<th><span class="mpz-zn">{z}</span>{now}<small>次數 {n_ep}</small></th>{"".join(cells)}</tr>'
+                    f'<tr class="mpz-epr" hidden><td colspan="{len(hs) + 1}"><div class="mpz-ew">{_ep_rows(eps.get(z) or [], hs)}</div></td></tr>')
     msg = fwd_msg(R)
-    return (f'<h3 class="mpz-ct">位階和之後的漲跌<small>{since[:4]} 起・指數漲跌、不含息</small></h3>'
+    return (f'<h3 class="mpz-ct">位階和之後的漲跌<small>{since[:4]} 起・指數漲跌、不含息・點一區看每一次</small></h3>'
             f'<p class="mpz-fs">{msg}</p><div class="mpz-tw"><table class="mpz-ft"><thead><tr><th></th>'
             + "".join(f"<th>{name[h]}</th>" for h in hs) + f'</tr></thead><tbody>{"".join(rows)}</tbody></table></div>')
 
@@ -574,7 +613,19 @@ JS = r"""
     try { localStorage.setItem('mpzMore', d.open ? '1' : '0'); } catch (err) { /* 存不了就不記 */ }
     if (d.open) endAll(d);
   }, true);
+  function zr(tr) {
+    const nx = tr.nextElementSibling;
+    if (!nx || !nx.classList.contains('mpz-epr')) return;
+    nx.hidden = !nx.hidden;
+    tr.setAttribute('aria-expanded', nx.hidden ? 'false' : 'true');
+  }
+  document.addEventListener('keydown', function (e) {
+    const tr = e.target && e.target.closest ? e.target.closest('.mpz-zr') : null;
+    if (tr && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); zr(tr); }
+  });
   document.addEventListener('click', function (e) {
+    const tr = e.target && e.target.closest ? e.target.closest('.mpz-zr') : null;
+    if (tr) { zr(tr); return; }
     const b = e.target && e.target.closest ? e.target.closest('.mpz-rg button') : null;
     if (!b) return;
     const box = b.closest('.mpz');
@@ -636,15 +687,6 @@ def block(B: dict, X: dict | None = None, log: dict | None = None, mk: str = "tw
                        f'<em>{"—" if hv is None else f"{n0(hv)} {hb}"}</em></button>')
         gs.append(f'<details class="mpz-gd"><summary><div class="mpz-g"><span>{name}</span><span class="hb"><i class="{_band_cls(b)}" style="width:{g:.0f}%"></i></span>'
                   f'<em>{n0(g)} {b}</em></div></summary><div class="mpz-gl">{"".join(its)}</div></details>')
-    ms = []
-    for k in (S.MACRO if mk == "tw" else S.MACRO_US):
-        c = (B.get("comp") or {}).get(k) or []
-        now = c[i] if i < len(c) else None
-        old = c[i - S.MACRO_CHG] if i >= S.MACRO_CHG and i < len(c) else None
-        if now is None or k not in HS.DIMS:
-            continue
-        chg = "" if old is None else f"比 20 天前 {'+' if now - old >= 0 else '−'}{abs(now - old):.0f}"
-        ms.append(f'<div class="mpz-m"><span>{e(HS.DIMS[k]["name"].replace("熱度", ""))}</span><b>{n0(now)}</b><small>{HS.band(now)}・{chg}</small></div>')
     y0 = f"{int(d[:4]) - S.CHART_YEARS}{d[4:]}"
     c0 = next((j for j, dd in enumerate(cal) if dd >= y0), 0)
     px = B.get("px") or [None] * len(cal)
@@ -663,8 +705,7 @@ def block(B: dict, X: dict | None = None, log: dict | None = None, mk: str = "tw
             f'<div class="mpz-sl"><i style="left:{(prev if prev is not None else x) * 10:.0f}%"></i><b style="left:{x * 10:.0f}%"></b></div>'
             f'<div class="mpz-sll"><span>低（{S.LOW:g} 以下）</span><span>高（{S.HIGH:g} 以上）</span></div>'
             f'<p class="mpz-sub">過去 10 年有 {below}% 的日子比現在低。空心圈＝昨天。</p>{fix}'
-            f'<div class="mpz-gs">{"".join(gs)}</div></div>'
-            f'<div><div class="mpz-h"><h2>總經</h2></div>{"".join(ms)}</div></div>'
+            f'<div class="mpz-gs">{"".join(gs)}</div></div></div>'
             f'<details class="mpz-more"><summary><b>位階和指數、之後的漲跌</b><small>{e(fwd_msg(R)) if R is not None else ""}</small></summary>'
             f'<h3 class="mpz-ct">位階和指數<span class="mpz-rg" role="group" aria-label="期間">'
             f'<button type="button" data-r="5y" class="on" aria-pressed="true">近 {S.CHART_YEARS} 年</button>'
