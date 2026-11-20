@@ -1299,7 +1299,7 @@ def main_view(V: dict, ks: list[dict]) -> str:
     全部指標的資料（#sgd）與泡沫的資料（#bubd）放在頁面層（美股頁四個指數共用一份）。"""
     stash_cards(V)
     from . import sigpage as SPG
-    return (f'<div class="hview" data-view="radar">{face_html(V)}{SPG.block_html()}'
+    return (f'<div class="hview" data-view="radar">{V.get("mposblock") or ""}{face_html(V)}{SPG.block_html()}'
             f'{V.get("bubblock") or ""}{foot_html(V)}</div>')
 
 
