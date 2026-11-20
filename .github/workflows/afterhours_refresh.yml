@@ -204,7 +204,7 @@ jobs:
           for i in 1 2 3; do
             git push && exit 0
             echo "push 被拒（第 $i 次），rebase 後重建儀表板再重試…"
-            git pull --rebase -X theirs origin main || git rebase --abort || true
+            git pull --rebase --autostash -X theirs origin main || git rebase --abort || true   # --autostash：建頁改了沒 add 的檔不再擋住同步（2026-11-20 ETF 持股三次重推都失敗）
             git checkout origin/main -- reports/macrocal 2>/dev/null || true   # 行事曆以 main 最新版為準、補值重算（不讓本班的舊底稿蓋掉剛推的新版）
             TZ=Asia/Taipei python3 scripts/run_calfill.py --no-fetch || true
             git add -f reports/macrocal/*.md 2>/dev/null || true

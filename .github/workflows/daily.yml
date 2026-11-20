@@ -298,7 +298,7 @@ jobs:
           for i in 1 2 3; do
             git push && exit 0
             echo "push 被拒（第 $i 次），rebase 後重建儀表板再重試…"
-            git pull --rebase -X theirs origin main || git rebase --abort || true
+            git pull --rebase --autostash -X theirs origin main || git rebase --abort || true   # --autostash：建頁改了沒 add 的檔不再擋住同步（2026-11-20 ETF 持股三次重推都失敗）
             TZ=Asia/Taipei python3 scripts/gen_fund_dashboard.py || true
             git add dashboard/index.html 2>/dev/null || true
             git add -f data/lab dashboard/x9.html 2>/dev/null || true   # 籌碼雷達（分片＋隱藏頁，2026-10-14）

@@ -176,3 +176,6 @@
 
 ## [2026-11-20] 收錄 | 位階那塊第二輪：拿掉總經、之後漲跌點開看每一次、不再反灰
 - mposspec VER 4、mposfwdspec VER 2（使用者看過之後的要求，照實寫）。改了 [市場頁](lab/market-page.md)。
+
+## [2026-11-20] 收錄 | 自動流程搶推 main 時重試卡住：補 add 選擇權頁＋同步加 --autostash
+- 使用者回「好」。18:58 那輪 ETF 持股抓到了卻沒進 main：和盤後刷新搶推被拒，重試段的 `git pull --rebase` 因選擇權頁 `x9op.html` 改了沒 add 而失敗。`etf_holdings.yml` 補 add 它；三支流程的重試同步加 `--autostash`（臨時 git 庫重現過，舊寫法同樣錯誤、新寫法同步並推成功）。改了 [ETF 持股資料](main/etf-holdings.md)。
