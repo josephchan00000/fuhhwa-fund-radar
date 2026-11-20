@@ -3,8 +3,8 @@ from arm.lab import pmrevspec as R
 
 
 def test_spec_locked():
-    assert R.VER == 1 and R.SPEC_DATE == "2026-11-20"
-    assert R.fingerprint() == "558e88ac2247"
+    assert R.VER == 2 and R.SPEC_DATE == "2026-11-20"
+    assert R.fingerprint() == "f2cc1137fdda"   # VER 1：558e88ac2247
 
 
 def test_switch_rule_is_conservative():

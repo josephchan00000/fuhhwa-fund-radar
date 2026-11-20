@@ -25,20 +25,24 @@ VER 1（2026-11-20，任何檢討數字算出來之前寫定；改＝VER＋1，�
    換版條件（全部要過）：R1 有 ≥ SWITCH_MIN 天；R1 包住的比例在 SWITCH_R1 之內、現行版不在 SWITCH_LIVE_OK 之內；R1 平均寬度 ≤ 現行版 × SWITCH_WIDTH。
    過了只在推播與頁面寫「可以考慮換，回『好』才換」，不自動換。
 7. 推播一行：「盤前檢討（M/D）：估 X、實際 Y，差 ±Z（N 倍正常波動，在／超出八成範圍）；主因：…。近 n 天八成範圍包住 a 天[；警示]。」
+
+VER 2（2026-11-20，**看過 VER 1 第一次回補結果之後改**，照實寫）：VER 1 的 W2 門檻 RANGE_WARN＝1.3 和第 6 點自己寫的 RANGE_NORM＝1.6
+矛盾——正常日子當天高低差本來就約是正常波動的 1.6 倍，1.3 幾乎天天警示（回補 10 天中位數 1.48 就觸發）。
+改成 RANGE_WARN＝RANGE_NORM × 1.25＝2.0（比常態大四分之一以上才警示）。其他不變。
 """
 from __future__ import annotations
 
 import hashlib
 import json
 
-VER = 1
+VER = 2
 SPEC_DATE = "2026-11-20"
 
 FREEZE = "08:45"          # 那一天這個時間之後不再改「公布的那一版」
 N = 20                    # 近幾個有紀錄的交易日
 MIN_DAYS = 10             # 警示至少要幾天
 COVER_LO, COVER_HI = 0.65, 0.95
-RANGE_WARN = 1.3
+RANGE_WARN = 2.0          # VER 2：RANGE_NORM × 1.25（VER 1 是 1.3，和 RANGE_NORM 矛盾）
 TOUCH_MIN, TOUCH_WARN = 30, 0.15
 RANGE_NORM = 1.6
 R1_CLAMP = (1.0, 2.0)
