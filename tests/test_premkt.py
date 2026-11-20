@@ -202,9 +202,10 @@ def test_page_levels_chart_and_recent_table():
     assert 'class="pz-svg"' in lv and "+1 倍・10%" in lv and "−1 倍・20%" in lv and "44,000" in lv and "42,000" in lv
     assert "開盤上下 1 倍正常波動（±1,000）" in lv and "往上 10%、往下 20%" in lv and "2 倍（45,000／41,000）只有 1%／2%" in lv
     assert "碰 30%" in lv                                                                  # 帶子中間 43,504 離預估 0.504 倍：0.3→0.1 內插
-    assert '<button type="button" class="pz-c cu" data-s="0"' in lv and 'class="pz-s" data-s="0"' in lv   # 點卡片 → 圖上畫
-    assert "進 43,084" in lv and "目標 43,500" in lv and "停損 42,906" in lv
-    assert 'id="pzdet"' in lv and 'id="pzd"' in lv and '"sc":[{"name":"回測支撐做多"' in lv and '"bands":[{"lo":43500' in lv
+    # 2026-11-20（第 17 節）：參考點位（進場、停損、目標）不再列，卡片、疊圖、明細都拿掉；價位帶點了看來源照留
+    assert "<button" not in lv and 'class="pz-s"' not in lv and "pzah" not in lv and 'id="pzdet"' not in lv and "進 43,084" not in lv
+    assert 'id="pzd"' in lv and '"sc"' not in lv and '"bands":[{"lo":43500' in lv
+    assert "進場、停損、目標不再列" in lv
     assert "平常差 <b>±216</b>" in h and "散戶小台　偏空" in h and "只能當傾向" in h
     rec = h.split('id="pzrec"', 1)[1]
     assert rec.index("11/5") < rec.index("11/4")                                         # 新的在上
@@ -266,8 +267,9 @@ def test_levels_card_top_of_page():
     assert "選擇權最大痛點・樞紐壓力・整數關卡" in lv and "賣權未平倉最多・昨天最低" in lv   # 來源用短名字
     assert "44,000～44,100" in lv and "<b>68%</b>" in lv                               # 帶子中間 44,050 離預估 0.2 倍：1→0.6 內插＝68%
     assert "十次有八次開在 43,387～44,313" in lv and "<b>+758</b>" in lv
-    assert "<b>做多</b>回測支撐" in lv and "43,520<small>進場</small>" in lv and "43,389<small>跌破</small>" in lv
-    assert "停損 43,389（−131）" in lv and "目標 44,000（+480）" in lv
-    assert "今天碰到進場價 <b>60%</b>" in lv                                            # 以現在的預估重算：43,520 離 43,850 0.33 倍往下
-    assert '"opt":{"cp":"C","k":43500,"xd":"2026-11-18","pe":890.9}' in lv                 # 選擇權一口的賺賠點了才寫（頁面 JS）
-    assert "照實說" in lv and "參考點位沒有" in lv and "不是買賣建議" in lv
+    assert "回測支撐" not in lv and "進場" not in lv.split("進場、停損、目標不再列")[0]         # 2026-11-20 起不列參考點位
+    assert "照實說" in lv and "「今天碰到」的比例是驗證過的" in lv
+    assert "開盤後的晃動" not in lv                                                   # 沒有 noise 就不寫那一句
+    pm["noise"] = {"n": 20, "med": 159, "p80": 254}
+    lv = premkpage.block(pm).split('id="pzl"', 1)[1].split("</section>", 1)[0]
+    assert "指數任一個 5 分鐘平常晃 <b>159</b> 點、十次有八次在 <b>254</b> 點以內" in lv
