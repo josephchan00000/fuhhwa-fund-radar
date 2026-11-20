@@ -2,7 +2,7 @@
 
 > 每天台北時間哪一班做什麼：Routine 負責準時、GitHub cron 只當兜底（實測系統性遲到 1~3 小時）、盤後刷新與當日完整性看門狗、07:15 備援。
 > 原始資料：CLAUDE.md「每日固定時間自動更新」段的盤後刷新、cron 遲到、時點地圖、備援四條；程式：`.github/workflows/afterhours_refresh.yml`、`scripts/check_afterhours_fresh.py`。
-> 最後更新：2026-11-13
+> 最後更新：2026-11-20
 > 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
@@ -17,14 +17,15 @@
 - 15:33 Routine → 15:40·當日三大法人、外資期貨、ETF 當日漲跌、全球溫度計上線（15:40 cron 兜底）；**＋前十大簡介缺口順手補**（主責見 [全部更新](daily-update.md) 9⑤，2026-08-12 使用者指定掛本班）。
 - 18:58 Routine → ~19:10·基金 NAV＋主動式 ETF 當日 PCF 上線（19:10 cron 兜底；etf_holdings 17:40 cron 遲到自癒）。
 - 20:47 Routine → [個股報告](../lab/equity-report.md)（網頁申請的＋接下來 2 個交易日要買的，每班最多 3 家；沒事就安靜結束；push 經 daily.yml 併檔、建頁）。
-- 22:05 cron：融資融券（~21:30 公布）、P/C 比、NAV 掃尾。23:20 夜檢（Routine 鏈的 send_later，只驗不抓）。
+- 21:47 Routine ⑨ → dispatch `afterhours_refresh.yml`，~21:55 融資融券、P/C 比上線（2026-11-20 起；11/13～11/19 22:05 cron 連五晚遲到、都靠 23:20 夜檢補觸發）。
+- 22:05 cron 兜底：融資融券（~21:30 公布）、P/C 比、NAV 掃尾。23:20 夜檢（Routine 鏈的 send_later，只驗不抓）。
 - 週頻：週一 08:05 Routine → [ETF 募集週掃](etf-weekly-scan.md)（更新 `data/etf_upcoming.json`，push 經 daily.yml 併檔上線）；週日 19:00 strategy_cands.yml 排程（試用中的候選補紀錄、補算）、
   19:47 Routine → [策略探勘週報](strategy-scouting.md)（新候選經 strategy_cands.yml 合併通道回測、併進 main、重建）。Routine 見 [排程搬家](routines.md)。
 - 週六 13:17 cron：`verify.yml` 先更新官方公布日表（`scripts/fetch_reldates.py`），再計算核對（`scripts/run_verify.py`，只讀資料、commit `data/lab/verify_status.json` 與 `data/lab/heat/reldates.json.gz`；不一致時頁面標紅、推播一行、不擋發佈；見 [籌碼雷達介面](../lab/chip-ui.md)「後台自我驗證」）。
 
 ### 三層（2026-08-03）
 
-1. **準時＝Routine**（15:33、18:58）：火進主會話打 workflow_dispatch，秒級開跑。
+1. **準時＝Routine**（15:33、18:58、21:47）：火進主會話打 workflow_dispatch，秒級開跑。
 2. **cron 三班只當自癒兜底**（15:40／19:10／22:05，遲到也會到）；重複場次由 `check_afterhours_fresh.py --guard` **零請求早退**，多班次不放大對 TWSE/etfinfo 的請求。
 3. **當日完整性看門狗**（同腳本 `--write`/`--assert`，根治「run 全綠、無 commit、沒人知道」）：交易日 16:30 後三大法人須含今日、22:45 後融資融券須含今日且 NAV 不斷更；
    缺 → `data/afterhours_alert.json` 入板（「網頁更新時間」列紅章＋瀏覽器 16:40／22:50 兩個時窗的延遲橫幅）＋ workflow 最後一步 exit 1（run ❌ → failure 信）
