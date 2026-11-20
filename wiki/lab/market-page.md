@@ -1,14 +1,15 @@
 # 市場頁
 
-> 股市位階（台股）、四塊版面、全部指標、泡沫與產業泡沫、轉址、美股點到才下載。
+> 股市位階（台股與美股四個指數）、四塊版面、全部指標、泡沫與產業泡沫、轉址、美股點到才下載。
 > 原始資料：CLAUDE.md「市場頁」段；規劃 `docs/lab_ia_v5_plan.md` 第 15.1、18.1、20、25 節；程式：`heatviz`、`heatpage_us`、`sigpage`、`bubpage`
-> 最後更新：2026-10-30
+> 最後更新：2026-11-20
 > 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 
 兩個景氣頁（台股 x9m.html、美股四個指數 x9mu.html）＝市場頁；泡沫頁、訊號總覽併進來。
 - **台股最上面多一塊「股市位階」**（2026-11-20，`arm/lab/mpos.py`、規格 `arm/lab/mposspec.py` VER 2；`heatpage.view` 的 `mposblock`，`main_view` 放在面向前面；CSS `mpz-` 開頭）：0～10 的大數字與字（極端低位…極端高位）、昨天與 20 個交易日前、四組（價格位置、部位與籌碼、情緒、廣度；項目＝規格清單和現在有算分的交集）、總經三面向（基本面、全球資金、台灣資金）與 20 天前的變化、近 5 年每天的走勢（藍帶低、紅帶高、高低點標「年/月 數字」；手機可以左右滑、打開停在最新）。正式建頁時記「公布的數字」到 `data/lab/heat/mpos_log.json`（只增不改）；重算後昨天不一樣就寫「昨天公布 X，用今天的資料重算是 Y」。只描述現在在哪裡，不寫之後會怎樣（要寫得另寫一版規格、照每年只用過去資料的方式驗過）。來源：使用者 2026-11-20 傳的照片，規劃 `docs/lab_earnings_plan.md` 第 8、9 節。
+- **美股四個指數也有「股市位階」**（2026-11-20，規格 VER 3；規劃 `docs/lab_earnings_plan.md` 第 11.1 節）：每個指數各算一個，四組用 `mposspec.GROUPS_US` 和那個指數現在有算分的項目取交集；那斯達克、那斯達克 100、費半的「廣度」沒有算分的項目 → 那一組不放進平均，頁面寫「沒有算分的項目」。總經寫基本面、資金寬裕度。公布的數字各指數一個檔 `data/lab/heat/mpos_log_{指數}.json`（`mpos.log_path`；`heatpage_us.build` 正式建頁時才記，`index_page` 把 `mpos` 交給 build 再拿掉）。美股頁自己組 CSS，要帶 `heatpage._mpos_css()`（漏了整塊沒樣式）；換指數是換 innerHTML，頁面裡的小程式不會跑，圖捲到最新寫在 `SWITCH_JS` 的 `put`。
 - 由上而下四塊（`heatviz.main_view`）：面向（`face_html`：標題列 `_face_head`＝指數收盤・資料日・離 60 日高點或一段大跌中＋落底訊號・泡沫等級〔點了捲到最下面〕・融資維持率〔只有台股，`xstratpage.mr_chip`〕；五個面向分數〔點了開面向面板〕；雷達＋今天的訊號〔`today_html`：溫度計＋清單＋「之後怎麼走？」；電腦左右、手機雷達在上〕；這週變化〔兩欄下面整條〕；收起：和指數走勢比較 `#cmpd`〔打開時重畫〕、價位 `#tad`）→ 全部指標（`sigpage.block_html`）→ 泡沫（`bubpage.block_html`）→ 頁尾一行（研究紀錄・名詞・資料日，`foot_html`）。市場切換一排 `heatpage.market_row`（台股是連結、美股四個是切換按鈕，`.ixsw`）。
 - 研究畫面留在市場頁：`#v=research／phase／terrain`（資料在 x9mh.json／x9muh-*.json），最上面一列 `research_bar`（‹ 研究紀錄｜三個畫面｜回到市場頁）；研究紀錄頁列入口。
 - 全部指標（JS `window.sgInit()` 可重跑：AbortController 拿掉上一次的事件；`SG.emb`＝固定市場、清單預設收起〔點分類、搜尋、「列出全部」才展開〕）：頁面層一份 `#sgd`（`heatpage.page_parts`→`sigpage.block_data(市場)`；美股頁四個指數＋美股產業共用，`SG.usx`；目前市場讀 `#ixc` 的 data-ix），面板 `sigpage.PANEL` 在模板外面；每一次的清單 `x9oh-{市場}.json`（`detail_name`，點開才下載；三支 workflow 各兩行 `git add -f dashboard/x9oh-*.json`）。`#sgd` 只放這一頁的市場名稱（`page_json` 的 emb 分支：mk／pxn／總經策略的 mkn 與 spec）。網址：`#i=指標`、`#s=訊號`（`hsWith` 保留 `#ix=`、`#v=`）。面板裡的 `<a data-sg="訊號">` 由 sigpage 攔下、在同一頁開指標面板。

@@ -374,12 +374,13 @@ def view(B: dict | None = None, R: dict | None = None) -> dict:
     out["sigtoday"] = sig_today(out["signow"])
     out["mrchip"] = mr_chip(out["mk"]) if T else ""   # 面向標題列的融資維持率（只有台股）
     out["bubblock"] = bub_block(out["mk"]) if T else ""   # 市場頁最下面的泡沫那一塊（bubpage.block_html）
-    out["mposblock"] = ""                              # 股市位階（只有台股；arm/lab/mpos.py、規格 mposspec；docs/lab_earnings_plan.md 第 8、9 節）
-    if T and out["mk"] == "tw" and "inc" in B:
+    out["mposblock"] = ""                              # 股市位階（台股＋美股四個指數；arm/lab/mpos.py、規格 mposspec；docs/lab_earnings_plan.md 第 8、9 節）
+    if T and "inc" in B:                                  # 台股＋美股四個指數（VER 3）
         try:
             from . import mpos
-            out["mpos"] = mpos.compute(B)
-            out["mposblock"] = mpos.block(B, out["mpos"])
+            from . import mposspec as MS
+            out["mpos"] = mpos.compute(B, MS.GROUPS if out["mk"] == "tw" else MS.GROUPS_US)
+            out["mposblock"] = mpos.block(B, out["mpos"], mk=out["mk"])
         except Exception as e:                            # noqa: BLE001 —— 算不出來：這一塊不出現，頁面照建
             print(f"[市場頁] 股市位階算不出來：{type(e).__name__}: {e}")
     out["indchip"] = ind_chip(out["mk"]) if T and out["bubblock"] else ""   # 面向標題列的「產業泡沫」
@@ -1387,7 +1388,7 @@ def build(out: Path = OUT, data_out: Path = OUT_DATA) -> bool:
     changed = _write(out, render(V))
     if out == OUT and V.get("mpos"):                      # 正式頁才記「公布的數字」（測試建到別的地方不寫）
         from . import mpos
-        mpos.record(V["mpos"], mpos.read_log())
+        mpos.record(V["mpos"], mpos.read_log(mpos.log_path("tw")), mpos.log_path("tw"))
     return HC.write(HC.build_data(B, R), data_out) or changed
 
 
