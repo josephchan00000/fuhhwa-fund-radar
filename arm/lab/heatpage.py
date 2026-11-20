@@ -379,8 +379,14 @@ def view(B: dict | None = None, R: dict | None = None) -> dict:
         try:
             from . import mpos
             from . import mposspec as MS
+            from . import mposfwd
             out["mpos"] = mpos.compute(B, MS.GROUPS if out["mk"] == "tw" else MS.GROUPS_US)
-            out["mposblock"] = mpos.block(B, out["mpos"], mk=out["mk"])
+            fw = mposfwd.compute(out["mpos"], B.get("px") or [])          # 位階和之後的漲跌（規格 mposfwdspec；docs 第 12 節）
+            mk_ = out["mk"]
+            nm_ = (MK.get("px") or "").strip() or "指數"
+            out["mposblock"] = mpos.block(B, out["mpos"], mk=mk_, R=fw, pxname=nm_)
+            out["mpos_detail"] = mpos.detail(B, out["mpos"], fw, mk_, nm_)
+            out["mpos_csv"] = mpos.csv_text(B, out["mpos"])
         except Exception as e:                            # noqa: BLE001 —— 算不出來：這一塊不出現，頁面照建
             print(f"[市場頁] 股市位階算不出來：{type(e).__name__}: {e}")
     out["indchip"] = ind_chip(out["mk"]) if T and out["bubblock"] else ""   # 面向標題列的「產業泡沫」
@@ -1363,13 +1369,18 @@ def render(V: dict) -> str:
                          .replace("{{TITLE}}", _e(MK["title"]))
                          .replace("{{MKROW}}", market_row("tw")).replace("{{DRAWER}}", VZ.DRAWER)
                          .replace("{{PANEL}}", G["panel"]).replace("{{SGD}}", G["sgd"]).replace("{{BUBD}}", G["bubd"])
-                         .replace("{{BODY}}", P["body"]).replace("{{META}}", _meta_json(V)).replace("{{JS}}", VZ.JS + _JS)
+                         .replace("{{BODY}}", P["body"]).replace("{{META}}", _meta_json(V)).replace("{{JS}}", VZ.JS + _JS + _mpos_js())
                          .replace("{{SGJS}}", G["js"] + G["bjs"]), note=valog.page_note())
 
 
 def _mpos_css() -> str:
     from . import mpos
     return mpos.CSS
+
+
+def _mpos_js() -> str:
+    from . import mpos
+    return mpos.JS
 
 
 def _write(out: Path, text: str) -> bool:
@@ -1389,6 +1400,7 @@ def build(out: Path = OUT, data_out: Path = OUT_DATA) -> bool:
     if out == OUT and V.get("mpos"):                      # 正式頁才記「公布的數字」（測試建到別的地方不寫）
         from . import mpos
         mpos.record(V["mpos"], mpos.read_log(mpos.log_path("tw")), mpos.log_path("tw"))
+        mpos.publish(V.get("mpos_detail") or {}, V.get("mpos_csv") or "")     # 研究紀錄頁的算式、每天的數字（CSV）
     return HC.write(HC.build_data(B, R), data_out) or changed
 
 

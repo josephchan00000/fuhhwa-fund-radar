@@ -46,6 +46,8 @@ GROUPS = (
      "五個市場的成績、來源發表之後與更早期間的成績、每一次的清單、現在。", ()),
     ("fut", "台指期早盤（股票期貨人生）", "全部策略表「台指期早盤」那一列的細節：規則、台指期逐筆存了幾天、最好情況（偷看版）的成績與每一筆、"
      "期貨之後有沒有往落差的方向走、每天的落差、開盤前取樣。", ()),
+    ("mpos", "股市位階", "市場頁最上面那一塊（台股與美股四個指數）：每一步怎麼算、最新一天的實際算式、每天的數字（可下載 CSV 自己重算），"
+     "和位階在各區的時候之後 1、3、6 個月的漲跌與判定。", ()),
     ("mkt", "景氣", "台股、美股景氣（市場頁）的研究畫面：資料都在市場頁，打開後最上面一列可以在三個研究畫面之間切換、回到市場頁。", (
         ("台股・證據地圖與完整數字", "x9m.html#v=research", "各項和台股的關係、Granger、邊際變化的多層回歸、五區回測、事件表現、資料來源"),
         ("台股・階段時間軸", "x9m.html#v=phase", "每個面向每一週在哪個階段（熱還在升溫、熱開始降溫、冷還在降溫、冷開始回溫）"),
@@ -133,6 +135,14 @@ def eq_body() -> str:
         return '<p class="rnote">個股報告讀不到。</p>'
 
 
+def mpos_body() -> str:
+    try:
+        from . import mpos
+        return mpos.research_body()
+    except Exception as e:                               # noqa: BLE001 —— 算式讀不到：這一段只剩說明
+        return f'<p class="rnote">股市位階的算式讀不到（{_e(type(e).__name__)}）。</p>'
+
+
 def fut_body() -> str:
     """台指期早盤（futpage.research_body）；讀不到只寫一句。"""
     try:
@@ -158,8 +168,9 @@ def render(SV: dict | None = None, BV: dict | None = None) -> str:
     from . import rarepage as RPG
     from . import eqsite
     host = {"sig": SPG.research_body(SV), "bub": BPG.research_body(BV), "eq": eq_body(), "cand": cand_body(), "rare": rare_body(),
-            "fut": fut_body()}
-    css = HCSS + appnav.CSS + SPG.research_css() + BPG.research_css() + CP.CSS + RPG.CSS + FPG.CSS + eqsite.CSS + CSS
+            "fut": fut_body(), "mpos": mpos_body()}
+    from . import mpos as MP
+    css = HCSS + appnav.CSS + MP.R_CSS + SPG.research_css() + BPG.research_css() + CP.CSS + RPG.CSS + FPG.CSS + eqsite.CSS + CSS
     js = (SPG.JS if has_sig else "") + BPG.JS + IP.JS + BPG.BW_JS + OPEN_JS
     return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("r")).replace("{{CSS}}", css)
                          .replace("{{BODY}}", body(host)).replace("{{PANEL}}", SPG.PANEL if has_sig else "")

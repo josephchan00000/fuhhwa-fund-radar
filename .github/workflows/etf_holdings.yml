@@ -107,6 +107,7 @@ jobs:
           git add -f dashboard/x9f.json 2>/dev/null || true             # 法人預估：每檔資料（docs/lab_forward_plan.md；分開 add）
           git add -f dashboard/x9m.html 2>/dev/null || true            # 景氣溫度頁（docs/lab_heat_plan.md；分開 add）
           git add -f dashboard/x9mh.json 2>/dev/null || true           # 景氣溫度頁對照圖資料（第五版；分開 add）
+          git add -f dashboard/x9mpos-*.csv 2>/dev/null || true         # 股市位階每天的數字（研究紀錄頁下載；docs/lab_earnings_plan.md 第 12 節；分開 add）
           git add -f dashboard/x9mu.html 2>/dev/null || true           # 美股景氣頁（docs/lab_heat_us_plan.md；分開 add）
           git add -f dashboard/x9b.html 2>/dev/null || true            # 泡沫頁（轉址到市場頁；docs/lab_ia_v5_plan.md；分開 add）
           git add -f dashboard/x9o.html 2>/dev/null || true            # 訊號總覽（轉址到市場頁；docs/lab_ia_v5_plan.md；分開 add）
@@ -137,6 +138,7 @@ jobs:
             git add -f dashboard/x9f.json 2>/dev/null || true             # 法人預估：每檔資料（docs/lab_forward_plan.md；分開 add）
             git add -f dashboard/x9m.html 2>/dev/null || true            # 景氣溫度頁（docs/lab_heat_plan.md；分開 add）
             git add -f dashboard/x9mh.json 2>/dev/null || true           # 景氣溫度頁對照圖資料（第五版；分開 add）
+            git add -f dashboard/x9mpos-*.csv 2>/dev/null || true         # 股市位階每天的數字（研究紀錄頁下載；docs/lab_earnings_plan.md 第 12 節；分開 add）
             git add -f dashboard/x9mu.html 2>/dev/null || true           # 美股景氣頁（docs/lab_heat_us_plan.md；分開 add）
             git add -f dashboard/x9b.html 2>/dev/null || true            # 泡沫頁（轉址到市場頁；docs/lab_ia_v5_plan.md；分開 add）
             git add -f dashboard/x9o.html 2>/dev/null || true            # 訊號總覽（轉址到市場頁；docs/lab_ia_v5_plan.md；分開 add）
