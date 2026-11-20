@@ -419,14 +419,15 @@ def update_tr_recent() -> int:
 # ── 公司財報分析（docs/lab_company_plan.md 第 3.2 節）：綜合損益＋資產負債彙總的全部科目 ─────────────
 FS_PARTS = ("is_sii", "is_otc", "bs_sii", "bs_otc", "cf_sii", "cf_otc")
 FS_MIN = 200                       # 一市場一季至少幾家才算抓到（同 EPS）
-FS_RE = (14, 45)                   # 法定期限後第 14～45 天再抓一次（補晚報的公司），只抓一次
+FS_RE = ((2, 7), (14, 45))         # 法定期限後第 2～7 天、第 14～45 天各再抓一次（補晚報的公司）；2026-11-20 加第一段：
+                                   # 期限隔天抓的表常常少一截（2026Q3 上市少 68 家，金控、國巨、致茂、貿聯都在裡面），等兩週太久
 FS_FLOW = ("rev", "cogs", "gp", "opex", "op", "nonop", "pti", "tax", "ni", "nip", "eps",
            "ocf", "icf", "ffc")      # 損益、現金流量：當年累計 → 單季要相減
 QEND = {1: "03-31", 2: "06-30", 3: "09-30", 4: "12-31"}
 
 
 def _fs_todo(today: str) -> list[tuple[int, int, str]]:
-    """要抓的 (年, 季, 部件)：法定期限已過而沒有的；期限後 14～45 天還沒補抓過的。新的季先抓。"""
+    """要抓的 (年, 季, 部件)：法定期限已過而沒有的；期限後 2～7 天、14～45 天兩段裡還沒補抓過的。新的季先抓。"""
     from datetime import date, timedelta
     from .packtest import deadline
     out = []
@@ -436,12 +437,12 @@ def _fs_todo(today: str) -> list[tuple[int, int, str]]:
         doc = store.read("fsq", f"{y}Q{q}") or {}
         at = doc.get("at") or {}
         dl = deadline(f"{y}-{QEND[q]}")
-        re_lo = (date.fromisoformat(dl) + timedelta(days=FS_RE[0])).isoformat()
-        re_hi = (date.fromisoformat(dl) + timedelta(days=FS_RE[1])).isoformat()
+        wins = [((date.fromisoformat(dl) + timedelta(days=a)).isoformat(), (date.fromisoformat(dl) + timedelta(days=b)).isoformat())
+                for a, b in FS_RE]
         for p in FS_PARTS:
             if not doc.get(p):
                 out.append((y, q, p))
-            elif re_lo <= today <= re_hi and (at.get(p) or "") < re_lo:
+            elif any(lo <= today <= hi and (at.get(p) or "") < lo for lo, hi in wins):     # 每一段各補抓一次
                 out.append((y, q, p))
     return out
 
