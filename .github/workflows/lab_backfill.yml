@@ -161,6 +161,11 @@ jobs:
           elif [ "${MODE#earnusprobe}" != "$MODE" ]; then
             # 美股財報季的資料探針（docs/lab_earnings_plan.md 第 11.2 節）：Yahoo 單季預估與實際營收、那斯達克行事曆欄位；只印不寫
             timeout 900 python3 scripts/probe_earnus.py $(echo "${MODE#earnusprobe}" | tr ":," "  ")
+          elif [ "${MODE#twearly}" != "$MODE" ]; then
+            # 台股早年官方每日行情回補（docs/lab_earnings_plan.md 第 14 節第 1 段）：證交所 2004～2012、櫃買 2008～2012；可重跑續補
+            #   twearly＝兩個市場；twearly:tw／twearly:tp＝只補一個
+            ONLY="${MODE#twearly}"; ONLY="${ONLY#:}"
+            timeout 19800 python3 scripts/backfill_twearly.py --budget 18000 ${ONLY:+--only $ONLY}
           elif [ "${MODE#twhistprobe}" != "$MODE" ]; then
             # 台股位階往前補資料的探針（docs/lab_earnings_plan.md 第 14 節）：證交所、櫃買、Yahoo、FinMind、期交所能回到哪一年；只印不寫
             timeout 900 python3 scripts/probe_twhist.py
