@@ -2,7 +2,7 @@
 
 > ETF 持股從哪抓、挑主來源與驗證、非持股列、落檔與合併、個股報價日與貢獻、期貨部位；放棄的路線與探針經過。
 > 原始資料：CLAUDE.md「ETF 詳情」底部區塊段的持股資料各條；規劃 `docs/etf_chg_fix_plan.md`；程式：`arm/etfholdings.py`、`scripts/fetch_etf_holdings.py`、`arm/connectors/issuers/pcf.py`。
-> 最後更新：2026-10-29
+> 最後更新：2026-11-20
 > 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 畫面在 [ETF 詳情卡畫面](etf-detail.md)。
@@ -93,6 +93,7 @@
 
 ## 踩過的坑
 
+- **持股抓到了卻沒進 main（2026-11-20 18:58 那輪）**：`etf_holdings.yml` 和同時觸發的 `afterhours_refresh.yml` 搶推 main，push 被拒；重試段 `git pull --rebase` 回「cannot pull with rebase: You have unstaged changes」——建頁會重寫選擇權頁 `dashboard/x9op.html`，另外兩支流程有 `git add` 它、這支沒有，檔案一直是「改了沒存」，三次重試都沒真正同步就重推，整輪失敗（19:45 補觸發才進 main）。修法兩道：這支補上 `git add -f dashboard/x9op.html`（主 commit 與重試段都補）；三支流程（ETF 持股、盤後刷新、每日更新）的重試同步改成 `git pull --rebase --autostash`，以後再漏 add 哪個檔也不會擋住同步。新增頁面要 commit 時，三支流程的 `git add` 清單要一起加。
 - **持股明細的漲跌拿錯天（2026-10-21 使用者：「ETF持股異動那邊，漲跌幅是錯的欸」；盤查與規劃 `docs/etf_chg_fix_plan.md`）**：漲跌數字本身沒算錯（報價日對上時 257 檔全與官方一致），錯在**拿錯天**。
   舊碼一律抓 openapi 全市場表「當下那份」、不看日期：①**證交所 openapi 要到隔天清晨才更新（凌晨 3:21 還是舊的、8:02 已更新），櫃買當晚就更新**——19:00、22:30、凌晨那幾班同一張表上市＝前一天、上櫃＝當天
   （10/20 晚上 00981A 欣興顯示 10/19 的 +2.75%，10/20 實際 −5.80%）；②持股快照較舊的 ETF 配到別天的漲跌、毫無標示（00987A 快照 10/15〔加權 −3.41%〕顯示 10/16 的漲跌，合計貢獻 +1.96pp vs 正確約 −6.5pp）；
