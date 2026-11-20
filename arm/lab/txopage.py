@@ -171,20 +171,22 @@ _HTML = """<!doctype html>
 <p class="oplead">輸入成交價：最多賠多少、可買幾口、指數走到哪賺賠多少。只算「買方」：最多賠的就是付出去的權利金加成本。數字每天晚上自動更新，盤中只要改成交價。這裡只是計算，不是買賣建議。</p>
 {{FACTS}}
 <div id="opapp"></div></section>
+<section class="oppane" id="ern" role="tabpanel" hidden>{{ERN}}</section>
 </main>
 <section class="oppane opstk" id="stk" role="tabpanel" hidden><iframe id="stkf" title="選股" data-src="x9.html"></iframe></section>
 <script type="application/json" id="opd">{{DATA}}</script>
 <script>{{JS}}</script>
 <script>{{TABJS}}</script>
+<script>{{ERNJS}}</script>
 </body></html>
 """
 
 
-TABS = (("pm", "盤前"), ("st", "策略"), ("calc", "計算機"), ("stk", "個股"))
+TABS = (("pm", "盤前"), ("st", "策略"), ("calc", "計算機"), ("stk", "個股"), ("ern", "財報"))
 
 # 分頁切換：網址的 # 決定開哪一格；個股＝第一次點到才載入 x9.html，框的高度＝視窗剩下的高度（框裡自己捲，選股頁的固定列、捲到個股卡都照原樣）
 TAB_JS = r"""(function(){
-var T=['pm','st','calc','stk'],tabs=document.querySelectorAll('.optab a'),f=document.getElementById('stkf');
+var T=['pm','st','calc','stk','ern'],tabs=document.querySelectorAll('.optab a'),f=document.getElementById('stkf');
 function fit(){if(!f||document.getElementById('stk').hidden)return;var top=f.getBoundingClientRect().top;f.style.height=Math.max(320,window.innerHeight-Math.max(0,top))+'px'}
 function show(k,push){if(T.indexOf(k)<0)k='pm';
  T.forEach(function(t){var p=document.getElementById(t);if(p)p.hidden=t!==k});
@@ -224,6 +226,7 @@ def _facts(d: dict | None) -> str:
 def render(data: dict | None = None, pm: dict | None = None) -> str:
     from . import appnav
     from . import premkpage
+    from . import earnpage
     from . import txostrat
     from .heatpage import _CSS as HCSS
     if data is None and DATA.exists():
@@ -231,9 +234,9 @@ def render(data: dict | None = None, pm: dict | None = None) -> str:
     if pm is None and PM.exists():
         pm = json.loads(PM.read_text(encoding="utf-8"))
     blob = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
-    page = (_HTML.replace("{{CSS}}", HCSS + appnav.CSS + CSS + premkpage.CSS + txostrat.CSS).replace("{{APPTAB}}", appnav.bar(""))
+    page = (_HTML.replace("{{CSS}}", HCSS + appnav.CSS + CSS + premkpage.CSS + txostrat.CSS + earnpage.CSS).replace("{{APPTAB}}", appnav.bar(""))
             .replace("{{TABS}}", _tabs()).replace("{{PM}}", premkpage.block(pm)).replace("{{ST}}", txostrat.block())
-            .replace("{{FACTS}}", _facts(data)).replace("{{DATA}}", blob).replace("{{JS}}", JS).replace("{{TABJS}}", TAB_JS))
+            .replace("{{FACTS}}", _facts(data)).replace("{{DATA}}", blob).replace("{{JS}}", JS).replace("{{TABJS}}", TAB_JS).replace("{{ERN}}", earnpage.block()).replace("{{ERNJS}}", earnpage.JS))
     return appnav.finish(page)
 
 
