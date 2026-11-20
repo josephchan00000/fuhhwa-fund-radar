@@ -796,17 +796,28 @@ def months_from(a: str, z: date | None = None) -> list[str]:
 def breadth_update(force: bool = False) -> int:
     """官方分片有比現存廣度更新的交易日才重算（v3px 面板＋分片接續，約 1 分鐘）；force＝整段重算。"""
     from . import bt3d, store
+    from . import brearlyspec as BS
     old = HD.load("breadth")
-    if not force and old and max(old) >= max(store.dates("mkt") or [""]):
+    have_early = bool(store.dates("early"))
+    need_early = have_early and (not old or min(old) >= BS.SPLICE)          # 早年資料有了、還沒接進去＝這一輪要重算
+    if not force and not need_early and old and max(old) >= max(store.dates("mkt") or [""]):
         return 0                                          # 最新的分片已算過（一天好幾班，不必每班重讀分片）
     SP = HD.ShardPanel()
-    if not force and old and SP.cal and max(old) >= SP.cal[-1]:
+    if not force and not need_early and old and SP.cal and max(old) >= SP.cal[-1]:
         return 0
     P = bt3d.Panel()
     HD.extend(P, SP)
     b = HD.breadth(P)
     new = {d: [b[k][i] for k in ("adv", "dec", "above", "n60", "hi", "lo", "n250")] for i, d in enumerate(b["cal"])}
     new = {d: v for d, v in new.items() if v[0] + v[1] > 0}
+    if have_early:                                        # 早年廣度（brearlyspec）：2013 下半年兩邊比對過才接
+        early = HD.early_counts()
+        chk = HD.splice_check(early, new)
+        HD.save("breadth_check", "early vs v3px", {"ver": [BS.VER], **{k: [v] for k, v in chk.items()}})
+        log(f"[heat] 早年廣度比對：{chk}")
+        if chk.get("ok"):
+            return _replace("breadth", "early+v3px+mkt", HD.splice(early, new))
+        log("[heat] 早年廣度和現在的差太多，這一輪先不接（見 data/lab/heat/breadth_check）")
     return _replace("breadth", "v3px+mkt", new)
 
 
