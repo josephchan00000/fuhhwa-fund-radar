@@ -167,3 +167,6 @@
 
 ## [2026-11-20] 收錄 | 美股財報季（選擇權頁「財報」分頁加台股｜美股切換）
 - 使用者「好 繼續」做第 4 段美股的財報季。先跑 CI 資料探針、再寫 ernusspec VER 1（算之前 commit），資料由 afterhours_refresh 每個美股收盤抓一次。新頁 [美股財報季](lab/earnings-us.md)；規劃 `docs/lab_earnings_plan.md` 第 11.2 節。
+
+## [2026-11-20] 收錄 | 位階和指數的圖、之後的漲跌、怎麼算（研究紀錄頁＋CSV）
+- 使用者要位階和指數的對照與關係、怎麼算要列出來好驗證。mposfwdspec VER 1 先寫定再算；只有 S&P 500 與費半的極端低位過關。改了 [市場頁](lab/market-page.md)、[配置頁與研究紀錄](lab/cfg-research.md)；規劃 `docs/lab_earnings_plan.md` 第 12 節。

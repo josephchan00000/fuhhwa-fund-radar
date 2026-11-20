@@ -17,6 +17,7 @@
 ### 研究紀錄頁 `dashboard/x9r.html`（`arm/lab/research_page.py`）
 不在頂欄，配置頁與市場頁頁尾「研究紀錄」小字進。目錄——配置與策略（x9.html 的研究紀錄身分各分頁與後台各段，`?v=bo&at=段落`）、景氣（市場頁的研究畫面 `x9m.html#v=research／phase／terrain`）、
 訊號與泡沫（第 2 段起直接放在這頁，見 [市場頁](market-page.md)）、名詞。後台等分頁的資料都內嵌在 x9.html（約 1MB），不再抄一份。三支 workflow 各兩行 `git add -f dashboard/x9r.html`。
+- 「股市位階」一節（2026-11-20，`research_page.mpos_body` → `mpos.research_body`；`#mpos`、`#mpos-tw／spx／ixic／ndx／sox`）：每一步的算法、每個市場最新一天的實際算式（每一項分數、每組平均、四組平均、過去 2,520 天有幾天比它低）、之後漲跌的完整表與判定（前後兩半、段數、原因）、每天的數字下載 `dashboard/x9mpos-{市場}.csv`（BOM，Excel 直接開）。資料 `data/lab/heat/mpos_detail.json` 由市場頁正式建頁時寫（`mpos.publish`），研究紀錄頁在市場頁之後建、只讀這支檔；三支 workflow 各兩行 `git add -f dashboard/x9mpos-*.csv`。
 
 ### 全部策略表（原配置的策略頁，現在 `?v=strat`；`arm/lab/board.py`＋`config/strategy_board.json`）
 狀態只有四種（`board.STATUS`）——使用中（在配置裡；2026-10-28 起＝選股頁上的主要策略）／觀察中（回測過、沒進配置：個股策略 ●、總經策略 ★／●、期貨加碼、紙上記錄的飆股）／候選（第 5 段才有）／淘汰（一列一句原因）。候選列另有 [台指期早盤](fut.md)、觀察中另有 [少見但勝率高的策略](rare.md)。
