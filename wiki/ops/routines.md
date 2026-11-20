@@ -1,15 +1,15 @@
 # 排程與「排程搬家」
 
-> 八個排程都火進同一個綁定的對話（它每天先合併 main，merge 進 main 後下一班就生效）；搬家步驟、模型重設、prompt 原文。
+> 九個排程都火進同一個綁定的對話（它每天先合併 main，merge 進 main 後下一班就生效）；搬家步驟、模型重設、prompt 原文。
 > 原始資料：CLAUDE.md「指令：「排程搬家」」「每日固定時間自動更新」；`docs/llm_wiki_plan.md` 第 3.1、6 節。
-> 最後更新：2026-11-13
+> 最後更新：2026-11-20
 > CLAUDE.md 仍留著對應的指令段落（排程照它執行）：那一段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）；其他內容以這一頁為準。
 
 ## 現在怎麼運作
 
-claude.ai Routines，八個都**火進同一個主會話**（綁定會話）；name、cron 見搬家步驟 2。trigger id 與綁定會話隨搬家改變，一律以 `list_triggers` 實查為準、本檔不記死 id（2026-07-24 起；使用者約每 3–5 天在新視窗搬一次）。
+claude.ai Routines，九個都**火進同一個主會話**（綁定會話）；name、cron 見搬家步驟 2。trigger id 與綁定會話隨搬家改變，一律以 `list_triggers` 實查為準、本檔不記死 id（2026-07-24 起；使用者約每 3–5 天在新視窗搬一次）。
 ① [全部更新](daily-update.md) 目標＝**07:03 前線上可看當日內容**（2026-07-20 使用者指示；實測全程 15–28 分，06:35 起跑最壞壓線、一般 06:55 完成）；
-②③④ 負責準時（[時點地圖](schedule.md)；-32003 見 [MCP 審批](../env/mcp-approval.md)）；⑤ [ETF 募集週掃](etf-weekly-scan.md)；⑥ [策略探勘週報](strategy-scouting.md)；⑦ [個股報告](../lab/equity-report.md)（每天晚上的名單 `scripts/eq_queue.py`：網頁申請的＋接下來 2 個交易日要買的、技能 equity-report；**2026-11-04 起暫停**（`update_trigger` enabled=false），網頁申請會排隊、沒有人寫，使用者說恢復才打開）；⑧ 盤前重估觸發（平日 07:52 dispatch `fut_preopen.yml`，GitHub 排程常遲到、11/13 那班 08:43 才開跑差點趕不上 08:45；見[時點地圖](schedule.md)）。
+②③④ 負責準時（[時點地圖](schedule.md)；-32003 見 [MCP 審批](../env/mcp-approval.md)）；⑤ [ETF 募集週掃](etf-weekly-scan.md)；⑥ [策略探勘週報](strategy-scouting.md)；⑦ [個股報告](../lab/equity-report.md)（每天晚上的名單 `scripts/eq_queue.py`：網頁申請的＋接下來 2 個交易日要買的、技能 equity-report；**2026-11-04 起暫停**（`update_trigger` enabled=false），網頁申請會排隊、沒有人寫，使用者說恢復才打開）；⑧ 盤前重估觸發（平日 07:52 dispatch `fut_preopen.yml`，GitHub 排程常遲到、11/13 那班 08:43 才開跑差點趕不上 08:45；見[時點地圖](schedule.md)）；⑨ 晚間融資刷新（平日 21:47 dispatch `afterhours_refresh.yml`；融資融券約 21:30 公布，22:05 GitHub 排程常遲到，11/13～11/19 連五晚都靠 23:20 夜檢補觸發；見[時點地圖](schedule.md)）。
 排程點火的回合若 MCP 不可用，SOP 第 7 步照樣走「push 自動觸發」；驗證用 git（fetch origin main 看是否前進＋檢查檔案內容）即可。
 
 **為什麼火進主會話**：2026-07-18 實測「開新會話」兩次全滅——點火綁的環境（env_01FK…「化學」）沒掛本 repo，連 heartbeat push 都做不到
@@ -29,14 +29,14 @@ claude.ai Routines，八個都**火進同一個主會話**（綁定會話）；n
 
 ### 指令：「排程搬家」
 
-在**任何**對話窗打**「排程搬家」**（或「搬排程」）＝把**全部八個** Routine 改綁到**當前**對話窗。
-**不要詢問、不要查證其他東西、不改任何檔案、不 commit**——固定「list → 建八個 → 刪舊的」收工（最省 token）：
+在**任何**對話窗打**「排程搬家」**（或「搬排程」）＝把**全部九個** Routine 改綁到**當前**對話窗。
+**不要詢問、不要查證其他東西、不改任何檔案、不 commit**——固定「list → 建九個 → 刪舊的」收工（最省 token）：
 
 1. `list_triggers`（先用預設 limit；找不到再用 cursor 翻頁）→ 找**名稱以「復華基金雷達」開頭且 `enabled:true`** 的 Routine
-   （正常 8 個；**2026-11-04 起 ⑦ 個股報告暫停＝7 個**；歷史上只有 1／3／4／5／6／7 個＝尚未擴編，照樣往下走）。全部的 `persistent_session_id` 都已是本會話 → 回一句「排程已綁本視窗」結束。
+   （正常 9 個；**2026-11-04 起 ⑦ 個股報告暫停＝8 個**；歷史上只有 1／3／4／5／6／7／8 個＝尚未擴編，照樣往下走）。全部的 `persistent_session_id` 都已是本會話 → 回一句「排程已綁本視窗」結束。
    回應常被截斷存成檔案（坑 1）：**別開子代理讀全文**，`python3 -c` 讀那支檔 `json.loads` 後只印 `id｜name｜cron_expression｜enabled｜persistent_session_id`
    一行一個；prompt 原文在 `job_config.ccr.events[*].data.message.content`（**頂層沒有 `prompt` 欄位**）。
-2. `create_trigger` ×8（預設自綁本會話，**不帶** `persistent_session_id`／`create_new_session_on_fire`），name｜cron（UTC）：
+2. `create_trigger` ×9（預設自綁本會話，**不帶** `persistent_session_id`／`create_new_session_on_fire`），name｜cron（UTC）：
    - ① `復華基金雷達 每日全部更新(台北 06:35・07:03 前完成)`｜`35 22 * * *`
    - ② `復華基金雷達 盤後籌碼即時更新(台北 15:33)`｜`33 7 * * 1-5`
    - ③ `復華基金雷達 晚間NAV·PCF即時更新(台北 18:58)`｜`58 10 * * 1-5`
@@ -45,8 +45,9 @@ claude.ai Routines，八個都**火進同一個主會話**（綁定會話）；n
    - ⑥ `復華基金雷達 策略探勘週報(台北週日 19:47)`｜`47 11 * * 0`
    - ⑦ `復華基金雷達 個股報告(台北每天 20:47)`｜`47 12 * * *`（**2026-11-04 起暫停**：使用者「先暫停，我不想吃太多 token」→ 搬家時**不建**這一個；使用者說恢復才照原文⑦建）
    - ⑧ `復華基金雷達 盤前重估觸發(台北 07:52)`｜`52 23 * * 0-4`（台北週一～五；2026-11-13 建立；prompt 原文只在本頁，CLAUDE.md 放不下）
+   - ⑨ `復華基金雷達 晚間融資刷新(台北 21:47)`｜`47 13 * * 1-5`（台北週一～五；2026-11-20 建立；prompt 原文只在本頁）
 3. `delete_trigger` 逐一刪舊的。搬家＝建新＋刪舊：`update_trigger` 改不了綁定會話、跨會話 update 也被組織政策擋，但**跨會話 delete 可行**（2026-07-24 實證）。
-4. 一句話回報：八個新 trigger id＋各自下次觸發時間。`create_trigger` 警告「no MCP connectors」**可忽略**（SOP 第 7 步走 push 自動觸發、驗證用 git）。
+4. 一句話回報：九個新 trigger id＋各自下次觸發時間。`create_trigger` 警告「no MCP connectors」**可忽略**（SOP 第 7 步走 push 自動觸發、驗證用 git）。
    查到「本檔沒記載」的復華 Routine：照樣搬，prompt 從舊 trigger 的 `job_config` 原文照抄，回報提一句「本檔要補記」。
 5. **回報時務必提醒使用者「模型要重設」**：trigger 的 `job_config` **沒有 model 欄位**，只有 `persistent_session_id`——火進哪個視窗就用**那個視窗當下的模型**
    （「跟著該會話走」）。舊視窗的 `/model` **不會**搬過來，使用者要在**新視窗**自己打一次 `/model sonnet`：容器內 Claude 無法代勞（`update_trigger` 改模型全組織停用、
@@ -66,7 +67,7 @@ claude.ai Routines，八個都**火進同一個主會話**（綁定會話）；n
 
 ## 歷史
 
-- 個數：07-18 一個、2026-08-03 三個、08-07 四個、2026-08-10 五個（同日踩 -32003）、10-24 六個、10-30 七個（個股報告週更；同日使用者選「每晚＋自動補」，⑦ 改成每天 20:47）、11-13 八個（⑧ 盤前重估觸發，使用者回「好」）。
+- 個數：07-18 一個、2026-08-03 三個、08-07 四個、2026-08-10 五個（同日踩 -32003）、10-24 六個、10-30 七個（個股報告週更；同日使用者選「每晚＋自動補」，⑦ 改成每天 20:47）、11-13 八個（⑧ 盤前重估觸發，使用者回「好」）、11-20 九個（⑨ 晚間融資刷新，使用者回「好」）。
 - 2026-07-23 想改 sonnet 省 token，查明做不到；08-12 15:33 班加補簡介缺口。
 
 ## Routine prompt 原文
@@ -102,3 +103,7 @@ claude.ai Routines，八個都**火進同一個主會話**（綁定會話）；n
 ### Routine prompt 原文⑧——盤前重估觸發（平日 07:52，2026-11-13 建立）
 
 > （排程自動觸發）盤前 08:46 重估準時觸發（使用者 2026-11-13 回「好」）——GitHub 排程常遲到（11/13 清晨那班 08:43 才開跑，差點趕不上 08:45 開盤），本 Routine 負責準時；全程只做一件事、不跑任何資料抓取腳本、不動 reports/**：用 mcp__github__actions_run_trigger（method=run_workflow、workflow_id=fut_preopen.yml、ref=main）觸發一次，成功觸發即收工、不等它跑完、不推播（workflow 自己等到 08:45:15 重估、08:58 取樣；休市日幾秒就結束；和 GitHub 排程同一個 concurrency 群組排隊，今天已經做過的班自己結束，重複觸發不會出事）。MCP 不可用或觸發失敗 → PushNotification 一句「07:52 盤前重估沒觸發成功，今天靠 GitHub 排程兜底（可能趕不上 08:46）」。
+
+### Routine prompt 原文⑨——晚間融資刷新（平日 21:47，2026-11-20 建立）
+
+> （排程自動觸發）晚間融資刷新準時觸發（使用者 2026-11-20 回「好」）——融資融券約 21:30 公布，22:05 GitHub 排程常遲到（11/13～11/19 連五晚都要靠 23:20 夜檢補觸發），本 Routine 負責準時；全程只做一件事、不跑任何資料抓取腳本、不動 reports/**：用 mcp__github__actions_run_trigger（method=run_workflow、workflow_id=afterhours_refresh.yml、ref=main）觸發一次，成功觸發即收工、不等它跑完、不推播（休市日與重複場次由 check_afterhours_fresh.py --guard 零請求早退，重複觸發不會出事；23:20 夜檢照舊兜底）。MCP 不可用或觸發失敗 → PushNotification 一句「21:47 晚間融資刷新沒觸發成功，今晚靠 22:05 排程與 23:20 夜檢兜底」。
