@@ -358,7 +358,7 @@ def view(B: dict | None = None, R: dict | None = None) -> dict:
         ev = TT.all_events(px)
         lo = max(0, t - TA_RECENT + 1)
         recent = sorted(((i, k) for k, ix in ev.items() for i in ix if i >= lo), reverse=True)
-        ta = {"lv": TT.levels(px, cal), "recent": [(cal[i], k) for i, k in recent],
+        ta = {"lv": TT.fill_levels(px, cal, TT.levels(px, cal)), "recent": [(cal[i], k) for i, k in recent],   # 補充規則 lvlspec
               "last": {k: (cal[ix[-1]] if ix else None) for k, ix in ev.items()}, "study": R.get("events") or {},
               "next": next_days(cal[t], S.DEDUCT_N), "base_a": cal[S.EV_START]}
     we = HP.week_ends(cal) if T else []
@@ -828,15 +828,20 @@ def _ta_parts(V: dict) -> tuple[str, str]:
     ded = "、".join(f'{_e(_md(d)[:-3])} {_num0(x["v"])}' for d, x in zip(ta["next"], lv["deduct"]))
     hi, lo = lv.get("hi"), lv.get("lo")
     piv = []
+    leg = lv.get("leg") or {}
     if hi:
-        piv.append(f'前波高點 {_num0(hi["p"])}（{_e(_ymd(hi["d"]))}）')
+        piv.append(f'前波高點 {_num0(hi["p"])}（{_e(_ymd(hi["d"]))}）' + ("，已經突破" if leg.get("k") == "H" else ""))
     if lo:
-        piv.append(f'前波低點 {_num0(lo["p"])}（{_e(_ymd(lo["d"]))}）')
+        piv.append(f'前波低點 {_num0(lo["p"])}（{_e(_ymd(lo["d"]))}）' + ("，已經跌破" if leg.get("k") == "L" else ""))
+    if leg:                                               # 補充規則 lvlspec 第 3 點
+        piv.append(f'這一段到目前的{"最低" if leg["k"] == "L" else "最高"} {_num0(leg["p"])}（{_e(_ymd(leg["d"]))}，還沒確認）')
     sr = []
     for key, nm in (("sup", "下方最近的支撐"), ("res", "上方最近的壓力")):
         x = lv.get(key)
-        if x:
-            when = f'（{_e(_ymd(x["d"]))}）' if x.get("d") else ""
+        if x and x.get("none"):                           # 補充規則 lvlspec 第 2 點
+            sr.append(f'{nm}：近 3 年沒有{"更低" if key == "sup" else "更高"}的轉折點')
+        elif x:
+            when = f'（{_e(_ymd(x["d"]))}{"，較早" if x.get("old") else ""}）' if x.get("d") else ""
             sr.append(f'{nm}：{_e(x["what"])}{when} {_num0(x["v"])}（距離 {_pct(x["dist"])}）')
     lis = [f'<li>月線季線：{_st_text("x", lv["st"].get("x"))}。</li>',
            f'<li>季線方向：{_st_text("s60", lv["st"].get("s60"))}。之後 {S.DEDUCT_N} 個交易日的扣抵值：{ded}。</li>']
