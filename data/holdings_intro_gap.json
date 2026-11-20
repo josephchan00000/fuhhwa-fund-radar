@@ -1,29 +1,8 @@
 {
- "as_of": "2026-11-21 05:11",
- "count": 2,
+ "as_of": "2026-11-21 06:37",
+ "count": 0,
  "fund_count": 0,
- "etf_count": 2,
+ "etf_count": 0,
  "usqm_count": 0,
- "items": [
-  {
-   "src": "etf",
-   "name": "Anthropic PBC",
-   "ticker": "ANT",
-   "count": 1,
-   "etfs": [
-    "00409A"
-   ],
-   "weight": 1.55
-  },
-  {
-   "src": "etf",
-   "name": "NINTENDO CO LTD",
-   "ticker": "7974",
-   "count": 1,
-   "etfs": [
-    "00990A"
-   ],
-   "weight": 0.57
-  }
- ]
+ "items": []
 }
