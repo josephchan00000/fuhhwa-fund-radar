@@ -1,16 +1,8 @@
 {
-  "as_of": "2026/11/20 06:54",
+  "as_of": "2026/11/20 11:59",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
-  "brand": [
-    {
-      "title": "00949暫停初級市場申購 參與13%除息前宜留意合理折溢價",
-      "url": "https://udn.com/news/story/123006/9881079",
-      "source": "經濟日報",
-      "date": "2026-11-16 10:24",
-      "datetime": "2026-11-16T10:24:19+08:00"
-    }
-  ],
+  "brand": [],
   "funds": [
     {
       "base": "復華台灣科技優息",
@@ -28,11 +20,18 @@
           "datetime": "2026-11-19T13:32:48+08:00"
         },
         {
-          "title": "50萬股東安心！00929除息首日順利填息",
-          "url": "https://news.wearn.com/c2149073.html",
-          "source": "自由時報",
-          "date": "2026-11-18 16:40",
-          "datetime": "2026-11-18T16:40:27+08:00"
+          "title": "50萬多人開心！00929今除息秒填息 23億元股利12/14入帳",
+          "url": "https://tw.stock.yahoo.com/news/50%E8%90%AC%E5%A4%9A%E4%BA%BA%E9%96%8B%E5%BF%83%EF%BC%8100929%E4%BB%8A%E9%99%A4%E6%81%AF%E7%A7%92%E5%A1%AB%E6%81%AF-23%E5%84%84%E5%85%83%E8%82%A1%E5%88%A91214%E5%85%A5%E5%B8%B3-014347962.html",
+          "source": "Yahoo股市",
+          "date": "2026-11-18 09:43",
+          "datetime": "2026-11-18T09:43:47+08:00"
+        },
+        {
+          "title": "年化配息率飆18%！00929月配0.38元「猛增3.1萬股民搶息」 10檔ETF今最後買進日",
+          "url": "https://news.google.com/rss/articles/CBMisAJBVV95cUxPX1FVVkgwRlBZS1g0NmNlM3RoMWdTQ0RiTTVOUVFlSzdwTS00SWY4M2JCRUViWjZpTmxEUEwzYU1uVWVHNDBMd2xxRGFmaGw0S0VJZzRpWTV0LXVKc2pYX3Fyb2RlaXNUMHEzMS1ieHY4VWJuc2xKbllYSFNJcnFaYzM5cEl1TUZCLVlkWkl4bWlqY0ROQVFCZlZYYzRTWkRBS3VtaUs3OWVxbVBhczNKN2FpMlhhMHJhUFR5V2s2OXcxT01qMV9BR3o0Y3NqNm9feTZ2aUstSl93RGc5RjZBVE50SFRjTUxMS0lzQTNaSHhLOExJVlVpcHQ5RmI0NXc5Zkx0cVMzNkF1ZkZmR2k0RC1NX3hyc2VrZkJ0ZlpmMFRDbDdrQnZDWEw5dWZWdDZT?oc=5",
+          "source": "Yahoo股市",
+          "date": "2026-11-17 09:31",
+          "datetime": "2026-11-17T09:31:32+08:00"
         }
       ]
     },
@@ -68,11 +67,18 @@
           "datetime": "2026-11-19T10:56:56+08:00"
         },
         {
-          "title": "電子股跌2.71% 金融只跌0.35% 00998A全球金融 抗跌有憑據",
-          "url": "https://sunmedia.tw/news/finance/%E9%9B%BB%E5%AD%90%E8%82%A1%E8%B7%8C271-%E9%87%91%E8%9E%8D%E5%8F%AA%E8%B7%8C035-00998A%E5%85%A8%E7%90%83%E9%87%91%E8%9E%8D-%E6%8A%97%E8%B7%8C%E6%9C%89%E6%86%91%E6%93%9A-1794967658957",
-          "source": "商傳媒",
-          "date": "2026-11-18 10:07",
-          "datetime": "2026-11-18T10:07:58+08:00"
+          "title": "00406A同期跌25.3% 00998A漲2.83% 領息不能只看配息率 要看來源撐不撐得住",
+          "url": "https://enn.tw/809751/",
+          "source": "ENN台灣電報",
+          "date": "2026-11-19 01:07",
+          "datetime": "2026-11-19T01:07:07+08:00"
+        },
+        {
+          "title": "配息逐季成長 00998A從0.404元升至0.424元 領息更有底氣",
+          "url": "https://www.watchmedia01.com/archives/571011",
+          "source": "Yahoo新聞",
+          "date": "2026-11-18 09:56",
+          "datetime": "2026-11-18T09:56:50+08:00"
         }
       ]
     },
@@ -106,6 +112,13 @@
           "source": "工商時報",
           "date": "2026-11-17 13:55",
           "datetime": "2026-11-17T13:55:00+08:00"
+        },
+        {
+          "title": "主動復華全球50 00409A",
+          "url": "https://www.pocket.tw/etf/tw/00409A/fundholding?source=APP",
+          "source": "口袋證券",
+          "date": "2026-11-13 16:00",
+          "datetime": "2026-11-13T16:00:00+08:00"
         }
       ]
     },
@@ -118,25 +131,25 @@
       ],
       "items": [
         {
+          "title": "00413A、00418A同日掛牌 兩檔主動ETF選股有交集？",
+          "url": "https://www.taiwanhot.net/news/1154546/00413A%E3%80%8100418A%E5%90%8C%E6%97%A5%E6%8E%9B%E7%89%8C+++%E5%85%A9%E6%AA%94%E4%B8%BB%E5%8B%95ETF%E9%81%B8%E8%82%A1%E6%9C%89%E4%BA%A4%E9%9B%86%EF%BC%9F",
+          "source": "台灣好新聞",
+          "date": "2026-11-18 14:36",
+          "datetime": "2026-11-18T14:36:08+08:00"
+        },
+        {
+          "title": "00418A九倍女戰神一週狂砸30億、AI股布局曝光",
+          "url": "https://tw.news.yahoo.com/00418a%E4%B9%9D%E5%80%8D%E5%A5%B3%E6%88%B0%E7%A5%9E-%E9%80%B1%E7%8B%82%E7%A0%B830%E5%84%84-ai%E8%82%A1%E5%B8%83%E5%B1%80%E6%9B%9D%E5%85%89-030818326.html",
+          "source": "Yahoo新聞",
+          "date": "2026-11-18 11:08",
+          "datetime": "2026-11-18T11:08:18+08:00"
+        },
+        {
           "title": "台股兩天跌3583點 00418A反而迎來更低成本的AI布局點",
           "url": "https://sunmedia.tw/news/finance/%E5%8F%B0%E8%82%A1%E5%85%A9%E5%A4%A9%E8%B7%8C3583%E9%BB%9E%E3%80%8000418A%E5%8F%8D%E8%80%8C%E8%BF%8E%E4%BE%86%E6%9B%B4%E4%BD%8E%E6%88%90%E6%9C%AC%E7%9A%84AI%E5%B8%83%E5%B1%80%E9%BB%9E-1794967565154",
           "source": "商傳媒",
           "date": "2026-11-18 10:08",
           "datetime": "2026-11-18T10:08:03+08:00"
-        },
-        {
-          "title": "央行總裁出面喊話 台灣AI供應鏈地位不變！00418A更是鎖定下一批AI贏家",
-          "url": "https://tw.stock.yahoo.com/news/%E5%A4%AE%E8%A1%8C%E7%B8%BD%E8%A3%81%E5%87%BA%E9%9D%A2%E5%96%8A%E8%A9%B1-%E5%8F%B0%E7%81%A3ai%E4%BE%9B%E6%87%89%E9%8F%88%E5%9C%B0%E4%BD%8D%E4%B8%8D%E8%AE%8A-00418a%E6%9B%B4%E6%98%AF%E9%8E%96%E5%AE%9A%E4%B8%8B-%E6%89%B9ai%E8%B4%8F%E5%AE%B6-021700661.html",
-          "source": "Yahoo股市",
-          "date": "2026-11-17 10:17",
-          "datetime": "2026-11-17T10:17:00+08:00"
-        },
-        {
-          "title": "00418A選前300大企業 掌握大中小型AI成長股 趁評價重設精挑錯殺好股",
-          "url": "https://www.watchmedia01.com/archives/570665",
-          "source": "Yahoo新聞",
-          "date": "2026-11-17 09:38",
-          "datetime": "2026-11-17T09:38:06+08:00"
         }
       ]
     },
@@ -514,7 +527,7 @@
       "channel": "財富閒叔跡",
       "url": "https://www.youtube.com/watch?v=PMggAdDtQAM",
       "date": "2026-11-14",
-      "views": 468
+      "views": 470
     },
     {
       "platform": "youtube",
@@ -522,7 +535,7 @@
       "channel": "財富閒叔跡",
       "url": "https://www.youtube.com/watch?v=k29ilXv2DYc",
       "date": "2026-11-14",
-      "views": 324
+      "views": 326
     },
     {
       "platform": "youtube",
@@ -530,7 +543,7 @@
       "channel": "風傳媒 The Storm Media",
       "url": "https://www.youtube.com/watch?v=oS4Fm-2fSk0",
       "date": "2026-11-16",
-      "views": 484408,
+      "views": 485293,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -540,7 +553,7 @@
       "channel": "大華國際投顧",
       "url": "https://www.youtube.com/shorts/jop4gmyq5v0",
       "date": "2026-11-16",
-      "views": 372983,
+      "views": 389560,
       "peer": true,
       "short": true,
       "cat": "基金"
@@ -551,19 +564,9 @@
       "channel": "富邦證券",
       "url": "https://www.youtube.com/watch?v=6hvj7CioqMQ",
       "date": "2026-11-18",
-      "views": 300146,
+      "views": 318327,
       "peer": true,
       "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "斷頭潮來了 散戶卻還在借錢加碼｜錢退了人沒走 台股真的見底了？",
-      "channel": "卡爾先生",
-      "url": "https://www.youtube.com/watch?v=g1bi1afwPE4",
-      "date": "2026-11-18",
-      "views": 229937,
-      "peer": true,
-      "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
@@ -571,19 +574,19 @@
       "channel": "瘋狂股市福利社Free Free Free!",
       "url": "https://www.youtube.com/watch?v=FTfgjHoPqb4",
       "date": "2026-11-16",
-      "views": 222665,
+      "views": 263570,
       "peer": true,
       "cat": "市值型"
     },
     {
       "platform": "youtube",
-      "title": "仁勳惶惶 神山買點到了？搶進AI下半場 科技ETF破發想抄底 小心還有地窖 簡單1招買進逆轉勝《鈔錢部署》盧燕俐 ft.蕭碧燕 首播20261116",
-      "channel": "鈔錢部署–華視優選",
-      "url": "https://www.youtube.com/watch?v=stiAUKedOyo",
-      "date": "2026-11-16",
-      "views": 141782,
+      "title": "斷頭潮來了 散戶卻還在借錢加碼｜錢退了人沒走 台股真的見底了？",
+      "channel": "卡爾先生",
+      "url": "https://www.youtube.com/watch?v=g1bi1afwPE4",
+      "date": "2026-11-18",
+      "views": 250226,
       "peer": true,
-      "cat": "綜合"
+      "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
@@ -591,9 +594,19 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=s3xMtKSFbio",
       "date": "2026-11-19",
-      "views": 126740,
+      "views": 156425,
       "peer": true,
       "cat": "基金"
+    },
+    {
+      "platform": "youtube",
+      "title": "仁勳惶惶 神山買點到了？搶進AI下半場 科技ETF破發想抄底 小心還有地窖 簡單1招買進逆轉勝《鈔錢部署》盧燕俐 ft.蕭碧燕 首播20261116",
+      "channel": "鈔錢部署–華視優選",
+      "url": "https://www.youtube.com/watch?v=stiAUKedOyo",
+      "date": "2026-11-16",
+      "views": 143381,
+      "peer": true,
+      "cat": "綜合"
     },
     {
       "platform": "youtube",
@@ -601,7 +614,7 @@
       "channel": "瘋狂股市福利社Free Free Free!",
       "url": "https://www.youtube.com/watch?v=KjCDhGjWBbA",
       "date": "2026-11-18",
-      "views": 114220,
+      "views": 114446,
       "peer": true,
       "cat": "市值型"
     },
@@ -611,7 +624,7 @@
       "channel": "一綺聊股",
       "url": "https://www.youtube.com/watch?v=Lop-b8_NAD8",
       "date": "2026-11-15",
-      "views": 74469,
+      "views": 74484,
       "peer": true,
       "cat": "主動式"
     },
@@ -621,15 +634,14 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=XmC8FvSHOsE",
       "date": "2026-11-19",
-      "views": 58398,
+      "views": 59741,
       "peer": true,
       "cat": "主動式"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00998A、00409A、00418A（詳下方新聞標籤）",
-    "品牌焦點：00949暫停初級市場申購 參與13%除息前宜留意合理折溢價（經濟日報）",
     "社群聲量最高：貸款1000萬想賺穩穩價差的投資標的（0 推）",
-    "YouTube 熱片：【股票】台股逃命波結束？驚見「第二隻腳」恐怖訊號？杜金龍揭關鍵壓力：倒數這時間大變盤！ft. 杜金龍805｜下班經濟學｜謝哲青、張瓊方（風傳媒 The Storm Media・484,408 次觀看）"
+    "YouTube 熱片：【股票】台股逃命波結束？驚見「第二隻腳」恐怖訊號？杜金龍揭關鍵壓力：倒數這時間大變盤！ft. 杜金龍805｜下班經濟學｜謝哲青、張瓊方（風傳媒 The Storm Media・485,293 次觀看）"
   ]
 }
