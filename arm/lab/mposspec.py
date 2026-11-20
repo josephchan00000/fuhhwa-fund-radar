@@ -14,13 +14,18 @@ VER 1（2026-11-20，只描述現在在哪裡；第一次正式算之前寫定�
 7. 每天記「公布的數字」（只增不改）：那一天第一次算出來的位階、原值、四組。之後重算不一樣（資料補到前幾天）就照寫「昨天公布 X，用今天的資料重算是 Y」。
 8. 總經另寫三個面向（基本面、全球資金、台灣資金）現在的分數與 MACRO_CHG 個交易日前的變化，用市場頁原本的五區名稱；不合成一個數。
 9. 這一版不寫「低位／高位之後會怎樣」；要寫得先另寫一版規格、照每年只用過去資料的方式驗過。
+
+VER 2（2026-11-20，**看過 VER 1 第一次算出來的起點之後改**，照實寫；只看了「從哪一天開始有數字」，沒有看任何之後的漲跌）：
+VER 1 第 2 點「每組要一半以上的項目有值」→ 部位與籌碼 7 項裡 4 項 2019-12 才有資料，位階要到 2025-02 才有第一個數字、畫不出 5 年。
+改成每組至少 MIN_ITEMS 項有值（項目比這少的組要全部有值）：部位與籌碼 2002 年起就有融資、融資增減、券資比三項，位階 2019-10 起有數字。其他不變。
 """
 from __future__ import annotations
 
 import hashlib
 import json
 
-VER = 1
+VER = 2
+MIN_ITEMS = 2         # VER 2：每組至少幾項有值（VER 1 是一半）
 SPEC_DATE = "2026-11-20"
 
 PRICE = ("T1", "T2", "T3", "T4", "T11", "T12", "T13")        # 乖離、RSI、均線排列、季線斜率、距高點
@@ -38,6 +43,6 @@ MACRO_CHG = 20
 
 
 def fingerprint() -> str:
-    keys = ("VER", "GROUPS", "WIN", "MIN_DAYS", "X_LOW", "LOW", "HIGH", "X_HIGH", "CHART_YEARS", "PEAK_GAP", "MACRO", "MACRO_CHG")
+    keys = ("VER", "MIN_ITEMS", "GROUPS", "WIN", "MIN_DAYS", "X_LOW", "LOW", "HIGH", "X_HIGH", "CHART_YEARS", "PEAK_GAP", "MACRO", "MACRO_CHG")
     g = globals()
     return hashlib.sha256(json.dumps({k: g[k] for k in keys}, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:12]
