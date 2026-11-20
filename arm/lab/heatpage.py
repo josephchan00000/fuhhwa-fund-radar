@@ -374,6 +374,14 @@ def view(B: dict | None = None, R: dict | None = None) -> dict:
     out["sigtoday"] = sig_today(out["signow"])
     out["mrchip"] = mr_chip(out["mk"]) if T else ""   # 面向標題列的融資維持率（只有台股）
     out["bubblock"] = bub_block(out["mk"]) if T else ""   # 市場頁最下面的泡沫那一塊（bubpage.block_html）
+    out["mposblock"] = ""                              # 股市位階（只有台股；arm/lab/mpos.py、規格 mposspec；docs/lab_earnings_plan.md 第 8、9 節）
+    if T and out["mk"] == "tw" and "inc" in B:
+        try:
+            from . import mpos
+            out["mpos"] = mpos.compute(B)
+            out["mposblock"] = mpos.block(B, out["mpos"])
+        except Exception as e:                            # noqa: BLE001 —— 算不出來：這一塊不出現，頁面照建
+            print(f"[市場頁] 股市位階算不出來：{type(e).__name__}: {e}")
     out["indchip"] = ind_chip(out["mk"]) if T and out["bubblock"] else ""   # 面向標題列的「產業泡沫」
     if T:                                          # 視覺化版面（heatviz）：雷達、關鍵狀態、這週變化的資料
         from . import heatviz as VZ
@@ -1350,12 +1358,17 @@ def render(V: dict) -> str:
     from . import heatviz as VZ
     P = parts(V)
     G = page_parts([V.get("mk") or "tw"])
-    return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("mkt")).replace("{{CSS}}", _CSS + appnav.CSS + VZ.CSS + G["css"] + G["bcss"])
+    return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("mkt")).replace("{{CSS}}", _CSS + appnav.CSS + VZ.CSS + G["css"] + G["bcss"] + _mpos_css())
                          .replace("{{TITLE}}", _e(MK["title"]))
                          .replace("{{MKROW}}", market_row("tw")).replace("{{DRAWER}}", VZ.DRAWER)
                          .replace("{{PANEL}}", G["panel"]).replace("{{SGD}}", G["sgd"]).replace("{{BUBD}}", G["bubd"])
                          .replace("{{BODY}}", P["body"]).replace("{{META}}", _meta_json(V)).replace("{{JS}}", VZ.JS + _JS)
                          .replace("{{SGJS}}", G["js"] + G["bjs"]), note=valog.page_note())
+
+
+def _mpos_css() -> str:
+    from . import mpos
+    return mpos.CSS
 
 
 def _write(out: Path, text: str) -> bool:
@@ -1370,7 +1383,11 @@ def build(out: Path = OUT, data_out: Path = OUT_DATA) -> bool:
     """建頁面與對照圖資料；兩個檔內容都沒變時不改寫。"""
     B = C.build()
     R = load_research() or {}
-    changed = _write(out, render(view(B, R)))
+    V = view(B, R)
+    changed = _write(out, render(V))
+    if out == OUT and V.get("mpos"):                      # 正式頁才記「公布的數字」（測試建到別的地方不寫）
+        from . import mpos
+        mpos.record(V["mpos"], mpos.read_log())
     return HC.write(HC.build_data(B, R), data_out) or changed
 
 
