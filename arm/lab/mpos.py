@@ -180,6 +180,7 @@ def publish(det: dict, csv: str, detail_path: Path | None = None, dash: Path | N
         doc = json.loads(dpath.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         doc = {}
+    det = json.loads(json.dumps(det, ensure_ascii=False))     # 之後漲跌的鍵（21、63、126）存成 JSON 是字串：先轉一次再比
     if doc.get(det["mk"]) != det:
         doc[det["mk"]] = det
         dpath.parent.mkdir(parents=True, exist_ok=True)
