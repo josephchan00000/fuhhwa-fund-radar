@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/11/20 18:14",
+  "as_of": "2026/11/20 18:50",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [],
@@ -65,6 +65,13 @@
           "source": "UDN",
           "date": "2026-11-19 10:56",
           "datetime": "2026-11-19T10:56:56+08:00"
+        },
+        {
+          "title": "配息逐季成長 00998A從0.404元升至0.424元 領息更有底氣",
+          "url": "https://www.watchmedia01.com/archives/571011",
+          "source": "Yahoo新聞",
+          "date": "2026-11-18 09:56",
+          "datetime": "2026-11-18T09:56:50+08:00"
         }
       ]
     },
@@ -518,24 +525,24 @@
     },
     {
       "platform": "youtube",
-      "title": "【股票】台股逃命波結束？驚見「第二隻腳」恐怖訊號？杜金龍揭關鍵壓力：倒數這時間大變盤！ft. 杜金龍805｜下班經濟學｜謝哲青、張瓊方",
-      "channel": "風傳媒 The Storm Media",
-      "url": "https://www.youtube.com/watch?v=oS4Fm-2fSk0",
-      "date": "2026-11-16",
-      "views": 487318,
-      "peer": true,
-      "cat": "市場趨勢"
-    },
-    {
-      "platform": "youtube",
       "title": "台股史上第二大跌點！為什麼跌這麼慘？國安基金失靈了嗎？3分鐘看懂股災背後原因｜股市羅賓漢 羅文彬分析師 20261116｜#台股 #投資 #CPO #AI #輝達 #黃仁勳",
       "channel": "大華國際投顧",
       "url": "https://www.youtube.com/shorts/jop4gmyq5v0",
       "date": "2026-11-16",
-      "views": 486950,
+      "views": 509535,
       "peer": true,
       "short": true,
       "cat": "基金"
+    },
+    {
+      "platform": "youtube",
+      "title": "【股票】台股逃命波結束？驚見「第二隻腳」恐怖訊號？杜金龍揭關鍵壓力：倒數這時間大變盤！ft. 杜金龍805｜下班經濟學｜謝哲青、張瓊方",
+      "channel": "風傳媒 The Storm Media",
+      "url": "https://www.youtube.com/watch?v=oS4Fm-2fSk0",
+      "date": "2026-11-16",
+      "views": 487711,
+      "peer": true,
+      "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
@@ -543,7 +550,7 @@
       "channel": "富邦證券",
       "url": "https://www.youtube.com/watch?v=6hvj7CioqMQ",
       "date": "2026-11-18",
-      "views": 349701,
+      "views": 353695,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -553,7 +560,7 @@
       "channel": "瘋狂股市福利社Free Free Free!",
       "url": "https://www.youtube.com/watch?v=FTfgjHoPqb4",
       "date": "2026-11-16",
-      "views": 263595,
+      "views": 263584,
       "peer": true,
       "cat": "市值型"
     },
@@ -563,7 +570,7 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=s3xMtKSFbio",
       "date": "2026-11-19",
-      "views": 181892,
+      "views": 185409,
       "peer": true,
       "cat": "基金"
     },
@@ -583,7 +590,7 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=stiAUKedOyo",
       "date": "2026-11-16",
-      "views": 146215,
+      "views": 146646,
       "peer": true,
       "cat": "綜合"
     },
@@ -593,7 +600,7 @@
       "channel": "瘋狂股市福利社Free Free Free!",
       "url": "https://www.youtube.com/watch?v=KjCDhGjWBbA",
       "date": "2026-11-18",
-      "views": 115407,
+      "views": 115510,
       "peer": true,
       "cat": "市值型"
     },
@@ -613,7 +620,7 @@
       "channel": "今周刊",
       "url": "https://www.youtube.com/watch?v=ul2-IF31Vlc",
       "date": "2026-11-18",
-      "views": 67722,
+      "views": 69750,
       "peer": true,
       "cat": "債券"
     }
@@ -621,6 +628,6 @@
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00998A、00409A、00418A（詳下方新聞標籤）",
     "社群聲量最高：貸款1000萬想賺穩穩價差的投資標的（0 推）",
-    "YouTube 熱片：【股票】台股逃命波結束？驚見「第二隻腳」恐怖訊號？杜金龍揭關鍵壓力：倒數這時間大變盤！ft. 杜金龍805｜下班經濟學｜謝哲青、張瓊方（風傳媒 The Storm Media・487,318 次觀看）"
+    "YouTube 熱片：台股史上第二大跌點！為什麼跌這麼慘？國安基金失靈了嗎？3分鐘看懂股災背後原因｜股市羅賓漢 羅文彬分析師 20261116｜#台股 #投資 #CPO #AI #輝達 #黃仁勳（大華國際投顧・509,535 次觀看）"
   ]
 }
