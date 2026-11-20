@@ -200,8 +200,7 @@ function put(ix, html, sg) {
   if (window.heatInit) window.heatInit();
   if (window.sgInit) window.sgInit();          // 全部指標：換成這個指數的列
   if (window.bubDraw) window.bubDraw(ix);      // 泡沫：畫這個指數的歷史等級
-  const mc = BOX.querySelector('.mpz-cw');      // 股市位階的圖：手機上捲到最新（換內容時頁面裡的小程式不會跑）
-  if (mc) mc.scrollLeft = mc.scrollWidth;
+  if (window.mpzInit) window.mpzInit();         // 股市位階：記住打開的段落、圖捲到最新（換內容時頁面裡的小程式不會跑）
 }
 function show(ix, scroll) {
   if (!METAS[ix]) return;

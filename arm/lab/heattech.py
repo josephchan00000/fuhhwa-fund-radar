@@ -302,3 +302,37 @@ def levels(px: list, cal: list[str], t: int | None = None) -> dict:
             "lo": None if lastL is None else {"d": cal[lastL["i"]], "p": lastL["p"]},
             "sup": None if sup is None else {"v": sup[0], "what": sup[1], "d": sup[2], "dist": 100.0 * (sup[0] / p - 1.0)},
             "res": None if res is None else {"v": res[0], "what": res[1], "d": res[2], "dist": 100.0 * (res[0] / p - 1.0)}}
+
+
+def fill_levels(px: list, cal: list[str], lv: dict, t: int | None = None) -> dict:
+    """價位補充規則（arm/lab/lvlspec.py VER 1；heatspec 的原規則不動）：
+    原規則下方沒有支撐（上方沒有壓力）時，往前找近 LOOKBACK 個交易日已確認的轉折點；跌破前波低點（突破前波高點）之後，
+    寫這一段到目前的最低（最高），還沒確認。回傳新的 dict（不改 lv）。"""
+    from . import lvlspec as LS
+    t = len(px) - 1 if t is None else t
+    p = px[t]
+    out = dict(lv)
+    pv = confirmed(pivots(px[:t + 1]), t)
+    old = [x for x in pv if x["i"] >= t - LS.LOOKBACK + 1]
+    if out.get("sup") is None:
+        below = [x for x in old if x["p"] < p]
+        x = max(below, key=lambda x: x["p"]) if below else None
+        out["sup"] = ({"v": x["p"], "what": "前波高點" if x["k"] == "H" else "前波低點", "d": cal[x["i"]], "old": True,
+                       "dist": 100.0 * (x["p"] / p - 1.0)} if x else {"none": True})
+    if out.get("res") is None:
+        above = [x for x in old if x["p"] > p]
+        x = min(above, key=lambda x: x["p"]) if above else None
+        out["res"] = ({"v": x["p"], "what": "前波高點" if x["k"] == "H" else "前波低點", "d": cal[x["i"]], "old": True,
+                       "dist": 100.0 * (x["p"] / p - 1.0)} if x else {"none": True})
+    lastH = next((x for x in reversed(pv) if x["k"] == "H"), None)
+    lastL = next((x for x in reversed(pv) if x["k"] == "L"), None)
+    if lastH and lastL and lastH["i"] > lastL["i"]:            # 正在走的是下跌段：高點之後的最低
+        k = min((i for i in range(lastH["i"], t + 1) if px[i] is not None), key=lambda i: px[i])
+        if px[k] < lastL["p"]:
+            out["leg"] = {"k": "L", "d": cal[k], "p": px[k]}
+    elif lastH and lastL and lastL["i"] > lastH["i"]:          # 上漲段：低點之後的最高
+        k = max((i for i in range(lastL["i"], t + 1) if px[i] is not None), key=lambda i: px[i])
+        if px[k] > lastH["p"]:
+            out["leg"] = {"k": "H", "d": cal[k], "p": px[k]}
+    return out
+

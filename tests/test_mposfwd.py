@@ -71,6 +71,9 @@ def test_block_chart_toggle_and_hover_data():
     assert len(dat[1]["d"]) < len(dat[0]["d"]) * 2 and dat[1]["d"][-1] == dat[0]["d"][-1]       # 全部＝每週一點，最後一天一定在
     assert ">加權指數</text>" in h and "對照" not in re.sub("<[^>]+>", " ", h)
     assert "window.__mpzOn" in M.JS and "mpz-cl" in M.JS
+    assert '<details class="mpz-more">' in h and '<details class="mpz-more" open' not in h          # 圖與之後的漲跌預設收起
+    assert h.count('<details class="mpz-gd">') == 4 and 'data-open="item:T1"' in h                  # 四組點開、每一項開細節面板
+    assert "window.mpzInit" in M.JS and "localStorage.getItem('mpzMore')" in M.JS
 
 
 def test_detail_csv_and_research(tmp_path):
