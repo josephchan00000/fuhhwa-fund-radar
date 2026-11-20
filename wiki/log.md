@@ -170,3 +170,6 @@
 
 ## [2026-11-20] 收錄 | 位階和指數的圖、之後的漲跌、怎麼算（研究紀錄頁＋CSV）
 - 使用者要位階和指數的對照與關係、怎麼算要列出來好驗證。mposfwdspec VER 1 先寫定再算；只有 S&P 500 與費半的極端低位過關。改了 [市場頁](lab/market-page.md)、[配置頁與研究紀錄](lab/cfg-research.md)；規劃 `docs/lab_earnings_plan.md` 第 12 節。
+
+## [2026-11-20] 收錄 | 位階那塊變短、四組點開、價位支撐補充規則
+- 使用者看過市場頁：四組要點得進去、位階把原本內容推下去、台股破線之後支撐沒更新。lvlspec VER 1 先寫定再改頁面。改了 [市場頁](lab/market-page.md)；規劃 `docs/lab_earnings_plan.md` 第 13 節。
