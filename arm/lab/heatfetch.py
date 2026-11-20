@@ -799,7 +799,8 @@ def breadth_update(force: bool = False) -> int:
     from . import brearlyspec as BS
     old = HD.load("breadth")
     have_early = bool(store.dates("early"))
-    need_early = have_early and (not old or min(old) >= BS.SPLICE)          # 早年資料有了、還沒接進去＝這一輪要重算
+    from . import twearly
+    need_early = have_early and (not old or min(old) > twearly.TW_START[:7] + "-31")   # 早年資料有了、廣度最早一天還在 2004-02 之後＝還沒接，這一輪要重算
     if not force and not need_early and old and max(old) >= max(store.dates("mkt") or [""]):
         return 0                                          # 最新的分片已算過（一天好幾班，不必每班重讀分片）
     SP = HD.ShardPanel()
