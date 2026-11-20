@@ -191,3 +191,116 @@ def extend(P, SP) -> None:
             P.s[c] = {"c": [None] * n0 + ext}
             P.cap[c] = [None] * n0 + caps_add(c)
     P.codes = sorted(P.s)
+
+
+# ── 早年廣度（2004～2013；規格 arm/lab/brearlyspec.py VER 1；docs/lab_earnings_plan.md 第 14 節第 2 段） ──
+
+class EarlyPanel:
+    """官方每日行情（arm/lab/twearly.py）組成 breadth() 要的面板：cal、T、codes、s[代號]["c"]（還原收盤）、cap[代號]（當天適用的月底市值）。
+    還原：每天的報酬＝收盤 ÷（收盤 − 漲跌價差）；沒有漲跌價差＝收盤 ÷ 前一天收盤；前一天沒有價＝重新起算（規格第 2 點）。"""
+
+    def __init__(self, docs: list[dict] | None = None):
+        import bisect
+        if docs is None:
+            from . import twearly
+            docs = [d for d in (store.read(twearly.KIND, n) for n in store.dates(twearly.KIND)) if d]
+        cal = sorted({d for doc in docs for d in doc.get("t") or []})
+        self.cal, self.T = cal, len(cal)
+        self.ix = {d: i for i, d in enumerate(cal)}
+        close: dict[str, list] = {}
+        chg: dict[str, list] = {}
+        shares: dict[str, dict] = {}
+        for doc in docs:
+            pos = [self.ix[d] for d in doc.get("t") or []]
+            for c, xs in (doc.get("c") or {}).items():
+                cl = close.setdefault(c, [None] * self.T)
+                gl = chg.setdefault(c, [None] * self.T)
+                gs = (doc.get("g") or {}).get(c) or [None] * len(xs)
+                for k, i in enumerate(pos):
+                    if k < len(xs) and xs[k] is not None:
+                        cl[i], gl[i] = xs[k], gs[k] if k < len(gs) else None
+            for d, m in (doc.get("sh") or {}).items():
+                for c, n in m.items():
+                    shares.setdefault(d, {})[c] = n
+        me = sorted(shares)
+        self.s, self.cap = {}, {}
+        for c in sorted(close):
+            cl, gl = close[c], chg[c]
+            adj, prev_c, prev_a = [None] * self.T, None, None
+            for i in range(self.T):
+                x = cl[i]
+                if x is None or x <= 0:
+                    prev_c = prev_a = None
+                    continue
+                if prev_a is None:
+                    a = x
+                else:
+                    g = gl[i]
+                    ref = x - g if g is not None else None
+                    r = x / ref if ref is not None and ref > 0 else x / prev_c
+                    a = prev_a * r
+                adj[i], prev_c, prev_a = a, x, a
+            caps = {}
+            for d in me:
+                n = shares[d].get(c)
+                px = cl[self.ix[d]] if d in self.ix else None
+                if n and px:
+                    caps[d] = px * n
+            cd = sorted(caps)
+            self.cap[c] = [None] * self.T
+            for i, d in enumerate(cal):
+                k = bisect.bisect_right(cd, d) - 1
+                if k >= 0:
+                    self.cap[c][i] = caps[cd[k]]
+            self.s[c] = {"c": adj}
+        self.codes = sorted(self.s)
+
+
+def early_counts(P: "EarlyPanel | None" = None, cap_min: float = CAP_MIN) -> dict[str, list]:
+    """早年廣度的逐日家數 {日期: [上漲, 下跌, 站上60日, 60日家數, 新高, 新低, 250日家數]}（同 heatfetch.breadth_update 的格式）。"""
+    P = P or EarlyPanel()
+    if not P.T:
+        return {}
+    b = breadth(P, cap_min)
+    out = {d: [b[k][i] for k in ("adv", "dec", "above", "n60", "hi", "lo", "n250")] for i, d in enumerate(b["cal"])}
+    return {d: v for d, v in out.items() if v[0] + v[1] > 0}
+
+
+def splice(early: dict, now: dict) -> dict:
+    """規格第 5 點：SPLICE 以前用早年、以後用現在的。"""
+    from . import brearlyspec as BS
+    out = {d: v for d, v in early.items() if d < BS.SPLICE}
+    out.update({d: v for d, v in now.items() if d >= BS.SPLICE})
+    return out
+
+
+def splice_check(early: dict, now: dict) -> dict:
+    """規格第 6 點：CHECK_FROM～CHECK_TO 兩邊都有的日子，比 T5、T6 的原始值（相關、平均差、最大差）；平均差超過 CHECK_MAX＝不接。"""
+    import statistics as st
+    from . import brearlyspec as BS
+
+    def ind(rows: dict) -> dict:
+        cal = sorted(rows)
+        b = {"cal": cal, **{k: [rows[d][j] for d in cal] for j, k in enumerate(("adv", "dec", "above", "n60", "hi", "lo", "n250"))}}
+        return breadth_ind(b)
+    E, N = ind(early), ind(now)
+    out: dict = {"from": BS.CHECK_FROM, "to": BS.CHECK_TO}
+    ok = True
+    for k in ("T5", "T6"):
+        ds = [d for d in sorted(set(E[k]) & set(N[k])) if BS.CHECK_FROM <= d <= BS.CHECK_TO]
+        if len(ds) < 20:
+            out[k] = {"n": len(ds)}
+            ok = False
+            continue
+        a, b = [E[k][d] for d in ds], [N[k][d] for d in ds]
+        diff = [x - y for x, y in zip(a, b)]
+        try:
+            r = st.correlation(a, b)
+        except st.StatisticsError:
+            r = None
+        out[k] = {"n": len(ds), "r": None if r is None else round(r, 3), "mean": round(st.mean(diff), 2),
+                  "maxabs": round(max(abs(x) for x in diff), 2)}
+        ok = ok and abs(out[k]["mean"]) <= BS.CHECK_MAX
+    out["ok"] = ok
+    return out
+
