@@ -34,6 +34,35 @@ def episodes(idx: list[int]) -> int:
     return n
 
 
+def segments(idx: list[int]) -> list[tuple[int, int, int]]:
+    """和 episodes 同一個切法：→ [(進入那天, 最後一天, 天數)]。"""
+    out: list[list[int]] = []
+    for i in idx:
+        if out and i - out[-1][1] <= S.GAP:
+            out[-1][1] = i
+            out[-1][2] += 1
+        else:
+            out.append([i, i, 1])
+    return [tuple(x) for x in out]
+
+
+def episode_list(X: dict, px: list) -> dict:
+    """規格 VER 2 第 6 點：每一區的每一段（新的在上面）：期間、天數、進入那天的位階與指數、從進入那天算之後 HORIZONS 個交易日的漲跌。"""
+    v, cal = X["v"], X["cal"]
+    out: dict = {}
+    for z in S.ZONES:
+        idx = [i for i in range(len(v)) if v[i] is not None and zone(v[i]) == z]
+        rows = []
+        for a, b, n in segments(idx):
+            r = {"f": cal[a], "t": cal[b], "n": n, "x": v[a], "p": None if not px[a] else round(px[a], 2)}
+            for H in S.HORIZONS:
+                f = forward(px, a, H)
+                r[str(H)] = None if f is None else round(f, 2)
+            rows.append(r)
+        out[z] = rows[::-1]
+    return out
+
+
 def _st(rs: list[float], idx: list[int]) -> dict:
     if not rs:
         return {"n": 0, "ep": 0}
@@ -65,6 +94,7 @@ def compute(X: dict, px: list) -> dict:
             s["h"] = hs
             s["ok"], s["why"] = verdict(s, a, H)
             out["z"][z][H] = s
+    out["ep"] = episode_list(X, px)
     return out
 
 
