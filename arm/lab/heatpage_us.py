@@ -133,7 +133,8 @@ def index_page(idx: str, B: dict, R: dict) -> dict:
         P = HP.parts(V)
         P["meta"] = HP.meta()
     if V.get("mpos"):
-        P["mpos"] = V["mpos"]                             # 股市位階（build 拿去記公布的數字，再拿掉）
+        P["mpos"] = V["mpos"]                             # 股市位階（build 拿去記公布的數字、寫算式與 CSV，再拿掉）
+        P["mpos_detail"], P["mpos_csv"] = V.get("mpos_detail") or {}, V.get("mpos_csv") or ""
     return P
 
 
@@ -310,7 +311,7 @@ def assemble(pages: dict, default: str = DEFAULT) -> tuple[str, dict]:
             .replace("{{SGD}}", sgd).replace("{{BUBD}}", G["bubd"])
             .replace("{{IX}}", default).replace("{{LIVE}}", _content(pages[default]))
             .replace("{{METAS}}", j({k: P["meta"] for k, P in pages.items()}))
-            .replace("{{SWITCH_JS}}", SWITCH_JS).replace("{{JS}}", VZ.JS + HP._JS)
+            .replace("{{SWITCH_JS}}", SWITCH_JS).replace("{{JS}}", VZ.JS + HP._JS + HP._mpos_js())
             .replace("{{SGJS}}", G["js"] + G["bjs"]), note=valog.page_note())
     out = {}
     for k in U.INDEX_ORDER:
@@ -344,9 +345,11 @@ def build(out: Path = OUT, data_dir: Path | None = None) -> bool:
         R = ((RA.get("idx") or {}).get(idx)) or {}
         pages[idx] = index_page(idx, B, R)
         X = pages[idx].pop("mpos", None)
-        if out == OUT and X:                              # 股市位階：正式頁才記「公布的數字」（arm/lab/mpos.py，規格 mposspec VER 3）
+        det, csv = pages[idx].pop("mpos_detail", None), pages[idx].pop("mpos_csv", None)
+        if out == OUT and X:                              # 股市位階：正式頁才記「公布的數字」、寫算式與每天的數字（arm/lab/mpos.py）
             from . import mpos
             mpos.record(X, mpos.read_log(mpos.log_path(idx)), mpos.log_path(idx))
+            mpos.publish(det or {}, csv or "")
         changed = HC.write(chart_data(idx, B, R), data_dir / data_name(idx)) or changed
     html, P = assemble(pages)
     for name, d in P.items():
