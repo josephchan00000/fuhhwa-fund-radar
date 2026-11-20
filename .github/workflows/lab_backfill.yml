@@ -161,6 +161,9 @@ jobs:
           elif [ "${MODE#earnusprobe}" != "$MODE" ]; then
             # 美股財報季的資料探針（docs/lab_earnings_plan.md 第 11.2 節）：Yahoo 單季預估與實際營收、那斯達克行事曆欄位；只印不寫
             timeout 900 python3 scripts/probe_earnus.py $(echo "${MODE#earnusprobe}" | tr ":," "  ")
+          elif [ "${MODE#twhistprobe}" != "$MODE" ]; then
+            # 台股位階往前補資料的探針（docs/lab_earnings_plan.md 第 14 節）：證交所、櫃買、Yahoo、FinMind、期交所能回到哪一年；只印不寫
+            timeout 900 python3 scripts/probe_twhist.py
           elif [ "${MODE#dimsprobe}" != "$MODE" ]; then
             # 面向指標盤查（docs/lab_dims_plan.md）：新資料來源探針；只印不寫
             # nfcib＝無頭瀏覽器開芝加哥聯準銀行現行網頁（playwright＋runner 內建 Chrome，零下載；同 daily.yml 煙測）
