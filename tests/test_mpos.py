@@ -1,4 +1,4 @@
-"""台股股市位階（arm/lab/mpos.py；規格 arm/lab/mposspec.py VER 2）。"""
+"""股市位階（arm/lab/mpos.py；規格 arm/lab/mposspec.py VER 3：台股＋美股四個指數）。"""
 import json
 
 from arm.lab import mpos as M
@@ -66,3 +66,38 @@ def test_block_text_and_revision_line():
     for w in ("判定", "樣本外", "門檻", "規格", "VER", "百分位"):
         assert w not in h
     assert M.block(B, X, log={}).count("昨天公布") == 0
+
+
+def _BU(n=1400, breadth=True):
+    """美股一個指數：breadth=False 像那斯達克、費半（廣度沒有算分的項目）。"""
+    cal = [f"20{20 + i // 250:02d}-{1 + (i // 21) % 12:02d}-{1 + i % 21:02d}" for i in range(n)]
+    heat = {k: [50.0] * n for _, ks in S.GROUPS_US for k in ks}
+    heat["T1"] = [float(i % 100) for i in range(n)]
+    tech = ["T1", "T2", "T3", "T4", "T8", "T9", "T11", "T12", "T13"] + (["T15"] if breadth else ["T14"])
+    inc = {"tech": tech, "sent": ["S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10"]}
+    return {"cal": cal, "heat": heat, "inc": inc, "comp": {"fund": [60.0] * n, "liq": [30.0] * n}}
+
+
+def test_us_empty_group_left_out():
+    B = _BU(breadth=False)
+    X = M.compute(B, S.GROUPS_US)
+    assert X["items"]["廣度"] == [] and X["v"][-1] is not None              # 廣度沒有項目 → 其他三組照算
+    i = len(B["cal"]) - 1
+    want = sum(X["g"][n][i] for n in ("價格位置", "部位與籌碼", "情緒")) / 3
+    assert abs(X["raw"][i] - want) < 1e-9
+    Xs = M.compute(_BU(breadth=True), S.GROUPS_US)
+    assert Xs["items"]["廣度"] == ["T15"] and Xs["g"]["廣度"][-1] == 50.0   # 只有 T15 一項 → 照第 2 點，min(2, 1)＝1 項就算
+
+
+def test_us_block_and_log_path():
+    from arm.lab import heatspec as HS, heatspec_us as U
+    B = _BU(breadth=False)
+    with HS.use(U.spec_for("sox")):                                          # 美股頁在美股規格底下產生（heatpage_us.index_page）
+        h = M.block(B, M.compute(B, S.GROUPS_US), log={}, mk="sox")
+    assert 'id="mpz"' in h and "沒有算分的項目" in h and "這個指數的廣度沒有算分的項目，不放進平均" in h
+    assert "基本面" in h and "資金寬裕度" in h
+    assert M.log_path("tw").name == "mpos_log.json" and M.log_path("sox").name == "mpos_log_sox.json"
+    BT = _B(T1=[float(i % 100) for i in range(1400)])
+    BT["cal"] = B["cal"]
+    th = M.block(BT, log={})
+    assert "沒有算分的項目" not in th                                      # 台股四組都有項目

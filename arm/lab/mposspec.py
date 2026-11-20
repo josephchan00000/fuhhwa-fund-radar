@@ -18,13 +18,19 @@ VER 1（2026-11-20，只描述現在在哪裡；第一次正式算之前寫定�
 VER 2（2026-11-20，**看過 VER 1 第一次算出來的起點之後改**，照實寫；只看了「從哪一天開始有數字」，沒有看任何之後的漲跌）：
 VER 1 第 2 點「每組要一半以上的項目有值」→ 部位與籌碼 7 項裡 4 項 2019-12 才有資料，位階要到 2025-02 才有第一個數字、畫不出 5 年。
 改成每組至少 MIN_ITEMS 項有值（項目比這少的組要全部有值）：部位與籌碼 2002 年起就有融資、融資增減、券資比三項，四組 2014-10 起都有值、位階 2019-11 起有數字。其他不變。
+
+VER 3（2026-11-20，使用者「好 繼續」做第 4 段美股；美股第一次算之前寫定，台股規則不變）：
+- 美股四個指數（S&P 500、那斯達克、那斯達克 100、費半）各算一個位階，用美股景氣的每日 0～100（arm/lab/heatcalc_us.build(指數)）。
+  四組＝GROUPS_US 的清單和那個指數「現在有算分的項目」的交集。
+- 某一組在那個指數沒有算分的項目（例如那斯達克、費半的廣度），那一組不放進平均，頁面照寫「這個指數沒有算分的項目」；其他組照第 2、3 點。
+- 總經寫 MACRO_US（基本面、資金）。公布的數字每個指數各記一個檔。
 """
 from __future__ import annotations
 
 import hashlib
 import json
 
-VER = 2
+VER = 3
 MIN_ITEMS = 2         # VER 2：每組至少幾項有值（VER 1 是一半）
 SPEC_DATE = "2026-11-20"
 
@@ -39,10 +45,15 @@ X_LOW, LOW, HIGH, X_HIGH = 1.0, 3.0, 8.0, 9.0
 CHART_YEARS = 5
 PEAK_GAP = 60
 MACRO = ("fund", "gliq", "tliq")
+GROUPS_US = (("價格位置", ("T1", "T2", "T3", "T4", "T11", "T12", "T13")),          # VER 3：美股
+             ("部位與籌碼", ("S1", "S2", "S5", "S6", "S7", "S8", "S9")),            # 期貨部位、融資、槓桿 ETF、內部人
+             ("情緒", ("T8", "T9", "S3", "S4", "S10")),                              # 波動、隱含波動、VIX 期貨與期限結構、AAII
+             ("廣度", ("T15", "T16", "T17")))                                         # 上漲家數、上漲成交金額、大型股撐盤
+MACRO_US = ("fund", "liq")
 MACRO_CHG = 20
 
 
 def fingerprint() -> str:
-    keys = ("VER", "MIN_ITEMS", "GROUPS", "WIN", "MIN_DAYS", "X_LOW", "LOW", "HIGH", "X_HIGH", "CHART_YEARS", "PEAK_GAP", "MACRO", "MACRO_CHG")
+    keys = ("VER", "MIN_ITEMS", "GROUPS", "GROUPS_US", "MACRO_US", "WIN", "MIN_DAYS", "X_LOW", "LOW", "HIGH", "X_HIGH", "CHART_YEARS", "PEAK_GAP", "MACRO", "MACRO_CHG")
     g = globals()
     return hashlib.sha256(json.dumps({k: g[k] for k in keys}, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:12]

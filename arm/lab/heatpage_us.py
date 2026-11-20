@@ -132,6 +132,8 @@ def index_page(idx: str, B: dict, R: dict) -> dict:
         V = HP.view(B, R)
         P = HP.parts(V)
         P["meta"] = HP.meta()
+    if V.get("mpos"):
+        P["mpos"] = V["mpos"]                             # 股市位階（build 拿去記公布的數字，再拿掉）
     return P
 
 
@@ -197,6 +199,8 @@ function put(ix, html, sg) {
   if (window.heatInit) window.heatInit();
   if (window.sgInit) window.sgInit();          // 全部指標：換成這個指數的列
   if (window.bubDraw) window.bubDraw(ix);      // 泡沫：畫這個指數的歷史等級
+  const mc = BOX.querySelector('.mpz-cw');      // 股市位階的圖：手機上捲到最新（換內容時頁面裡的小程式不會跑）
+  if (mc) mc.scrollLeft = mc.scrollWidth;
 }
 function show(ix, scroll) {
   if (!METAS[ix]) return;
@@ -300,7 +304,7 @@ def assemble(pages: dict, default: str = DEFAULT) -> tuple[str, dict]:
     j = lambda x: json.dumps(x, ensure_ascii=False, separators=(",", ":"), sort_keys=True).replace("</", "<\\/")  # noqa: E731
     G = HP.page_parts([k for k in U.INDEX_ORDER if k in pages])
     sgd, sg = split_sgd(G["sgd"], default)
-    html = appnav.finish(_HTML.replace("{{CSS}}", HP._CSS + appnav.CSS + VZ.CSS + G["css"] + G["bcss"] + CSS)
+    html = appnav.finish(_HTML.replace("{{CSS}}", HP._CSS + appnav.CSS + VZ.CSS + G["css"] + G["bcss"] + HP._mpos_css() + CSS)
             .replace("{{APPTAB}}", appnav.bar("mkt", cur="x9mu.html"))
             .replace("{{MKROW}}", HP.market_row("us")).replace("{{DRAWER}}", VZ.DRAWER).replace("{{PANEL}}", G["panel"])
             .replace("{{SGD}}", sgd).replace("{{BUBD}}", G["bubd"])
@@ -339,6 +343,10 @@ def build(out: Path = OUT, data_dir: Path | None = None) -> bool:
         B = CU.build(idx, D, SH)
         R = ((RA.get("idx") or {}).get(idx)) or {}
         pages[idx] = index_page(idx, B, R)
+        X = pages[idx].pop("mpos", None)
+        if out == OUT and X:                              # 股市位階：正式頁才記「公布的數字」（arm/lab/mpos.py，規格 mposspec VER 3）
+            from . import mpos
+            mpos.record(X, mpos.read_log(mpos.log_path(idx)), mpos.log_path(idx))
         changed = HC.write(chart_data(idx, B, R), data_dir / data_name(idx)) or changed
     html, P = assemble(pages)
     for name, d in P.items():

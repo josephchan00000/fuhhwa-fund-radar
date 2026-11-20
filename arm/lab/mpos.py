@@ -19,16 +19,21 @@ ROOT = Path(__file__).resolve().parents[2]
 LOG = ROOT / "data" / "lab" / "heat" / "mpos_log.json"
 
 
-def groups(inc: dict) -> list[tuple[str, list[str]]]:
-    """規格第 1 點：清單和現在有算分的項目取交集。"""
+def log_path(mk: str = "tw") -> Path:
+    """公布的數字：台股 mpos_log.json、美股每個指數 mpos_log_{指數}.json（VER 3）。"""
+    return LOG if mk == "tw" else LOG.with_name(f"mpos_log_{mk}.json")
+
+
+def groups(inc: dict, defs=None) -> list[tuple[str, list[str]]]:
+    """規格第 1 點：清單和現在有算分的項目取交集（defs＝S.GROUPS 台股、S.GROUPS_US 美股）。"""
     on = {k for ks in (inc or {}).values() for k in ks}
-    return [(name, [k for k in ks if k in on]) for name, ks in S.GROUPS]
+    return [(name, [k for k in ks if k in on]) for name, ks in (defs or S.GROUPS)]
 
 
-def compute(B: dict) -> dict:
+def compute(B: dict, defs=None) -> dict:
     cal, heat = B["cal"], B["heat"]
     T = len(cal)
-    G = groups(B.get("inc") or {})
+    G = groups(B.get("inc") or {}, defs)
     gs = {}
     for name, ks in G:
         need = min(S.MIN_ITEMS, len(ks)) if ks else 1          # VER 2（VER 1＝一半，無條件進位）
@@ -39,7 +44,7 @@ def compute(B: dict) -> dict:
         gs[name] = col
     raw = []
     for i in range(T):
-        vs = [gs[n][i] for n, _ in G]
+        vs = [gs[n][i] for n, ks in G if ks]               # VER 3：沒有算分項目的組不放進平均（台股四組都有）
         raw.append(sum(vs) / len(vs) if all(v is not None for v in vs) else None)
     v, win = [], []                                       # win＝過去 WIN 天（含當天）有值的原值，排好序
     q = []                                                # 照日期的佇列，滑出視窗時從 win 拿掉
@@ -80,25 +85,26 @@ def peaks(d: list[str], v: list) -> list[tuple[str, float, str]]:
     return [(a, b, c) for a, b, c, _ in out]
 
 
-def read_log() -> dict:
+def read_log(path: Path | None = None) -> dict:
     try:
-        return json.loads(LOG.read_text(encoding="utf-8")).get("days") or {}
+        return json.loads((path or LOG).read_text(encoding="utf-8")).get("days") or {}
     except (OSError, ValueError, AttributeError):
         return {}
 
 
-def record(X: dict, log: dict) -> bool:
+def record(X: dict, log: dict, path: Path | None = None) -> bool:
     """每天第一次算出來的數字記下來，之後不改（規格第 7 點）。"""
     i = len(X["v"]) - 1
     d, x = X["cal"][i], X["v"][i]
     if x is None or d in log:
         return False
-    log[d] = {"v": x, "raw": round(X["raw"][i], 2), "g": [None if X["g"][n][i] is None else round(X["g"][n][i], 1) for n, _ in S.GROUPS]}
+    path = path or LOG
+    log[d] = {"v": x, "raw": round(X["raw"][i], 2), "g": [None if X["g"][n][i] is None else round(X["g"][n][i], 1) for n in X["g"]]}
     rows = [json.dumps(k) + ":" + json.dumps(log[k], ensure_ascii=False, separators=(",", ":")) for k in sorted(log)]
-    LOG.parent.mkdir(parents=True, exist_ok=True)
-    tmp = LOG.with_suffix(".tmp")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".tmp")
     tmp.write_text('{"ver":' + str(S.VER) + ',"days":{\n' + ",\n".join(rows) + "\n}}\n", encoding="utf-8")
-    tmp.replace(LOG)
+    tmp.replace(path)
     return True
 
 
@@ -179,13 +185,13 @@ def _chart(d: list[str], v: list, pk: list) -> str:
     return "".join(o) + "</svg>"
 
 
-def block(B: dict, X: dict | None = None, log: dict | None = None) -> str:
-    """市場頁最上面一塊（規格第 4～8 點）。"""
+def block(B: dict, X: dict | None = None, log: dict | None = None, mk: str = "tw") -> str:
+    """市場頁最上面一塊（規格第 4～8 點；mk＝tw 或美股指數代號）。"""
     from . import heatspec as HS
     from .heatpage import n0
     e = html.escape
     _NM = {k: nm for k, _, nm, *_ in HS.IND}
-    X = X or compute(B)
+    X = X or compute(B, S.GROUPS if mk == "tw" else S.GROUPS_US)
     v, cal = X["v"], X["cal"]
     idx = [i for i, x in enumerate(v) if x is not None]
     if not idx:
@@ -194,7 +200,7 @@ def block(B: dict, X: dict | None = None, log: dict | None = None) -> str:
     d, x = cal[i], v[i]
     prev = next((v[j] for j in range(i - 1, -1, -1) if v[j] is not None), None)
     w4 = v[i - 20] if i >= 20 else None
-    log = read_log() if log is None else log
+    log = read_log(log_path(mk)) if log is None else log
     fix = ""
     if prev is not None:
         pd = cal[max(j for j in idx if j < i)]
@@ -206,9 +212,15 @@ def block(B: dict, X: dict | None = None, log: dict | None = None) -> str:
     below = round(x * 10)
     sub = [f"昨天 {prev:g}" if prev is not None else "", f"20 個交易日前 {w4:g}" if w4 is not None else ""]
     how = "四組（價格位置、部位與籌碼、情緒、廣度）平均之後，和過去 10 年每一天比；0＝最低、10＝最高。"
+    miss = [n for n, ks in X["items"].items() if not ks]
+    if miss:
+        how += f"這個指數的{'、'.join(miss)}沒有算分的項目，不放進平均。"
     gs = []
-    for name, _ in S.GROUPS:
+    for name, ks in X["items"].items():
         g = X["g"][name][i]
+        if not ks:
+            gs.append(f'<div class="mpz-g"><span>{name}</span><span class="hb"><i class="na"></i></span><em>沒有算分的項目</em></div>')
+            continue
         if g is None:
             gs.append(f'<div class="mpz-g"><span>{name}</span><span class="hb"><i class="na"></i></span><em>—</em></div>')
             continue
@@ -216,11 +228,11 @@ def block(B: dict, X: dict | None = None, log: dict | None = None) -> str:
         gs.append(f'<div class="mpz-g" title="{e("、".join(_NM.get(k, k) for k in X["items"][name]))}">'
                   f'<span>{name}</span><span class="hb"><i class="{_band_cls(b)}" style="width:{g:.0f}%"></i></span><em>{n0(g)} {b}</em></div>')
     ms = []
-    for k in S.MACRO:
+    for k in (S.MACRO if mk == "tw" else S.MACRO_US):
         c = (B.get("comp") or {}).get(k) or []
         now = c[i] if i < len(c) else None
         old = c[i - S.MACRO_CHG] if i >= S.MACRO_CHG and i < len(c) else None
-        if now is None:
+        if now is None or k not in HS.DIMS:
             continue
         chg = "" if old is None else f"比 20 天前 {'+' if now - old >= 0 else '−'}{abs(now - old):.0f}"
         ms.append(f'<div class="mpz-m"><span>{e(HS.DIMS[k]["name"].replace("熱度", ""))}</span><b>{n0(now)}</b><small>{HS.band(now)}・{chg}</small></div>')
