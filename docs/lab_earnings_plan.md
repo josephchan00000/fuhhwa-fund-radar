@@ -160,3 +160,12 @@
 程式：`mpos.compute(B, GROUPS_US)`、`mpos.block(..., mk=指數)`、`mpos.log_path(指數)`＝`data/lab/heat/mpos_log_{指數}.json`；
 美股頁在 `heatpage_us.index_page` 的美股規格底下產生，`build` 正式建頁時才記。換指數時頁面裡的圖捲到最新（`SWITCH_JS` 的 `put`）。
 
+### 11.2 美股財報季（ernusspec VER 1，第一次正式算之前寫定）
+- 資料探針（2026-11-20，`scripts/probe_earnus.py`，CI 只印不寫）：Yahoo quoteSummary 的 `earnings.earningsChart` 有近 4 季的實際 EPS、當時預估、
+  期末日與**公布的確切時間**（可以分盤前、盤後）；`financialsChart`、`incomeStatementHistoryQuarterly` 有近 4 季營收（後者有期末日）；
+  `earningsTrend` 的 0q 有目前這一季的 EPS 與營收預估；fundamentals-timeseries 有更早幾季的營收、淨利（最新一季常晚幾天）。
+  那斯達克財報行事曆有實際 EPS、預估、家數、會計季，公布時間一律「沒提供」。
+- 規格重點：清單＝復華基金前十大的美股＋自家 ETF 的美股持股＋美股強勢品質股（排除 ETF）；季的歸屬看期末日往前 45 天；
+  EPS 對預估兩家（Yahoo、那斯達克）一致才標高於／低於，不一致寫兩邊數字；營收對預估只有 Yahoo，用 CI 每天記的「公布前最後一版」，
+  這一季開始記之前就公布了，所以這一季寫「沒有公布前的營收預估紀錄」，下一季起才有；財報後股價看公布時間選區間。
+
