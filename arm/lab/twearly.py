@@ -7,6 +7,7 @@
 
 存檔 data/lab/early/{tw|tp}-{年}.json.gz（store kind "early"，不會被 prune）：
   {"t": [交易日], "c": {代號: [收盤或 null]}, "g": {代號: [漲跌價差或 null（null＝沒有比價，例如 X）]}, "sh": {交易日: {代號: 發行股數}}（只有月底）,
+   "ex": {除權息日: {代號: 參考價}}（官方除權息表，每年抓一次；brearlyspec VER 2）,
    "miss": [抓過但查無資料的平日（休市）], "err": {日期: 原因}}
 可以重跑續補：已經有的日期跳過；時間到就停，下一輪接著抓。
 """
@@ -182,6 +183,20 @@ def fetch_tp(d: str):
     return None, ("nodata" if last.startswith("nodata") else last)
 
 
+def fetch_div(m: str, y: int) -> dict | None:
+    """那一年的官方除權息表 → {除權息日: {代號: 參考價}}（brearlyspec VER 2 第 2 點；抓不到＝None，下一輪再抓）。"""
+    rows = MK.twse_exright_year(y) if m == "tw" else MK.tpex_exright_year(y)
+    if not rows:
+        return None
+    out: dict[str, dict] = {}
+    for r in rows:
+        d, c = r[0], r[1]
+        ref = r[5] if m == "tw" else r[3]                  # 證交所：[日, 代號, 權值+息值, 權/息, 前收, 參考價]；櫃買：[日, 代號, 前收, 參考價, …]
+        if d and c and isinstance(ref, (int, float)) and ref > 0:
+            out.setdefault(d, {})[c] = ref
+    return out
+
+
 def run(budget_s: float = 9000, mkts: tuple[str, ...] = ("tw", "tp")) -> dict:
     """抓還沒有的日子；時間到就存檔停下（下一輪接著抓）。回統計。"""
     t0 = time.time()
@@ -216,6 +231,11 @@ def run(budget_s: float = 9000, mkts: tuple[str, ...] = ("tw", "tp")) -> dict:
                 if q and got["ok"] % 40 == 0:                # 中途存一下（時間到被砍也不會白抓）
                     store.write(KIND, f"{m}-{y}", doc)
             dirty = _finish(m, doc, days, t0, budget_s) or dirty
+            if doc["t"] and "ex" not in doc and time.time() - t0 <= budget_s:      # 除權息表（brearlyspec VER 2）
+                ex = fetch_div(m, y)
+                if ex is not None:
+                    doc["ex"] = ex
+                    dirty = True
             if dirty:
                 doc["miss"] = sorted(set(doc["miss"]))
                 store.write(KIND, f"{m}-{y}", doc)

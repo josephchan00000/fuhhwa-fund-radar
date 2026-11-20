@@ -3,5 +3,5 @@ from arm.lab import brearlyspec as S
 
 
 def test_spec_locked():
-    assert S.VER == 1 and S.SPEC_DATE == "2026-11-20" and S.SPLICE == "2014-01-01"
-    assert S.fingerprint() == "5344521a40b5"
+    assert S.VER == 2 and S.SPEC_DATE == "2026-11-20" and S.SPLICE == "2014-01-01"
+    assert S.fingerprint() == "605b64012fbc"   # VER 1：5344521a40b5

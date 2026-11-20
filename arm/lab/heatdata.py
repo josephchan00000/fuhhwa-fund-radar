@@ -197,7 +197,8 @@ def extend(P, SP) -> None:
 
 class EarlyPanel:
     """官方每日行情（arm/lab/twearly.py）組成 breadth() 要的面板：cal、T、codes、s[代號]["c"]（還原收盤）、cap[代號]（當天適用的月底市值）。
-    還原：每天的報酬＝收盤 ÷（收盤 − 漲跌價差）；沒有漲跌價差＝收盤 ÷ 前一天收盤；前一天沒有價＝重新起算（規格第 2 點）。"""
+    還原：每天的報酬＝收盤 ÷（收盤 − 漲跌價差）；沒有漲跌價差＝收盤 ÷ 除權息表的參考價（VER 2），再沒有＝收盤 ÷ 前一天收盤；
+    前一天沒有價＝重新起算（規格第 2 點）。"""
 
     def __init__(self, docs: list[dict] | None = None):
         import bisect
@@ -210,7 +211,11 @@ class EarlyPanel:
         close: dict[str, list] = {}
         chg: dict[str, list] = {}
         shares: dict[str, dict] = {}
+        exref: dict[tuple, float] = {}
         for doc in docs:
+            for d, m in (doc.get("ex") or {}).items():
+                for c, ref in m.items():
+                    exref[(d, c)] = ref
             pos = [self.ix[d] for d in doc.get("t") or []]
             for c, xs in (doc.get("c") or {}).items():
                 cl = close.setdefault(c, [None] * self.T)
@@ -239,7 +244,7 @@ class EarlyPanel:
                     a = x
                 else:
                     g = gl[i]
-                    ref = x - g if g is not None else None
+                    ref = x - g if g is not None else exref.get((cal[i], c))      # 沒有漲跌價差：用除權息表的參考價（VER 2）
                     r = x / ref if ref is not None and ref > 0 else x / prev_c
                     a = prev_a * r
                 adj[i], prev_c, prev_a = a, x, a
