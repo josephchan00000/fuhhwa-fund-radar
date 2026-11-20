@@ -515,6 +515,8 @@ def push_lines(rec: dict) -> list[str]:
     out = [a]
     if rec.get("pm"):                                     # 盤前作戰圖（docs/lab_premarket_plan.md）
         out.append(rec["pm"])
+    if rec.get("pmr"):                                    # 盤前自我檢討（docs/lab_premarket_plan.md 第 17 節）
+        out.append(rec["pmr"])
     b = boom_line(rec.get("boom"))
     if b:
         out.append(b)
@@ -644,6 +646,13 @@ def update(data: dict, write_file: bool | None = None, now: datetime | None = No
         pl = pm_line(last)
         if pl:
             rec["pm"] = pl
+    except Exception:                                     # noqa: BLE001 —— 讀不到：不帶這一行
+        pass
+    try:                                                  # 盤前自我檢討一行（arm/lab/pmreview.py；檢討日＝這一筆的資料日才帶）
+        from . import pmreview
+        rl = pmreview.push_line(pmreview.read(), last)
+        if rl:
+            rec["pmr"] = rl
     except Exception:                                     # noqa: BLE001 —— 讀不到：不帶這一行
         pass
     rec["push"] = push_lines(rec)

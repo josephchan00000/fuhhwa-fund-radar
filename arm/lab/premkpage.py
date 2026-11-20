@@ -5,10 +5,11 @@
 那些支撐壓力價位擋住的比例跟任意價位一樣（第 13 節 Q3），停損 90～200 點、這個月一天常走 1,200 點以上。
 所以拿掉買賣點卡（docs/lab_txo_plan.md 第 20 節），版面改成：
   ⓪ 今日點位（使用者 2026-11-13：「我要一看就知道今天的壓力支撐建議點位」）：壓力 1～3、開盤、支撐 1～3（來源＋今天碰到的比例，
-     比例以現在的預估開盤算、有驗證過）＋四個參考點位（沒有驗證過，照實標出來）
+     比例以現在的預估開盤算、有驗證過）；2026-11-20 起不列參考點位（進場、停損、目標），改寫一句開盤後 5 分鐘平常晃多少（第 17 節）
   ① 深色戰情卡：預估 09:01 指數（平常差多少、八成在多少內）＋籌碼風向（只是傾向）
-  ② 今天可能走多遠（2026-11-13 起併進今日點位的價位圖：開盤上下 1 倍正常波動＋碰到的比例；點參考點位卡畫進場、停損、目標）
+  ② 今天可能走多遠（2026-11-13 起併進今日點位的價位圖：開盤上下 1 倍正常波動＋碰到的比例）
   ③ 最近 10 天：估的開盤 vs 09:01 實際、當天最高最低（照實列，估得差也照列）
+  ③-b 自我檢討（2026-11-20；arm/lab/pmreview.py、規格 pmrevspec）：差多少、主因是哪一段、近 20 天包住幾天、警示、優化想法（影子版本）
   ④ 收起來：全部籌碼期貨數字（標明過去有沒有用）、這些數字怎麼來的
 伺服器端畫好（含 SVG）；瀏覽器只負責過期提示與開頭數字跳動。CSS class 一律 pz 開頭。
 """
@@ -62,38 +63,17 @@ CSS = (
     ".pzl-o{background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.45)}.pzl-o .pzl-k{background:rgba(251,191,36,.25);color:var(--zg)}"
     ".pzl-o .pzl-p{color:#fde68a;font-size:23px}"
     ".pzl-h3{font-size:16px;margin:16px 0 4px;color:var(--zt)}.pzl-h3 small{font-weight:400;color:var(--zm);font-size:12px;margin-left:6px}"
-    ".pzl-g{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;grid-template-areas:'rows' 'ch' 'sc' 'det'}"
-    ".pzl-rows{grid-area:rows}.pzl-sc{grid-area:sc}.pzl-ch{grid-area:ch;min-width:0}.pzl-g .pz-det{grid-area:det}"
-    "@media (min-width:860px){.pzl-g{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:'rows ch' 'sc ch' 'det ch';align-items:start}"
+    ".pzl-g{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;grid-template-areas:'rows' 'ch'}"
+    ".pzl-rows{grid-area:rows}.pzl-ch{grid-area:ch;min-width:0}"
+    "@media (min-width:860px){.pzl-g{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:'rows ch';align-items:start}"
     ".pzl-ch{position:sticky;top:8px}}"
-    ".pz-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;align-content:start}"
-    ".pz-c{position:relative;display:flex;flex-direction:column;gap:2px;padding:10px 11px 9px;border-radius:14px;text-align:left;color:inherit;"
-    "font:inherit;cursor:pointer;background:rgba(255,255,255,.045);border:1px solid var(--zl);transition:transform .15s,box-shadow .2s,border-color .2s}"
-    ".pz-c:hover{transform:translateY(-2px)}.pz-c:focus-visible{outline:2px solid var(--zg);outline-offset:2px}"
-    ".pz-c.cu.on{border-color:var(--zu);box-shadow:0 0 0 1px var(--zu),0 0 22px rgba(34,211,238,.35)}"
-    ".pz-c.cd.on{border-color:var(--zd);box-shadow:0 0 0 1px var(--zd),0 0 22px rgba(251,113,133,.35)}"
-    ".pz-ck{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--zm)}"
-    ".pz-ck b{padding:1px 8px;border-radius:7px;font-size:13px;letter-spacing:1px}"
-    ".pz-c.cu .pz-ck b{background:var(--zu);color:#04131a}.pz-c.cd .pz-ck b{background:var(--zd);color:#25040a}"
-    ".pz-ce{font-size:25px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.2}"
-    ".pz-ce small{font-size:12px;font-weight:500;color:var(--zm);margin-left:4px;white-space:nowrap}"
-    ".pz-cl{display:flex;justify-content:space-between;gap:6px;font-size:12.5px;font-variant-numeric:tabular-nums}"
-    ".pz-cl .s{color:#fda4af}.pz-cl .t{color:#6ee7b7}"
-    ".pz-rr{display:flex;align-items:center;gap:6px;margin-top:3px;font-size:12px;color:var(--zm)}"
-    ".pz-rr i{flex:1;display:flex;height:6px;border-radius:99px;overflow:hidden;background:rgba(255,255,255,.08)}"
-    ".pz-rr i s{display:block;background:var(--zs)}.pz-rr i u{display:block;background:var(--zw)}.pz-rr b{color:var(--zt);font-size:13px}"
-    ".pz-hit{font-size:12px;color:var(--zm)}.pz-hit b{color:var(--zg);font-size:13px}"
-    ".pz-svg .pz-s{opacity:0;transition:opacity .35s;pointer-events:none}.pz-svg .pz-s.on{opacity:1}"
     ".pz-svg .pz-b{cursor:pointer;transition:opacity .25s}.pz-svg.act .pz-b{opacity:.55}.pz-svg .pz-b.sel{opacity:1}"
     ".pz-svg .pz-el{animation:pzg 2.4s ease-in-out infinite}@keyframes pzg{50%{opacity:.55}}"
-    ".pz-svg .pz-s.on .pz-ar{stroke-dasharray:6 5;animation:pzda 1.1s linear infinite}@keyframes pzda{to{stroke-dashoffset:-22}}"
     ".pz-info{min-height:18px;margin:6px 2px 0;font-size:12.5px;color:var(--zm);line-height:1.6}"
-    ".pz-det{padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.045);border:1px solid var(--zl);font-size:13.5px;line-height:1.7}"
-    ".pz-det:empty{display:none}"
-    ".pz-det b{font-variant-numeric:tabular-nums}.pz-det .why{color:var(--zm);font-size:12.5px}"
-    ".pz-det .mny{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin:4px 0 0}.pz-det .mny dt{color:var(--zm)}.pz-det .mny dd{margin:0}"
-    ".pz-det .l{color:#fda4af}.pz-det .g{color:#6ee7b7}"
-    "@media (max-width:380px){.pz-ce{font-size:20px}.pz-ce small{font-size:11px}.pz-cl{font-size:11.5px}.pz-c{padding:9px 9px 8px}}"
+    ".pzl-n{margin:8px 2px 0;font-size:12.5px;color:var(--zt);line-height:1.6;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.045);border:1px solid var(--zl)}.pzl-n b{color:var(--zg);font-variant-numeric:tabular-nums}"
+    ".pzv-l{margin:0 0 6px;font-size:13.5px;line-height:1.7}.pzv-l b{font-variant-numeric:tabular-nums}"
+    ".pzv-w{margin:4px 0;font-size:12.5px;color:#fcd34d}.pzv-r{font-size:12.5px;color:var(--zm);line-height:1.7;margin:6px 0 0}"
+    ".pzv-r b{color:var(--zt)}"
     ".pzl-w{margin-top:12px;font-size:12px;color:#fcd34d;background:rgba(251,191,36,.08);border-radius:10px;padding:8px 10px;line-height:1.5}"
     ".pz-kv{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:0}"
     ".pz-kv div{padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid var(--zl)}"
@@ -127,7 +107,7 @@ CSS = (
     "@media (min-width:860px){.pz-top{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);align-items:end}"
     ".pz-grid{grid-template-columns:minmax(0,1fr) minmax(0,1.05fr)}.pz-num{font-size:60px}.pz-ws{grid-template-columns:repeat(3,minmax(0,1fr))}}"
     "@media (max-width:380px){.pz{padding:14px 12px}.pz-num{font-size:42px}.pz-kv dd{font-size:14px}}"
-    "@media (prefers-reduced-motion:reduce){.pz-live i,.pz-svg .pz-el,.pz-svg .pz-s.on .pz-ar{animation:none}.pz-c,.pz-svg .pz-s{transition:none}}"
+    "@media (prefers-reduced-motion:reduce){.pz-live i,.pz-svg .pz-el{animation:none}}"
 )
 
 JS = r"""<script>(function(){
@@ -138,27 +118,11 @@ var n=document.querySelector('.pz-num');
 if(n&&!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)){var to=+n.dataset.to,fr=to-Math.max(60,Math.round(to*0.006)),t0=null;
  var step=function(ts){if(!t0)t0=ts;var p=Math.min(1,(ts-t0)/700),e=1-Math.pow(1-p,3);n.textContent=nf(fr+(to-fr)*e);if(p<1)requestAnimationFrame(step)};requestAnimationFrame(step);}
 var D=null;try{D=JSON.parse((document.getElementById('pzd')||{}).textContent||'null')}catch(e){}
-if(!D||!D.sc)return;
-var st={acct:1000000,cap:'O1'};try{Object.assign(st,JSON.parse(localStorage.getItem('txoCalc')||'{}'))}catch(e){}
-var cap={O1:0.02,O2:0.03,O3:0.05}[st.cap]||0.02;
-var svg=document.querySelector('#pzl .pz-svg'),det=document.getElementById('pzdet'),info=document.getElementById('pzinfo');
-function md(d){return +d.slice(5,7)+'/'+ +d.slice(8,10)}
-function show(i){var c=D.sc[i];if(!c)return;
- document.querySelectorAll('#pzl .pz-c').forEach(function(b){b.classList.toggle('on',+b.dataset.s===i);b.setAttribute('aria-pressed',+b.dataset.s===i)});
- if(svg)svg.querySelectorAll('.pz-s').forEach(function(g){g.classList.toggle('on',+g.dataset.s===i)});
- if(!det)return;
- var o=c.opt,h='<div class="why">'+(c.why||'')+'</div><dl class="mny">';
- if(c.mtx)h+='<dt>小台一口</dt><dd>停損賠 <b class="l">'+nf(c.mtx.loss)+'</b> 元、到目標賺 <b class="g">'+nf(c.mtx.gain)+'</b> 元</dd>';
- if(o&&o.k){var one=o.max,lots=one>0?Math.floor(st.acct*cap/one):0;
-  h+='<dt>選擇權</dt><dd>買 '+(o.xd?md(o.xd)+' 到期 ':'')+nf(o.k)+' '+(o.cp==='C'?'買權':'賣權')+'，約 <b>'+(+o.pe).toFixed(1)+'</b> 點（停損時約 '+(+o.ps).toFixed(1)+'、目標時約 '+(+o.pt).toFixed(1)+'）</dd>'+
-   '<dt>一口</dt><dd>停損賠 <b class="l">'+nf(o.loss)+'</b>、到目標賺 <b class="g">'+nf(o.gain)+'</b> 元；權利金歸零最多賠 '+nf(o.max)+' 元</dd>'+
-   '<dt>可買</dt><dd>帳戶 '+nf(st.acct)+' 元、每筆 '+Math.round(cap*100)+'%：'+(lots>0?'最多 <b>'+lots+'</b> 口':'買不到 1 口')+'</dd>';}
- det.innerHTML=h+'</dl>';}
-document.querySelectorAll('#pzl .pz-c').forEach(function(b){b.addEventListener('click',function(){show(+b.dataset.s)})});
+if(!D||!D.bands)return;
+var svg=document.querySelector('#pzl .pz-svg'),info=document.getElementById('pzinfo');
 if(svg){svg.classList.add('act');svg.querySelectorAll('.pz-b').forEach(function(r){r.addEventListener('click',function(){
  svg.querySelectorAll('.pz-b.sel').forEach(function(x){x.classList.remove('sel')});r.classList.add('sel');
  var b=D.bands[+r.dataset.b];if(b&&info)info.innerHTML='<b>'+(b.lo===b.hi?nf(b.lo):nf(b.lo)+'～'+nf(b.hi))+'</b>：'+b.src.map(function(s){return s[0]+' '+nf(s[1])}).join('、');});});}
-show(0);
 })();</script>"""
 
 
@@ -224,10 +188,6 @@ def _src_label(name: str) -> str:
     return "選擇權最大痛點" if name == "最大痛點" else name
 
 
-SC_TAG = {"long": ("做多", "回測支撐", "u"), "short": ("做空", "反彈壓力", "d"), "break": ("追多", "突破壓力", "u"),
-          "breakdown": ("追空", "跌破支撐", "d")}
-
-
 def _bands_now(pm: dict, cn: dict) -> list[dict]:
     """每一帶依「現在的」預估開盤重新分邊（08:46 重估過，原本的支撐可能變壓力），附今天碰到的比例（Q2 表內插）。
     預估開盤落在帶子裡＝side "at"、碰到 100%。"""
@@ -244,29 +204,16 @@ def _bands_now(pm: dict, cn: dict) -> list[dict]:
     return out
 
 
-def _sc_now(pm: dict, cn: dict) -> list[dict]:
-    """參考點位，「今天碰到進場價的機會」以現在的預估開盤重算。"""
-    from .premkt import touch
-    q2 = (pm.get("v") or {}).get("q2") or {}
-    est, em = cn["est"], pm.get("em") or 0
-    out = []
-    for c in pm.get("sc") or []:
-        hit = (touch(abs(c["entry"] - est) / em, "up" if c["entry"] > est else "dn", q2) if em and q2.get("x") else c.get("hit"))
-        out.append({**c, "hit": hit})
-    return out
-
-
-def lvchart(pm: dict, cn: dict, bands: list[dict], sc: list[dict]) -> str:
+def lvchart(pm: dict, cn: dict, bands: list[dict]) -> str:
     """今日點位的價位圖（2026-11-13 使用者：「今天可能走多遠應該要跟上面合併」「本來那種點了之後的示意圖很好」）：
-    預估開盤＋八成範圍、壓力支撐帶（右邊＝今天碰到的比例）、開盤上下 1 倍正常波動（今天可能走多遠），
-    點參考點位卡，圖上畫出進場、停損、目標（11/5 版的互動圖）。"""
+    預估開盤＋八成範圍、壓力支撐帶（右邊＝今天碰到的比例）、開盤上下 1 倍正常波動（今天可能走多遠）；點價位帶看它的來源。
+    2026-11-20 起不畫進場、停損、目標（docs/lab_premarket_plan.md 第 17 節：9 天碰到進場價 20 次、13 次停損）。"""
     e = html.escape
     from .premkt import touch
     q2 = (pm.get("v") or {}).get("q2") or {}
     est, em = cn["est"], pm.get("em") or 0
     band80, typ = cn["p80"] or 0, cn["typ"] or 0
     ps = [est + band80, est - band80, pm["close"]] + [x for b in bands for x in (b["lo"], b["hi"])]
-    ps += [x for c in sc for x in (c["entry"], c["stop"], c["target"])]
     if em:
         ps += [est + em, est - em]
     pmax, pmin = max(ps), min(ps)
@@ -275,12 +222,11 @@ def lvchart(pm: dict, cn: dict, bands: list[dict], sc: list[dict]) -> str:
 
     def y(p):
         return round(TOP + (pmax - p) / (pmax - pmin) * (H - TOP - BOT), 1)
-    o = [f'<svg class="pz-svg" viewBox="0 0 {W} {H}" role="img" aria-label="今天的價位圖：預估開盤、壓力、支撐、可能走多遠與參考點位">',
+    o = [f'<svg class="pz-svg" viewBox="0 0 {W} {H}" role="img" aria-label="今天的價位圖：預估開盤、壓力、支撐、可能走多遠">',
          '<defs><linearGradient id="pzbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a1240"/><stop offset=".5" stop-color="#0d1330"/>'
          '<stop offset="1" stop-color="#062027"/></linearGradient>'
          '<filter id="pzgl" x="-20%" y="-200%" width="140%" height="500%"><feGaussianBlur stdDeviation="3"/></filter>'
-         '<marker id="pzah" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">'
-         '<path d="M0 0L10 5L0 10z" fill="#34d399"/></marker></defs>',
+         '</defs>',
          f'<rect x="0" y="0" width="{W}" height="{H}" rx="14" fill="url(#pzbg)"/>']
     if band80:
         o.append(f'<rect x="{X0}" y="{y(est + band80)}" width="{X1 - X0}" height="{y(est - band80) - y(est + band80)}" fill="#fbbf24" opacity=".08"/>')
@@ -310,22 +256,6 @@ def lvchart(pm: dict, cn: dict, bands: list[dict], sc: list[dict]) -> str:
         left.append((yc, _n(b["lo"]) if round(b["lo"]) == round(b["hi"]) else _n(b["mid"]), col, False))
         if b["side"] != "at" and b.get("touch") is not None:
             right.append((yc, f"碰 {_pct(b['touch'])}", col))
-    BX0, BX1 = 196, X1
-    for i, c in enumerate(sc):                                # 參考點位（點卡片才出現）
-        up = c["target"] > c["entry"]
-        ye, ys, yt = y(c["entry"]), y(c["stop"]), y(c["target"])
-        col = "#22d3ee" if up else "#fb7185"
-        o.append(f'<g class="pz-s" data-s="{i}">'
-                 f'<rect x="{BX0}" y="{min(ye, ys)}" width="{BX1 - BX0}" height="{max(abs(ys - ye), 2)}" fill="#f43f5e" opacity=".32"/>'
-                 f'<rect x="{BX0}" y="{min(ye, yt)}" width="{BX1 - BX0}" height="{max(abs(yt - ye), 2)}" fill="#34d399" opacity=".26"/>'
-                 f'<line x1="{X0}" x2="{BX1}" y1="{ye}" y2="{ye}" stroke="{col}" stroke-width="2.5"/>'
-                 f'<line x1="{BX0}" x2="{BX1}" y1="{ys}" y2="{ys}" stroke="#f43f5e" stroke-width="1.5" stroke-dasharray="4 3"/>'
-                 f'<line x1="{BX0}" x2="{BX1}" y1="{yt}" y2="{yt}" stroke="#34d399" stroke-width="1.5" stroke-dasharray="4 3"/>'
-                 f'<line class="pz-ar" x1="{BX0 + 14}" x2="{BX0 + 14}" y1="{ye}" y2="{yt + (6 if up else -6)}" stroke="#34d399" stroke-width="2" marker-end="url(#pzah)"/>'
-                 f'<text x="{BX1 - 4}" y="{yt + (12 if up else -4)}" text-anchor="end" font-size="11" font-weight="700" fill="#6ee7b7">目標 {_n(c["target"])}</text>'
-                 f'<text x="{BX1 - 4}" y="{ys + (-4 if up else 12)}" text-anchor="end" font-size="11" font-weight="700" fill="#fda4af">停損 {_n(c["stop"])}</text>'
-                 f'<rect x="{BX0 - 76}" y="{ye - 10}" width="72" height="20" rx="6" fill="{col}"/>'
-                 f'<text x="{BX0 - 40}" y="{ye + 4.5}" text-anchor="middle" font-size="11.5" font-weight="800" fill="#06101a">進 {_n(c["entry"])}</text></g>')
     ly = _spread([t[0] for t in sorted(left)], 13, TOP + 6, H - BOT - 4)
     for (yy, txt, col, bold), y2 in zip(sorted(left), ly):
         o.append(f'<text x="{X0 - 6}" y="{round(y2 + 4, 1)}" text-anchor="end" font-size="{11.5 if bold else 11}" '
@@ -337,26 +267,11 @@ def lvchart(pm: dict, cn: dict, bands: list[dict], sc: list[dict]) -> str:
     return "".join(o)
 
 
-def _card(i: int, c: dict) -> str:
-    k, nm, side = SC_TAG.get(c.get("k"), (c["name"][-2:], c["name"][:-2], "u"))
-    risk, rew = c.get("risk") or abs(c["entry"] - c["stop"]), c.get("reward") or abs(c["target"] - c["entry"])
-    rp = risk / (risk + rew) * 100 if risk + rew else 50
-    rr = c.get("rr") or (rew / risk if risk else 0)
-    hit = f'<span class="pz-hit">今天碰到進場價 <b>{_pct(c["hit"])}</b></span>' if c.get("hit") is not None else ""
-    sg = 1 if c["target"] > c["entry"] else -1
-    lab = {"break": "站上", "breakdown": "跌破"}.get(c.get("k"), "進場")
-    return (f'<button type="button" class="pz-c c{side}" data-s="{i}" aria-pressed="false">'
-            f'<span class="pz-ck"><b>{k}</b>{html.escape(nm)}</span>'
-            f'<span class="pz-ce">{_n(c["entry"])}<small>{lab}</small></span>'
-            f'<span class="pz-cl"><span class="s">停損 {_n(c["stop"])}（{_n(-sg * risk, True)}）</span></span>'
-            f'<span class="pz-cl"><span class="t">目標 {_n(c["target"])}（{_n(sg * rew, True)}）</span></span>'
-            f'<span class="pz-rr"><i><s style="width:{rp:.0f}%"></s><u style="width:{100 - rp:.0f}%"></u></i>1 : <b>{rr:.1f}</b></span>{hit}</button>')
-
-
 def levels(pm: dict) -> str:
     """今日點位（使用者 2026-11-13）：壓力 1～3、預估開盤、支撐 1～3 由上往下，每一格寫價位、來源、今天碰到的比例；
-    參考點位四張卡（點一張，價位圖畫出進場、停損、目標，下面寫小台與選擇權一口賺賠）；價位圖同時畫開盤上下 1 倍正常波動（今天可能走多遠）。
-    碰到的比例用 Q2 表、以現在的預估開盤（08:46 重估過就用重估的）算；參考點位沒有驗證過，照實標出來。"""
+    價位圖同時畫開盤上下 1 倍正常波動（今天可能走多遠）。碰到的比例用 Q2 表、以現在的預估開盤（08:46 重估過就用重估的）算。
+    2026-11-20 起不列參考點位（進場、停損、目標）：9 天碰到進場價 20 次、13 次停損、11 次 10 分鐘內（docs/lab_premarket_plan.md 第 17 節）；
+    改寫一句「開盤後 5 分鐘平常晃多少」（premkt.json 的 noise，最近 20 天的 5 秒指數）。"""
     from .premkt import md, touch, wd
     e = html.escape
     v = pm.get("v") or {}
@@ -364,7 +279,6 @@ def levels(pm: dict) -> str:
     cn = now(pm)
     est, em = cn["est"], pm.get("em") or 0
     bands = _bands_now(pm, cn)
-    sc = _sc_now(pm, cn)
     up = sorted((b for b in bands if b["side"] == "up"), key=lambda b: b["lo"])[:3]
     dn = sorted((b for b in bands if b["side"] == "dn"), key=lambda b: -b["hi"])[:3]
 
@@ -392,6 +306,9 @@ def levels(pm: dict) -> str:
                 + f'</span><span class="pzl-h">比昨收<b>{_n(est - pm["close"], True)}</b></span></div>')
     for i, b in enumerate(dn, 1):
         rows.append(row("pzl-d", f"支撐 {i}", b))
+    nz = pm.get("noise") or {}
+    noise = (f'<p class="pzl-n">開盤後的晃動：最近 {nz["n"]} 天開盤第一小時，指數任一個 5 分鐘平常晃 <b>{_n(nz["med"])}</b> 點、'
+             f'十次有八次在 <b>{_n(nz["p80"])}</b> 點以內；停損放得比這個近，大多會被正常的晃動洗掉。</p>') if nz.get("med") else ""
     far = ""
     if em and q2.get("x"):
         far = (f'<p class="pz-info">今天可能走多遠：開盤上下 1 倍正常波動（±{_n(em)}）＝圖上虛線，過去碰到 '
@@ -401,20 +318,14 @@ def levels(pm: dict) -> str:
            f'<div class="pzl-hd"><h2>今日點位　{md(pm["next"])}（{wd(pm["next"])}）</h2><span>{e(upd)} 更新</span></div>',
            '<div class="pzl-g">',
            '<div class="pzl-rows">' + "".join(rows) + "</div>",
-           f'<div class="pzl-ch"><div class="pz-chart">{lvchart(pm, cn, bands, sc)}'
-           '<div class="pz-info" id="pzinfo">點價位帶看它是怎麼來的；右邊「碰」＝今天碰到的比例。</div>' + far + "</div></div>"]
-    if sc:
-        out.append('<div class="pzl-sc"><h3 class="pzl-h3">參考點位<small>點一張，價位圖畫出進場、停損、目標</small></h3>'
-                   '<div class="pz-cards">' + "".join(_card(i, c) for i, c in enumerate(sc)) + "</div></div>"
-                   '<div class="pz-det" id="pzdet"></div>')
-    out.append("</div>")
+           f'<div class="pzl-ch"><div class="pz-chart">{lvchart(pm, cn, bands)}'
+           '<div class="pz-info" id="pzinfo">點價位帶看它是怎麼來的；右邊「碰」＝今天碰到的比例。</div>' + far + noise + "</div></div>", "</div>"]
     ok = v.get("lv_ok") or []
     held = ("這些壓力支撐過去 10 年「擋住」的比例跟一般價位差不多" if not ok
             else "過去擋得住的只有：" + "、".join(ok))
-    out.append(f'<div class="pzl-w">⚠ 照實說：{held}；11/6～11/11 碰到進場價的 12 張裡 7 張幾分鐘內就停損。'
-               '「今天碰到」的比例是驗證過的，參考點位沒有，只能當參考，不是買賣建議。</div>')
-    data = {"sc": [{k: c.get(k) for k in ("name", "why", "entry", "stop", "target", "mtx", "opt")} for c in sc],
-            "bands": [{"lo": b["lo"], "hi": b["hi"], "src": [[_src_label(n), x] for n, x in b.get("src") or []]} for b in bands]}
+    out.append(f'<div class="pzl-w">⚠ 照實說：{held}，只能當「今天可能走到哪」的參考；「今天碰到」的比例是驗證過的。'
+               '進場、停損、目標不再列：11/6～11/17 碰到進場價 20 次、13 次停損，其中 11 次不到 10 分鐘。</div>')
+    data = {"bands": [{"lo": b["lo"], "hi": b["hi"], "src": [[_src_label(n), x] for n, x in b.get("src") or []]} for b in bands]}
     out.append('<script type="application/json" id="pzd">' + json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
                + "</script></section>")
     return "".join(out)
@@ -455,6 +366,45 @@ def recent(pm: dict) -> str:
             f'<p class="pz-chk">{lead}。</p><div class="optw"><table class="opt pzt pzr"><thead><tr><th>日期</th><th>清晨估</th><th>09:01 實際</th>'
             '<th>差</th>' + ('<th>08:46 重估</th><th>差</th>' if has8 else '') + '<th>當天最高～最低</th><th>振幅</th></tr></thead><tbody>' + "".join(rows) + "</tbody></table></div></section>")
 
+
+
+def review() -> str:
+    """自我檢討（使用者 2026-11-20；arm/lab/pmreview.py 照 pmrevspec 算好、這裡只排版）：最新一天差多少、主因是哪一段；
+    近 N 天八成範圍包住幾天、差的中位數、當天晃動、碰到的比例；警示；優化想法（影子版本 R1）；最近幾天的主因。"""
+    from . import pmreview as R
+    from . import pmrevspec as S
+    from .premkt import md
+    log = R.read()
+    if not log["rev"]:
+        return ""
+    e = html.escape
+    d = max(log["rev"])
+    r, s = log["rev"][d], log["sum"]
+    where = "在八成範圍內" if r.get("in") else "超出八成範圍" if r.get("in") is False else ""
+    seg = r.get("seg")
+    out = ['<section class="pz pz2" id="pzv"><h2 class="pz-h">自我檢討<small>預測為什麼不準（每天收盤後自動算）</small></h2>',
+           f'<p class="pzv-l"><b>{md(d)}</b>：清晨估 {_n(r["est"])}、09:01 實際 {_n(r["open"])}，差 <b>{_n(r["err"], True)}</b>'
+           f'（{r["x"]:.2f} 倍正常波動{"，" + where if where else ""}）。主因：{e(R.reason(r))}'
+           + (f'（夜盤收盤後到 08:45 {_n(seg[0], True)}、08:45 到 09:01 {_n(seg[1], True)}）' if seg else "") + "。</p>"]
+    if s.get("n_in"):
+        t = (f'近 {s["n"]} 天：八成範圍包住 <b>{s["in"]}</b> 天（應該約 {round(0.8 * s["n_in"])} 天）；差的中位數是正常波動的 {s["x_med"]:.2f} 倍；'
+             f'當天高低差是正常波動的 {s["rng_med"]:.1f} 倍（常態約 {S.RANGE_NORM} 倍）')
+        if s.get("touch_n"):
+            t += f'；壓力支撐「今天碰到」頁面說 {_pct(s["touch_said"])}、實際 {_pct(s["touch_got"])}（{s["touch_n"]} 條）'
+        out.append(f'<p class="pzv-l">{t}。</p>')
+    for w in s.get("warn") or []:
+        out.append(f'<p class="pzv-w">⚠ {e(w)}</p>')
+    r1 = s.get("r1") or {}
+    if r1:
+        out.append(f'<p class="pzv-r">優化想法（只記錄、不自動換）：<b>範圍跟著最近的晃動放大</b>——近 {r1["n"]} 天包住 {r1["in"]} 天、'
+                   f'平均寬度是現在的 {r1["w"]:.2f} 倍；' + ("<b>達到換版條件，可以考慮換，回「好」才換。</b>" if s.get("switch")
+                                                        else f"要 {S.SWITCH_MIN} 天才判斷要不要換。") + "</p>")
+    rows = []
+    for k in sorted(log["rev"], reverse=True)[:5]:
+        x = log["rev"][k]
+        rows.append(f'{md(k)} 差 {_n(x["err"], True)}：{e(R.reason(x))}')
+    out.append('<p class="pzv-r">最近幾天的主因：' + "；".join(rows) + "。</p></section>")
+    return "".join(out)
 
 # ── 區塊 ─────────────────────────────────────────────────────────────────────
 
@@ -575,6 +525,7 @@ def block(pm: dict | None) -> str:
     out.append(_wind(v))
     out.append("</section>")
     out.append(recent(pm))
+    out.append(review())
     out.append(_facts(pm))
     out.append(_method(pm))
     out.append(JS)

@@ -516,6 +516,8 @@ def build(asof: str | None = None) -> dict | None:
         "oi_note": oi_note, "sc": sc, "facts": fx, "warn": warn, "check": checks(days, cl, _read(NIGHT, {}) or {}),
     }
     validated(out, _read(RESEARCH), heat)
+    from . import pmreview
+    out["noise"] = pmreview.noise5(days[-20:])         # 參考點位實話版：開盤第一小時 5 分鐘平常晃多少（docs/lab_premarket_plan.md 第 17 節）
     out["push"] = push_line(out)
     from . import pm850
     log850 = _read(pm850.LOG, {}) or {}
