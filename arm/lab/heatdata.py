@@ -222,7 +222,10 @@ class EarlyPanel:
             for d, m in (doc.get("sh") or {}).items():
                 for c, n in m.items():
                     shares.setdefault(d, {})[c] = n
-        me = sorted(shares)
+        last_of_month = {}
+        for d in cal:                                      # 每個月最後一個交易日（規格第 3 點：月底市值）
+            last_of_month[d[:7]] = d
+        me = sorted(d for d in shares if last_of_month.get(d[:7]) == d)   # 上櫃行情每天都帶發行股數，只用月底那天
         self.s, self.cap = {}, {}
         for c in sorted(close):
             cl, gl = close[c], chg[c]
