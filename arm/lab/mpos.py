@@ -567,6 +567,7 @@ JS = r"""
     document.querySelectorAll('.mpz-more').forEach(function (d) { if (on) d.open = true; });
     endAll();
   };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', window.mpzInit); else window.mpzInit();
   document.addEventListener('toggle', function (e) {
     const d = e.target;
     if (!d || !d.classList || !d.classList.contains('mpz-more')) return;

@@ -833,8 +833,6 @@ def _ta_parts(V: dict) -> tuple[str, str]:
         piv.append(f'前波高點 {_num0(hi["p"])}（{_e(_ymd(hi["d"]))}）' + ("，已經突破" if leg.get("k") == "H" else ""))
     if lo:
         piv.append(f'前波低點 {_num0(lo["p"])}（{_e(_ymd(lo["d"]))}）' + ("，已經跌破" if leg.get("k") == "L" else ""))
-    if leg:                                               # 補充規則 lvlspec 第 3 點
-        piv.append(f'這一段到目前的{"最低" if leg["k"] == "L" else "最高"} {_num0(leg["p"])}（{_e(_ymd(leg["d"]))}，還沒確認）')
     sr = []
     for key, nm in (("sup", "下方最近的支撐"), ("res", "上方最近的壓力")):
         x = lv.get(key)
@@ -847,6 +845,9 @@ def _ta_parts(V: dict) -> tuple[str, str]:
            f'<li>季線方向：{_st_text("s60", lv["st"].get("s60"))}。之後 {S.DEDUCT_N} 個交易日的扣抵值：{ded}。</li>']
     if piv:
         lis.append(f'<li title="收盤回落／反彈 5% 才確認是高點／低點">{"、".join(piv)}。</li>')
+    if leg:                                               # 補充規則 lvlspec 第 3 點：跌破前波低點（突破前波高點）之後
+        lis.append(f'<li title="收盤反彈／回落 5% 才確認">這一段到目前的{"最低" if leg["k"] == "L" else "最高"} {_num0(leg["p"])}'
+                   f'（{_e(_ymd(leg["d"]))}，還沒確認）。</li>')
     if sr:
         lis.append(f'<li>{"；".join(sr)}。</li>')
     rec = "、".join(f'{_e(_md(d))} {_e(S.EVENTS[k])}' for d, k in ta["recent"]) or "沒有"
