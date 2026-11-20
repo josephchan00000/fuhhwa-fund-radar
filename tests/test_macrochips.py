@@ -424,3 +424,62 @@ def test_inst_flows_valid():
     assert mc._inst_flows_valid({"total": -444.5, "foreign": -329.6, "trust": -128.2, "dealer": 13.4})
     assert not mc._inst_flows_valid({"total": None, "trust": 0.0, "dealer": 0.0})
     assert not mc._inst_flows_valid({"total": 0.0, "foreign": 0.0, "trust": 0.0, "dealer": 0.0})
+
+
+def test_open_day_marks_latest_futures_bar_until_settled():
+    """2026-11-20 踩坑：11/19 布蘭特在台北 06:54 還是最後成交 90.05（較 11/18 結算 −2.07%），
+    11:59 才換成結算 91.98（+0.03%）。最新那一根在下一個日曆日美東 18:00 前都標「未結算」。"""
+    from datetime import datetime, timezone
+    from arm import macrochips as mc
+    s = {"2026-11-18": 91.95, "2026-11-19": 90.05}
+    tw0654 = datetime(2026, 11, 19, 22, 54, tzinfo=timezone.utc)      # 台北 11/20 06:54
+    assert mc._open_day(s, True, None, tw0654) == "2026-11-19"
+    # 週五那一根：週六美東 18:00（台北週日 07:00）以前都算未結算，之後才算結算
+    fri = {"2026-11-13": 95.84}
+    assert mc._open_day(fri, True, None, datetime(2026, 11, 14, 22, 0, tzinfo=timezone.utc)) == "2026-11-13"
+    assert mc._open_day(fri, True, None, datetime(2026, 11, 15, 23, 30, tzinfo=timezone.utc)) is None
+    # 本輪沒抓到：值沒更新，沿用上一輪的標記（仍是最新一天才算）
+    late = datetime(2026, 11, 25, tzinfo=timezone.utc)
+    assert mc._open_day(s, False, "2026-11-19", late) == "2026-11-19"
+    assert mc._open_day(s, False, "2026-11-18", late) is None
+    assert mc._open_day({}, True, None, tw0654) is None
+
+
+def test_fetch_writes_open_marker_for_futures_only(monkeypatch):
+    from datetime import date, datetime, timezone
+    from arm import macrochips as mc
+
+    def fake_y(sym, norm=None, close_only=False):
+        mc._OPEN_BAR.pop(sym, None)
+        return {"BZ=F": {"2026-11-18": 91.95, "2026-11-19": 90.05},
+                "GC=F": {"2026-11-19": 3624.3},
+                "^SOX": {"2026-11-19": 9419.72}}.get(sym, {})
+    monkeypatch.setattr(mc, "_yahoo_series", fake_y)
+    monkeypatch.setattr(mc, "_twse_inst_all", lambda d, diag=None: (None, "x"))
+    monkeypatch.setattr(mc, "_twse_margin", lambda d: None)
+    monkeypatch.setattr(mc, "_taifex_tx_foreign", lambda *a, **k: {})
+    monkeypatch.setattr(mc, "_taifex_pc_ratio", lambda *a, **k: {})
+    monkeypatch.setattr(mc.clock, "today_tw", lambda: date(2026, 11, 20))
+    monkeypatch.setattr(mc.clock, "now_tw", lambda: datetime(2026, 11, 20, 6, 0))
+    monkeypatch.setattr(mc, "_now_utc", lambda: datetime(2026, 11, 19, 22, 0, tzinfo=timezone.utc))
+    monkeypatch.setattr(mc, "load", lambda: {"series": {}})
+    doc = mc.fetch()
+    assert doc["open"] == {"brent": "2026-11-19", "gold": "2026-11-19"}   # 費半不在此列
+    assert doc["series"]["brent"]["2026-11-19"] == 90.05                  # 值照收（溫度計要最新價）
+    assert mc.unsettled(doc, "brent") and not mc.unsettled(doc, "sox")
+    # 隔天新的一根出現、舊的換成結算價 → 標記跟著移到新的一天
+    doc["series"]["brent"]["2026-11-19"] = 91.98
+    doc["series"]["brent"]["2026-11-20"] = 90.05
+    assert not mc.unsettled(doc, "brent")
+
+
+def test_thermometer_tags_unsettled_futures_day():
+    """溫度計照舊顯示最新價，最新一天還沒結算時標「未結算」（2026-11-20）。"""
+    d = _doc({"brent": {"2026-11-18": 91.95, "2026-11-19": 90.05},
+              "gold": {"2026-11-18": 3741.9, "2026-11-19": 3685.5}})
+    d["open"] = {"brent": "2026-11-19"}
+    html = fd._macro_data_view(d)
+    assert "90.05 美元/桶" in html
+    assert html.count('class="mdopen"') == 1                # 只有布蘭特；黃金已結算不標
+    d["open"] = {"brent": "2026-11-18"}                     # 標記不是最新一天＝已過期，不標
+    assert 'class="mdopen"' not in fd._macro_data_view(d)

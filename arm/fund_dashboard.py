@@ -1035,6 +1035,10 @@ def _md_row_html(mc: dict, key: str, label: str, kind: str, digits: int, unit: s
         lv = macrochips.vix_level(v)
         if lv:
             val_html += f' <span class="mdlv {lv[1]}">{lv[0]}</span>'
+    if macrochips.unsettled(mc, key):
+        # 期貨最新一天還是最後成交價（2026-11-20；macrochips._UNSETTLED）——標出來，免得當成結算價
+        val_html += (' <span class="mdopen" title="這一天還沒結算：顯示的是最後成交價，'
+                     '新交易日開盤後才換成結算價；日變化是和前一天結算價比">未結算</span>')
     # 日變化／前日、近5日／累計、走勢
     bp = kind == "yield"
     # 日變化／近5日欄不再重複帶單位（單位在「最新值」與表註；殖利率保留 bp）
@@ -2653,6 +2657,7 @@ details.calprev .cplate{color:#a35b00}
 .mddt{display:block;font-size:11px;color:var(--mut);font-weight:400;margin-top:1px}  /* 名稱下方資料日 */
 /* 資料日過期章：來源暫時抓不到、序列停在舊日期時現形（不再以舊值假裝新值） */
 .mdstale{margin-left:4px;color:#c62828;font-weight:700;white-space:nowrap}  /* 同警示章紅（非漲跌色） */
+.mdopen{font-size:11px;font-weight:600;color:var(--ink2);background:var(--inset);border-radius:8px;padding:1px 6px;white-space:nowrap}
 .mdtbl td.mdchg,.mdtbl th.mdchg{text-align:right}
 .mdn5{display:block;font-size:11.5px;font-weight:400;opacity:.85;margin-top:1px}
 .mdcl{color:var(--mut);font-size:10.5px;font-weight:400;margin-right:3px}  /* 買賣超列：儲存格內自帶「前日／近5日累計」標籤（欄頭的日變化對它不適用）*/  /* 近5日疊在日變化下 */

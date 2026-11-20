@@ -22,7 +22,7 @@ import re
 import urllib.parse
 import urllib.error
 import urllib.request
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from . import clock, factcheck, fileio
@@ -81,6 +81,43 @@ def _norm_yield(v: float) -> float:
 # 溫度計本來就顯示最新價，不在此列。
 _CLOSE_ONLY = {"sox", "tsm_adr", "vix"}
 _OPEN_BAR: dict[str, str] = {}        # {Yahoo 代碼: 盤中未收盤 bar 的 ISO 日}——fetch() 據以剔除舊值
+
+# 期貨最新一天「還不是結算價」（2026-11-20 使用者回「提醒照最新價、數字寫結算」）。
+# Yahoo 期貨日線最新那一根的收盤＝最後成交價，要等下一個交易日開盤後才換成結算價
+# （週五那一根實測在週六美東傍晚前換好）。11/19 布蘭特在台北 06:54 還是 90.05（較 11/18 結算
+# −2.07%），11:59 才換成結算 91.98（+0.03%）——06:35 晨報照抄成「跌 2.07%」，金價同型
+# （3,624.30 vs 結算 3,685.5）。所以不比照 _CLOSE_ONLY 丟掉（早上那班會永遠慢一天），
+# 而是照收、在 doc["open"] 標出「還沒結算的那一天」：溫度計標「未結算」，新聞錨定照最新價提醒、
+# 但正文的當日漲跌寫媒體報的結算價（usnews.market_flags／market_anchor）。
+_UNSETTLED = {"brent", "gold"}
+_ET = "America/New_York"
+
+
+def _now_utc() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _settle_cutoff(d_iso: str) -> datetime:
+    """期貨日線 D 那一根最晚何時已換成結算價：D 的下一個日曆日美東 18:00。
+    平日 D 在美東 D 18:00 就有更新的一根（D 不再是最新），這條只對週五（與連假前一天）起作用。"""
+    from zoneinfo import ZoneInfo
+    d = date.fromisoformat(d_iso) + timedelta(days=1)
+    return datetime(d.year, d.month, d.day, 18, tzinfo=ZoneInfo(_ET))
+
+
+def _open_day(series: dict[str, float], fetched: bool, prev_open: str | None,
+              now: datetime) -> str | None:
+    """這一輪過後，序列最新一天是否仍是未結算的最後成交價 → 回該日，否則 None。
+    fetched＝本輪 Yahoo 有抓到；沒抓到時值沒更新，沿用上一輪的標記（仍是最新一天才算）。"""
+    if not series:
+        return None
+    last = max(series)
+    if not fetched:
+        return prev_open if prev_open == last else None
+    try:
+        return last if now < _settle_cutoff(last) else None
+    except ValueError:
+        return None
 
 
 def _open_session_start(meta: dict, now_ts: float) -> float | None:
@@ -534,6 +571,8 @@ def fetch() -> dict:
     series: dict[str, dict] = {k: dict((prev.get("series") or {}).get(k) or {})
                                for k in ALL_KEYS}
     src: dict[str, dict] = dict(prev.get("src") or {})
+    prev_open: dict[str, str] = dict(prev.get("open") or {})
+    opened: dict[str, str] = {}
     today = clock.today_tw()
     stamp = clock.stamp_tw()
 
@@ -550,6 +589,10 @@ def fetch() -> dict:
         ob = _OPEN_BAR.get(sym)
         if ob and series[key].pop(ob, None) is not None:  # 先前班次誤收的盤中值 → 剔除，收盤後再補
             print(f"  ⚠ {key}: 剔除 {ob} 盤中值（美股尚未收盤，收盤後班次再寫入）")
+        if key in _UNSETTLED:
+            od = _open_day(series[key], bool(new), prev_open.get(key), _now_utc())
+            if od:
+                opened[key] = od
         _note(key, len(new), f"yahoo:{sym}")
 
     # ② 三大法人買賣超（TWSE BFI82U，逐日補缺）：合計＋外資／投信／自營商分項
@@ -620,7 +663,7 @@ def fetch() -> dict:
     series["pc_ratio"] = _merge(series["pc_ratio"], new)
     _note("pc_ratio", len(new), "taifex:pcRatio")
 
-    return {"as_of": stamp, "series": series, "src": src}
+    return {"as_of": stamp, "series": series, "src": src, "open": opened}
 
 
 def save(doc: dict) -> None:
@@ -643,6 +686,12 @@ def _sorted_items(doc: dict | None, key: str) -> list[tuple[str, float]]:
 def latest(doc: dict | None, key: str) -> tuple[str, float] | None:
     items = _sorted_items(doc, key)
     return items[-1] if items else None
+
+
+def unsettled(doc: dict | None, key: str) -> bool:
+    """最新一天是不是期貨還沒結算的最後成交價（fetch() 寫的 doc["open"]，見 _UNSETTLED）。"""
+    last = latest(doc, key)
+    return bool(last) and ((doc or {}).get("open") or {}).get(key) == last[0]
 
 
 def day_change(doc: dict | None, key: str) -> float | None:
