@@ -95,7 +95,7 @@ def test_us_block_and_log_path():
     with HS.use(U.spec_for("sox")):                                          # 美股頁在美股規格底下產生（heatpage_us.index_page）
         h = M.block(B, M.compute(B, S.GROUPS_US), log={}, mk="sox")
     assert 'id="mpz"' in h and "沒有算分的項目" in h and "這個指數的廣度沒有算分的項目，不放進平均" in h
-    assert "基本面" in h and "資金寬裕度" in h
+    assert "總經" not in h and "資金寬裕度" not in h                                    # mposspec VER 4：位階那一塊不寫總經
     assert M.log_path("tw").name == "mpos_log.json" and M.log_path("sox").name == "mpos_log_sox.json"
     BT = _B(T1=[float(i % 100) for i in range(1400)])
     BT["cal"] = B["cal"]
