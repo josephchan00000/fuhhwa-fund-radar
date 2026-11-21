@@ -673,6 +673,53 @@ def boom_card(P: dict, evs: list[dict], bundle: dict, X: dict | None, col: int, 
                  empty=None if X else f'8 格那一本從現金開始，{_mdw(P.get("next_wk") or "")}收盤的名單起照規則買。')
 
 
+def lead_box(L: dict | None) -> str:
+    """大盤修正中的強勢股（《超級績效》；leadspec VER 2；docs/lab_crash_leaders_plan.md）：只列名單、每週記下來，不是會買賣的策略，
+    沒有成績單、不進行事曆。大盤不在修正中（離 52 週高點不到 15%）＝整塊不放。L＝analyze 的 lead（leaders.screen，列另帶 wk 連續幾週）。"""
+    if not L or not (L.get("mkt") or {}).get("corr"):
+        return ""
+    mk, rows = L["mkt"], L.get("rows") or []
+    v2 = mk.get("vs200")
+    line = (f'加權指數 {_e(_md(L["d"]))} 收盤 {mk["close"]:,.0f}，比過去一年最高的 {mk["hi"]:,.0f} 低 <b>{-mk["dd"] * 100:.1f}%</b>'
+            + ("" if v2 is None else f'，在 200 日線{"下" if v2 < 0 else "上"} {abs(v2) * 100:.1f}%') + "。")
+    book = ("書上的說法：大盤還在跌，先把名單列出來看、不買新的；等大盤站回 200 日線、名單上的股票一檔一檔突破，先突破的常是下一段領頭的。"
+            if mk.get("below200") else "大盤已經站回 200 日線。書上的說法：名單上先突破的股票，常是下一段領頭的。")
+    tr = ""
+    for r in rows:
+        g = []
+        if r.get("ey") is not None:
+            g.append(f'EPS {_pc(r["ey"], 0)}')
+        if r.get("ry3") is not None:
+            g.append(f'近 3 月營收 {_pc(r["ry3"], 0)}')
+        pos = r.get("st") or ""
+        if r.get("piv"):
+            pos += f'・樞紐 {_tp(r["piv"])}' + (f'・停損 {_tp(r["stop"])}' if r.get("stop") else "")
+        wk = r.get("wk") or 0
+        tr += (f'<tr><td class="l pkhn"><a {CFP._ck(r["c"])}><b>{_e(r["n"])}</b></a><span class="pkcd">{_e(r["c"])}</span>'
+               + (f'<div class="sm2">連續 {wk} 週在名單上</div>' if wk >= 2 else "")
+               + f'</td><td class="pkhr"><span class="pkwl">離自己的高點</span><b>{_pc(r["d52h"])}</b></td>'
+               f'<td class="pkhb"><span class="pkwl">強度</span>{r["rs"]:.0f}</td>'
+               f'<td class="pkhm"><span class="pkwl">收盤</span>{_e(_tp(r["px"]))}</td>'
+               f'<td class="l pkhs">比去年：{_e("・".join(g) or "—")}'
+               + ('<div class="sm2">書上的選股三關都過（EPS、營收都多 25% 以上，其中一個在加速）</div>' if r.get("gates") else "")
+               + f'<div class="sm2">位置：{_e(pos or "—")}</div></td></tr>')
+    body = (('<div class="tw"><table class="sxt pkht"><thead><tr><th class="l">股票</th><th>離自己的高點</th><th>強度</th><th>收盤</th>'
+             f'<th class="l">比去年・位置</th></tr></thead><tbody>{tr}</tbody></table></div>') if rows else
+            f'<div class="pkempty">{_e(_md(L["d"]))} 收盤沒有一檔四個條件都符合。</div>')
+    dl = ('<dl class="pkdl"><dt>什麼時候列</dt><dd>加權指數比過去一年最高的收盤低 15% 以上才列；回到 15% 以內，這一塊就收起來。</dd>'
+          f'<dt>選什麼</dt><dd>和新飆股同一批股票（{L.get("n_el") or "—"} 檔：近 20 日平均成交值 1,000 萬以上、市值 40 億以上、上市滿 60 個交易日），'
+          '四個都要符合：離自己 52 週高點的跌幅不到大盤的一半；強度 90 以上（漲勢勝過 90% 的股票）；'
+          '收盤在 150 日、200 日線上，而且 200 日線比一個月前高；最新一季 EPS 或近 3 個月營收比去年多 25% 以上。離自己高點最近的排上面。</dd>'
+          '<dt>位置</dt><dd>書上的買點：打底中＝還沒到；準備好、今天突破、突破後仍在買點＝到了；樞紐＝要突破的價位，停損＝書上的停損價。</dd>'
+          '<dt>過去照做</dt><dd>這份名單沒有拿過去的資料試算過；書上其他的選股和買法在台股試過，都沒有贏新飆股。'
+          f'{_e(_md("2026-11-21"))} 起每週記下來，經過三次大盤修正、每次都看完之後半年的漲跌，才知道比大盤好不好。</dd></dl>')
+    return ('<section class="sec pkcard pkcx" id="pk-lead" data-nav="修正中強勢股">'
+            f'<h2 class="pkh"><i class="pkdot"></i>大盤修正中的強勢股<span class="sub">只列名單・每週記下來</span>'
+            f'<span class="pkst{" w" if not rows else ""}">{len(rows)} 檔</span></h2>'
+            f'<p class="pkrl">{line}{_e(book)}</p>{body}'
+            f'<details class="cfdet pkdet pkrule"><summary>怎麼選、過去照做</summary>{dl}</details></section>')
+
+
 def sx_start() -> str:
     from . import sxlivespec as SS
     return PC.week_ends("tw", SS.START4, PC.horizon(SS.START4, 1))[0]
@@ -868,7 +915,8 @@ def tw_view(data: dict, bundle: dict, today: str | None = None) -> dict:
     return {"d": cal["d"], "end": cal["end"], "ev": _pack(evs), "ks": ks, "hol": holidays("tw", cal["d"], cal["end"]),
             "score": score_box("tw", score, cal["d"], "加權報酬指數（含息）"),
             "todo": week_box(week_rows(evs, cal["d"], main), col, {"rep": data.get("eq") or {}, "req": data.get("eqreq") or {}}),
-            "cards": "".join(cards), "others": "".join(others), "olist": olist, "pos": boom_pos(P, X), "bx": X,
+            "cards": "".join(cards), "lead": lead_box(data.get("lead")), "others": "".join(others), "olist": olist,
+            "pos": boom_pos(P, X), "bx": X,
             "names": {k: (NAMES.get(k) or (book.get(k) or {}).get("name") or k) for k in main + other}}
 
 
@@ -1207,7 +1255,7 @@ function vPick(mk){const P=PICK[mk]||{};let h='';
   else{h+=(P.score||'')+(P.todo||'');
     h+=`<section class="sec" id="pk-${mk}-cal" data-nav="行事曆"><h2 class=cfh>${mk==='tw'?'台股':'美股'}進場行事曆<span class=sub>${P.d?`${pkMd(P.d)} 收盤`:''}${mk==='us'?'・美國當地日期':''}</span></h2>`+
     `<div class=pkcalw><div id="pkcal-${mk}"></div><div class=pkag><h4>接下來</h4><div id="pkag-${mk}"></div></div></div></section>`;
-    h+=P.cards||'';
+    h+=(P.cards||'')+(P.lead||'');
     if(P.olist)h+=`<section class=sec id="pk-${mk}-o" data-nav="其他策略"><details class=pkox><summary>其他策略（${(P.ks||[]).filter(x=>!x[3]).length} 條，過去成績比上面普通）</summary><ul class=pkol>${P.olist}</ul>${P.others||''}</details></section>`;}
   $('#main').innerHTML=h+`<footer class=cffoot><a data-go="strat">全部策略</a>・<a data-go="plan" data-pm="${mk}">原本的配置</a>・<a href="x9r.html">研究紀錄</a></footer>`;
   pkCalDraw(mk);if(typeof eqMarkSent==='function')eqMarkSent($('#main'));

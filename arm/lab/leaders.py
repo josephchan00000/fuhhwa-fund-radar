@@ -1,12 +1,18 @@
-"""大盤修正中的領導股觀察名單（規格 arm/lab/leadspec.py VER 1；docs/lab_crash_leaders_plan.md）。只讀 repo 裡的資料、不連網。
+"""大盤修正中的領導股觀察名單（規格 arm/lab/leadspec.py VER 2；docs/lab_crash_leaders_plan.md）。只讀 repo 裡的資料、不連網。
 
   market(idx, i)        → 加權指數的狀態：離 52 週高點多少、50／200 日線、是不是修正中（規格第 1、6 點）
   screen(DL, keep)      → 今天的名單（規格第 2～5 點）：{"d", "mkt", "rows": [{代號, 名稱, 收盤, 離高點, RS, 樣板 n/8, 照書三關, 位置…}]}
+  record(res)           → 規格第 7 點的每週紀錄 data/lab/leaders_log.json（修正中才記；同一週只留最後一個交易日；過去的週不改；只有 CI 寫回）
 特徵與合格股票和飆股候選、W9 同一套（arm/lab/superx.feats_on、company.market_table）；位置用 arm/lab/sepa.plan_today。
 """
 from __future__ import annotations
 
+import os
+from datetime import date, timedelta
+
 from . import leadspec as S
+
+LOG_FILE = "leaders_log.json"
 
 
 def _mean(xs: list, i: int, n: int):
@@ -79,3 +85,56 @@ def screen(DL=None, keep: dict | None = None, today_ix: int | None = None) -> di
                      "st": SP.ST.get(pl.get("st"), ""), "piv": pl.get("piv"), "stop": pl.get("stop"), "r120": f.get("r120")})
     rows.sort(key=lambda r: (-(r["d52h"] or -9), -(r["rs"] or 0), r["c"]))
     return {"ver": S.VER, "d": cal[i], "mkt": mk, "n_el": sum(1 for f in F.values() if f.get("el")), "rows": rows}
+
+
+def week_key(d: str) -> str:
+    y, w, _ = date.fromisoformat(d).isocalendar()
+    return f"{y}-W{w:02d}"
+
+
+def read_log(strict: bool = False) -> dict:
+    """strict（要寫回時）：檔案在但讀不起來就停下報錯，不當成空的從頭記。"""
+    from .. import fileio
+    from . import store
+    doc = fileio.read_json(store.LAB / LOG_FILE, {}, strict=strict) or {}
+    return {"ver": S.VER, "spec": S.SPEC_DATE, "weeks": dict(doc.get("weeks") or {}) if isinstance(doc, dict) else {}}
+
+
+def log_entry(res: dict) -> dict:
+    mk = res["mkt"]
+    return {"d": res["d"], "ver": res.get("ver"), "idx": round(mk["close"], 2), "dd": round(mk["dd"], 4), "n_el": res.get("n_el"),
+            "rows": [[r["c"], r["px"], None if r["d52h"] is None else round(r["d52h"], 4), None if r["rs"] is None else round(r["rs"], 1)]
+                     for r in res.get("rows") or []]}
+
+
+def add_week(weeks: dict, res: dict) -> bool:
+    """規格第 7 點：修正中才記；同一週只留最後一個交易日（後面的日子蓋掉同一週前面的）；已經過去的週不改。→ 有沒有改。"""
+    if not (res.get("mkt") or {}).get("corr") or not res.get("d"):
+        return False
+    k = week_key(res["d"])
+    if any(x > k for x in weeks) or (k in weeks and (weeks[k].get("d") or "") >= res["d"]):
+        return False
+    weeks[k] = log_entry(res)
+    return True
+
+
+def record(res: dict, write_file: bool | None = None) -> dict:
+    """加這一週（只有 CI 寫回檔案）。→ 加過之後的每週紀錄（本機也有這一週，給頁面算連續幾週）。"""
+    from . import store
+    if write_file is None:
+        write_file = os.environ.get("GITHUB_ACTIONS") == "true"
+    doc = read_log(strict=write_file)
+    if add_week(doc["weeks"], res) and write_file:
+        store.write_json(LOG_FILE, doc)
+    return doc["weeks"]
+
+
+def weeks_on(weeks: dict, c: str, d: str) -> int:
+    """這一檔到 d 那一週（含）為止連續幾週在名單上（前一週沒有紀錄或不在名單上＝斷掉）。"""
+    day, n = date.fromisoformat(d), 0
+    while True:
+        w = weeks.get(week_key(day.isoformat()))
+        if not w or not any(r[0] == c for r in w.get("rows") or []):
+            return n
+        n += 1
+        day -= timedelta(days=7)

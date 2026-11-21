@@ -7,6 +7,8 @@ paths:
   - "arm/lab/sepa*.py"
   - "arm/lab/vcp.py"
   - "arm/lab/layer.py"
+  - "arm/lab/leaders.py"
+  - "arm/lab/leadspec.py"
   - "arm/lab/watchlist.py"
   - "scripts/run_sxlive*.py"
   - "scripts/run_super.py"

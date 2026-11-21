@@ -280,7 +280,7 @@ def theme_css() -> str:
 
 
 def render(data: dict, ser_v: str | None = None) -> str:
-    main = {k: v for k, v in data.items() if k not in ("ser", "mtab", "ytd", "ytd_day", "sx_pos")}   # ytd、sx_pos＝配置頁已組成 HTML
+    main = {k: v for k, v in data.items() if k not in ("ser", "mtab", "ytd", "ytd_day", "sx_pos", "lead")}   # ytd、sx_pos＝配置頁已組成 HTML；lead＝選股頁已組成 HTML
     main["serv"] = ser_v or ser_ver(ser_files(data))
     ucm, _ = uc_split(data)
     if ucm is not None:                      # 美股個股卡資料另存 x9uc.json（不改 data：finish() 還要用）
