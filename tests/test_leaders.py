@@ -12,7 +12,7 @@ def test_market_correction_and_ma():
 def test_passes_three_conditions():
     mk = {"corr": True, "dd": -0.28}
     tt = [True, True, True, True, False, True, True, True]
-    ok = {"el": True, "d52h": -0.10, "rs": 95, "tt": tt}
+    ok = {"el": True, "d52h": -0.10, "rs": 95, "tt": tt, "ey": 0.30, "ry3": 0.05}
     assert L.passes(ok, mk)
     assert not L.passes(dict(ok, d52h=-0.15), mk)                                # 跌超過指數的一半
     assert not L.passes(dict(ok, rs=89), mk)
@@ -20,6 +20,8 @@ def test_passes_three_conditions():
     assert not L.passes(dict(ok, tt=tt[:2] + [False] + tt[3:]), mk)              # 200 日線沒上揚
     assert not L.passes(ok, {"corr": False, "dd": -0.10})                        # 不在修正中不列
     assert not L.passes(dict(ok, el=False), mk)
+    assert not L.passes(dict(ok, ey=0.10, ry3=0.20), mk)                         # VER 2：沒有成長（防守股）
+    assert L.passes(dict(ok, ey=None, ry3=0.40), mk) and not L.passes(dict(ok, ey=None, ry3=None), mk)
 
 
 def test_three_gates():

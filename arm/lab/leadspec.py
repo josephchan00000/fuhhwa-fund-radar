@@ -21,14 +21,19 @@ VER 1（2026-11-21，算出任何名單之前寫定）
    和同一天的加權指數、全部合格股票等權比。等至少 MIN_EPISODES 次不同的修正（相隔 ≥ 6 個月）、每次都有 126 天的結果，才判斷：
    每一次名單平均都比加權指數多 EDGE 個百分點以上＝「有用」；否則照實寫「看不出比大盤好」。在那之前只描述，不寫「之後會怎樣」。
 8. 頁面用字：只寫名單與事實；不寫「建議買／建議賣／目標價」，買點、停損只照 sepa 的名詞。
+
+VER 2（2026-11-21，**看過 VER 1 第一份名單之後改**，使用者選「加成長條件再上頁面」）：11/20 的 8 檔裡，中華電信、兆豐金、華南金、上海商銀
+是低波動的防守股（抗跌是因為本來就不太動），不是書裡講的成長型領導股。第 3 點加 (d) 成長：最新一季 EPS 比去年同季多 GROWTH 以上，
+或近 3 個月營收比去年同期多 GROWTH 以上（缺值＝不通過）。放到選股頁；其他不變。
 """
 from __future__ import annotations
 
 import hashlib
 import json
 
-VER = 1
+VER = 2
 SPEC_DATE = "2026-11-21"
+GROWTH = 0.25       # VER 2：EPS 或近 3 月營收年增至少 25%
 
 CORR_MIN = 0.15        # 大盤修正：離 52 週高點跌 15% 以上
 HOLD = 0.5             # 抗跌：股票跌幅 ≤ 指數跌幅 × 0.5
@@ -40,6 +45,6 @@ EDGE = 5.0
 
 
 def fingerprint() -> str:
-    keys = ("VER", "CORR_MIN", "HOLD", "RS_MIN", "TT_LONG", "FWD", "MIN_EPISODES", "EDGE")
+    keys = ("VER", "CORR_MIN", "HOLD", "RS_MIN", "TT_LONG", "FWD", "MIN_EPISODES", "EDGE", "GROWTH")
     g = globals()
     return hashlib.sha256(json.dumps({k: g[k] for k in keys}, sort_keys=True).encode()).hexdigest()[:12]

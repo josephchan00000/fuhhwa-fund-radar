@@ -37,13 +37,14 @@ def three_gates(f: dict) -> bool | None:
 
 
 def passes(f: dict, mk: dict) -> bool:
-    """規格第 3 點。"""
+    """規格第 3 點（VER 2 加 (d) 成長）。"""
     if not f.get("el") or not mk.get("corr"):
         return False
     tt = f.get("tt") or []
     d = f.get("d52h")
+    grow = any(x is not None and x >= S.GROWTH for x in (f.get("ey"), f.get("ry3")))      # VER 2：成長
     return (d is not None and d >= S.HOLD * mk["dd"] and (f.get("rs") or 0) >= S.RS_MIN
-            and len(tt) > max(S.TT_LONG) and all(tt[k] for k in S.TT_LONG))
+            and len(tt) > max(S.TT_LONG) and all(tt[k] for k in S.TT_LONG) and grow)
 
 
 def screen(DL=None, keep: dict | None = None, today_ix: int | None = None) -> dict:
