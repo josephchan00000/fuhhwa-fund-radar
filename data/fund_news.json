@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/11/21 06:56",
+  "as_of": "2026/11/21 12:08",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [],
@@ -438,6 +438,13 @@
     {
       "platform": "fundhot",
       "board": "資產配置",
+      "title": "紙上富貴的情緒調適，與長期投資的資金配置",
+      "url": "https://fundhot.com/forum/%E8%B3%87%E7%94%A2%E9%85%8D%E7%BD%AE/%E7%B4%99%E4%B8%8A%E5%AF%8C%E8%B2%B4%E7%9A%84%E6%83%85%E7%B7%92%E8%AA%BF%E9%81%A9%EF%BC%8C%E8%88%87%E9%95%B7%E6%9C%9F%E6%8A%95%E8%B3%87%E7%9A%84%E8%B3%87%E9%87%91%E9%85%8D%E7%BD%AE/14073",
+      "date": "2026-11-21"
+    },
+    {
+      "platform": "fundhot",
+      "board": "資產配置",
       "title": "分享～〔皓哥：足以寫進台股歴史的極端行情〕",
       "url": "https://fundhot.com/forum/%E8%B3%87%E7%94%A2%E9%85%8D%E7%BD%AE/%E5%88%86%E4%BA%AB%EF%BD%9E%E3%80%94%E7%9A%93%E5%93%A5%EF%BC%9A%E8%B6%B3%E4%BB%A5%E5%AF%AB%E9%80%B2%E5%8F%B0%E8%82%A1%E6%AD%B4%E5%8F%B2%E7%9A%84%E6%A5%B5%E7%AB%AF%E8%A1%8C%E6%83%85%E3%80%95/14072",
       "date": "2026-11-20"
@@ -485,13 +492,6 @@
       "first_seen": "2026-11-15"
     },
     {
-      "platform": "fundhot",
-      "board": "總經觀點",
-      "title": "科技股本益比只剩17倍，比大盤還便宜，難怪強友瘋狂抄底",
-      "url": "https://fundhot.com/forum/%E7%B8%BD%E7%B6%93%E8%A7%80%E9%BB%9E/%E7%A7%91%E6%8A%80%E8%82%A1%E6%9C%AC%E7%9B%8A%E6%AF%94%E5%8F%AA%E5%89%A917%E5%80%8D%EF%BC%8C%E6%AF%94%E5%A4%A7%E7%9B%A4%E9%82%84%E4%BE%BF%E5%AE%9C%EF%BC%8C%E9%9B%A3%E6%80%AA%E5%BC%B7%E5%8F%8B%E7%98%8B%E7%8B%82%E6%8A%84%E5%BA%95/14063",
-      "first_seen": "2026-11-14"
-    },
-    {
       "platform": "youtube",
       "title": "00929 11月16日收益發放：當天才持有領不到",
       "channel": "股市基友",
@@ -499,14 +499,6 @@
       "date": "2026-11-15",
       "views": 795,
       "short": true
-    },
-    {
-      "platform": "youtube",
-      "title": "00929預計11/18配發0.38元，年化配息率高達17.4%。。#財富自由 #被動收入",
-      "channel": "財富閒叔跡",
-      "url": "https://www.youtube.com/watch?v=PMggAdDtQAM",
-      "date": "2026-11-14",
-      "views": 498
     },
     {
       "platform": "youtube",
@@ -518,11 +510,20 @@
     },
     {
       "platform": "youtube",
+      "title": "高股息ETF今日買賣超｜國泰金加碼最多、華碩減碼最多｜買超賣超Top10｜2026/11/19 #高股息ETF #高股息 #台股 #ETF #存股 #shorts #國泰金 #華碩",
+      "channel": "Steven Lin",
+      "url": "https://www.youtube.com/shorts/TDWdTVYDoO0",
+      "date": "2026-11-19",
+      "views": 311,
+      "short": true
+    },
+    {
+      "platform": "youtube",
       "title": "台股史上第二大跌點！為什麼跌這麼慘？國安基金失靈了嗎？3分鐘看懂股災背後原因｜股市羅賓漢 羅文彬分析師 20261116｜#台股 #投資 #CPO #AI #輝達 #黃仁勳",
       "channel": "大華國際投顧",
       "url": "https://www.youtube.com/shorts/jop4gmyq5v0",
       "date": "2026-11-16",
-      "views": 705930,
+      "views": 750400,
       "peer": true,
       "short": true,
       "cat": "基金"
@@ -533,17 +534,17 @@
       "channel": "風傳媒 The Storm Media",
       "url": "https://www.youtube.com/watch?v=oS4Fm-2fSk0",
       "date": "2026-11-16",
-      "views": 489873,
+      "views": 490490,
       "peer": true,
       "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
-      "title": "等跌深才買反而少賺?破解逢低加碼迷思與資產配置｜周冠男專訪 EP1",
-      "channel": "富邦證券",
-      "url": "https://www.youtube.com/watch?v=6hvj7CioqMQ",
-      "date": "2026-11-18",
-      "views": 390034,
+      "title": "【外資賣不停！】台股崩近2千點！股災來了？  何基鼎分析師 2026.11.19",
+      "channel": "何基鼎分析師-摩爾證券投顧",
+      "url": "https://www.youtube.com/watch?v=DWymupAbbAg",
+      "date": "2026-11-19",
+      "views": 472992,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -553,7 +554,17 @@
       "channel": "瘋狂股市福利社Free Free Free!",
       "url": "https://www.youtube.com/watch?v=FTfgjHoPqb4",
       "date": "2026-11-16",
-      "views": 263693,
+      "views": 263574,
+      "peer": true,
+      "cat": "市值型"
+    },
+    {
+      "platform": "youtube",
+      "title": "0050越跌越買 資產卻縮水? 避開3禁忌! 退休金翻400% ft. 超馬芭樂【 小宇宙大爆發 】",
+      "channel": "小宇宙大爆發",
+      "url": "https://www.youtube.com/watch?v=_zerQabOIsM",
+      "date": "2026-11-20",
+      "views": 226822,
       "peer": true,
       "cat": "市值型"
     },
@@ -563,7 +574,7 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=s3xMtKSFbio",
       "date": "2026-11-19",
-      "views": 207332,
+      "views": 210620,
       "peer": true,
       "cat": "基金"
     },
@@ -573,19 +584,9 @@
       "channel": "楊育華分析師-摩爾證券投顧",
       "url": "https://www.youtube.com/watch?v=Dw4cijt5lHI",
       "date": "2026-11-16",
-      "views": 175354,
+      "views": 175355,
       "peer": true,
       "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "0050越跌越買 資產卻縮水? 避開3禁忌! 退休金翻400% ft. 超馬芭樂【 小宇宙大爆發 】",
-      "channel": "小宇宙大爆發",
-      "url": "https://www.youtube.com/watch?v=_zerQabOIsM",
-      "date": "2026-11-20",
-      "views": 175072,
-      "peer": true,
-      "cat": "市值型"
     },
     {
       "platform": "youtube",
@@ -593,7 +594,7 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=stiAUKedOyo",
       "date": "2026-11-16",
-      "views": 149722,
+      "views": 150545,
       "peer": true,
       "cat": "綜合"
     },
@@ -603,7 +604,7 @@
       "channel": "絕世好CHEN – Tony的理財日常",
       "url": "https://www.youtube.com/watch?v=90zxyVh4O6Y",
       "date": "2026-11-19",
-      "views": 109127,
+      "views": 115270,
       "peer": true,
       "cat": "高股息"
     },
@@ -613,14 +614,14 @@
       "channel": "股市達人 鄭瑞宗分析師-永誠國際投顧",
       "url": "https://www.youtube.com/watch?v=ONL3iXw2ynE",
       "date": "2026-11-16",
-      "views": 94053,
+      "views": 94056,
       "peer": true,
       "cat": "主動式"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00998A、00409A、00418A（詳下方新聞標籤）",
-    "社群聲量最高：分享～〔皓哥：足以寫進台股歴史的極端行情〕（0 推）",
-    "YouTube 熱片：台股史上第二大跌點！為什麼跌這麼慘？國安基金失靈了嗎？3分鐘看懂股災背後原因｜股市羅賓漢 羅文彬分析師 20261116｜#台股 #投資 #CPO #AI #輝達 #黃仁勳（大華國際投顧・705,930 次觀看）"
+    "社群聲量最高：紙上富貴的情緒調適，與長期投資的資金配置（0 推）",
+    "YouTube 熱片：台股史上第二大跌點！為什麼跌這麼慘？國安基金失靈了嗎？3分鐘看懂股災背後原因｜股市羅賓漢 羅文彬分析師 20261116｜#台股 #投資 #CPO #AI #輝達 #黃仁勳（大華國際投顧・750,400 次觀看）"
   ]
 }
