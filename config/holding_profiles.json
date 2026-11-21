@@ -4209,6 +4209,12 @@
    "ticker": "7974",
    "country": "日本",
    "verified": true
+  },
+  "Academy Sports and Outdoors Inc.": {
+   "intro": "美國 Academy Sports + Outdoors，運動與戶外用品零售商；販售運動服飾鞋類、露營釣魚與狩獵用品，門市集中在美國南部與中西部約 300 家，總部在德州凱蒂。",
+   "ticker": "ASO",
+   "country": "美國",
+   "verified": true
   }
  }
 }
