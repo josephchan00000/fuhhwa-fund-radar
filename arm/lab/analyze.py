@@ -563,6 +563,7 @@ def run(data: Data | None = None, keep: dict | None = None) -> dict:
     mtab: dict = {}
     sx: dict = {}
     wl: dict = {}
+    lead: dict = {}
     ind_tab: dict = {}
     if DL is not None:
         try:
@@ -576,6 +577,15 @@ def run(data: Data | None = None, keep: dict | None = None) -> dict:
                 sxlive.update(DL, mctx or None)
             except Exception as e:                        # noqa: BLE001 —— 記錄失敗不影響建頁
                 print(f"[sxlive] ⚠ 飆股前瞻記錄沒有更新：{type(e).__name__}: {e}")
+            try:                                          # 大盤修正中的強勢股（leadspec；選股頁一小塊＋每週紀錄 data/lab/leaders_log.json，只有 CI 寫回）
+                from . import leaders
+                lead = leaders.screen(DL, keep=mctx)
+                lw = leaders.record(lead)
+                for r in lead["rows"]:
+                    r["wk"] = leaders.weeks_on(lw, r["c"], lead["d"])
+            except Exception as e:                        # noqa: BLE001 —— 算不出來只少那一塊
+                lead = {}
+                print(f"[leaders] ⚠ 修正中強勢股沒算出來：{type(e).__name__}: {e}")
             hits = mtab.pop("hits", {})
             watch = mtab.pop("watch", {})
             lay_today = mtab.pop("layer", {})
@@ -676,7 +686,7 @@ def run(data: Data | None = None, keep: dict | None = None) -> dict:
             "sigdef": {k: list(v) for k, v in SIG_DEF.items()}, "risk": sorted(RISK_SIGS),
             "stats": stats, "iss": iss_stats, "iev": dict(iev), "iow": iss_ow,
             "idx": idx_out, "strat": strat, "grow": grow, "adv": adv, "hl": hl, "opt": opt,
-            "mtab": mtab, "sx": sx, "wl": wl, "ind": ind_tab, "dates": D.cal[-CHART_N:]}
+            "mtab": mtab, "sx": sx, "wl": wl, "lead": lead, "ind": ind_tab, "dates": D.cal[-CHART_N:]}
 
 
 def _take_full(strat: dict, grow: dict, v3: dict | None = None) -> dict:
