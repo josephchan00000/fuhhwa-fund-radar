@@ -1,7 +1,7 @@
 {
   "as_of": "2026-11-20",
   "perf_asof": "2026-11-20",
-  "fetched_at": "2026/11/22 06:55",
+  "fetched_at": "2026/11/22 07:48",
   "source": "規模／配息殖利率 ← etfinfo.tw（Tier B）；過去一週／一月報酬 ← Yahoo 還原收盤（總報酬口徑）／FinMind／TWSE 官方自算。正式對外前以各投信官網核對",
   "items": [
     {
@@ -1601,6 +1601,40 @@
       "ret_1m_base": null,
       "ret_1w_div": null,
       "ret_1m_div": null,
+      "yield_is_est": false
+    },
+    {
+      "code": "00420A",
+      "name": "野村亞洲傘型之野村亞洲科技主動式ETF基金",
+      "kind": "active",
+      "cat": "主動式ETF",
+      "inception": "2026/11/19",
+      "aum_e8": 10.02,
+      "close_px": 8.94,
+      "ret_1w": null,
+      "ret_1m": null,
+      "last_div": null,
+      "last_div_date": null,
+      "est_div": null,
+      "est_div_date": null,
+      "est_pend": null,
+      "est_from": null,
+      "est_url": null,
+      "yield_pct": null,
+      "freq": "半年配",
+      "chg_pct": -6.29,
+      "chg_amt": -0.6,
+      "prev_close": 9.54,
+      "prev_date": "2026-11-19",
+      "chg_ex_div": null,
+      "prev_px": null,
+      "prev_px_date": null,
+      "chg_asof": "2026-11-20",
+      "chg_src": "twse_today",
+      "as_of": "2026-11-20",
+      "perf_asof": "2026-07-03",
+      "ret_src": "seed",
+      "src": "official_px+etfinfo",
       "yield_is_est": false
     }
   ]
