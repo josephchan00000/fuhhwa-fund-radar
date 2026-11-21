@@ -467,12 +467,13 @@ def _new_etf_chip() -> str:
     return " ".join(parts)
 
 
-LIST_DUE_DAYS = 10     # 募集結束超過幾天還沒填掛牌日就掛紅章（2026-11-12：00418A 11/11 掛牌，登錄檔沒有掛牌日 → 沒自動進追蹤表）
+LIST_DUE_DAYS = 30     # 募集結束超過幾天、市場上還沒看到才掛紅章（2026-11-22 由 10 改 30：新 ETF 募集結束到掛牌常要 15～26 天，10 天幾乎每一檔都在掛牌前就紅；
+                       # 掛牌之後的掛牌日改由 etfwatch.auto_list 從官方首見台帳自動補，不必再靠紅章逼人工填；30 天＝和 test_upcoming_stale_entries_guard 同一條線）
 
 
 def _list_due_chip(today=None) -> str:
-    """「即將登場」登錄檔裡有代號、募集已結束超過 LIST_DUE_DAYS 天、卻還沒填 list_date 的 → 紅章列代號。
-    掛牌自動加入追蹤（etfwatch.watch_tuples）靠 list_date，沒填就會卡在即將登場、靜靜漏掉。讀不到檔或沒有＝不顯示。"""
+    """「即將登場」登錄檔裡有代號、募集已結束超過 LIST_DUE_DAYS 天、官方每日收盤還沒看到（沒有 list_date，含自動補的）→ 紅章列代號。
+    已掛牌的檔由 etfwatch.auto_list 自動補掛牌日、隔天就進追蹤表；還紅著＝真的拖很久沒掛牌或代號登錄錯，要查。讀不到檔或沒有＝不顯示。"""
     t = today or clock.today_tw()
     late = []
     for it in getattr(etfwatch, "UPCOMING", None) or []:
@@ -488,7 +489,7 @@ def _list_due_chip(today=None) -> str:
         return ""
     names = "、".join(_esc(f"{i['code']} {i.get('name') or ''}".strip()) for i in late[:6])
     more = f" 等 {len(late)} 檔" if len(late) > 6 else ""
-    return (f'<span class="chip fresh stale"><b>新 ETF 待補掛牌日</b>　🔴 募集結束超過 {LIST_DUE_DAYS} 天 '
+    return (f'<span class="chip fresh stale"><b>新 ETF 久未掛牌</b>　🔴 募集結束超過 {LIST_DUE_DAYS} 天、市場上還沒看到 '
             f'{len(late)} 檔（{names}{more}）</span>')
 
 

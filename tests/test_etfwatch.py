@@ -432,14 +432,15 @@ def test_fetch_returns_none_when_all_sources_empty(monkeypatch):
 
 def test_watchlist_matches_weekly_report():
     codes = [c for c, *_ in etfwatch.WATCHLIST]
-    assert len(codes) == len(set(codes)) == 41
+    assert len(codes) == len(set(codes)) == 42
     passive = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "passive"]
     active = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "active"]
     assert set(passive) == {"0056", "00878", "00919", "00929", "0050", "006208"}
-    assert "00991A" in active and len(active) == 35    # 含本家主動復華未來50／全球未來50＋上櫃 4 檔
+    assert "00991A" in active and len(active) == 36    # 含本家主動復華未來50／全球未來50＋上櫃 4 檔
     assert "00412A" in active                          # 2026-10-13 掛牌當天轉正（安聯亞洲半導體）
     assert "00415A" in active                          # 2026-10-20 掛牌當天轉正（群益台灣核心50）
     assert {"00416A", "00413A", "00418A"} <= set(active)   # 2026-11-16 轉正（台新中小、玉山關鍵科技、本家復華台灣新星）
+    assert "00420A" in active                          # 2026-11-22 轉正（野村亞洲科技，11/19 掛牌）
     # 2026-07-06 新增熱門／新募集主動式 ETF 皆在清單中
     assert {"00988A", "00990A", "00403A", "00407A"} <= set(active)
     # 2026-08-05 使用者指示補齊缺檔（兩批；00410A 為「即將登場」畢業轉正的第一例）
@@ -1613,16 +1614,46 @@ def test_除息日官方表有除權息參考價時採用官方值(monkeypatch):
 
 
 
-def test_list_due_chip_flags_coded_etf_without_list_date(monkeypatch):
-    """有代號、募集結束超過 10 天還沒填掛牌日 → 紅章（2026-11-12：00418A 掛牌了卻沒進追蹤表）；10 天內、有掛牌日、沒代號都不掛。"""
+def test_list_due_chip_flags_only_long_unlisted(monkeypatch):
+    """有代號、募集結束超過 30 天、還沒有掛牌日（官方收盤也沒看到）→ 紅章；30 天內、有掛牌日、沒代號都不掛
+    （2026-11-22：原本 10 天，新 ETF 募集結束到掛牌常要 15～26 天，幾乎每一檔都在掛牌前就紅好幾天）。"""
     from datetime import date
     from arm import etfwatch, fund_dashboard as FD
-    items = [{"code": "00418A", "name": "復華台灣新星", "raise_end": "2026-10-27"},
+    items = [{"code": "00418A", "name": "復華台灣新星", "raise_end": "2026-10-10"},
              {"code": "00419A", "name": "施羅德AI", "raise_end": "2026-11-06"},
-             {"code": "00413A", "name": "玉山", "raise_end": "2026-10-23", "list_date": "2026-11-11"},
+             {"code": "00413A", "name": "玉山", "raise_end": "2026-10-01", "list_date": "2026-11-11"},
              {"code": None, "name": "未派碼", "raise_end": "2026-10-01"}]
     monkeypatch.setattr(etfwatch, "UPCOMING", items)
-    h = FD._list_due_chip(date(2026, 11, 12))
+    h = FD._list_due_chip(date(2026, 11, 22))
     assert "00418A" in h and "00419A" not in h and "00413A" not in h and "未派碼" not in h and "1 檔" in h
     monkeypatch.setattr(etfwatch, "UPCOMING", items[1:])
-    assert FD._list_due_chip(date(2026, 11, 12)) == ""
+    assert FD._list_due_chip(date(2026, 11, 22)) == ""
+
+
+def test_auto_list_fills_listing_date_from_market_ledger():
+    """官方每日收盤已經看到的代號，沒填掛牌日就先用第一次看到的那天（2026-11-22：00420A、009833 11/19 掛牌，登錄檔沒有掛牌日 → 紅章掛好幾天）；
+    人工填的優先；沒看到、沒代號、看到的日子比募集起日早（代號重複使用）都不補。"""
+    from arm import etfwatch as W
+    items = [{"code": "00420A", "raise_start": "2026-11-03", "raise_end": "2026-11-06"},
+             {"code": "009833", "raise_start": "2026-11-03", "list_date": "2026-11-19"},
+             {"code": "00419A", "raise_start": "2026-11-02"},
+             {"code": None, "name": "未派碼"},
+             {"code": "00999A", "raise_start": "2026-11-03"}]
+    seen = {"00420A": "2026-11-20", "009833": "2026-11-20", "00999A": "2025-01-02"}
+    out = W.auto_list(items, seen)
+    assert out[0]["list_date"] == "2026-11-20" and out[0]["list_auto"] is True
+    assert out[1]["list_date"] == "2026-11-19" and "list_auto" not in out[1]
+    assert "list_date" not in out[2] and "list_date" not in out[3] and "list_date" not in out[4]
+    assert "list_date" not in items[0]                  # 不改原本的條目（只在記憶體多一份）
+
+
+def test_seen_first_reads_ledger(tmp_path, monkeypatch):
+    import json
+    from arm import etfwatch as W
+    fp = tmp_path / "etf_seen.json"
+    fp.write_text(json.dumps({"codes": {"0050": {"first": None, "name": "元大台灣50"},
+                                        "00420A": {"first": "2026-11-20", "name": "主動野村亞洲科技"}}}), encoding="utf-8")
+    monkeypatch.setattr(W, "SEEN_FP", fp)
+    assert W._seen_first() == {"00420A": "2026-11-20"}
+    fp.write_text("壞掉", encoding="utf-8")
+    assert W._seen_first() == {}
