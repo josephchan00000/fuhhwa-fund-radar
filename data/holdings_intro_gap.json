@@ -1,59 +1,8 @@
 {
- "as_of": "2026-11-23 01:24",
- "count": 5,
+ "as_of": "2026-11-23 06:37",
+ "count": 0,
  "fund_count": 0,
- "etf_count": 5,
+ "etf_count": 0,
  "usqm_count": 0,
- "items": [
-  {
-   "src": "etf",
-   "name": "Keyence Corp",
-   "ticker": "6861",
-   "count": 1,
-   "etfs": [
-    "00420A"
-   ],
-   "weight": 2.32
-  },
-  {
-   "src": "etf",
-   "name": "富士通",
-   "ticker": "6702",
-   "count": 1,
-   "etfs": [
-    "00420A"
-   ],
-   "weight": 2.03
-  },
-  {
-   "src": "etf",
-   "name": "藤倉",
-   "ticker": "5803",
-   "count": 1,
-   "etfs": [
-    "00420A"
-   ],
-   "weight": 1.72
-  },
-  {
-   "src": "etf",
-   "name": "瀾起科技",
-   "ticker": "688008",
-   "count": 1,
-   "etfs": [
-    "00420A"
-   ],
-   "weight": 0.87
-  },
-  {
-   "src": "etf",
-   "name": "中科寒武紀科技",
-   "ticker": "688256",
-   "count": 1,
-   "etfs": [
-    "00420A"
-   ],
-   "weight": 0.86
-  }
- ]
+ "items": []
 }
