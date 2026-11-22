@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-11-15",
+  "as_of": "2026-11-22",
   "note": "新策略候選（docs/lab_ia_v5_plan.md 第 6、24 節；框架規格 arm/lab/candspec.py）。一條一筆，程式在 arm/lab/cands/{編號}.py；寫定之後一字不改，要改就用新的編號（prev 指到舊的）。使用者的決定記在 config/strategy_board.json 的 cand。",
   "items": [
     {
@@ -356,6 +356,109 @@
       },
       "note": "價格是還原權息後的收盤（長歷史面板 2013 起）；n 年裡任何一年缺同一個月的月報酬就不排；原論文是美國全市場，這裡只有台股大型股。",
       "sha": "99b2c12f94d38ff5c98e43337aab5efa21c78f90ab4a5b054e46c8c9e1a77fa0"
+    },
+    {
+      "id": "c008",
+      "found": "2026-11-22",
+      "name": "淨發行股數低（大型股）",
+      "mk": "tw",
+      "engine": "tw_stock",
+      "kind": "per",
+      "how": "每季財報公布期限後，大型股依股本比 q 季前增加多少排序，買增加最少（含減少）的兩成，抱到下一次公布期限",
+      "src": [
+        {
+          "t": "Pontiff & Woodgate, Share Issuance and Cross-sectional Returns（Journal of Finance 2008，63(2)）",
+          "u": "https://ideas.repec.org/a/bla/jfinan/v63y2008i2p921-945.html"
+        },
+        {
+          "t": "McLean, Pontiff & Watanabe, Share Issuance and Cross-sectional Returns: International Evidence（Journal of Financial Economics 2009）",
+          "u": "https://ideas.repec.org/a/eee/jfinec/v94y2009i1p1-17.html"
+        }
+      ],
+      "why": "一年內股數增加多的公司（現金增資、可轉債轉換、員工認股），之後的股價報酬較低；股數減少的（買回庫藏股註銷）較高。原論文美國 1970 年以後這個關係很強，1970 年以前不明顯；後續研究在美國以外 41 個國家也看到同樣的關係。常見的解釋是公司傾向在股價偏高時發新股、偏低時買回。頁面上的個股策略沒有看股數變動的這一類（c004 看總資產成長、c006 看獲利品質）。原論文用調整過分割與股票股利的股數；這裡用資產負債表的股本，近 q 季的變動。",
+      "p": {
+        "q": 4
+      },
+      "grid": {
+        "q": [
+          2,
+          4,
+          8
+        ],
+        "pick": [
+          [
+            0.1,
+            5
+          ],
+          [
+            0.2,
+            5
+          ],
+          [
+            0.3,
+            5
+          ]
+        ]
+      },
+      "b": "L",
+      "pick": {
+        "top": 0.2,
+        "nmin": 5,
+        "asc": true
+      },
+      "note": "台股的盈餘轉增資（配股）也會讓股本增加，原論文把股票股利當成分割、不算發行，這裡沒有調整，配股多的公司會被排在後面；面額變更（例如改成 1 元面額）也會讓股本變動，少見、沒有排除。財報是公開資訊觀測站彙總表回補的數字（可能含之後的更正）；原論文是美國全市場，這裡只有台股大型股。",
+      "sha": "f7f82d97600a3e27974cce30c78ea57f4d354203e216ead382440124750ac80c"
+    },
+    {
+      "id": "c009",
+      "found": "2026-11-22",
+      "name": "Piotroski F 分數（大型股）",
+      "mk": "tw",
+      "engine": "tw_stock",
+      "kind": "per",
+      "how": "每季財報公布期限後，大型股依九項財報指標（獲利、現金流量、負債比、流動比率、股本、毛利率、週轉率）的得分排序，同分帳面市值比高的先，買最高的兩成，抱到下一次公布期限",
+      "src": [
+        {
+          "t": "Alpha Architect：Piotroski, Value Investing: The Use of Historical Financial Statement Information to Separate Winners from Losers（Journal of Accounting Research 2000）摘要",
+          "u": "https://alphaarchitect.com/2011/02/value-investing-the-use-of-historical-financial-statement-information-to-separate-winners-from-losers/"
+        },
+        {
+          "t": "Wikipedia：Piotroski F-score",
+          "u": "https://en.wikipedia.org/wiki/Piotroski_F-score"
+        }
+      ],
+      "why": "便宜的股票裡，財報體質在變好的（有賺錢、現金流量為正、獲利率與週轉率上升、負債比下降、沒有增資）之後報酬較高，變差的較低。原論文美國 1976–1996 年在帳面市值比最高的五分之一裡，只買 F 分數高的，每年報酬至少比整組價值股多 7.5%。作者自己說九項是隨手挑的，後續研究有各種改良版。頁面上的個股策略沒有這種多項財報加總的分數（c001 只看毛利、c006 只看應計）。",
+      "p": {
+        "q": 4
+      },
+      "grid": {
+        "q": [
+          2,
+          4,
+          8
+        ],
+        "pick": [
+          [
+            0.1,
+            5
+          ],
+          [
+            0.2,
+            5
+          ],
+          [
+            0.3,
+            5
+          ]
+        ]
+      },
+      "b": "L",
+      "pick": {
+        "top": 0.2,
+        "nmin": 5
+      },
+      "note": "原論文：槓桿用長期負債 ÷ 平均總資產，這裡沒有長期負債欄位、用總負債 ÷ 總資產；原論文只看帳面市值比最高的五分之一，這裡全部大型股都排，帳面市值比只決定同分時的先後；股本會因配股增加，⑦ 那一項配股的公司拿不到分。金融業（沒有營業毛利）不排。財報是公開資訊觀測站彙總表回補的數字（可能含之後的更正）。",
+      "sha": "58fba6b22fdec47c0ec607d406d4eb20cb25fcf560dcd22c3fe647042f133873"
     }
   ]
 }
