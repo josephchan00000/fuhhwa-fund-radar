@@ -1,31 +1,13 @@
 {
- "date": "2026-11-22",
- "as_of": "2026-11-22 19:55",
- "green": 5,
+ "date": "2026-11-23",
+ "as_of": "2026-11-23 06:56",
+ "green": 4,
  "red": 0,
  "skipped": 0,
  "items": [
   {
    "status": "🟢",
-   "file": "2026-11-22.md",
-   "kind": "index_close",
-   "claimed": 36033.29,
-   "official": 36033.29,
-   "day": "11/20",
-   "sentence": "加權指數 11/20 收 36,033.29 點、下跌 2,393.60 點"
-  },
-  {
-   "status": "🟢",
-   "file": "2026-11-22.md",
-   "kind": "index_chg",
-   "claimed": 2393.6,
-   "official": -2393.6,
-   "day": "11/20",
-   "sentence": "加權指數 11/20 收 36,033.29 點、下跌 2,393.60 點"
-  },
-  {
-   "status": "🟢",
-   "file": "2026-11-22.md",
+   "file": "2026-11-23.md",
    "kind": "index_close",
    "claimed": 36033.29,
    "official": 36033.29,
@@ -34,7 +16,7 @@
   },
   {
    "status": "🟢",
-   "file": "2026-11-22.md",
+   "file": "2026-11-23.md",
    "kind": "index_chg",
    "claimed": 2393.6,
    "official": -2393.6,
@@ -43,12 +25,21 @@
   },
   {
    "status": "🟢",
-   "file": "2026-11-22.md",
+   "file": "2026-11-23.md",
    "kind": "inst_total",
    "claimed": 509.4,
    "official": -509.40775695,
    "day": "11/20",
-   "sentence": "證交所統計，11/20 三大法人合計賣超 509.4 億元"
+   "sentence": "11/20 三大法人合計賣超 509.4 億元"
+  },
+  {
+   "status": "🟢",
+   "file": "2026-11-23.md",
+   "kind": "tx_net",
+   "claimed": 97863.0,
+   "official": -97863.0,
+   "day": "11/20",
+   "sentence": "11/20 外資台指期淨空單 97,863 口，現貨重挫下**未加碼空單**"
   }
  ]
 }

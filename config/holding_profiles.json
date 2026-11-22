@@ -4215,6 +4215,36 @@
    "ticker": "ASO",
    "country": "美國",
    "verified": true
+  },
+  "Keyence Corp": {
+   "intro": "日本基恩斯（Keyence），工廠自動化感測與量測設備商；產品涵蓋光電與雷射感測器、影像辨識系統、量測儀器與顯微鏡，以直銷業務模式服務全球製造業客戶。",
+   "ticker": "6861",
+   "country": "日本",
+   "verified": true
+  },
+  "富士通": {
+   "intro": "日本富士通（Fujitsu），資訊服務與系統整合商；業務涵蓋雲端與混合 IT 服務、顧問與系統建置，以及資料中心與企業端硬體，為日本最大的 IT 服務商之一。",
+   "ticker": "6702",
+   "country": "日本",
+   "verified": true
+  },
+  "藤倉": {
+   "intro": "日本藤倉（Fujikura），電線電纜與光纖光纜製造商；主力為資料中心用高密度光纖光纜（SWR、WTC 技術），客戶涵蓋美國主要雲端業者，另有電子零件與電力電纜事業。",
+   "ticker": "5803",
+   "country": "日本",
+   "verified": true
+  },
+  "瀾起科技": {
+   "intro": "中國瀾起科技（Montage Technology），無晶圓廠 IC 設計公司；主力為伺服器記憶體介面晶片（占營收九成以上，全球市占居首），另有 PCIe 與 CXL 等高速互連晶片，A 股科創板與港股雙掛牌。",
+   "ticker": "688008",
+   "country": "中國",
+   "verified": true
+  },
+  "中科寒武紀科技": {
+   "intro": "中國寒武紀（Cambricon），AI 晶片設計公司；產品涵蓋雲端 AI 晶片與加速卡（思元系列）、邊緣端晶片與處理器 IP 授權，2020 年於上海科創板掛牌。",
+   "ticker": "688256",
+   "country": "中國",
+   "verified": true
   }
  }
 }
