@@ -96,6 +96,8 @@ WATCHLIST: list[tuple[str, str, str, str, str]] = [
     ("00416A", "主動台新臺灣中小", "active", "主動式", "2026/11/03"),  # 股本 80 億以下中小型股主動選股，季配（口袋學堂／經濟日報兩來源）；10/5~10/8 募集、11/3 掛牌；成立日查無 → 暫用掛牌日——同 00409A 前例
     ("00413A", "主動玉山關鍵科技", "active", "主動式", "2026/11/11"),  # 台股關鍵科技主動選股；10/19~10/23 募集、11/11 掛牌；成立日只見「11/2 成立」單一來源（科技新報）→ 暫用掛牌日——同 00415A 前例
     ("00418A", "主動復華台灣新星", "active", "主動式", "2026/11/11"),  # 本家；台股市值前 300 大主動選股、持股 30~50 檔，不配息（股感／winvest 兩來源）；10/21~10/27 募集、11/11 掛牌；成立日查無 → 暫用掛牌日
+    # · 2026-11-22 轉正（11/19 上市掛牌——時報資訊「野村00420A、009833 今掛牌」／鉅亨行情 11/19 收盤／官方首見台帳 11/20 一致）：
+    ("00420A", "主動野村亞洲科技", "active", "主動式", "2026/11/19"),  # 亞洲科技產業主動選股（野村亞洲傘型子基金），半年配；11/3~11/6 募集、11/19 掛牌；成立日查無 → 暫用掛牌日——同 00409A 前例
 ]
 
 # 債券型追蹤檔（cat 含「債」）：收盤價 tick 小、日波動低，收盤值天然高度重複，
@@ -228,7 +230,33 @@ def _load_upcoming() -> list[dict]:
         return []
 
 
-UPCOMING: list[dict] = _load_upcoming()
+SEEN_FP = ROOT / "data" / "etf_seen.json"       # 市場首見台帳（arm/etfdiscover.py 每輪從證交所、櫃買官方每日收盤記）
+
+
+def _seen_first() -> dict[str, str]:
+    """市場首見台帳 → {代號: 第一次在官方每日收盤看到的日子}；建帳時的既有檔（first=None）不算。讀不到＝{}（退回只靠人工掛牌日）。"""
+    try:
+        d = json.loads(SEEN_FP.read_text(encoding="utf-8"))
+        return {c: v["first"] for c, v in (d.get("codes") or {}).items() if isinstance(v, dict) and v.get("first")}
+    except (OSError, json.JSONDecodeError, AttributeError, TypeError):
+        return {}
+
+
+def auto_list(items: list[dict], seen: dict[str, str]) -> list[dict]:
+    """掛牌日自動補（2026-11-22 使用者：「etf 還沒掛牌的那個警示跳好多天了解決一下」）：有代號、還沒填掛牌日、
+    官方每日收盤已經看到這個代號（而且不早於募集起日）→ 掛牌日先用第一次看到的那天（`list_auto: True`；
+    台帳是 CI 跑的那天記的，早上那班看到的是前一個交易日的收盤，所以通常比真的掛牌日晚一天——人工查證後填正確日子即蓋過）。
+    只改記憶體、不寫檔；人工填的 list_date 一律優先。"""
+    out = []
+    for it in items:
+        c, f = it.get("code"), seen.get(it.get("code") or "")
+        if c and f and not it.get("list_date") and str(it.get("raise_start") or "") <= f:
+            it = {**it, "list_date": f, "list_auto": True}
+        out.append(it)
+    return out
+
+
+UPCOMING: list[dict] = auto_list(_load_upcoming(), _seen_first())
 
 
 def _load_not_tracked() -> list[dict]:
@@ -406,6 +434,8 @@ SEED_PERF: dict[str, dict] = {
     "00416A": {"aum_e8": None, "ret_1w": None, "ret_1m": None, "yield_pct": None, "freq": "季配"},
     "00413A": {"aum_e8": None, "ret_1w": None, "ret_1m": None, "yield_pct": None, "freq": "季配"},
     "00418A": {"aum_e8": None, "ret_1w": None, "ret_1m": None, "yield_pct": None, "freq": "不配息"},
+    # 2026-11-22 轉正（上市檔 → 規模／報酬待 CI 首抓；半年配＝鉅亨／股感兩來源，首次配息未到 → last_div 留空）：
+    "00420A": {"aum_e8": None, "ret_1w": None, "ret_1m": None, "yield_pct": None, "freq": "半年配"},
 }
 
 # 「待首次 CI 抓取」的新增檔：本環境（雲端 Claude proxy）抓不到乾淨報酬／規模，且無使用者週報底稿，
@@ -415,7 +445,7 @@ _SEED_PENDING: set[str] = {"00988A", "00990A", "00403A", "00407A", "00998A", "00
                            "00404A", "00405A", "00996A", "00410A",
                            "00400A", "00401A", "00402A", "00406A", "00408A", "00999A",
                            "00411A", "00987D", "00409A", "00412A", "00415A",
-                           "00416A", "00413A", "00418A"}
+                           "00416A", "00413A", "00418A", "00420A"}
 
 # 收益分配頻率的英文 → 表內中文（etfinfo dividendFrequency 兩種寫法都見過，中文直接放行）
 _FREQ_MAP = {"monthly": "月配", "quarterly": "季配", "semiannual": "半年配",
