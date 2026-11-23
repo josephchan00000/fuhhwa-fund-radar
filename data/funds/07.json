@@ -11,10 +11,10 @@
   "risk_level": "RR4",
   "mgmt_fee": "1.20%",
   "size_twd": 20373301011.0,
-  "nav": 84.9025,
-  "nav_date": "2026/11/20",
-  "nav_change": -7.2817,
-  "nav_change_pct": "-7.90%",
+  "nav": 88.9664,
+  "nav_date": "2026/11/23",
+  "nav_change": 4.0639,
+  "nav_change_pct": "4.79%",
   "returns": {
     "ytd": "47.55%",
     "3m": "7.23%",
@@ -130,7 +130,7 @@
     }
   ],
   "group": "tw_balanced",
-  "fetched_at": "2026-11-23 11:44",
+  "fetched_at": "2026-11-23 19:04",
   "returns_daily": {
     "1m": -35.72088,
     "3m": -38.13615,
