@@ -426,27 +426,18 @@ def test_inst_flows_valid():
     assert not mc._inst_flows_valid({"total": 0.0, "foreign": 0.0, "trust": 0.0, "dealer": 0.0})
 
 
-def test_open_day_marks_latest_futures_bar_until_settled():
-    """2026-11-20 踩坑：11/19 布蘭特在台北 06:54 還是最後成交 90.05（較 11/18 結算 −2.07%），
-    11:59 才換成結算 91.98（+0.03%）。最新那一根在下一個日曆日美東 18:00 前都標「未結算」。"""
-    from datetime import datetime, timezone
+def test_open_day_always_marks_latest_futures_bar():
+    """2026-11-20／11-23 踩坑：Yahoo 期貨最新那一根時而是最後成交價、時而是結算價，週末也會來回換
+    （週五 11/20 布蘭特：週五晚 89.96 → 週六 92.57 結算 → 週日清晨 89.95）。不靠時間判斷，
+    最新一天一律標「未結算」；有更新的一天出現時，前一天才算結算。"""
     from arm import macrochips as mc
-    s = {"2026-11-18": 91.95, "2026-11-19": 90.05}
-    tw0654 = datetime(2026, 11, 19, 22, 54, tzinfo=timezone.utc)      # 台北 11/20 06:54
-    assert mc._open_day(s, True, None, tw0654) == "2026-11-19"
-    # 週五那一根：週六美東 18:00（台北週日 07:00）以前都算未結算，之後才算結算
-    fri = {"2026-11-13": 95.84}
-    assert mc._open_day(fri, True, None, datetime(2026, 11, 14, 22, 0, tzinfo=timezone.utc)) == "2026-11-13"
-    assert mc._open_day(fri, True, None, datetime(2026, 11, 15, 23, 30, tzinfo=timezone.utc)) is None
-    # 本輪沒抓到：值沒更新，沿用上一輪的標記（仍是最新一天才算）
-    late = datetime(2026, 11, 25, tzinfo=timezone.utc)
-    assert mc._open_day(s, False, "2026-11-19", late) == "2026-11-19"
-    assert mc._open_day(s, False, "2026-11-18", late) is None
-    assert mc._open_day({}, True, None, tw0654) is None
+    assert mc._open_day({"2026-11-18": 91.95, "2026-11-19": 90.05}) == "2026-11-19"
+    assert mc._open_day({"2026-11-19": 91.98, "2026-11-20": 89.95}) == "2026-11-20"
+    assert mc._open_day({}) is None
 
 
 def test_fetch_writes_open_marker_for_futures_only(monkeypatch):
-    from datetime import date, datetime, timezone
+    from datetime import date, datetime
     from arm import macrochips as mc
 
     def fake_y(sym, norm=None, close_only=False):
@@ -461,7 +452,6 @@ def test_fetch_writes_open_marker_for_futures_only(monkeypatch):
     monkeypatch.setattr(mc, "_taifex_pc_ratio", lambda *a, **k: {})
     monkeypatch.setattr(mc.clock, "today_tw", lambda: date(2026, 11, 20))
     monkeypatch.setattr(mc.clock, "now_tw", lambda: datetime(2026, 11, 20, 6, 0))
-    monkeypatch.setattr(mc, "_now_utc", lambda: datetime(2026, 11, 19, 22, 0, tzinfo=timezone.utc))
     monkeypatch.setattr(mc, "load", lambda: {"series": {}})
     doc = mc.fetch()
     assert doc["open"] == {"brent": "2026-11-19", "gold": "2026-11-19"}   # 費半不在此列

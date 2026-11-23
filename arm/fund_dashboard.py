@@ -1037,9 +1037,9 @@ def _md_row_html(mc: dict, key: str, label: str, kind: str, digits: int, unit: s
         if lv:
             val_html += f' <span class="mdlv {lv[1]}">{lv[0]}</span>'
     if macrochips.unsettled(mc, key):
-        # 期貨最新一天還是最後成交價（2026-11-20；macrochips._UNSETTLED）——標出來，免得當成結算價
-        val_html += (' <span class="mdopen" title="這一天還沒結算：顯示的是最後成交價，'
-                     '新交易日開盤後才換成結算價；日變化是和前一天結算價比">未結算</span>')
+        # 期貨最新一天不一定是結算價（2026-11-20，11-23 改成一律標；macrochips._UNSETTLED）——標出來，免得當成結算價
+        val_html += (' <span class="mdopen" title="最新一天還不一定是結算價：可能是結算後的最後成交價，'
+                     '有更新的一天出現後才確定；日變化是和前一天結算價比">未結算</span>')
     # 日變化／前日、近5日／累計、走勢
     bp = kind == "yield"
     # 日變化／近5日欄不再重複帶單位（單位在「最新值」與表註；殖利率保留 bp）

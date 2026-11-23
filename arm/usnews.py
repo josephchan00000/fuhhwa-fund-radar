@@ -355,10 +355,10 @@ def market_flags(today: date | None = None, chips: dict | None = None) -> dict:
             pct = (last_v - prev_v) / abs(prev_v) * 100
             row["disp"] = f"{last_v:,.2f}（{pct:+.2f}%）"
             if opened.get(key) == last_d:
-                # 期貨最新一天還是最後成交價、不是結算價（macrochips._UNSETTLED；2026-11-20）：
+                # 期貨最新一天不一定是結算價（macrochips._UNSETTLED；2026-11-20，11-23 改成最新一天一律標）：
                 # 旗標照最新價算（昨夜的大變動不漏），顯示寫明「未結算」與比較基準
                 row["open"] = True
-                row["disp"] = (f"{last_v:,.2f}（未結算的最後成交價；"
+                row["disp"] = (f"{last_v:,.2f}（未結算，可能是結算後的最後成交價；"
                                f"較 {pts[-2][0]} 結算 {prev_v:,.2f} {pct:+.2f}%）")
             row["flag"] = fresh and abs(pct) >= th
         out[key] = row
@@ -383,7 +383,7 @@ def market_anchor(kind: str, today: date | None = None) -> str:
         lines.append(f"· {r['label']}：{r['disp']}（資料日 {r['date']}）{stale}{mark}")
         if r.get("open"):
             lines.append("  ⚠ 未結算：正文的當日收盤與漲跌幅一律寫主流媒體報的結算價"
-                         "（如路透「settled at」）；上面這個價只能寫成結算後的走勢"
+                         "（如路透「settled at」）；上面這個價和媒體結算價不同時，只能寫成結算後的走勢"
                          "（例「結算後續跌至約 90 美元」），不可寫成當日漲跌幅。")
     lines.append("⏱ 錨定是「收盤／落檔值」、本質落後：**報告產出當下的亞洲盤即時變動，以及週末與今晨才發生的突發事件，都不在上列數字裡**——這類「錨定看不到的變動」一律由掃描層自行查證，**不可因為錨定沒有旗標就當作沒事發生**。")
     lines.append("錨定數字即官方口徑、可直接寫進正文（標「未結算」的除外，見該列說明）；"
