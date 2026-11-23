@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/11/23 06:56",
+  "as_of": "2026/11/23 08:15",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [],
@@ -520,15 +520,15 @@
       "channel": "存股翊點通",
       "url": "https://www.youtube.com/watch?v=Dve_DTHOM3w",
       "date": "2026-11-20",
-      "views": 2819
+      "views": 2822
     },
     {
       "platform": "youtube",
-      "title": "00929 11月16日收益發放：當天才持有領不到",
-      "channel": "股市基友",
-      "url": "https://www.youtube.com/shorts/-s4jEiFsjiM",
-      "date": "2026-11-15",
-      "views": 808,
+      "title": "高股息ETF今日買賣超｜國泰金加碼最多、華碩減碼最多｜買超賣超Top10｜2026/11/19 #高股息ETF #高股息 #台股 #ETF #存股 #shorts #國泰金 #華碩",
+      "channel": "Steven Lin",
+      "url": "https://www.youtube.com/shorts/TDWdTVYDoO0",
+      "date": "2026-11-19",
+      "views": 356,
       "short": true
     },
     {
@@ -537,7 +537,7 @@
       "channel": "何基鼎分析師-摩爾證券投顧",
       "url": "https://www.youtube.com/watch?v=DWymupAbbAg",
       "date": "2026-11-19",
-      "views": 785752,
+      "views": 785399,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -547,7 +547,7 @@
       "channel": "小宇宙大爆發",
       "url": "https://www.youtube.com/watch?v=_zerQabOIsM",
       "date": "2026-11-20",
-      "views": 462431,
+      "views": 463844,
       "peer": true,
       "cat": "市值型"
     },
@@ -557,7 +557,7 @@
       "channel": "富邦證券",
       "url": "https://www.youtube.com/watch?v=6hvj7CioqMQ",
       "date": "2026-11-18",
-      "views": 440884,
+      "views": 441231,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -567,7 +567,7 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=s3xMtKSFbio",
       "date": "2026-11-19",
-      "views": 249090,
+      "views": 249409,
       "peer": true,
       "cat": "基金"
     },
@@ -577,9 +577,19 @@
       "channel": "絕世好CHEN – Tony的理財日常",
       "url": "https://www.youtube.com/watch?v=90zxyVh4O6Y",
       "date": "2026-11-19",
-      "views": 181947,
+      "views": 182307,
       "peer": true,
       "cat": "高股息"
+    },
+    {
+      "platform": "youtube",
+      "title": "台股大V轉.止跌後先洗盤還是直接反彈？台積電、0050能買了嗎？反彈能走多遠看這些關鍵!║鐘崑禎、莊佳螢、陳唯泰║2026.11.18",
+      "channel": "瘋狂股市福利社Free Free Free!",
+      "url": "https://www.youtube.com/watch?v=KjCDhGjWBbA",
+      "date": "2026-11-18",
+      "views": 162600,
+      "peer": true,
+      "cat": "市值型"
     },
     {
       "platform": "youtube",
@@ -587,7 +597,7 @@
       "channel": "大樹下學投資",
       "url": "https://www.youtube.com/shorts/3lS3nL6s66c",
       "date": "2026-11-18",
-      "views": 144502,
+      "views": 146538,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -598,7 +608,7 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/watch?v=dNubSYFKNuI",
       "date": "2026-11-20",
-      "views": 142275,
+      "views": 142998,
       "peer": true,
       "cat": "主動式"
     },
@@ -608,7 +618,7 @@
       "channel": "52新聞聚樂部",
       "url": "https://www.youtube.com/watch?v=YlYzMBPbgLU",
       "date": "2026-11-21",
-      "views": 125021,
+      "views": 126014,
       "peer": true,
       "cat": "基金"
     },
@@ -618,24 +628,14 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=BaxN0MXzWSo",
       "date": "2026-11-20",
-      "views": 104065,
+      "views": 104406,
       "peer": true,
       "cat": "高股息"
-    },
-    {
-      "platform": "youtube",
-      "title": "黃仁勳桃色風暴戳破AI泡沫？台積電擁3大優勢抵禦市場震盪 科技股亂流下 布局債券好時機？｜吳嘉隆、蘇傳宇、王志郁｜【富足今周起】EP130",
-      "channel": "今周刊",
-      "url": "https://www.youtube.com/watch?v=ul2-IF31Vlc",
-      "date": "2026-11-18",
-      "views": 102139,
-      "peer": true,
-      "cat": "債券"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00998A、00409A、00418A（詳下方新聞標籤）",
     "社群聲量最高：對比2000科技泡沫，老黃引爆此波下跌後之減碼建議。（0 推）",
-    "YouTube 熱片：【外資賣不停！】台股崩近2千點！股災來了？  何基鼎分析師 2026.11.19（何基鼎分析師-摩爾證券投顧・785,752 次觀看）"
+    "YouTube 熱片：【外資賣不停！】台股崩近2千點！股災來了？  何基鼎分析師 2026.11.19（何基鼎分析師-摩爾證券投顧・785,399 次觀看）"
   ]
 }
