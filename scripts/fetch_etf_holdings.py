@@ -36,7 +36,7 @@ from arm.connectors.issuers import pcf                   # noqa: E402
 
 _KINDS = ("active", "other", "passive")
 
-# 本家 ETF（products.json 有 fund_id 對映者：00991A/00998A/00986D）＝**復華官網第一手優先**
+# 本家 ETF（products.json 有 fund_id 對映者：00991A/00998A/00986D；另加 FH_ETF_EXTRA 的 00409A/00418A）＝**復華官網第一手優先**
 # ——舊管線 arm/pipeline.py（2026-11-01 拿掉）三檔全走 assetsExcel（含前後快照 diff、排除期貨避險），能力本就存在。
 # 順序：fhtrust（Tier A 第一手）→ etfinfo（Tier B，同為每日 PCF 基準 → 可做**同基準日權重驗證**，
 # 這是唯一能亮真正「🟢 雙源相符」的組合）→ Yahoo（月度基準，只驗構成）。
@@ -91,6 +91,10 @@ def _get_raw(url: str) -> bytes:
 
 # ── 本家來源：復華官網 assetsExcel（Tier A 第一手；外股/債券原生支援） ──
 
+# 本家另外兩檔（2026-11-24 探針 run 45385450320：ETF26 的持股和 etfinfo 的 00409A 主動復華全球未來50 50/50 相同；
+# ETF27 和 00418A 主動復華台灣新星相同、檔案日 11/24 比 etfinfo 早一天）。products.json 是儀表板的產品清單、沒有它們，所以在這裡另外對映。
+FH_ETF_EXTRA = {"00409A": "ETF26", "00418A": "ETF27"}
+
 def _from_fhtrust(code: str) -> tuple[list[dict], str | None, bool, str, list[dict] | None]:
     """→ (持股列, 資料日, 日期是否為檔案自報, 診斷, 期貨列)。無對映的檔回 ([], None, False, "", None)。
 
@@ -100,6 +104,8 @@ def _from_fhtrust(code: str) -> tuple[list[dict], str | None, bool, str, list[di
     try:
         fid = prodcfg.product(code)["fund_id"]
     except Exception:
+        fid = FH_ETF_EXTRA.get(code)
+    if not fid:
         return [], None, False, "", None
     from datetime import timedelta
     d, tried, last = clock.today_tw(), 0, ""
