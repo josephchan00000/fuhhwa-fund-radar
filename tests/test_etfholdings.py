@@ -702,6 +702,21 @@ def test_etfinfo_bond_etf_with_few_holdings_passes(monkeypatch):
     assert "門檻 10" in log and "US91282C0" in log              # 擋下時看得到是哪幾列
 
 
+def test_fhtrust_extra_home_etfs_use_their_fund_ids(monkeypatch):
+    """本家 00409A／00418A 不在 products.json，也走復華官網（ETF26／ETF27；2026-11-24 探針對過持股）。"""
+    m = _fh_mod()
+    from arm.connectors import fhtrust as fh
+    asked = []
+
+    def fake(fid, iso):
+        asked.append(fid)
+        return {"holdings": [{"stock_id": f"23{i:02d}", "stock_name": f"股{i}", "kind": "equity",
+                              "shares": 1000, "weight": 3.0} for i in range(6)]}
+    monkeypatch.setattr(fh, "fetch_holdings", fake)
+    assert len(m._from_fhtrust("00409A")[0]) == 6 and asked[-1] == "ETF26"
+    assert len(m._from_fhtrust("00418A")[0]) == 6 and asked[-1] == "ETF27"
+
+
 def test_fhtrust_source_skips_unmapped_codes():
     """products.json 沒對映的檔（一般上市 ETF）回空——不會誤打復華官網。"""
     m = _fh_mod()
