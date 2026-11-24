@@ -4251,6 +4251,18 @@
    "ticker": "7532",
    "country": "日本",
    "verified": true
+  },
+  "Hoya Corp": {
+   "intro": "日本豪雅（Hoya），光學玻璃與醫療光學製造商；資訊科技事業以半導體光罩基板（mask blanks）居全球領先、獲利貢獻大，生活照護事業有眼鏡鏡片、隱形眼鏡與內視鏡。",
+   "ticker": "7741",
+   "country": "日本",
+   "verified": true
+  },
+  "Hua Hong Semiconductor Ltd": {
+   "intro": "中國華虹半導體，特色製程晶圓代工廠；總部在上海，專注功率元件、嵌入式記憶體、類比與電源管理等成熟製程，為中國第二大晶圓代工廠，港股與 A 股科創板掛牌。",
+   "ticker": "1347",
+   "country": "中國",
+   "verified": true
   }
  }
 }

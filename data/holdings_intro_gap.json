@@ -1,29 +1,8 @@
 {
- "as_of": "2026-11-25 05:11",
- "count": 2,
+ "as_of": "2026-11-25 06:55",
+ "count": 0,
  "fund_count": 0,
- "etf_count": 2,
+ "etf_count": 0,
  "usqm_count": 0,
- "items": [
-  {
-   "src": "etf",
-   "name": "Hoya Corp",
-   "ticker": "7741",
-   "count": 1,
-   "etfs": [
-    "00412A"
-   ],
-   "weight": 1.05
-  },
-  {
-   "src": "etf",
-   "name": "Hua Hong Semiconductor Ltd",
-   "ticker": "1347",
-   "count": 1,
-   "etfs": [
-    "00412A"
-   ],
-   "weight": 0.48
-  }
- ]
+ "items": []
 }
