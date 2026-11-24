@@ -73,6 +73,13 @@ jobs:
             TZ=Asia/Taipei python3 scripts/fetch_etf_holdings.py
           fi
 
+      # 2026-11-24 使用者選「先試一輪抓官網」：etfinfo 固定晚一天的主動式台股 10 檔＋本家 00409A，投信官網當晚有沒有完整持股（只印、不落檔）
+      - name: 探針：投信官網持股（瀏覽器；只在探針模式）
+        if: inputs.probe == true
+        run: |
+          pip install --quiet playwright && python -m playwright install --with-deps chromium > /dev/null
+          TZ=Asia/Taipei timeout 1500 python3 scripts/probe_etf_issuer.py || true
+
       - name: 籌碼雷達 ETF 部位快照＋規模前段擴充 ETF 持股（etfinfo；失敗不擋）
         if: inputs.probe != true
         run: TZ=Asia/Taipei timeout 240 python3 scripts/fetch_lab.py --extra || true

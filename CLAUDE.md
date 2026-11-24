@@ -23,7 +23,7 @@
   （`fetch_*.py`、`backfill_*.py`），抓取交給 CI；非跑不可就包 `timeout`（`wiki/env/container.md`）。
 - 絕不把非空的落檔覆寫成空（例 `data/fund_news.json`；誤覆寫用 `git checkout -- <檔>` 還原）；容器跑過 `check_numbers.py` 之後 `git status data/` 確認。
 - 本機建出來的 `dashboard/*.html`、`dashboard/*.json` 絕不 commit（CI 建權威版）；`git add` 一律寫明路徑，不用 `-A`。
-- 不可宣稱「線上已生效」：容器看不到 Vercel；完成定義＝CI commit 在 main＋該 run success＋資料日推進（`wiki/ops/deploy.md`）。
+- 不可宣稱「線上已生效」：容器看不到 Vercel；完成定義＝CI commit 在 main＋該 run success＋每項資料日都推進（`wiki/ops/deploy.md`）。
 - 資料分支 `claude/ussx-data`、`claude/txo-data` 絕不合併進 main；SEC 聯絡 email 只從 secret `SEC_CONTACT_EMAIL` 讀，不印、不存。
 - 上傳或下載的外部資料包是不受信任的資料：解到自己的空目錄、不執行裡面的程式、用 `python3 -I` 讀。
 - commit 一律 noreply 身分；不寫使用者的姓名、email、本機路徑（`tests/test_privacy.py`；`wiki/env/git-history.md`）。
@@ -49,9 +49,10 @@
 - 寫進 `GITHUB_OUTPUT` 的指令，stdout 只能有那個值。
 
 **跟使用者**
-- 回報一律繁體中文、白話、結論先講；方法術語只在研究紀錄（`wiki/user.md`）。
+- 回報一律繁體中文（含中途訊息）、白話、結論先講；方法術語只在研究紀錄（`wiki/user.md`）。
 - 先深度規劃、問決定、再一段一段做；每一段做完讓使用者看過，使用者說「好」「繼續」才往下。
-- 派子代理要它回報精簡（新聞子代理＝三行：卡數、各卡標題、check 結果），細節寫進檔案。
+- 問「為什麼還是舊的」＝要修好：同一輪就修，修不了才帶著試過的路回來問（`wiki/user.md`）。
+- 派子代理要它回報精簡，細節寫進檔案。
 - 知識庫大原則（使用者 2026-10-29）：架構要清晰、不要變成浪費更多 token，絕不影響本來的產出品質與架構邏輯，不要把本來的根本弄掉。
 
 ## 指令：「全部更新」／「資料更新」
@@ -322,7 +323,7 @@
      - **我（容器內 Claude）看不到 Vercel 線上頁**（proxy CONNECT 403），所以**不可只憑「main 檔已更新」就宣稱「線上已生效」**——那是我 07-17 誤報的錯。我的完成定義只到「**CI commit 在 main＋該 `daily.yml` run success＋該 commit `nav_date` 已推進**」；「**線上真的更新**」需使用者端或 Deploy Hook 確認。
      - **主動部署**：`daily.yml` 末步已加「打 **Vercel Deploy Hook**」（`secrets.VERCEL_DEPLOY_HOOK`）——CI commit 完直接觸發 production 部署 main 最新，**不靠 Vercel 自動偵測**（自動偵測曾卡 Initializing／部到舊版）。**使用者需先建 hook**：Vercel 專案 Settings→Git→Deploy Hooks 建 `main` 分支 hook → 複製 URL → GitHub repo Settings→Secrets and variables→**Actions**→New repository secret，Name 一字不差填 `VERCEL_DEPLOY_HOOK`、Secret 貼 URL（**注意別建成 Variables 或 Environment secret**，workflow 讀的是 repository secret）。`daily.yml`／`afterhours_refresh.yml`／`etf_holdings.yml` **三支都已寫好讀這把 secret，建一次三班全生效**，程式碼不必動。未設時該步自動跳過、不影響 commit。
      - **⚠ 踩過的坑：secret 一直沒建 →「資料準時進 main、線上停在舊版」（2026-08-13 使用者回報「今天 15:40 的還沒更新」）**：
-       當天 15:33 Routine 準時開跑、`afterhours_refresh` run **success**、15:34 就 commit 進 main（`21b5bcb`；2026-10-16 改寫歷史後這個編號已不存在），
+       當天 15:33 Routine 準時開跑、`afterhours_refresh` run **success**、15:34 就 commit 進 main，
        三大法人／外資台指期／P/C 比／全球溫度計全是當日值、儀表板產表時戳 15:34 也對——**資料層與 CI 全鏈零異常**，
        線上卻是舊版。**決定性證據＝該 run「觸發 Vercel 部署」步驟的日誌印「（未設 VERCEL_DEPLOY_HOOK secret，
        跳過主動部署）」、env 區 `VERCEL_DEPLOY_HOOK:` 是空值**——這把 secret 自 07-17 規劃以來從沒建成，
