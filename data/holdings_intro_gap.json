@@ -1,10 +1,30 @@
 {
- "as_of": "2026-11-24 15:00",
- "count": 1,
+ "as_of": "2026-11-24 19:02",
+ "count": 3,
  "fund_count": 0,
- "etf_count": 1,
+ "etf_count": 3,
  "usqm_count": 0,
  "items": [
+  {
+   "src": "etf",
+   "name": "Hoya Corp",
+   "ticker": "7741",
+   "count": 1,
+   "etfs": [
+    "00412A"
+   ],
+   "weight": 1.05
+  },
+  {
+   "src": "etf",
+   "name": "Hua Hong Semiconductor Ltd",
+   "ticker": "1347",
+   "count": 1,
+   "etfs": [
+    "00412A"
+   ],
+   "weight": 0.48
+  },
   {
    "src": "etf",
    "name": "DON QUIJOTE CO LTD",
@@ -13,7 +33,7 @@
    "etfs": [
     "00988A"
    ],
-   "weight": 0.26
+   "weight": 0.25
   }
  ]
 }
