@@ -122,7 +122,7 @@
 - 逼補測試：
   - `tests/test_twholidays.py::test_holiday_tables_cover_next_45_days`：台／美任一表未涵蓋「今日＋45 天」→ 紅＝**每年 11 月中逼補下一年**（證交所通常 10 月底公告）。
   - `test_provisional_year_replaced_before_december`：**隔年前一年 12/1 還在暫代 → 紅**。隔年的表 CI 自動抓（上面第 1 點），證交所一公告就解，不手動補。
-    2026-11-01 查：證交所 116 年表還沒公告（網站版回 0 列）→ 11 月底還沒公告就提醒使用者，可把期限延到 12/20（債務帳 `docs/code_debt.md`）；
+    2026-11-01 查：證交所 116 年表還沒公告（網站版回 0 列）；2026-11-25 查：CI 已自動抓進 `data/tw_holidays.json`（2027 年 20 天），暫代層已無年份，期限前解除。
     紅了的話早上全部更新的測試步驟、PR 測試都會卡住。
   - `tests/test_schedule_anchors.py::test_schedule_not_running_out`：錨最後一筆在 21 天內 → 紅（FOMC／ECB／BOJ／BLS 隔年排程年初前都已公布，台灣逐月補）。
 - 生效條件：呈現、相容、昨日版閘門（容器端 check_reports）＝merge 即生效；提示包與台灣區閘門＝merge 後「排程搬家」（[排程](../ops/routines.md)）。

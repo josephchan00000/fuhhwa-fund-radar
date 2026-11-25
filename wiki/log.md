@@ -152,3 +152,6 @@
 
 ## [2026-11-24] 收錄 | 投信官網探針：主動式台股 10 檔仍抓不到；本家 00409A、00418A 改走復華官網
 - 使用者選「先試一輪抓官網」。改了 [ETF 持股資料](main/etf-holdings.md)。
+
+## [2026-11-25] 收錄 | 證交所 2027 年休市表已自動進來
+- 11/01 排的提醒到期：`data/tw_holidays.json` 已有 2027（20 天），`twholidays.provisional()` 空，12/1 期限測試不會紅。改了 [行事曆](main/calendar.md) 那一句與債務帳 `docs/code_debt.md` 的 twholidays 列。
