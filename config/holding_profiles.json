@@ -4263,6 +4263,24 @@
    "ticker": "1347",
    "country": "中國",
    "verified": true
+  },
+  "Regeneron Pharmaceuticals In": {
+   "intro": "美國再生元（Regeneron），生技藥廠；眼科藥 Eylea 與和賽諾菲共同開發的 Dupixent 為主力，研發投入約占營收四成，總部在紐約州塔里敦。",
+   "ticker": "REGN",
+   "country": "美國",
+   "verified": true
+  },
+  "吉利德科學公司": {
+   "intro": "美國吉利德科學（Gilead Sciences），生技藥廠；以愛滋病藥物 Biktarvy、Descovy 為核心收入，另有肝病藥物與旗下 Kite 的細胞療法癌症藥，總部在加州福斯特城。",
+   "ticker": "GILD",
+   "country": "美國",
+   "verified": true
+  },
+  "武田藥品有限公司": {
+   "intro": "日本武田藥品（Takeda），跨國製藥公司；聚焦腸胃科、罕見疾病、血漿衍生療法、神經科學、腫瘤與疫苗，業務遍及全球。",
+   "ticker": "4502",
+   "country": "日本",
+   "verified": true
   }
  }
 }

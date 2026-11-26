@@ -1,39 +1,8 @@
 {
- "as_of": "2026-11-26 13:06",
- "count": 3,
+ "as_of": "2026-11-26 15:35",
+ "count": 0,
  "fund_count": 0,
- "etf_count": 3,
+ "etf_count": 0,
  "usqm_count": 0,
- "items": [
-  {
-   "src": "etf",
-   "name": "Regeneron Pharmaceuticals In",
-   "ticker": "REGN",
-   "count": 1,
-   "etfs": [
-    "00409A"
-   ],
-   "weight": 1.31
-  },
-  {
-   "src": "etf",
-   "name": "吉利德科學公司",
-   "ticker": "GILD",
-   "count": 1,
-   "etfs": [
-    "00409A"
-   ],
-   "weight": 0.87
-  },
-  {
-   "src": "etf",
-   "name": "武田藥品有限公司",
-   "ticker": "4502",
-   "count": 1,
-   "etfs": [
-    "00409A"
-   ],
-   "weight": 0.41
-  }
- ]
+ "items": []
 }
