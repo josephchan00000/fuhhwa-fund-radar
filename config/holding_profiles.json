@@ -4281,6 +4281,12 @@
    "ticker": "4502",
    "country": "日本",
    "verified": true
+  },
+  "KONAMI GROUP CORP": {
+   "intro": "日本科樂美集團，遊戲與娛樂公司；旗下有《潛龍諜影》《遊戲王》《eFootball》《實況野球》等系列，另經營遊樂機台、博弈機台與系統、運動事業，總部在東京。",
+   "ticker": "9766",
+   "country": "日本",
+   "verified": true
   }
  }
 }
