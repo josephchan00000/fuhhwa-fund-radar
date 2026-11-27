@@ -155,3 +155,6 @@
 
 ## [2026-11-25] 收錄 | 證交所 2027 年休市表已自動進來
 - 11/01 排的提醒到期：`data/tw_holidays.json` 已有 2027（20 天），`twholidays.provisional()` 空，12/1 期限測試不會紅。改了 [行事曆](main/calendar.md) 那一句與債務帳 `docs/code_debt.md` 的 twholidays 列。
+
+## [2026-11-27] 收錄 | 週六週日排程暫停
+- 使用者：「週六週日暫停週一早上再執行」。06:35 改週一～五、05:08 改週二～五、策略探勘週報改週一 09:47；改了 [排程](ops/routines.md)、[時點地圖](ops/schedule.md)、[策略探勘週報](ops/strategy-scouting.md)。

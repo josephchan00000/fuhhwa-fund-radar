@@ -37,12 +37,12 @@ claude.ai Routines，九個都**火進同一個主會話**（綁定會話）；n
    回應常被截斷存成檔案（坑 1）：**別開子代理讀全文**，`python3 -c` 讀那支檔 `json.loads` 後只印 `id｜name｜cron_expression｜enabled｜persistent_session_id`
    一行一個；prompt 原文在 `job_config.ccr.events[*].data.message.content`（**頂層沒有 `prompt` 欄位**）。
 2. `create_trigger` ×9（預設自綁本會話，**不帶** `persistent_session_id`／`create_new_session_on_fire`），name｜cron（UTC）：
-   - ① `復華基金雷達 每日全部更新(台北 06:35・07:03 前完成)`｜`35 22 * * *`
+   - ① `復華基金雷達 每日全部更新(台北週一～五 06:35・07:03 前完成)`｜`35 22 * * 0-4`
    - ② `復華基金雷達 盤後籌碼即時更新(台北 15:33)`｜`33 7 * * 1-5`
    - ③ `復華基金雷達 晚間NAV·PCF即時更新(台北 18:58)`｜`58 10 * * 1-5`
-   - ④ `復華基金雷達 美股收盤序列更新(台北 05:08)`｜`8 21 * * 1-5`
+   - ④ `復華基金雷達 美股收盤序列更新(台北週二～五 05:08)`｜`8 21 * * 1-4`
    - ⑤ `復華基金雷達 ETF募集週掃(台北週一 08:05)`｜`5 0 * * 1`
-   - ⑥ `復華基金雷達 策略探勘週報(台北週日 19:47)`｜`47 11 * * 0`
+   - ⑥ `復華基金雷達 策略探勘週報(台北週一 09:47)`｜`47 1 * * 1`
    - ⑦ `復華基金雷達 個股報告(台北每天 20:47)`｜`47 12 * * *`（**2026-11-04 起暫停**：使用者「先暫停，我不想吃太多 token」→ 搬家時**不建**這一個；使用者說恢復才照原文⑦建）
    - ⑧ `復華基金雷達 盤前重估觸發(台北 07:52)`｜`52 23 * * 0-4`（台北週一～五；2026-11-13 建立；prompt 原文只在本頁，CLAUDE.md 放不下）
    - ⑨ `復華基金雷達 晚間融資刷新(台北 21:47)`｜`47 13 * * 1-5`（台北週一～五；2026-11-20 建立；prompt 原文只在本頁）
@@ -92,7 +92,7 @@ claude.ai Routines，九個都**火進同一個主會話**（綁定會話）；n
 
 > （排程自動觸發）ETF 募集週掃——找到新 ETF 募集資訊、主動更新「即將登場」（使用者 2026-08-10 指示：主動更新、一週一次）。依 repo CLAUDE.md「指令：ETF 募集週掃」SOP 執行：全程不跑資料抓取腳本、不動 reports/**、只改 data/etf_upcoming.json。① git fetch origin main 讀 origin/main 的 data/etf_upcoming_gap.json（CI 自動發現的漏網檔）與 data/etf_upcoming.json 現況，pytest tests/test_etfwatch.py 看 stale guard 有無紅；② WebSearch 盤點（鉅亨 IPO 頁 fund.cnyes.com/IPO/index.htm＋MoneyDJ 新基金頁＋工商時報／經濟日報「投信新基金」稿，容器擋原頁就用搜尋摘要），逐檔兩來源核對：新核准檔補登（時程未定 raise_hint＋asof、未派碼 code:null）、hint 檔補正式日期、募集期間／掛牌日／配息頻率異動修正、掛牌逾期條目清理；海外被動指數檔 track:false；本家復華新檔最優先、絕不可漏；③ 更新頂層 as_of＝今日 → pytest 全綠 → commit「chore: ETF 募集週掃 {日期}」push 本會話指定分支（push 動到該檔自動觸發 daily.yml 併入 main 重建上線，不需人工 merge）；③-b 依 CLAUDE.md 週掃步驟 2.5 維護 config/index_reviews.json（被動指數審核時程與官方結果：只改查得到官方公告的日期與名單、不猜，as_of＝今日，pytest tests/test_lab.py 須綠，與 etf_upcoming 同一個 commit push）；④ 有異動 → PushNotification 一句話列出異動檔；無異動 → 安靜結束不推播；失敗 → 推播卡在哪一步。
 
-### Routine prompt 原文⑥——策略探勘週報（週日 19:47，2026-10-24 建立）
+### Routine prompt 原文⑥——策略探勘週報（週一 09:47；2026-10-24 建立時是週日 19:47）
 
 > （排程自動觸發）策略探勘週報——依 repo CLAUDE.md「指令：策略探勘週報」SOP 執行；全程不跑資料抓取腳本、不動 reports/**。① git fetch origin main 後把 origin/main 合併進本會話指定分支（候選的程式與檢查要是最新的）；讀 config/strategy_candidates.json 與 config/strategy_board.json 的 cand：還沒決定的已有 10 條 → 不找，PushNotification 一句「策略候選已有 N 條還沒決定，請回試用／納入／不納入」後結束。② WebSearch 找新策略：來源限學術（SSRN、arXiv q-fin、期刊）、AQR／Alpha Architect／Quantpedia／Research Affiliates 等量化研究、台灣投信券商研究報告；挑最多 2 條「規則寫得清楚、有公開成績、現有資料做得出來」、和已有的候選與頁面上的策略不重複的；找不到就安靜結束、不推播。③ 每條寫規格一筆（config/strategy_candidates.json 的 items；欄位照 arm/lab/candspec.py：id 接續編號、found＝今天、name、mk、engine、kind、how 一句白話規則、src 至少一條 https 原文連結、why、p、grid、各型態要的 H／b／pick／ex、sha）＋程式一支 arm/lab/cands/{編號}.py（照 arm/lab/cands/__init__.py 的範本；參數從 p 讀、只用那一天收盤以前的資料、台股財報與月營收一律經過 cands.Fin）；sha 用 python3 -c "from arm.lab import candrun as R; print(R.sha_file(R.PROG/'c00X.py'))" 填；資料不夠的只寫規格、need＝「需要資料：…」、不寫程式。④ TZ=Asia/Taipei python3 scripts/run_cands.py --check 與 python3 -m pytest -q tests/test_cands.py tests/test_candspec.py 全綠 → git add config/strategy_candidates.json arm/lab/cands → commit「chore: 策略候選 {編號} {名稱}」→ push 本會話指定分支（push 自動觸發 strategy_cands.yml：用 main 的檢查、回測、乾淨算完才併進 main、重建頁面）。⑤ 等結果：Bash run_in_background 的 until 迴圈（每 2 分鐘 git fetch origin main，最多 45 分鐘）等 origin/main 的 data/lab/cands_research.json 出現這幾個編號：出現＝安靜結束（星期一 06:35 推播會帶「策略候選」一行）；45 分鐘沒出現＝讀 strategy_cands.yml 那一輪的日誌（mcp__github__actions_list／get_job_logs）：程式出錯或用到未來的資料就修程式（還沒進 main 的候選可以改；修的是程式錯誤，不是看了成績調參數）、重填 sha、再推一次；第二次還是不行 → PushNotification 一句卡在哪裡。
 
