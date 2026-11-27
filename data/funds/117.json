@@ -12,9 +12,9 @@
   "mgmt_fee": "1.60%",
   "size_twd": 4140315471.0,
   "nav": 11.94,
-  "nav_date": "2026/11/26",
-  "nav_change": 0.52,
-  "nav_change_pct": "4.55%",
+  "nav_date": "2026/11/27",
+  "nav_change": 0.0,
+  "nav_change_pct": "0.00%",
   "returns": {
     "ytd": "36.58%",
     "3m": "2.80%",
@@ -130,7 +130,7 @@
     }
   ],
   "group": "tw_equity",
-  "fetched_at": "2026-11-27 13:04",
+  "fetched_at": "2026-11-27 18:11",
   "returns_daily": {
     "1m": -23.80345,
     "3m": -29.13947,
