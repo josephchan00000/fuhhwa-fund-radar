@@ -1,8 +1,23 @@
 {
-  "as_of": "2026/11/27 13:04",
+  "as_of": "2026/11/28 12:45",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
-  "brand": [],
+  "brand": [
+    {
+      "title": "投資大趨勢論壇12月16日登場 金管會扮推手 新型 ETF 有影",
+      "url": "https://money.udn.com/money/story/5648/9904641",
+      "source": "經濟日報",
+      "date": "2026-11-27 04:01",
+      "datetime": "2026-11-27T04:01:28+08:00"
+    },
+    {
+      "title": "12月除息ETF配息會縮水嗎？台股回檔從淨值組成與3大指標看懂續航力，附00919、00929、00981A實測數據",
+      "url": "https://www.sinotrade.com.tw/richclub/aiinvest/12%E6%9C%88%E9%99%A4%E6%81%AFETF%E9%85%8D%E6%81%AF%E6%9C%83%E7%B8%AE%E6%B0%B4%E5%97%8E-%E5%8F%B0%E8%82%A1%E5%9B%9E%E6%AA%94%E5%BE%9E%E6%B7%A8%E5%80%BC%E7%B5%84%E6%88%90%E8%88%873%E5%A4%A7%E6%8C%87%E6%A8%99%E7%9C%8B%E6%87%82%E7%BA%8C%E8%88%AA%E5%8A%9B-%E9%99%8400919-00929-00981A%E5%AF%A6%E6%B8%AC%E6%95%B8%E6%93%9A-6b07d55751e7010130dd06ba",
+      "source": "永豐金證券",
+      "date": "2026-11-26 14:53",
+      "datetime": "2026-11-26T14:53:51.367000+08:00"
+    }
+  ],
   "funds": [
     {
       "base": "復華台灣科技優息",
@@ -13,7 +28,7 @@
       ],
       "items": [
         {
-          "title": "12月除息ETF配息會縮水嗎？從淨值組成與3大指標看懂續航力，附00919、00929、00981A實測數據",
+          "title": "12月除息ETF配息會縮水嗎？從淨值組成與3大指標看懂續航力，附00918、00919、00929、00981A實測數據",
           "url": "https://www.sinotrade.com.tw/richclub/aiinvest/12%E6%9C%88%E9%99%A4%E6%81%AFETF%E9%85%8D%E6%81%AF%E6%9C%83%E7%B8%AE%E6%B0%B4%E5%97%8E-%E5%BE%9E%E6%B7%A8%E5%80%BC%E7%B5%84%E6%88%90%E8%88%873%E5%A4%A7%E6%8C%87%E6%A8%99%E7%9C%8B%E6%87%82%E7%BA%8C%E8%88%AA%E5%8A%9B-%E9%99%8400919-00929-00981A%E5%AF%A6%E6%B8%AC%E6%95%B8%E6%93%9A-6b07d55751e7010130dd06ba",
           "source": "永豐金證券",
           "date": "2026-11-26 14:53",
@@ -44,11 +59,11 @@
       ],
       "items": [
         {
-          "title": "2026/11/26 00991A今日操作明細",
-          "url": "https://www.cmoney.tw/forum/article/190017200",
-          "source": "CMoney",
-          "date": "2026-11-26 18:11",
-          "datetime": "2026-11-26T18:11:46+08:00"
+          "title": "國巨等3檔掰了！00991A最新操作曝光 重押金像電連買3天",
+          "url": "https://news.tvbs.com.tw/money/4057341",
+          "source": "TVBS新聞",
+          "date": "2026-11-28 10:05",
+          "datetime": "2026-11-28T10:05:00+08:00"
         }
       ]
     },
@@ -88,25 +103,25 @@
       ],
       "items": [
         {
-          "title": "00418A 主動復華台灣新星- 超弱女戰神。玉山都回9元了。 你去跟毒藥經理人結拜吧- 股市爆料同學會",
-          "url": "https://www.cmoney.tw/forum/article/189947212",
-          "source": "CMoney",
-          "date": "2026-11-26 10:46",
-          "datetime": "2026-11-26T10:46:16+08:00"
-        },
-        {
-          "title": "主動復華台灣新星（00418A）持股操作被質疑－熱門話題｜股市爆料同學會",
-          "url": "https://mobile.cmoney.tw/forum/stock/00418A?s=risk&trending=2",
-          "source": "CMoney",
-          "date": "2026-11-23 18:35",
-          "datetime": "2026-11-23T18:35:28+08:00"
-        },
-        {
           "title": "主動復華台灣新星（00418A）6字頭還能低接嗎－熱門話題｜股市爆料同學會",
           "url": "https://www.cmoney.tw/forum/stock/00418A?trending=1",
           "source": "CMoney",
           "date": "2026-11-23 14:35",
           "datetime": "2026-11-23T14:35:15+08:00"
+        },
+        {
+          "title": "主動復華台灣新星（00418A）持股操作被質疑－熱門話題｜股市爆料同學會",
+          "url": "https://mobile.cmoney.tw/forum/stock/00418A?s=risk&trending=2",
+          "source": "CMoney",
+          "date": "2026-11-22 19:49",
+          "datetime": "2026-11-22T19:49:17+08:00"
+        },
+        {
+          "title": "主動復華台灣新星（00418A）破發低接等時機－熱門話題｜股市爆料同學會",
+          "url": "https://mobile.cmoney.tw/forum/stock/00418A?s=revenue-source&trending=1",
+          "source": "CMoney",
+          "date": "2026-11-22 12:40",
+          "datetime": "2026-11-22T12:40:31+08:00"
         }
       ]
     },
@@ -418,14 +433,14 @@
       "board": "其他",
       "title": "台灣選舉一般會如何影響股市呢？",
       "url": "https://fundhot.com/forum/%E5%85%B6%E4%BB%96/%E5%8F%B0%E7%81%A3%E9%81%B8%E8%88%89%E4%B8%80%E8%88%AC%E6%9C%83%E5%A6%82%E4%BD%95%E5%BD%B1%E9%9F%BF%E8%82%A1%E5%B8%82%E5%91%A2%EF%BC%9F/14086",
-      "date": "2026-11-27"
+      "first_seen": "2026-11-28"
     },
     {
       "platform": "fundhot",
       "board": "總經觀點",
       "title": "台積電上市就買也未必能發財！買對靠眼光，抱住靠修煉",
       "url": "https://fundhot.com/forum/%E7%B8%BD%E7%B6%93%E8%A7%80%E9%BB%9E/%E5%8F%B0%E7%A9%8D%E9%9B%BB%E4%B8%8A%E5%B8%82%E5%B0%B1%E8%B2%B7%E4%B9%9F%E6%9C%AA%E5%BF%85%E8%83%BD%E7%99%BC%E8%B2%A1%EF%BC%81%E8%B2%B7%E5%B0%8D%E9%9D%A0%E7%9C%BC%E5%85%89%EF%BC%8C%E6%8A%B1%E4%BD%8F%E9%9D%A0%E4%BF%AE%E7%85%89/14085",
-      "date": "2026-11-27"
+      "first_seen": "2026-11-28"
     },
     {
       "platform": "fundhot",
@@ -475,7 +490,7 @@
       "channel": "AutoIP財經新聞",
       "url": "https://www.youtube.com/shorts/1Qc4FD0VX_0",
       "date": "2026-11-21",
-      "views": 5296,
+      "views": 5306,
       "short": true
     },
     {
@@ -484,25 +499,15 @@
       "channel": "存股翊點通",
       "url": "https://www.youtube.com/watch?v=hPInR2mWUZ4",
       "date": "2026-11-24",
-      "views": 3891
+      "views": 4445
     },
     {
       "platform": "youtube",
-      "title": "4萬9跌到3萬6實測！00919、00878、0056、00929 實際跌幅誰最抗跌？現在該抄底哪一檔｜存股翊點通 #00919 #0056 #00878 #00929 #存股翊點通 #高股息ETF",
-      "channel": "存股翊點通",
-      "url": "https://www.youtube.com/watch?v=Dve_DTHOM3w",
-      "date": "2026-11-20",
-      "views": 3374
-    },
-    {
-      "platform": "youtube",
-      "title": "【新聞挖挖哇】黃仁勳為何突然回任？全球股災台股趨勢大預言？輝達CEO下台11天從造神變抄家！看懂後川普時代理財策略！升息後股市有什麼變化？20261124 來賓：李鎮宇、詹惠珠、林萃芬、黃宥嘉、蘇家宏",
-      "channel": "新聞挖挖哇！",
-      "url": "https://www.youtube.com/watch?v=K1h_D2OP1Ok",
-      "date": "2026-11-24",
-      "views": 506650,
-      "peer": true,
-      "cat": "市場趨勢"
+      "title": "【實盤公開】月線死叉恐磨到 2027 年？但我已出手抄底 00929、QQQ、ETH！這 5 檔「週線抄底訊號」已亮燈（免費送防接刀指標）",
+      "channel": "JUSTIN投資日記",
+      "url": "https://www.youtube.com/watch?v=1O451aWJlHQ",
+      "date": "2026-11-23",
+      "views": 1655
     },
     {
       "platform": "youtube",
@@ -510,7 +515,7 @@
       "channel": "鏡發財",
       "url": "https://www.youtube.com/watch?v=KRxd-R7DoZA",
       "date": "2026-11-25",
-      "views": 286408,
+      "views": 291312,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -520,7 +525,7 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=SMZpHfK70E8",
       "date": "2026-11-24",
-      "views": 207198,
+      "views": 213472,
       "peer": true,
       "cat": "市值型"
     },
@@ -530,19 +535,9 @@
       "channel": "老王愛說笑",
       "url": "https://www.youtube.com/watch?v=T7ckbMClOG0",
       "date": "2026-11-24",
-      "views": 180701,
+      "views": 182271,
       "peer": true,
       "cat": "市值型"
-    },
-    {
-      "platform": "youtube",
-      "title": "股市反彈騙散戶?  別忽視這關鍵! 美股逼近熊市、台股急拉千點！國安基金與禁空令聯手，外資態度藏驚人轉折？美股、台積電、輝達、美光、財經趨勢 11/23/26【宏爺講股】",
-      "channel": "宏爺講股",
-      "url": "https://www.youtube.com/watch?v=YnT94RywRVo",
-      "date": "2026-11-23",
-      "views": 148463,
-      "peer": true,
-      "cat": "基金"
     },
     {
       "platform": "youtube",
@@ -550,19 +545,39 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=ydX2wHSGnjE",
       "date": "2026-11-25",
-      "views": 142407,
+      "views": 165458,
       "peer": true,
       "cat": "高股息"
     },
     {
       "platform": "youtube",
-      "title": "「台灣人沒這麼有錢過」被華爾街狼王盯上！台人「努力儲蓄」成弱點遭狙殺：金融股也被砸盤！ -【關鍵時刻】 張炤和",
-      "channel": "關鍵時刻",
-      "url": "https://www.youtube.com/watch?v=ZcuoHgJ_btw",
-      "date": "2026-11-26",
-      "views": 140534,
+      "title": "live加開場直播!黃仁勳回來了？！台股夜盤爆噴2600點！ #黃仁勳",
+      "channel": "一綺聊股",
+      "url": "https://www.youtube.com/watch?v=t-g6P7pnfKY",
+      "date": "2026-11-23",
+      "views": 165268,
       "peer": true,
-      "cat": "綜合"
+      "cat": "市場趨勢"
+    },
+    {
+      "platform": "youtube",
+      "title": "當沖ETF慘遭鎖喉畢業！00981A炸1.04億違約 誤把避風港玩成火葬場｜#寰宇財經新聞 @globalmoneytv",
+      "channel": "寰宇財經新聞",
+      "url": "https://www.youtube.com/watch?v=95gmfsBCXwk",
+      "date": "2026-11-27",
+      "views": 150965,
+      "peer": true,
+      "cat": "主動式"
+    },
+    {
+      "platform": "youtube",
+      "title": "股市反彈騙散戶?  別忽視這關鍵! 美股逼近熊市、台股急拉千點！國安基金與禁空令聯手，外資態度藏驚人轉折？美股、台積電、輝達、美光、財經趨勢 11/23/26【宏爺講股】",
+      "channel": "宏爺講股",
+      "url": "https://www.youtube.com/watch?v=YnT94RywRVo",
+      "date": "2026-11-23",
+      "views": 148706,
+      "peer": true,
+      "cat": "基金"
     },
     {
       "platform": "youtube",
@@ -570,7 +585,7 @@
       "channel": "非凡Hot台股",
       "url": "https://www.youtube.com/watch?v=k2uEu7855UE",
       "date": "2026-11-24",
-      "views": 113304,
+      "views": 113367,
       "peer": true,
       "cat": "綜合"
     },
@@ -580,24 +595,25 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=vHDI4G0O1DE",
       "date": "2026-11-23",
-      "views": 98956,
+      "views": 103602,
       "peer": true,
       "cat": "高股息"
     },
     {
       "platform": "youtube",
-      "title": "301關稅豁免,台股鬆一口氣!國家隊出手股匯雙漲 AI股回神!穩住了嗎?外資感恩節大買主動ETF.美債ETF 居心叵測?｜20261126(第1/8段)股市現場*鄭明娟(孫慶龍×黃紫東×謝晨彥)",
-      "channel": "非凡 股市現場",
-      "url": "https://www.youtube.com/watch?v=MvIptFA_X7A",
-      "date": "2026-11-26",
-      "views": 51848,
+      "title": "ETF質押、溢價追買有哪些風險？從過度槓桿到當沖的投資誤區｜周冠男專訪 EP3",
+      "channel": "富邦證券",
+      "url": "https://www.youtube.com/watch?v=xcPGM8M-lfs",
+      "date": "2026-11-25",
+      "views": 99735,
       "peer": true,
-      "cat": "債券"
+      "cat": "綜合"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00418A（詳下方新聞標籤）",
+    "品牌焦點：投資大趨勢論壇12月16日登場 金管會扮推手 新型 ETF 有影（經濟日報）",
     "社群聲量最高：台灣選舉一般會如何影響股市呢？（0 推）",
-    "YouTube 熱片：【新聞挖挖哇】黃仁勳為何突然回任？全球股災台股趨勢大預言？輝達CEO下台11天從造神變抄家！看懂後川普時代理財策略！升息後股市有什麼變化？20261124 來賓：李鎮宇、詹惠珠、林萃芬、黃宥嘉、蘇家宏（新聞挖挖哇！・506,650 次觀看）"
+    "YouTube 熱片：【錢鏡你家緊急加映】台股狂瀉14000點還沒完？杜金龍曝2大短底訊號、1空頭警訊 ft.台股老先覺 杜金龍（鏡發財・291,312 次觀看）"
   ]
 }
